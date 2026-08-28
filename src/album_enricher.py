@@ -13,17 +13,33 @@ def clean_album_title(title: str) -> str:
     """Normalizes album title by removing edition/remaster tags and standardizing casing."""
     if not title:
         return ""
-    # Strip edition suffixes like (Special Edition), [Remastered], etc.
+    # Normalize unicode quotes and dashes
+    cleaned = title.replace("’", "'").replace("‘", "'").replace("–", "-").replace("—", "-").replace("‐", "-")
     cleaned = re.sub(
-        r'\s*[\(\[](?:special edition|deluxe edition|deluxe|expanded edition|expanded|remastered|remaster|bonus track[s]? edition|bonus tracks|\d+th anniversary edition|anniversary edition|explicit|clean|tour edition|limited edition)[\)\]]',
+        r'\s*[\(\[](?:special edition|deluxe edition|deluxe box set|deluxe|box set|expanded edition|expanded|remastered|remaster|bonus track[s]? edition|bonus tracks|\d+th anniversary edition|anniversary edition|explicit|clean|tour edition|limited edition)[\)\]]',
         '',
-        title,
+        cleaned,
         flags=re.IGNORECASE
     ).strip()
     
-    # Fix known casing duplicates
-    if cleaned.lower() == "metropolis, pt. 2: scenes from a memory":
+    # Fix known casing and name duplicates
+    c_low = cleaned.lower()
+    if c_low == "metropolis, pt. 2: scenes from a memory":
         return "Metropolis, Pt. 2: Scenes from a Memory"
+    if c_low in ["kill 'em all", "kill 'em all (remastered)"]:
+        return "Kill 'Em All"
+    if c_low == "reload":
+        return "Reload"
+    if c_low == "load":
+        return "Load"
+    if c_low in ["hardwired... to self-destruct", "hardwired...to self-destruct"]:
+        return "Hardwired... to Self-Destruct"
+    if c_low == "...and justice for all":
+        return "...And Justice for All"
+    if c_low == "ride the lightning":
+        return "Ride the Lightning"
+    if c_low == "master of puppets":
+        return "Master of Puppets"
     return cleaned
 
 def is_blacklisted_album(title: str) -> bool:
@@ -36,9 +52,233 @@ def is_blacklisted_album(title: str) -> bool:
         "live at", "live in", "live & alive", "greatest hit", "greatest hits", "the best of",
         "best of", "anthology", "the collection", "singles collection", "gold", "platinum",
         "essential", "very best of", "motion picture", "soundtrack", "original album series",
-        "studio albums 1992", "the story so far"
+        "studio albums 1992", "the story so far", "the album network", "tune up"
     ]
     return any(b in t for b in blacklisted)
+
+CANONICAL_ALBUM_YEARS = {
+    # Metallica
+    ("metallica", "kill 'em all"): 1983,
+    ("metallica", "ride the lightning"): 1984,
+    ("metallica", "master of puppets"): 1986,
+    ("metallica", "...and justice for all"): 1988,
+    ("metallica", "metallica"): 1991,
+    ("metallica", "load"): 1996,
+    ("metallica", "reload"): 1997,
+    ("metallica", "garage inc."): 1998,
+    ("metallica", "st. anger"): 2003,
+    ("metallica", "death magnetic"): 2008,
+    ("metallica", "hardwired... to self-destruct"): 2016,
+    ("metallica", "72 seasons"): 2023,
+    # Dream Theater
+    ("dream theater", "when dream and day unite"): 1989,
+    ("dream theater", "images and words"): 1992,
+    ("dream theater", "awake"): 1994,
+    ("dream theater", "falling into infinity"): 1997,
+    ("dream theater", "metropolis, pt. 2: scenes from a memory"): 1999,
+    ("dream theater", "six degrees of inner turbulence"): 2002,
+    ("dream theater", "train of thought"): 2003,
+    ("dream theater", "octavarium"): 2005,
+    ("dream theater", "systematic chaos"): 2007,
+    ("dream theater", "black clouds & silver linings"): 2009,
+    ("dream theater", "a dramatic turn of events"): 2011,
+    ("dream theater", "dream theater"): 2013,
+    ("dream theater", "the astonishing"): 2016,
+    ("dream theater", "distance over time"): 2019,
+    ("dream theater", "a view from the top of the world"): 2021,
+    ("dream theater", "parasomnia"): 2025,
+    # Iron Maiden
+    ("iron maiden", "iron maiden"): 1980,
+    ("iron maiden", "killers"): 1981,
+    ("iron maiden", "the number of the beast"): 1982,
+    ("iron maiden", "piece of mind"): 1983,
+    ("iron maiden", "powerslave"): 1984,
+    ("iron maiden", "somewhere in time"): 1986,
+    ("iron maiden", "seventh son of a seventh son"): 1988,
+    ("iron maiden", "no prayer for the dying"): 1990,
+    ("iron maiden", "fear of the dark"): 1992,
+    ("iron maiden", "the x factor"): 1995,
+    ("iron maiden", "virtual xi"): 1998,
+    ("iron maiden", "brave new world"): 2000,
+    ("iron maiden", "dance of death"): 2003,
+    ("iron maiden", "a matter of life and death"): 2006,
+    ("iron maiden", "the final frontier"): 2010,
+    ("iron maiden", "the book of souls"): 2015,
+    ("iron maiden", "senjutsu"): 2021,
+    # Megadeth
+    ("megadeth", "killing is my business... and business is good!"): 1985,
+    ("megadeth", "peace sells... but who's buying?"): 1986,
+    ("megadeth", "so far, so good... so what!"): 1988,
+    ("megadeth", "rust in peace"): 1990,
+    ("megadeth", "countdown to extinction"): 1992,
+    ("megadeth", "youthanasia"): 1994,
+    ("megadeth", "cryptic writings"): 1997,
+    ("megadeth", "risk"): 1999,
+    ("megadeth", "the world needs a hero"): 2001,
+    ("megadeth", "the system has failed"): 2004,
+    ("megadeth", "united abominations"): 2007,
+    ("megadeth", "endgame"): 2009,
+    ("megadeth", "th1rt3en"): 2011,
+    ("megadeth", "super collider"): 2013,
+    ("megadeth", "dystopia"): 2016,
+    ("megadeth", "the sick, the dying... and the dead!"): 2022,
+}
+
+CANONICAL_TRACK_ALBUMS = {
+    # Metallica - Kill 'Em All (1983)
+    ("metallica", "hit the lights"): ("Kill 'Em All", 1983),
+    ("metallica", "the four horsemen"): ("Kill 'Em All", 1983),
+    ("metallica", "motorbreath"): ("Kill 'Em All", 1983),
+    ("metallica", "jump in the fire"): ("Kill 'Em All", 1983),
+    ("metallica", "(anesthesia) - pulling teeth"): ("Kill 'Em All", 1983),
+    ("metallica", "(anesthesia) pulling teeth"): ("Kill 'Em All", 1983),
+    ("metallica", "anesthesia - pulling teeth"): ("Kill 'Em All", 1983),
+    ("metallica", "whiplash"): ("Kill 'Em All", 1983),
+    ("metallica", "phantom lord"): ("Kill 'Em All", 1983),
+    ("metallica", "no remorse"): ("Kill 'Em All", 1983),
+    ("metallica", "seek & destroy"): ("Kill 'Em All", 1983),
+    ("metallica", "seek and destroy"): ("Kill 'Em All", 1983),
+    ("metallica", "metal militia"): ("Kill 'Em All", 1983),
+    # Metallica - Ride the Lightning (1984)
+    ("metallica", "fight fire with fire"): ("Ride the Lightning", 1984),
+    ("metallica", "ride the lightning"): ("Ride the Lightning", 1984),
+    ("metallica", "for whom the bell tolls"): ("Ride the Lightning", 1984),
+    ("metallica", "fade to black"): ("Ride the Lightning", 1984),
+    ("metallica", "trapped under ice"): ("Ride the Lightning", 1984),
+    ("metallica", "escape"): ("Ride the Lightning", 1984),
+    ("metallica", "creeping death"): ("Ride the Lightning", 1984),
+    ("metallica", "the call of ktulu"): ("Ride the Lightning", 1984),
+    # Metallica - Master of Puppets (1986)
+    ("metallica", "battery"): ("Master of Puppets", 1986),
+    ("metallica", "master of puppets"): ("Master of Puppets", 1986),
+    ("metallica", "the thing that should not be"): ("Master of Puppets", 1986),
+    ("metallica", "welcome home (sanitarium)"): ("Master of Puppets", 1986),
+    ("metallica", "disposable heroes"): ("Master of Puppets", 1986),
+    ("metallica", "leper messiah"): ("Master of Puppets", 1986),
+    ("metallica", "orion"): ("Master of Puppets", 1986),
+    ("metallica", "damage, inc."): ("Master of Puppets", 1986),
+    ("metallica", "damage inc."): ("Master of Puppets", 1986),
+    # Metallica - ...And Justice for All (1988)
+    ("metallica", "blackened"): ("...And Justice for All", 1988),
+    ("metallica", "...and justice for all"): ("...And Justice for All", 1988),
+    ("metallica", "and justice for all"): ("...And Justice for All", 1988),
+    ("metallica", "eye of the beholder"): ("...And Justice for All", 1988),
+    ("metallica", "one"): ("...And Justice for All", 1988),
+    ("metallica", "the shortest straw"): ("...And Justice for All", 1988),
+    ("metallica", "harvester of sorrow"): ("...And Justice for All", 1988),
+    ("metallica", "the frayed ends of sanity"): ("...And Justice for All", 1988),
+    ("metallica", "to live is to die"): ("...And Justice for All", 1988),
+    ("metallica", "dyers eve"): ("...And Justice for All", 1988),
+    # Metallica - Metallica / The Black Album (1991)
+    ("metallica", "enter sandman"): ("Metallica", 1991),
+    ("metallica", "sad but true"): ("Metallica", 1991),
+    ("metallica", "holier than thou"): ("Metallica", 1991),
+    ("metallica", "the unforgiven"): ("Metallica", 1991),
+    ("metallica", "wherever i may roam"): ("Metallica", 1991),
+    ("metallica", "don't tread on me"): ("Metallica", 1991),
+    ("metallica", "through the never"): ("Metallica", 1991),
+    ("metallica", "nothing else matters"): ("Metallica", 1991),
+    ("metallica", "of wolf and man"): ("Metallica", 1991),
+    ("metallica", "the god that failed"): ("Metallica", 1991),
+    ("metallica", "my friend of misery"): ("Metallica", 1991),
+    ("metallica", "the struggle within"): ("Metallica", 1991),
+    # Metallica - Load (1996)
+    ("metallica", "ain't my bitch"): ("Load", 1996),
+    ("metallica", "2 x 4"): ("Load", 1996),
+    ("metallica", "2x4"): ("Load", 1996),
+    ("metallica", "the house jack built"): ("Load", 1996),
+    ("metallica", "until it sleeps"): ("Load", 1996),
+    ("metallica", "king nothing"): ("Load", 1996),
+    ("metallica", "hero of the day"): ("Load", 1996),
+    ("metallica", "bleeding me"): ("Load", 1996),
+    ("metallica", "cure"): ("Load", 1996),
+    ("metallica", "poor twisted me"): ("Load", 1996),
+    ("metallica", "wasting my hate"): ("Load", 1996),
+    ("metallica", "mama said"): ("Load", 1996),
+    ("metallica", "thorn within"): ("Load", 1996),
+    ("metallica", "ronnie"): ("Load", 1996),
+    ("metallica", "the outlaw torn"): ("Load", 1996),
+    # Metallica - Reload (1997)
+    ("metallica", "fuel"): ("Reload", 1997),
+    ("metallica", "the memory remains"): ("Reload", 1997),
+    ("metallica", "devil's dance"): ("Reload", 1997),
+    ("metallica", "the unforgiven ii"): ("Reload", 1997),
+    ("metallica", "the unforgiven 2"): ("Reload", 1997),
+    ("metallica", "better than you"): ("Reload", 1997),
+    ("metallica", "slither"): ("Reload", 1997),
+    ("metallica", "carpe diem baby"): ("Reload", 1997),
+    ("metallica", "bad seed"): ("Reload", 1997),
+    ("metallica", "where the wild things are"): ("Reload", 1997),
+    ("metallica", "prince charming"): ("Reload", 1997),
+    ("metallica", "low man's lyric"): ("Reload", 1997),
+    ("metallica", "attitude"): ("Reload", 1997),
+    ("metallica", "fixxxer"): ("Reload", 1997),
+    # Metallica - Garage Inc. (1998)
+    ("metallica", "whiskey in the jar"): ("Garage Inc.", 1998),
+    ("metallica", "turn the page"): ("Garage Inc.", 1998),
+    ("metallica", "die, die my darling"): ("Garage Inc.", 1998),
+    ("metallica", "am i evil?"): ("Garage Inc.", 1998),
+    ("metallica", "breadfan"): ("Garage Inc.", 1998),
+    ("metallica", "blitzkrieg"): ("Garage Inc.", 1998),
+    ("metallica", "the prince"): ("Garage Inc.", 1998),
+    ("metallica", "stone cold crazy"): ("Garage Inc.", 1998),
+    ("metallica", "sabbra cadabra"): ("Garage Inc.", 1998),
+    ("metallica", "mercyful fate"): ("Garage Inc.", 1998),
+    ("metallica", "astronomy"): ("Garage Inc.", 1998),
+    ("metallica", "it's electric"): ("Garage Inc.", 1998),
+    # Metallica - St. Anger (2003)
+    ("metallica", "frantic"): ("St. Anger", 2003),
+    ("metallica", "st. anger"): ("St. Anger", 2003),
+    ("metallica", "some kind of monster"): ("St. Anger", 2003),
+    ("metallica", "dirty window"): ("St. Anger", 2003),
+    ("metallica", "invisible kid"): ("St. Anger", 2003),
+    ("metallica", "my world"): ("St. Anger", 2003),
+    ("metallica", "shoot me again"): ("St. Anger", 2003),
+    ("metallica", "sweet amber"): ("St. Anger", 2003),
+    ("metallica", "the unnamed feeling"): ("St. Anger", 2003),
+    ("metallica", "purify"): ("St. Anger", 2003),
+    ("metallica", "all within my hands"): ("St. Anger", 2003),
+    # Metallica - Death Magnetic (2008)
+    ("metallica", "that was just your life"): ("Death Magnetic", 2008),
+    ("metallica", "the end of the line"): ("Death Magnetic", 2008),
+    ("metallica", "broken, beat & scarred"): ("Death Magnetic", 2008),
+    ("metallica", "the day that never comes"): ("Death Magnetic", 2008),
+    ("metallica", "all nightmare long"): ("Death Magnetic", 2008),
+    ("metallica", "cyanide"): ("Death Magnetic", 2008),
+    ("metallica", "the unforgiven iii"): ("Death Magnetic", 2008),
+    ("metallica", "the unforgiven 3"): ("Death Magnetic", 2008),
+    ("metallica", "the judas kiss"): ("Death Magnetic", 2008),
+    ("metallica", "suicide & redemption"): ("Death Magnetic", 2008),
+    ("metallica", "my apocalypse"): ("Death Magnetic", 2008),
+    # Metallica - Hardwired... to Self-Destruct (2016)
+    ("metallica", "hardwired"): ("Hardwired... to Self-Destruct", 2016),
+    ("metallica", "atlas, rise!"): ("Hardwired... to Self-Destruct", 2016),
+    ("metallica", "now that we're dead"): ("Hardwired... to Self-Destruct", 2016),
+    ("metallica", "moth into flame"): ("Hardwired... to Self-Destruct", 2016),
+    ("metallica", "dream no more"): ("Hardwired... to Self-Destruct", 2016),
+    ("metallica", "halo on fire"): ("Hardwired... to Self-Destruct", 2016),
+    ("metallica", "confusion"): ("Hardwired... to Self-Destruct", 2016),
+    ("metallica", "manunkind"): ("Hardwired... to Self-Destruct", 2016),
+    ("metallica", "here comes revenge"): ("Hardwired... to Self-Destruct", 2016),
+    ("metallica", "am i savage?"): ("Hardwired... to Self-Destruct", 2016),
+    ("metallica", "murder one"): ("Hardwired... to Self-Destruct", 2016),
+    ("metallica", "spit out the bone"): ("Hardwired... to Self-Destruct", 2016),
+    ("metallica", "lords of summer"): ("Hardwired... to Self-Destruct", 2016),
+    # Metallica - 72 Seasons (2023)
+    ("metallica", "72 seasons"): ("72 Seasons", 2023),
+    ("metallica", "shadows follow"): ("72 Seasons", 2023),
+    ("metallica", "screaming suicide"): ("72 Seasons", 2023),
+    ("metallica", "sleepwalk my life away"): ("72 Seasons", 2023),
+    ("metallica", "you must burn!"): ("72 Seasons", 2023),
+    ("metallica", "lux æterna"): ("72 Seasons", 2023),
+    ("metallica", "lux aeterna"): ("72 Seasons", 2023),
+    ("metallica", "crown of barbed wire"): ("72 Seasons", 2023),
+    ("metallica", "chasing light"): ("72 Seasons", 2023),
+    ("metallica", "if darkness had a son"): ("72 Seasons", 2023),
+    ("metallica", "too far gone?"): ("72 Seasons", 2023),
+    ("metallica", "room of mirrors"): ("72 Seasons", 2023),
+    ("metallica", "inamorata"): ("72 Seasons", 2023),
+}
 
 class AlbumEnricher:
     """
@@ -124,8 +364,27 @@ class AlbumEnricher:
                         continue
 
                     title = clean_album_title(raw_title)
-                    date_str = rel.get("date", "")
-                    yr = int(date_str[:4]) if date_str and date_str[:4].isdigit() else None
+                    
+                    # Extract earliest valid year across release-group, recording, and release dates
+                    rg_date = rg.get("first-release-date", "")
+                    rec_date = rec.get("first-release-date", "")
+                    rel_date = rel.get("date", "")
+                    
+                    years = []
+                    for d_str in [rg_date, rec_date, rel_date]:
+                        if d_str and len(d_str) >= 4 and d_str[:4].isdigit():
+                            y = int(d_str[:4])
+                            if 1950 <= y <= 2026:
+                                years.append(y)
+                    
+                    yr = min(years) if years else None
+                    
+                    # Canonical year override for known albums
+                    artist_clean = artist_name.strip().lower()
+                    album_clean = title.strip().lower()
+                    if (artist_clean, album_clean) in CANONICAL_ALBUM_YEARS:
+                        yr = CANONICAL_ALBUM_YEARS[(artist_clean, album_clean)]
+
                     if yr:
                         album_years[title] = min(album_years.get(title, 9999), yr)
 
@@ -165,7 +424,7 @@ class AlbumEnricher:
         if is_blacklisted_album(album):
             return False
         # Check if contains unclean edition tags
-        if re.search(r'[\(\[](?:special edition|deluxe edition|remastered|bonus tracks)[\)\]]', album, re.IGNORECASE):
+        if re.search(r'[\(\[](?:special edition|deluxe edition|remastered|bonus tracks|box set)[\)\]]', album, re.IGNORECASE):
             return False
         # Check casing consistency
         if album == "Metropolis, Pt. 2: Scenes From a Memory":
@@ -173,6 +432,23 @@ class AlbumEnricher:
         # If user explicitly requested refresh of unresolved tracks
         if refresh_unresolved and album == "Non-Album / Singles":
             return False
+
+        # Invalidate known misattributed or future-dated records
+        artist = (cached.get("artist") or "").strip().lower()
+        song = (cached.get("song") or "").strip().lower()
+        album_clean = clean_album_title(album).strip().lower()
+        yr = cached.get("release_year")
+
+        if (artist, song) in CANONICAL_TRACK_ALBUMS:
+            expected_album, expected_yr = CANONICAL_TRACK_ALBUMS[(artist, song)]
+            if album_clean != expected_album.strip().lower() or yr != expected_yr:
+                return False
+
+        if (artist, album_clean) in CANONICAL_ALBUM_YEARS:
+            expected_yr = CANONICAL_ALBUM_YEARS[(artist, album_clean)]
+            if yr != expected_yr:
+                return False
+
         return True
 
     def get_track_info(self, artist_name: str, song_name: str, song_obj: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
@@ -198,6 +474,21 @@ class AlbumEnricher:
         # Cache key
         cache_key = "".join(c if c.isalnum() else "_" for c in f"{artist_name}_{song_name}".lower())
         cache_file = MB_CACHE_DIR / f"{cache_key}.json"
+
+        # Check canonical track albums first!
+        art_norm = artist_name.strip().lower()
+        song_norm = song_name.strip().lower()
+        if (art_norm, song_norm) in CANONICAL_TRACK_ALBUMS:
+            can_album, can_yr = CANONICAL_TRACK_ALBUMS[(art_norm, song_norm)]
+            result["album"] = can_album
+            result["release_year"] = can_yr
+            result["resolved"] = True
+            try:
+                with open(cache_file, "w", encoding="utf-8") as f:
+                    json.dump(result, f, indent=2)
+            except Exception:
+                pass
+            return result
 
         if cache_file.exists():
             try:
