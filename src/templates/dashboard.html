@@ -1,0 +1,1438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live Concert & Setlist Analytics Dashboard</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js and Plotly -->
+  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+  <!-- FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Leaflet Map CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    body { background-color: #0f172a; color: #f8fafc; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; }
+    .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 1rem; }
+    .badge { display: inline-flex; align-items: center; padding: 0.2rem 0.6rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+    .custom-venue-pin {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #6366f1, #a855f7);
+      color: #ffffff;
+      font-weight: 800;
+      font-size: 11px;
+      border-radius: 50%;
+      border: 2px solid #ffffff;
+      box-shadow: 0 0 16px rgba(99, 102, 241, 0.7);
+      cursor: pointer;
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .custom-venue-pin:hover {
+      transform: scale(1.3);
+      z-index: 1000 !important;
+    }
+    .leaflet-popup-content-wrapper {
+      background: #1e293b !important;
+      color: #f8fafc !important;
+      border: 1px solid rgba(255, 255, 255, 0.15) !important;
+      border-radius: 0.85rem !important;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.6) !important;
+    }
+    .leaflet-popup-tip {
+      background: #1e293b !important;
+    }
+    .leaflet-container {
+      background: #0f172a !important;
+    }
+  </style>
+</head>
+<body class="min-h-screen p-4 md:p-8">
+
+  <!-- Header -->
+  <header class="max-w-7xl mx-auto mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div>
+      <button onclick="switchTab('overview')" class="flex items-center gap-3 text-left group focus:outline-none transition cursor-pointer">
+        <div class="w-12 h-12 rounded-xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/30 group-hover:scale-105 group-hover:shadow-indigo-500/50 transition-all">
+          <i class="fa-solid fa-guitar text-2xl"></i>
+        </div>
+        <div>
+          <h1 class="text-3xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-200 to-slate-400 group-hover:from-white group-hover:to-indigo-200 transition-all">
+            Concert & Setlist Analytics
+          </h1>
+        </div>
+      </button>
+    </div>
+
+    <!-- Quick Stats Pill Bar -->
+    <div class="flex flex-wrap gap-2 items-center">
+      <span class="badge bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+        <i class="fa-solid fa-ticket mr-1.5"></i> {{ stats.total_concerts }} Concerts
+      </span>
+      <span class="badge bg-purple-500/20 text-purple-300 border border-purple-500/30">
+        <i class="fa-solid fa-users mr-1.5"></i> {{ stats.total_unique_artists }} Artists
+      </span>
+      <span class="badge bg-pink-500/20 text-pink-300 border border-pink-500/30">
+        <i class="fa-solid fa-music mr-1.5"></i> {{ stats.unique_songs_heard }} Unique Songs
+      </span>
+      <span class="badge bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+        <i class="fa-solid fa-location-dot mr-1.5"></i> {{ stats.total_venues }} Venues
+      </span>
+    </div>
+  </header>
+
+  <!-- Navigation Tabs (Modern Segmented Pill Bar) -->
+  <div class="max-w-7xl mx-auto mb-8">
+    <div class="glass-card p-1.5 flex flex-col lg:flex-row items-center justify-between gap-3 shadow-2xl border border-slate-800/80 bg-slate-900/90 backdrop-blur-xl">
+      <nav class="flex flex-wrap items-center gap-1.5 w-full lg:w-auto">
+        <button onclick="switchTab('overview')" id="tab-overview-btn" class="nav-tab-btn px-3.5 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-500/25 flex items-center gap-2 transition-all">
+          <i class="fa-solid fa-chart-pie"></i> Overview
+        </button>
+        <button onclick="switchTab('concerts')" id="tab-concerts-btn" class="nav-tab-btn px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 flex items-center gap-2 transition-all">
+          <i class="fa-solid fa-ticket text-purple-400"></i> Concerts
+        </button>
+        <button onclick="switchTab('drilldown')" id="tab-drilldown-btn" class="nav-tab-btn px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 flex items-center gap-2 transition-all">
+          <i class="fa-solid fa-magnifying-glass-chart text-pink-400"></i> Artists & Songs
+        </button>
+        <button onclick="switchTab('musicians')" id="tab-musicians-btn" class="nav-tab-btn px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 flex items-center gap-2 transition-all">
+          <i class="fa-solid fa-users-viewfinder text-amber-400"></i> Musicians
+        </button>
+        <button onclick="switchTab('map')" id="tab-map-btn" class="nav-tab-btn px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 flex items-center gap-2 transition-all">
+          <i class="fa-solid fa-map-location-dot text-emerald-400"></i> Venue Map
+        </button>
+        <button onclick="switchTab('advanced')" id="tab-advanced-btn" class="nav-tab-btn px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 flex items-center gap-2 transition-all">
+          <i class="fa-solid fa-wand-magic-sparkles text-cyan-400"></i> Albums & Eras
+        </button>
+        <button onclick="switchTab('setlists')" id="tab-setlists-btn" class="nav-tab-btn px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 flex items-center gap-2 transition-all">
+          <i class="fa-solid fa-list-ul text-blue-400"></i> Setlists
+        </button>
+      </nav>
+
+      <div class="flex items-center gap-2 w-full lg:w-auto justify-end border-t lg:border-t-0 border-slate-800/80 pt-2 lg:pt-0">
+        <button onclick="switchTab('gap')" id="tab-gap-btn" class="nav-tab-btn px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:text-white bg-slate-800/80 border border-slate-700 hover:border-amber-500/50 flex items-center gap-2 transition-all shadow-sm">
+          <i class="fa-solid fa-arrows-split-up-and-left text-amber-400"></i> Gap Analysis
+          {% if gap.csv_missing_or_partial|length > 0 %}
+            <span class="bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-md text-[11px] font-mono font-bold border border-amber-500/30">{{ gap.csv_missing_or_partial|length }}</span>
+          {% endif %}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB CONTENT -->
+  <main class="max-w-7xl mx-auto space-y-8">
+
+    <!-- 1. OVERVIEW & CORE STATS TAB (Default Active) -->
+    <div id="tab-overview" class="space-y-6">
+      
+      <!-- Charts Row: Yearly Timeline & Top Artists -->
+      <!-- Charts Row: Yearly Timeline & Top Artists -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="glass-card p-6 flex flex-col justify-between">
+          <div class="flex items-start justify-between gap-3 mb-4">
+            <div>
+              <h3 class="text-lg font-bold text-white mb-1"><i class="fa-solid fa-calendar-days text-indigo-400 mr-2"></i>Concerts & Songs Over Time</h3>
+              <p class="text-xs text-slate-400">Historical concert count and songs heard by year</p>
+            </div>
+            <button onclick="switchTab('concerts')" class="px-2.5 py-1 rounded-lg bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 border border-indigo-500/30 text-xs font-semibold flex items-center gap-1.5 transition shrink-0">
+              Concert History <i class="fa-solid fa-arrow-right text-[10px]"></i>
+            </button>
+          </div>
+          <div id="chart-timeline" class="w-full h-80"></div>
+        </div>
+
+        <div class="glass-card p-6 flex flex-col justify-between">
+          <div class="flex items-start justify-between gap-3 mb-4">
+            <div>
+              <h3 class="text-lg font-bold text-white mb-1"><i class="fa-solid fa-ranking-star text-pink-400 mr-2"></i>Top Artists Seen Live</h3>
+              <p class="text-xs text-slate-400">Total concerts attended per artist</p>
+            </div>
+            <button onclick="switchTab('drilldown')" class="px-2.5 py-1 rounded-lg bg-pink-500/15 hover:bg-pink-500/25 text-pink-300 border border-pink-500/30 text-xs font-semibold flex items-center gap-1.5 transition shrink-0">
+              Artist Drilldown <i class="fa-solid fa-arrow-right text-[10px]"></i>
+            </button>
+          </div>
+          <div id="chart-top-artists" class="w-full h-80"></div>
+        </div>
+      </div>
+
+      <!-- Top Venues & Top Songs Tables -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        <!-- Top Songs Table -->
+        <div class="glass-card p-6 flex flex-col">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-music text-purple-400"></i> Most Heard Songs Live
+              </h3>
+              <p class="text-xs text-slate-400">Ranked by times experienced in setlists</p>
+            </div>
+            <button onclick="switchTab('drilldown')" class="px-2.5 py-1.5 rounded-lg bg-purple-500/15 hover:bg-purple-500/25 text-purple-300 border border-purple-500/30 text-xs font-semibold flex items-center gap-1.5 transition shrink-0">
+              Song Drilldown <i class="fa-solid fa-arrow-right text-[10px]"></i>
+            </button>
+          </div>
+          <div class="overflow-x-auto max-h-96 overflow-y-auto">
+            <table id="table-top-songs" class="w-full text-left border-collapse">
+              <thead>
+                <tr class="border-b border-slate-800 text-slate-400 text-xs font-semibold uppercase tracking-wider">
+                  <th class="px-3 py-2">#</th>
+                  <th class="px-3 py-2">Song</th>
+                  <th class="px-3 py-2">Artist</th>
+                  <th class="px-3 py-2 text-center">Heard</th>
+                  <th class="px-3 py-2">First Heard</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800/50">
+                {% for s in stats.top_songs %}
+                <tr class="hover:bg-slate-800/40 transition">
+                  <td class="px-3 py-2 text-xs font-mono text-slate-500">{{ loop.index }}</td>
+                  <td class="px-3 py-2 text-xs font-bold text-white">{{ s.song }}</td>
+                  <td class="px-3 py-2 text-xs text-indigo-300">
+                    <button onclick="switchTab('drilldown'); selectArtist('{{ s.artist.replace('\'', '\\\'') }}');" class="hover:underline text-left">
+                      {{ s.artist }}
+                    </button>
+                  </td>
+                  <td class="px-3 py-2 text-xs text-center font-bold text-emerald-400">{{ s.count }}x</td>
+                  <td class="px-3 py-2 text-xs text-slate-400">{{ s.first_seen_date }} ({{ s.first_seen_venue }})</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Top Venues Table -->
+        <div class="glass-card p-6 flex flex-col">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-location-dot text-indigo-400"></i> Top Venues Visited
+              </h3>
+              <p class="text-xs text-slate-400">Venues hosted the most attended concerts</p>
+            </div>
+            <button onclick="switchTab('map')" class="px-2.5 py-1.5 rounded-lg bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 border border-indigo-500/30 text-xs font-semibold flex items-center gap-1.5 transition shrink-0">
+              Venue Map <i class="fa-solid fa-arrow-right text-[10px]"></i>
+            </button>
+          </div>
+          <div class="overflow-x-auto max-h-96 overflow-y-auto">
+            <table id="table-top-venues" class="w-full text-left border-collapse">
+              <thead>
+                <tr class="border-b border-slate-800 text-slate-400 text-xs font-semibold uppercase tracking-wider">
+                  <th class="px-3 py-2">#</th>
+                  <th class="px-3 py-2">Venue</th>
+                  <th class="px-3 py-2 text-center">Concerts</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800/50">
+                {% for v in stats.top_venues %}
+                <tr class="hover:bg-slate-800/40 transition">
+                  <td class="px-3 py-2 text-xs font-mono text-slate-500">{{ loop.index }}</td>
+                  <td class="px-3 py-2 text-xs font-bold text-white">
+                    <button onclick="switchTab('map')" class="hover:underline hover:text-indigo-300 text-left">
+                      {{ v.venue }}
+                    </button>
+                  </td>
+                  <td class="px-3 py-2 text-xs text-center font-bold text-indigo-400">{{ v.count }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 2. CONCERT DRILLDOWN TAB (Chronological Latest to Oldest) -->
+    <div id="tab-concerts" class="hidden space-y-6">
+      
+      <!-- Top Bar: Search / Filter & Actions -->
+      <div class="glass-card p-5">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h2 class="text-lg font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-ticket text-indigo-400"></i> Chronological Concert History & Setlists
+            </h2>
+            <p class="text-xs text-slate-400 mt-0.5">Explore every concert from latest to oldest, grouped by event and artist set, with nth-time heard, show frequencies, and song release ages.</p>
+          </div>
+          <div class="flex flex-wrap items-center gap-3">
+            <input type="text" id="concert-search-input" placeholder="Search artist, venue, or year..." onkeyup="filterConcertCards(this.value)" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 w-64">
+            <button onclick="toggleAllConcertCards()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-indigo-300 border border-slate-700 hover:border-indigo-500/50 transition">
+              Expand / Collapse All
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Concert Cards List -->
+      <div id="concert-cards-list" class="space-y-4">
+        {% for c in stats.concerts_drilldown %}
+        <div class="concert-card glass-card p-5 space-y-4 border border-slate-800/80 hover:border-slate-700/80 transition" data-search="{{ c.date.lower() }} {{ c.venue.lower() }} {{ c.raw_artists.lower() }}">
+          
+          <!-- Concert Event Header -->
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 cursor-pointer select-none border-b border-slate-800/60 pb-3" onclick="toggleConcertDetails('{{ c.id }}')">
+            <div class="flex flex-wrap items-center gap-3">
+              <span class="badge bg-indigo-500/20 text-indigo-300 font-mono text-xs font-bold border border-indigo-500/30 px-2.5 py-1">
+                <i class="fa-solid fa-calendar mr-1.5"></i>{{ c.date }}
+              </span>
+              <span class="text-white font-bold text-base flex items-center gap-2">
+                <i class="fa-solid fa-location-dot text-indigo-400 text-xs"></i> {{ c.venue }}
+              </span>
+              <span class="text-slate-400 text-xs truncate max-w-md">
+                — {{ c.raw_artists }}
+              </span>
+            </div>
+
+            <div class="flex items-center gap-3">
+              <span class="badge bg-slate-800 text-slate-300 text-xs border border-slate-700">
+                <i class="fa-solid fa-users text-slate-400 text-[10px] mr-1"></i> {{ c.total_artists }} {% if c.total_artists == 1 %}Artist{% else %}Artists{% endif %}
+              </span>
+              {% if c.total_songs > 0 %}
+              <span class="badge bg-emerald-500/20 text-emerald-300 text-xs border border-emerald-500/30 font-semibold">
+                <i class="fa-solid fa-music text-[10px] mr-1"></i> {{ c.total_songs }} Songs
+              </span>
+              {% else %}
+              <span class="badge bg-amber-500/15 text-amber-300 text-xs border border-amber-500/30">
+                No Setlist Tagged
+              </span>
+              {% endif %}
+              <i id="concert-chevron-{{ c.id }}" class="fa-solid fa-chevron-down text-slate-400 text-xs transition-transform duration-200"></i>
+            </div>
+          </div>
+
+          <!-- Concert Artists & Sets Body -->
+          <div id="concert-details-{{ c.id }}" class="space-y-6 pt-1">
+            {% for a in c.artists %}
+            <div class="rounded-xl bg-slate-900/40 border border-slate-800/80 p-4 space-y-3">
+              
+              <!-- Artist Subheader -->
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/50 pb-2.5">
+                <div class="flex flex-wrap items-center gap-2.5">
+                  <h3 class="text-white font-black text-sm tracking-wide flex items-center gap-2">
+                    <i class="fa-solid fa-microphone-lines text-indigo-400"></i> {{ a.artist }}
+                  </h3>
+                  <span class="badge bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 text-[11px] font-bold">
+                    <i class="fa-solid fa-eye text-[9px] mr-1"></i> {% if a.artist_seen_nth == 1 %}1st Time Seen (Debut){% elif a.artist_seen_nth == 2 %}2nd Time Seen{% elif a.artist_seen_nth == 3 %}3rd Time Seen{% else %}{{ a.artist_seen_nth }}th Time Seen{% endif %}
+                  </span>
+                  {% if a.total_songs > 0 %}
+                  <span class="text-xs text-slate-400 font-mono">({{ a.total_songs }} songs played)</span>
+                  {% endif %}
+                </div>
+
+                {% if a.setlist_url %}
+                <a href="{{ a.setlist_url }}" target="_blank" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs transition inline-flex items-center gap-1.5 self-start sm:self-auto">
+                  View on Setlist.fm <i class="fa-solid fa-arrow-up-right-from-square text-[9px]"></i>
+                </a>
+                {% endif %}
+              </div>
+
+              <!-- Artist Setlist Sets (Set 1 / Set 2 / Encore / etc.) -->
+              {% if a.grouped_sets and a.grouped_sets|length > 0 %}
+                <div class="space-y-3">
+                  {% for s_group in a.grouped_sets %}
+                  <div class="space-y-1.5">
+                    
+                    <!-- Set Header Label -->
+                    <div class="flex items-center gap-2 pt-1">
+                      <span class="text-xs font-bold uppercase tracking-wider {% if s_group.is_encore %}text-purple-400{% else %}text-indigo-400{% endif %}">
+                        <i class="fa-solid {% if s_group.is_encore %}fa-fire text-purple-400{% else %}fa-list text-indigo-400{% endif %} text-[10px] mr-1"></i>
+                        {{ s_group.set_label }}
+                      </span>
+                      <span class="text-[10px] text-slate-500">({{ s_group.songs|length }} tracks)</span>
+                    </div>
+
+                    <!-- Tracks List -->
+                    <div class="grid grid-cols-1 gap-1.5">
+                      {% for track in s_group.songs %}
+                      <div class="flex flex-col sm:flex-row sm:items-center justify-between p-2 rounded-lg bg-slate-950/40 border border-slate-800/40 hover:border-slate-700/60 text-xs gap-2 transition">
+                        
+                        <!-- Track Name & Nth-Time-Heard & Song Age -->
+                        <div class="flex flex-wrap items-center gap-2.5">
+                          <span class="font-mono text-slate-500 text-[11px] w-5">#{{ loop.index }}</span>
+                          <span class="text-white font-semibold">{{ track.song }}</span>
+
+                          <!-- Nth Time Heard & % of shows -->
+                          <span class="badge bg-emerald-500/15 text-emerald-300 border border-emerald-500/25 text-[10px] font-mono flex items-center gap-1" title="Seen in {{ track.song_heard_nth }} out of {{ track.artist_seen_nth }} shows for this artist">
+                            <i class="fa-solid fa-headphones text-[8px]"></i>
+                            {% if track.song_heard_nth == 1 %}1st time heard{% elif track.song_heard_nth == 2 %}2nd time heard{% elif track.song_heard_nth == 3 %}3rd time heard{% else %}{{ track.song_heard_nth }}th time heard{% endif %}{% if track.artist_seen_nth > 1 %} • {{ track.pct_shows }}% of shows{% endif %}
+                          </span>
+
+                          <!-- Song Age at time of concert -->
+                          {% if track.song_age_str %}
+                          <span class="badge bg-amber-500/15 text-amber-300 border border-amber-500/25 text-[10px] font-mono flex items-center gap-1">
+                            <i class="fa-solid fa-clock-rotate-left text-[8px]"></i> {{ track.song_age_str }}
+                          </span>
+                          {% endif %}
+
+                          <!-- Album Tag -->
+                          <span class="badge bg-slate-800/80 text-indigo-300 border border-indigo-500/20 text-[10px]">
+                            <i class="fa-solid fa-compact-disc text-[8px] mr-1 text-indigo-400"></i> {{ track.album_display }}
+                          </span>
+
+                          {% if track.is_cover %}
+                          <span class="badge bg-pink-500/20 text-pink-300 text-[10px]">Cover ({{ track.cover_original or 'Cover' }})</span>
+                          {% endif %}
+
+                          {% if track.info %}
+                          <span class="text-slate-500 text-[11px] italic">({{ track.info }})</span>
+                          {% endif %}
+                        </div>
+
+                      </div>
+                      {% endfor %}
+                    </div>
+
+                  </div>
+                  {% endfor %}
+                </div>
+              {% else %}
+                <p class="text-xs text-slate-500 italic py-1">Setlist for this artist's performance is not recorded on Setlist.fm.</p>
+              {% endif %}
+
+            </div>
+            {% endfor %}
+          </div>
+
+        </div>
+        {% endfor %}
+      </div>
+
+    </div>
+
+    <!-- 3. ARTIST & SONG DRILLDOWN TAB -->
+    <div id="tab-drilldown" class="hidden space-y-6">
+      
+      <!-- Artist Selection Cards -->
+      <div class="glass-card p-6">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+          <div>
+            <h2 class="text-lg font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-microphone-lines text-indigo-400"></i> Select an Artist to Explore
+            </h2>
+            <p class="text-xs text-slate-400">Click any artist below to inspect all songs heard, filtered by album, ranked by play count, and expand each to see concert dates and venues.</p>
+          </div>
+          <input type="text" id="artist-search-input" placeholder="Filter artist name..." onkeyup="filterArtistButtons(this.value)" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+        </div>
+
+        <div id="artist-button-grid" class="flex flex-wrap gap-2 max-h-48 overflow-y-auto p-1">
+          {% for a in stats.artist_drilldown.values() %}
+          <button onclick="selectArtist('{{ a.artist|replace("'", "\\'") }}')" class="artist-btn px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-indigo-600/30 text-slate-200 hover:text-indigo-200 border border-slate-700 hover:border-indigo-500/50 text-xs font-medium transition flex items-center gap-2" data-name="{{ a.artist.lower() }}">
+            <span>{{ a.artist }}</span>
+            <span class="badge bg-indigo-500/20 text-indigo-300 text-[10px]">{{ a.unique_songs }} songs</span>
+          </button>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Active Artist Drilldown View -->
+      <div id="drilldown-display" class="glass-card p-6 space-y-4">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+          <div>
+            <span class="text-xs font-semibold text-indigo-400 uppercase tracking-wider">Artist Live Song & Album History</span>
+            <h2 id="active-artist-title" class="text-2xl font-black text-white mt-0.5">Select an Artist Above</h2>
+          </div>
+          <div id="active-artist-badges" class="flex gap-2"></div>
+        </div>
+
+        <!-- Filter Controls Row (Song Search & Album Dropdown) -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-slate-900/50 p-3 rounded-xl border border-slate-800">
+          <div class="flex flex-wrap items-center gap-3">
+            <input type="text" id="drilldown-song-filter" placeholder="Search song title..." onkeyup="filterDrilldownSongs()" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 w-64">
+            
+            <div class="flex items-center gap-2">
+              <span class="text-xs text-slate-400 font-medium"><i class="fa-solid fa-compact-disc text-indigo-400 mr-1"></i>Album:</span>
+              <select id="drilldown-album-filter" onchange="filterDrilldownSongs()" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500">
+                <option value="ALL">All Albums</option>
+              </select>
+            </div>
+          </div>
+
+          <button onclick="toggleAllOccurrences()" class="text-xs text-indigo-400 hover:text-indigo-300 font-medium">Expand / Collapse All Occurrences</button>
+        </div>
+
+        <!-- Songs Accordion List -->
+        <div id="drilldown-songs-container" class="space-y-2">
+          <p class="text-sm text-slate-500 italic py-8 text-center">Click any artist above to load their full live catalog and occurrences.</p>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 4. MUSICIANS & MULTI-BAND TENURE TAB -->
+    <div id="tab-musicians" class="hidden space-y-6">
+      
+      <!-- Summary Metrics Bar -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="glass-card p-4">
+          <span class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Musicians Seen</span>
+          <p class="text-2xl font-black text-white mt-1">{{ stats.musicians.total_musicians_tracked }}</p>
+          <p class="text-xs text-slate-500 mt-1">Across tracked band lineups</p>
+        </div>
+        <div class="glass-card p-4">
+          <span class="text-xs text-slate-400 font-semibold uppercase tracking-wider">#1 Most Seen Musician</span>
+          <p class="text-lg font-black text-indigo-400 mt-1 truncate">{{ stats.musicians.top_musicians[0].musician }}</p>
+          <p class="text-xs text-slate-500 mt-1">{{ stats.musicians.top_musicians[0].total_shows }} shows attended</p>
+        </div>
+        <div class="glass-card p-4">
+          <span class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Multi-Project Masters</span>
+          <p class="text-2xl font-black text-purple-400 mt-1">{{ stats.musicians.supergroup_musicians|length }}</p>
+          <p class="text-xs text-slate-500 mt-1">Musicians seen across 2+ bands</p>
+        </div>
+        <div class="glass-card p-4">
+          <span class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Top Multi-Band Member</span>
+          <p class="text-base font-black text-pink-400 mt-1 truncate">{{ stats.musicians.supergroup_musicians[0].musician }}</p>
+          <p class="text-xs text-slate-500 mt-1">{{ stats.musicians.supergroup_musicians[0].unique_bands_count }} different projects ({{ stats.musicians.supergroup_musicians[0].total_shows }} shows)</p>
+        </div>
+      </div>
+
+      <!-- Supergroup & Multi-Band Spotlight Cards -->
+      <div class="glass-card p-6 space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div>
+            <h3 class="text-base font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-bolt text-amber-400"></i> Multi-Band & Supergroup Members
+            </h3>
+            <p class="text-xs text-slate-400">Individual musicians you've seen performing across multiple different bands and solo projects</p>
+          </div>
+          <span class="badge bg-purple-500/20 text-purple-300 border border-purple-500/30">{{ stats.musicians.supergroup_musicians|length }} Multi-Band Artists</span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {% for m in stats.musicians.supergroup_musicians %}
+          <div class="rounded-xl bg-slate-900/60 border border-slate-800 p-4 space-y-3 hover:border-slate-700 transition">
+            <div class="flex items-start justify-between">
+              <div>
+                <h4 class="font-bold text-white text-sm flex items-center gap-1.5">
+                  <i class="fa-solid fa-user-tag text-indigo-400 text-xs"></i> {{ m.musician }}
+                </h4>
+                <p class="text-xs text-slate-400 mt-0.5">{{ m.role }}</p>
+              </div>
+              <span class="badge bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-xs font-bold font-mono">
+                {{ m.total_shows }} Shows
+              </span>
+            </div>
+
+            <!-- Bands Seen In -->
+            <div>
+              <p class="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Projects Seen Live ({{ m.unique_bands_count }}):</p>
+              <div class="flex flex-wrap gap-1.5">
+                {% for b_name, b_count in m.bands.items() %}
+                <span class="badge bg-slate-800 text-slate-200 border border-slate-700 text-xs">
+                  {{ b_name }} <span class="text-indigo-400 ml-1 font-bold">{{ b_count }}x</span>
+                </span>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Full Musician Leaderboard & Directory -->
+      <div class="glass-card p-6 space-y-4">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+          <div>
+            <h3 class="text-base font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-trophy text-amber-400"></i> Most Seen Individual Musicians Leaderboard
+            </h3>
+            <p class="text-xs text-slate-400">Ranked by total concerts attended where this musician was an active band member</p>
+          </div>
+
+          <!-- Instrument Filters & Search -->
+          <div class="flex flex-wrap items-center gap-3">
+            <div class="flex rounded-lg bg-slate-900 border border-slate-800 p-0.5 text-xs">
+              <button onclick="filterMusicianInstrument('all')" id="btn-instr-all" class="px-2.5 py-1 rounded bg-indigo-600 text-white font-semibold transition">All</button>
+              <button onclick="filterMusicianInstrument('Guitar')" id="btn-instr-Guitar" class="px-2.5 py-1 rounded text-slate-400 hover:text-white transition">Guitars</button>
+              <button onclick="filterMusicianInstrument('Drums')" id="btn-instr-Drums" class="px-2.5 py-1 rounded text-slate-400 hover:text-white transition">Drums</button>
+              <button onclick="filterMusicianInstrument('Bass')" id="btn-instr-Bass" class="px-2.5 py-1 rounded text-slate-400 hover:text-white transition">Bass</button>
+              <button onclick="filterMusicianInstrument('Vocals')" id="btn-instr-Vocals" class="px-2.5 py-1 rounded text-slate-400 hover:text-white transition">Vocals</button>
+              <button onclick="filterMusicianInstrument('Keyboards')" id="btn-instr-Keyboards" class="px-2.5 py-1 rounded text-slate-400 hover:text-white transition">Keys</button>
+            </div>
+            <input type="text" id="musician-search-input" placeholder="Search musician..." onkeyup="filterMusicianSearch(this.value)" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 w-48">
+          </div>
+        </div>
+
+        <!-- Musician Leaderboard Table -->
+        <div class="overflow-x-auto max-h-[500px] overflow-y-auto">
+          <table id="table-musicians" class="w-full text-left border-collapse">
+            <thead>
+              <tr class="border-b border-slate-800 text-slate-400 text-xs font-semibold uppercase tracking-wider sticky top-0 bg-slate-900/95 backdrop-blur-md">
+                <th class="px-3 py-2.5">#</th>
+                <th class="px-3 py-2.5">Musician</th>
+                <th class="px-3 py-2.5">Primary Instrument / Role</th>
+                <th class="px-3 py-2.5 text-center">Shows</th>
+                <th class="px-3 py-2.5">Bands & Projects Seen Live</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800/50">
+              {% for m in stats.musicians.top_musicians %}
+              <tr class="musician-row hover:bg-slate-800/40 transition" data-musician-name="{{ m.musician.lower() }}" data-instrument="{{ m.instrument }}">
+                <td class="px-3 py-2.5 text-xs font-mono text-slate-500">{{ loop.index }}</td>
+                <td class="px-3 py-2.5">
+                  <div class="font-bold text-white text-xs">{{ m.musician }}</div>
+                </td>
+                <td class="px-3 py-2.5 text-xs">
+                  <span class="badge {% if m.instrument == 'Drums' %}bg-amber-500/20 text-amber-300 border border-amber-500/30{% elif m.instrument == 'Guitar' %}bg-pink-500/20 text-pink-300 border border-pink-500/30{% elif m.instrument == 'Bass' %}bg-indigo-500/20 text-indigo-300 border border-indigo-500/30{% elif m.instrument == 'Vocals' %}bg-emerald-500/20 text-emerald-300 border border-emerald-500/30{% else %}bg-purple-500/20 text-purple-300 border border-purple-500/30{% endif %} text-[11px]">
+                    {{ m.role }}
+                  </span>
+                </td>
+                <td class="px-3 py-2.5 text-xs text-center font-bold text-indigo-400 font-mono">{{ m.total_shows }}x</td>
+                <td class="px-3 py-2.5 text-xs">
+                  <div class="flex flex-wrap gap-1">
+                    {% for b_name, b_count in m.bands.items() %}
+                    <span class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700 text-[11px]">
+                      {{ b_name }} <span class="text-indigo-400 font-bold">({{ b_count }}x)</span>
+                    </span>
+                    {% endfor %}
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- 5. VENUE & CONCERT MAP TAB -->
+    <div id="tab-map" class="hidden space-y-6">
+      
+      <!-- Top Metrics Row -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="glass-card p-4">
+          <span class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Venues Visited</span>
+          <p class="text-2xl font-black text-white mt-1">{{ stats.venue_map.total_venues }}</p>
+          <p class="text-xs text-slate-500 mt-1">Unique concert locations</p>
+        </div>
+        <div class="glass-card p-4">
+          <span class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Total Shows</span>
+          <p class="text-2xl font-black text-indigo-400 mt-1">{{ stats.venue_map.total_concerts }}</p>
+          <p class="text-xs text-slate-500 mt-1">Across all pinned venues</p>
+        </div>
+        <div class="glass-card p-4">
+          <span class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Cities & Regions</span>
+          <p class="text-2xl font-black text-purple-400 mt-1">{{ stats.venue_map.unique_cities_count }}</p>
+          <p class="text-xs text-slate-500 mt-1">{{ stats.venue_map.unique_countries_count }} countries</p>
+        </div>
+        <div class="glass-card p-4">
+          <span class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Top Venue</span>
+          <p class="text-base font-black text-emerald-400 mt-1 truncate">{{ stats.venue_map.top_venue.name }}</p>
+          <p class="text-xs text-slate-500 mt-1">{{ stats.venue_map.top_venue.concert_count }} concerts attended</p>
+        </div>
+      </div>
+
+      <!-- Map & Venues List Split View -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Interactive Leaflet Map -->
+        <div class="lg:col-span-2 glass-card p-4 flex flex-col space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 class="text-base font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-earth-americas text-indigo-400"></i> Interactive Venue Explorer
+            </h3>
+            <span class="text-xs text-slate-400">Click any pin or venue card to inspect concerts</span>
+          </div>
+          <div id="venue-map" class="w-full h-[550px] rounded-xl overflow-hidden border border-slate-800"></div>
+        </div>
+
+        <!-- Venue Sidebar & Search -->
+        <div class="glass-card p-4 flex flex-col space-y-3 max-h-[610px]">
+          <div class="flex items-center justify-between">
+            <h3 class="text-base font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-list-ol text-purple-400"></i> All Venues ({{ stats.venue_map.total_venues }})
+            </h3>
+          </div>
+          <input type="text" id="map-venue-search" placeholder="Filter venue name or city..." onkeyup="filterMapVenues(this.value)" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+          
+          <div id="map-venue-list" class="space-y-2 overflow-y-auto pr-1 flex-1">
+            {% for v in stats.venue_map.venues %}
+            <div onclick="focusVenueOnMap({{ v.lat }}, {{ v.lng }}, '{{ v.name|replace("'", "\\'") }}')" class="map-venue-card p-3 rounded-xl bg-slate-900/60 hover:bg-indigo-600/20 border border-slate-800 hover:border-indigo-500/50 cursor-pointer transition flex items-center justify-between" data-venue-name="{{ v.name.lower() }} {{ v.location.lower() }}">
+              <div class="truncate mr-2">
+                <p class="text-xs font-bold text-white truncate">{{ v.name }}</p>
+                <p class="text-[11px] text-slate-400 flex items-center gap-1 mt-0.5">
+                  <i class="fa-solid fa-location-dot text-[9px] text-slate-500"></i> {{ v.location }}
+                </p>
+              </div>
+              <span class="badge bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-xs font-bold shrink-0">
+                {{ v.concert_count }} {% if v.concert_count == 1 %}show{% else %}shows{% endif %}
+              </span>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- 5. ADVANCED & ALBUM VISUALS TAB -->
+    <div id="tab-advanced" class="hidden space-y-6">
+      
+      <!-- Treemap -->
+      <div class="glass-card p-6">
+        <h3 class="text-lg font-bold text-white mb-1"><i class="fa-solid fa-compact-disc text-indigo-400 mr-2"></i>Artist to Album & Track Treemap</h3>
+        <p class="text-xs text-slate-400 mb-4">Hierarchical breakdown of songs heard live organized by Artist and Album era. Click boxes to zoom in!</p>
+        <div id="chart-treemap" class="w-full h-[520px]"></div>
+      </div>
+
+      <!-- Album Era & Catalog Age Analysis -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="glass-card p-6">
+          <h3 class="text-lg font-bold text-white mb-1"><i class="fa-solid fa-clock-rotate-left text-emerald-400 mr-2"></i>Song Release Era Distribution</h3>
+          <p class="text-xs text-slate-400 mb-4">Distribution of original album release years for all songs heard live</p>
+          <div id="chart-era" class="w-full h-80"></div>
+        </div>
+
+        <div class="glass-card p-6">
+          <h3 class="text-lg font-bold text-white mb-1"><i class="fa-solid fa-hourglass-half text-purple-400 mr-2"></i>Song Age at Performance</h3>
+          <p class="text-xs text-slate-400 mb-4">How old was each song when you heard it live (Concert Year - Album Release Year)?</p>
+          <div id="chart-song-age" class="w-full h-80"></div>
+        </div>
+      </div>
+
+      <!-- Sunburst -->
+      <div class="glass-card p-6">
+        <h3 class="text-lg font-bold text-white mb-1"><i class="fa-solid fa-chart-pie text-pink-400 mr-2"></i>Top Artists Share of Live Songs</h3>
+        <p class="text-xs text-slate-400 mb-4">Relative share of total songs experienced across top artists</p>
+        <div id="chart-sunburst" class="w-full h-80"></div>
+      </div>
+
+    </div>
+
+    <!-- 4. SETLIST VARIATION & FRESHNESS TAB -->
+    <div id="tab-setlists" class="hidden space-y-6">
+      
+      <div class="glass-card p-6">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h2 class="text-lg font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-rotate text-purple-400"></i> Setlist Overlap & Freshness (Repeat Bands)
+            </h2>
+            <p class="text-sm text-slate-400">Calculates pairwise Jaccard similarity across setlists for bands you have seen multiple times.</p>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm text-slate-300">
+            <thead class="text-xs uppercase bg-slate-800/60 text-slate-400">
+              <tr>
+                <th class="px-4 py-3">Artist</th>
+                <th class="px-4 py-3 text-center">Shows Analyzed</th>
+                <th class="px-4 py-3 text-center">Unique Songs Heard</th>
+                <th class="px-4 py-3 text-center">Avg Setlist Overlap</th>
+                <th class="px-4 py-3 text-center">Freshness Index</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800">
+              {% for item in stats.setlist_variation %}
+              <tr class="hover:bg-slate-800/40 transition">
+                <td class="px-4 py-3 font-semibold text-white">{{ item.artist }}</td>
+                <td class="px-4 py-3 text-center font-mono text-indigo-300">{{ item.shows_analyzed }}</td>
+                <td class="px-4 py-3 text-center font-mono text-purple-300">{{ item.unique_songs_total }}</td>
+                <td class="px-4 py-3 text-center font-mono text-amber-300">{{ item.avg_setlist_overlap_pct }}%</td>
+                <td class="px-4 py-3 text-center">
+                  <span class="badge {% if item.freshness_pct > 70 %}bg-emerald-500/20 text-emerald-300 border border-emerald-500/30{% else %}bg-blue-500/20 text-blue-300 border border-blue-500/30{% endif %}">
+                    {{ item.freshness_pct }}% Fresh
+                  </span>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 5. GAP ANALYSIS TAB -->
+    <div id="tab-gap" class="hidden space-y-6">
+      
+      <!-- Coverage Scorecards -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="glass-card p-5 flex items-center justify-between">
+          <div>
+            <p class="text-xs uppercase font-semibold text-slate-400">Total Concerts</p>
+            <p class="text-2xl font-bold text-white mt-1">{{ gap.total_csv }}</p>
+            <p class="text-xs text-slate-500 mt-1">Concerts in spreadsheet</p>
+          </div>
+          <div class="w-10 h-10 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center"><i class="fa-solid fa-file-csv"></i></div>
+        </div>
+
+        <div class="glass-card p-5 flex items-center justify-between">
+          <div>
+            <p class="text-xs uppercase font-semibold text-slate-400">Setlist.fm Profile</p>
+            <p class="text-2xl font-bold text-white mt-1">{{ gap.total_setlist_user }}</p>
+            <p class="text-xs text-slate-500 mt-1">"I was there" setlists</p>
+          </div>
+          <div class="w-10 h-10 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center"><i class="fa-solid fa-cloud"></i></div>
+        </div>
+
+        <div class="glass-card p-5 flex items-center justify-between">
+          <div>
+            <p class="text-xs uppercase font-semibold text-slate-400">Concert Coverage</p>
+            <p class="text-2xl font-bold text-emerald-400 mt-1">{{ gap.coverage_percentage }}%</p>
+            <p class="text-xs text-slate-500 mt-1">{{ gap.matched_count }} shows matched</p>
+          </div>
+          <div class="w-10 h-10 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center"><i class="fa-solid fa-circle-check"></i></div>
+        </div>
+
+        <div class="glass-card p-5 flex items-center justify-between">
+          <div>
+            <p class="text-xs uppercase font-semibold text-slate-400">Actionable Gaps</p>
+            <p class="text-2xl font-bold text-amber-400 mt-1">{{ gap.csv_missing_or_partial|length }}</p>
+            <p class="text-xs text-slate-500 mt-1">Shows with missing tags</p>
+          </div>
+          <div class="w-10 h-10 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center"><i class="fa-solid fa-triangle-exclamation"></i></div>
+        </div>
+      </div>
+
+      <!-- Actionable Missing on Setlist.fm Table -->
+      <div class="glass-card p-6">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+          <div>
+            <h2 class="text-lg font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-clipboard-check text-indigo-400"></i> Untagged / Missing Setlists to Review
+            </h2>
+            <p class="text-xs text-slate-400 mt-1">Shows from your spreadsheet that are either missing an "I was there" tag or not yet added on Setlist.fm.</p>
+          </div>
+
+          <!-- Quick Filter Buttons -->
+          <div class="flex items-center gap-2">
+            <button onclick="filterGapRows('all')" id="btn-gap-all" class="px-3 py-1 text-xs font-semibold rounded-lg bg-indigo-600 text-white transition">All Gaps ({{ gap.csv_missing_or_partial|length }})</button>
+            <button onclick="filterGapRows('exists')" id="btn-gap-exists" class="px-3 py-1 text-xs font-semibold rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition">Ready to Tag</button>
+            <button onclick="filterGapRows('missing')" id="btn-gap-missing" class="px-3 py-1 text-xs font-semibold rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition">Missing from Setlist.fm</button>
+          </div>
+        </div>
+
+        {% if gap.csv_missing_or_partial|length == 0 %}
+          <div class="p-8 text-center text-slate-400 bg-slate-800/40 rounded-xl">
+            <i class="fa-solid fa-badge-check text-emerald-400 text-3xl mb-2"></i>
+            <p>Awesome! All concert records are synchronized with your Setlist.fm account.</p>
+          </div>
+        {% else %}
+          <div class="overflow-x-auto max-h-[520px]">
+            <table id="gap-table" class="w-full text-left text-sm text-slate-300">
+              <thead class="text-xs uppercase bg-slate-900/80 text-slate-400 sticky top-0 border-b border-slate-800">
+                <tr>
+                  <th class="px-4 py-3">Date</th>
+                  <th class="px-4 py-3">Concert & Venue</th>
+                  <th class="px-4 py-3">Missing Band(s) Status & Direct Link</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800/60">
+                {% for item in gap.csv_missing_or_partial %}
+                {% set has_exists = item.missing_bands_info|selectattr('status', 'equalto', 'exists_unattended')|list|length > 0 %}
+                {% set has_missing = item.missing_bands_info|selectattr('status', 'equalto', 'missing_from_setlistfm')|list|length > 0 %}
+                <tr class="hover:bg-slate-800/30 transition gap-row" data-has-exists="{{ 'true' if has_exists else 'false' }}" data-has-missing="{{ 'true' if has_missing else 'false' }}">
+                  
+                  <!-- Date Column -->
+                  <td class="px-4 py-3 font-mono text-xs text-indigo-300 whitespace-nowrap align-top">
+                    {{ item.record.display_date }}
+                  </td>
+
+                  <!-- Concert & Venue -->
+                  <td class="px-4 py-3 align-top max-w-xs">
+                    <p class="font-medium text-white text-sm">{{ item.record.raw_artists }}</p>
+                    <p class="text-xs text-slate-400 mt-0.5"><i class="fa-solid fa-location-dot text-[11px] text-slate-500 mr-1"></i>{{ item.record.venue }}</p>
+                  </td>
+
+                  <!-- Band Pills + Direct Action Links -->
+                  <td class="px-4 py-3 align-top space-y-2">
+                    {% for b in item.missing_bands_info %}
+                      <div class="flex flex-wrap items-center justify-between gap-2 p-2 rounded-lg bg-slate-900/50 border border-slate-800/80">
+                        <div class="flex items-center gap-2">
+                          <span class="font-semibold text-slate-200 text-xs">{{ b.artist }}</span>
+                          {% if b.status == 'exists_unattended' %}
+                            <span class="badge bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 text-[10px]">
+                              <i class="fa-solid fa-circle-check mr-1"></i> On Setlist.fm
+                            </span>
+                          {% else %}
+                            <span class="badge bg-slate-800 text-slate-400 border border-slate-700 text-[10px]">
+                              <i class="fa-solid fa-circle-question mr-1"></i> Not on Setlist.fm
+                            </span>
+                          {% endif %}
+                        </div>
+
+                        <div>
+                          {% if b.status == 'exists_unattended' %}
+                            <a href="{{ b.url }}" target="_blank" class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-300 border border-emerald-500/30 rounded text-xs transition font-medium">
+                              Tag "I Was There" <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                            </a>
+                          {% else %}
+                            <a href="{{ b.search_url }}" target="_blank" class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded text-xs transition">
+                              Search / Add <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                            </a>
+                          {% endif %}
+                        </div>
+                      </div>
+                    {% endfor %}
+                  </td>
+
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- Missing in Spreadsheet Table -->
+      {% if gap.setlist_only|length > 0 %}
+      <div class="glass-card p-6">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h2 class="text-lg font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-circle-arrow-down text-blue-400"></i> On Setlist.fm Profile but Missing from Spreadsheet
+            </h2>
+            <p class="text-xs text-slate-400 mt-0.5">Shows marked as "I was there" on Setlist.fm that aren't matched in your spreadsheet.</p>
+          </div>
+          <span class="badge bg-blue-500/20 text-blue-300 border border-blue-500/30">{{ gap.setlist_only|length }} Shows</span>
+        </div>
+
+        <div class="overflow-x-auto max-h-80">
+          <table class="w-full text-left text-sm text-slate-300">
+            <thead class="text-xs uppercase bg-slate-800/60 text-slate-400 sticky top-0">
+              <tr>
+                <th class="px-4 py-3">Date</th>
+                <th class="px-4 py-3">Artist</th>
+                <th class="px-4 py-3">Venue</th>
+                <th class="px-4 py-3 text-right">Setlist Link</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800">
+              {% for item in gap.setlist_only %}
+              <tr class="hover:bg-slate-800/40 transition">
+                <td class="px-4 py-3 font-mono text-xs text-blue-300 whitespace-nowrap">{{ item.display_date }}</td>
+                <td class="px-4 py-3 font-medium text-white">{{ item.artist.name }}</td>
+                <td class="px-4 py-3 text-slate-400 whitespace-nowrap">{{ item.venue.name }} ({{ item.venue.city.name }})</td>
+                <td class="px-4 py-3 text-right whitespace-nowrap">
+                  <a href="{{ item.url }}" target="_blank" class="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded text-xs transition">
+                    View Setlist <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                  </a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {% endif %}
+
+    </div>
+
+  </main>
+
+  <!-- Plotly Data & Interactive Logic -->
+  <script>
+    const drilldownData = {{ artist_drilldown_json|safe }};
+    const venueMapData = {{ venue_map_json|safe }};
+    let venueMap = null;
+    let venueMarkers = {};
+
+    function switchTab(tabId, updateHash = true) {
+      const validTabs = ['overview', 'concerts', 'drilldown', 'musicians', 'map', 'advanced', 'setlists', 'gap'];
+      if (!validTabs.includes(tabId)) {
+        tabId = 'overview';
+      }
+
+      validTabs.forEach(t => {
+        const tabEl = document.getElementById('tab-' + t);
+        const btnEl = document.getElementById('tab-' + t + '-btn');
+        if (tabEl) tabEl.classList.add('hidden');
+        if (btnEl) {
+          if (t === 'gap') {
+            btnEl.className = 'nav-tab-btn px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:text-white bg-slate-800/80 border border-slate-700 hover:border-amber-500/50 flex items-center gap-2 transition-all shadow-sm';
+          } else {
+            btnEl.className = 'nav-tab-btn px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 flex items-center gap-2 transition-all';
+          }
+        }
+      });
+      const activeTab = document.getElementById('tab-' + tabId);
+      const activeBtn = document.getElementById('tab-' + tabId + '-btn');
+      if (activeTab) activeTab.classList.remove('hidden');
+      if (activeBtn) {
+        if (tabId === 'gap') {
+          activeBtn.className = 'nav-tab-btn px-3.5 py-2 rounded-xl text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/50 flex items-center gap-2 transition-all shadow-md shadow-amber-500/10';
+        } else {
+          activeBtn.className = 'nav-tab-btn px-3.5 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-500/25 flex items-center gap-2 transition-all';
+        }
+      }
+
+      if (updateHash) {
+        history.replaceState(null, null, '#' + tabId);
+      }
+
+      if (tabId === 'map') {
+        setTimeout(() => {
+          initVenueMap();
+          if (venueMap) venueMap.invalidateSize();
+        }, 150);
+      } else if (tabId === 'advanced') {
+        setTimeout(() => {
+          ['chart-treemap', 'chart-era', 'chart-song-age', 'chart-sunburst'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) Plotly.Plots.resize(el);
+          });
+        }, 150);
+      } else if (tabId === 'overview') {
+        setTimeout(() => {
+          ['chart-timeline', 'chart-top-artists'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) Plotly.Plots.resize(el);
+          });
+        }, 150);
+      }
+
+      window.dispatchEvent(new Event('resize'));
+    }
+
+    // URL Hash deep linking support on page load and back/forward navigation
+    window.addEventListener('DOMContentLoaded', () => {
+      const hash = window.location.hash.replace('#', '').trim();
+      if (hash) {
+        switchTab(hash, false);
+      }
+    });
+
+    window.addEventListener('hashchange', () => {
+      const hash = window.location.hash.replace('#', '').trim();
+      if (hash) {
+        switchTab(hash, false);
+      }
+    });
+
+    let currentMusicianInstrument = 'all';
+    function filterMusicianInstrument(instr) {
+      currentMusicianInstrument = instr;
+      ['all', 'Guitar', 'Drums', 'Bass', 'Vocals', 'Keyboards'].forEach(i => {
+        const btn = document.getElementById('btn-instr-' + i);
+        if (btn) {
+          if (i === instr) {
+            btn.className = 'px-2.5 py-1 rounded bg-indigo-600 text-white font-semibold transition';
+          } else {
+            btn.className = 'px-2.5 py-1 rounded text-slate-400 hover:text-white transition';
+          }
+        }
+      });
+      applyMusicianFilters();
+    }
+
+    function filterMusicianSearch(query) {
+      applyMusicianFilters();
+    }
+
+    function applyMusicianFilters() {
+      const q = (document.getElementById('musician-search-input')?.value || '').toLowerCase().trim();
+      document.querySelectorAll('.musician-row').forEach(row => {
+        const mName = row.getAttribute('data-musician-name') || '';
+        const mInstr = row.getAttribute('data-instrument') || '';
+        const matchInstr = currentMusicianInstrument === 'all' || mInstr === currentMusicianInstrument;
+        const matchSearch = !q || mName.includes(q);
+        row.style.display = (matchInstr && matchSearch) ? '' : 'none';
+      });
+    }
+
+    function initVenueMap() {
+      if (venueMap || !document.getElementById('venue-map')) return;
+
+      venueMap = L.map('venue-map', {
+        center: [39.0, -77.0],
+        zoom: 7,
+        zoomControl: true,
+        scrollWheelZoom: true
+      });
+
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png?key=cb1_2exf_1_3b2a43a7cdd980ffef0b756c', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        subdomains: 'abcd',
+        maxZoom: 19
+      }).addTo(venueMap);
+
+      const bounds = L.latLngBounds();
+      (venueMapData.venues || []).forEach(v => {
+        if (!v.lat || !v.lng) return;
+
+        const count = v.concert_count || 1;
+        const size = Math.min(42, Math.max(26, 22 + count * 2));
+        
+        const pinIcon = L.divIcon({
+          className: 'custom-venue-pin',
+          html: `<span>${count}</span>`,
+          iconSize: [size, size],
+          iconAnchor: [size / 2, size / 2],
+          popupAnchor: [0, -size / 2]
+        });
+
+        // Top artists badges at this venue
+        let topArtistsHtml = (v.top_artists || []).map(a => `
+          <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 mr-1 mb-1">
+            ${a.artist} (${a.count}x)
+          </span>
+        `).join('');
+
+        let concertItems = (v.concerts || []).map(c => `
+          <div class="p-2 rounded-lg bg-slate-900/90 border border-slate-800 text-xs mb-1.5 hover:border-slate-700 transition">
+            <div class="flex items-center justify-between text-indigo-300 font-mono font-semibold mb-1">
+              <span><i class="fa-solid fa-calendar mr-1 text-[10px]"></i>${c.date}</span>
+              <button onclick="jumpToConcertInDrilldown('${v.name.replace(/'/g, "\\'")}', '${c.date}')" class="text-[10px] text-indigo-400 hover:text-indigo-200 underline">
+                View Setlist ➔
+              </button>
+            </div>
+            <p class="text-white font-medium text-xs leading-snug">${c.raw_artists}</p>
+          </div>
+        `).join('');
+
+        const popupHtml = `
+          <div class="p-2.5 space-y-2.5 max-w-sm">
+            <div class="border-b border-slate-700/80 pb-2">
+              <div class="flex items-start justify-between gap-2">
+                <h4 class="font-black text-white text-sm">${v.name}</h4>
+                <span class="badge bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] shrink-0 font-mono">
+                  ${v.concert_count} ${v.concert_count === 1 ? 'Show' : 'Shows'}
+                </span>
+              </div>
+              <p class="text-xs text-slate-400 flex items-center gap-1 mt-1">
+                <i class="fa-solid fa-location-dot text-[10px] text-indigo-400"></i> ${v.location}
+              </p>
+            </div>
+
+            ${topArtistsHtml ? `
+            <div>
+              <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Artists Seen Here:</p>
+              <div class="flex flex-wrap">${topArtistsHtml}</div>
+            </div>
+            ` : ''}
+
+            <div>
+              <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Concert History (${v.concert_count}):</p>
+              <div class="max-h-48 overflow-y-auto pr-1 space-y-1">
+                ${concertItems}
+              </div>
+            </div>
+          </div>
+        `;
+
+        const marker = L.marker([v.lat, v.lng], { icon: pinIcon })
+          .bindPopup(popupHtml, { maxWidth: 320 })
+          .addTo(venueMap);
+
+        venueMarkers[v.name.toLowerCase()] = marker;
+        bounds.extend([v.lat, v.lng]);
+      });
+
+      if (bounds.isValid()) {
+        venueMap.fitBounds(bounds, { padding: [40, 40], maxZoom: 11 });
+      }
+    }
+
+    function jumpToConcertInDrilldown(venueName, date) {
+      switchTab('concerts');
+      const searchInput = document.getElementById('concert-search-input');
+      if (searchInput) {
+        searchInput.value = date || venueName;
+        filterConcertCards(searchInput.value);
+      }
+    }
+
+    function focusVenueOnMap(lat, lng, venueName) {
+      if (!venueMap) initVenueMap();
+      if (venueMap) {
+        venueMap.setView([lat, lng], 13, { animate: true });
+        const marker = venueMarkers[venueName.toLowerCase()];
+        if (marker) {
+          marker.openPopup();
+        }
+      }
+    }
+
+    function filterMapVenues(query) {
+      const q = query.toLowerCase().trim();
+      document.querySelectorAll('.map-venue-card').forEach(card => {
+        const text = card.getAttribute('data-venue-name') || '';
+        card.style.display = text.includes(q) ? 'flex' : 'none';
+      });
+    }
+
+    let allConcertsExpanded = true;
+    function toggleConcertDetails(id) {
+      const el = document.getElementById('concert-details-' + id);
+      const ch = document.getElementById('concert-chevron-' + id);
+      if (el.classList.contains('hidden')) {
+        el.classList.remove('hidden');
+        if (ch) ch.classList.remove('rotate-180');
+      } else {
+        el.classList.add('hidden');
+        if (ch) ch.classList.add('rotate-180');
+      }
+    }
+
+    function toggleAllConcertCards() {
+      allConcertsExpanded = !allConcertsExpanded;
+      document.querySelectorAll('.concert-card').forEach(card => {
+        const details = card.querySelector('[id^="concert-details-"]');
+        const chevron = card.querySelector('[id^="concert-chevron-"]');
+        if (details) {
+          if (allConcertsExpanded) {
+            details.classList.remove('hidden');
+            if (chevron) chevron.classList.remove('rotate-180');
+          } else {
+            details.classList.add('hidden');
+            if (chevron) chevron.classList.add('rotate-180');
+          }
+        }
+      });
+    }
+
+    function filterConcertCards(query) {
+      const q = query.toLowerCase().trim();
+      document.querySelectorAll('.concert-card').forEach(card => {
+        const searchData = card.getAttribute('data-search') || '';
+        card.style.display = searchData.includes(q) ? 'block' : 'none';
+      });
+    }
+
+    function filterTable(tableId, query) {
+      const q = query.toLowerCase();
+      const rows = document.querySelectorAll('#' + tableId + ' tbody tr');
+      rows.forEach(r => {
+        const text = r.innerText.toLowerCase();
+        r.style.display = text.includes(q) ? '' : 'none';
+      });
+    }
+
+    function filterArtistButtons(query) {
+      const q = query.toLowerCase();
+      document.querySelectorAll('.artist-btn').forEach(btn => {
+        btn.style.display = btn.getAttribute('data-name').includes(q) ? 'inline-flex' : 'none';
+      });
+    }
+
+    let currentArtistName = null;
+    let allExpanded = false;
+
+    function selectArtist(artistName) {
+      currentArtistName = artistName;
+      const data = drilldownData[artistName];
+      if (!data) return;
+
+      document.querySelectorAll('.artist-btn').forEach(btn => {
+        if (btn.getAttribute('data-name') === artistName.toLowerCase()) {
+          btn.className = 'artist-btn px-3 py-1.5 rounded-lg bg-indigo-600 text-white border border-indigo-400 text-xs font-semibold shadow-lg shadow-indigo-600/30 flex items-center gap-2';
+        } else {
+          btn.className = 'artist-btn px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-indigo-600/30 text-slate-200 hover:text-indigo-200 border border-slate-700 hover:border-indigo-500/50 text-xs font-medium transition flex items-center gap-2';
+        }
+      });
+
+      document.getElementById('active-artist-title').innerText = data.artist;
+      document.getElementById('active-artist-badges').innerHTML = `
+        <span class="badge bg-purple-500/20 text-purple-300 border border-purple-500/30">${data.unique_songs} Unique Songs</span>
+        <span class="badge bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">${data.total_plays} Total Plays Heard</span>
+      `;
+
+      // Populate album dropdown
+      const albumSelect = document.getElementById('drilldown-album-filter');
+      albumSelect.innerHTML = '<option value="ALL">All Albums</option>';
+      (data.albums_list || []).forEach(alb => {
+        const opt = document.createElement('option');
+        opt.value = alb;
+        opt.innerText = alb;
+        albumSelect.appendChild(opt);
+      });
+
+      renderArtistSongs(data.songs);
+    }
+
+    function renderArtistSongs(songs) {
+      const container = document.getElementById('drilldown-songs-container');
+      container.innerHTML = '';
+
+      songs.forEach((s, idx) => {
+        const item = document.createElement('div');
+        item.className = 'song-item rounded-xl bg-slate-900/60 border border-slate-800/80 hover:border-slate-700 transition';
+        item.setAttribute('data-song-name', s.song.toLowerCase());
+        item.setAttribute('data-album-name', s.album || 'Non-Album / Singles');
+
+        let occHtml = s.occurrences.map((o, oIdx) => {
+          let posBadge = '';
+          if (o.slot) {
+            let colorClasses = 'bg-indigo-500/15 text-indigo-300 border-indigo-500/30';
+            let icon = 'fa-music';
+            if (o.slot_category === 'opener') {
+              colorClasses = 'bg-amber-500/20 text-amber-300 border-amber-500/30 font-semibold';
+              icon = 'fa-bolt';
+            } else if (o.slot_category === 'encore' || o.slot_category === 'closer') {
+              colorClasses = 'bg-purple-500/20 text-purple-300 border-purple-500/30 font-semibold';
+              icon = 'fa-fire';
+            } else if (o.slot_category === 'early') {
+              colorClasses = 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30';
+              icon = 'fa-forward-step';
+            } else if (o.slot_category === 'late') {
+              colorClasses = 'bg-rose-500/15 text-rose-300 border-rose-500/30';
+              icon = 'fa-forward-fast';
+            }
+            posBadge = `<span class="badge ${colorClasses} text-[10px] border flex items-center gap-1">
+              <i class="fa-solid ${icon} text-[9px]"></i> ${o.slot} (${o.pct}% • #${o.track_num}/${o.total_tracks})
+            </span>`;
+          }
+
+          return `
+          <div class="flex items-center justify-between p-2 rounded-lg bg-slate-950/40 border border-slate-800/50 text-xs">
+            <div class="flex flex-wrap items-center gap-3">
+              <span class="font-mono text-indigo-300">#${oIdx + 1}</span>
+              <span class="font-mono text-slate-300 font-semibold">${o.date}</span>
+              <span class="text-slate-400"><i class="fa-solid fa-location-dot text-[10px] text-slate-500 mr-1"></i>${o.venue}</span>
+              ${posBadge}
+              ${o.is_cover ? `<span class="badge bg-pink-500/20 text-pink-300 text-[10px]">Cover (${o.cover_original || 'Cover'})</span>` : ''}
+              ${o.info ? `<span class="text-slate-500 text-[11px] italic">(${o.info})</span>` : ''}
+            </div>
+            ${o.setlist_url ? `
+              <a href="${o.setlist_url}" target="_blank" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] transition">
+                View Setlist <i class="fa-solid fa-arrow-up-right-from-square text-[9px]"></i>
+              </a>
+            ` : ''}
+          </div>
+          `;
+        }).join('');
+
+        item.innerHTML = `
+          <div class="p-3 flex items-center justify-between cursor-pointer select-none" onclick="toggleSongOccurrences(${idx})">
+            <div class="flex flex-wrap items-center gap-3">
+              <span class="text-xs font-mono text-slate-500 w-6">#${idx + 1}</span>
+              <span class="font-semibold text-white text-sm">${s.song}</span>
+              <span class="badge bg-slate-800/80 text-indigo-300 border border-indigo-500/30 text-[11px]">
+                <i class="fa-solid fa-compact-disc text-[10px] mr-1 text-indigo-400"></i> ${s.album_display}
+              </span>
+              <span class="text-xs text-slate-400">(First heard: <span class="text-indigo-300 font-mono">${s.first_heard}</span>)</span>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="badge bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">${s.count}x</span>
+              <i id="chevron-${idx}" class="fa-solid fa-chevron-down text-slate-400 text-xs transition-transform duration-200"></i>
+            </div>
+          </div>
+          <div id="occ-list-${idx}" class="hidden px-4 pb-3 pt-1 space-y-1.5 border-t border-slate-800/40">
+            ${occHtml}
+          </div>
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    function toggleSongOccurrences(idx) {
+      const list = document.getElementById('occ-list-' + idx);
+      const chevron = document.getElementById('chevron-' + idx);
+      if (list.classList.contains('hidden')) {
+        list.classList.remove('hidden');
+        chevron.classList.add('rotate-180');
+      } else {
+        list.classList.add('hidden');
+        chevron.classList.remove('rotate-180');
+      }
+    }
+
+    function toggleAllOccurrences() {
+      allExpanded = !allExpanded;
+      document.querySelectorAll('[id^="occ-list-"]').forEach(el => {
+        if (allExpanded) el.classList.remove('hidden');
+        else el.classList.add('hidden');
+      });
+      document.querySelectorAll('[id^="chevron-"]').forEach(el => {
+        if (allExpanded) el.classList.add('rotate-180');
+        else el.classList.remove('rotate-180');
+      });
+    }
+
+    function filterDrilldownSongs() {
+      const songQuery = document.getElementById('drilldown-song-filter').value.toLowerCase();
+      const albumQuery = document.getElementById('drilldown-album-filter').value;
+
+      document.querySelectorAll('.song-item').forEach(item => {
+        const matchSong = item.getAttribute('data-song-name').includes(songQuery);
+        const matchAlbum = albumQuery === 'ALL' || item.getAttribute('data-album-name') === albumQuery;
+        item.style.display = (matchSong && matchAlbum) ? '' : 'none';
+      });
+    }
+
+    function filterGapRows(filterType) {
+      ['all', 'exists', 'missing'].forEach(b => {
+        const btn = document.getElementById('btn-gap-' + b);
+        if (b === filterType) {
+          btn.className = 'px-3 py-1 text-xs font-semibold rounded-lg bg-indigo-600 text-white transition';
+        } else {
+          btn.className = 'px-3 py-1 text-xs font-semibold rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition';
+        }
+      });
+
+      const rows = document.querySelectorAll('.gap-row');
+      rows.forEach(r => {
+        if (filterType === 'all') {
+          r.style.display = '';
+        } else if (filterType === 'exists') {
+          r.style.display = r.getAttribute('data-has-exists') === 'true' ? '' : 'none';
+        } else if (filterType === 'missing') {
+          r.style.display = r.getAttribute('data-has-missing') === 'true' ? '' : 'none';
+        }
+      });
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      let topArtist = null;
+      let maxPlays = -1;
+      for (const [art, d] of Object.entries(drilldownData)) {
+        const plays = (d.total_plays !== undefined) ? d.total_plays : (d.songs ? d.songs.length : 0);
+        if (plays > maxPlays) {
+          maxPlays = plays;
+          topArtist = art;
+        }
+      }
+      if (!topArtist) {
+        topArtist = Object.keys(drilldownData)[0];
+      }
+      if (topArtist) selectArtist(topArtist);
+    });
+
+    // Chart Inits
+    const timelineData = {{ plotly_timeline|safe }};
+    const topArtistsData = {{ plotly_top_artists|safe }};
+    const treemapData = {{ plotly_treemap|safe }};
+    const sunburstData = {{ plotly_sunburst|safe }};
+    const eraData = {{ plotly_era|safe }};
+    const songAgeData = {{ plotly_song_age|safe }};
+
+    const layoutDefaults = {
+      paper_bgcolor: 'rgba(0,0,0,0)',
+      plot_bgcolor: 'rgba(0,0,0,0)',
+      font: { color: '#94a3b8', family: 'system-ui' },
+      margin: { t: 30, b: 40, l: 50, r: 20 },
+      colorway: ['#6366f1', '#a855f7', '#ec4899', '#10b981', '#f59e0b', '#3b82f6']
+    };
+
+    Plotly.newPlot('chart-timeline', timelineData.data, Object.assign({}, layoutDefaults, timelineData.layout), {responsive: true, displayModeBar: false});
+    Plotly.newPlot('chart-top-artists', topArtistsData.data, Object.assign({}, layoutDefaults, topArtistsData.layout), {responsive: true, displayModeBar: false});
+    Plotly.newPlot('chart-treemap', treemapData.data, Object.assign({}, layoutDefaults, treemapData.layout), {responsive: true, displayModeBar: false});
+    Plotly.newPlot('chart-sunburst', sunburstData.data, Object.assign({}, layoutDefaults, sunburstData.layout), {responsive: true, displayModeBar: false});
+    Plotly.newPlot('chart-era', eraData.data, Object.assign({}, layoutDefaults, eraData.layout), {responsive: true, displayModeBar: false});
+    Plotly.newPlot('chart-song-age', songAgeData.data, Object.assign({}, layoutDefaults, songAgeData.layout), {responsive: true, displayModeBar: false});
+
+    const treemapEl = document.getElementById('chart-treemap');
+    if (treemapEl) {
+      treemapEl.on('plotly_click', function(data) {
+        if (data.points && data.points.length > 0) {
+          const pt = data.points[0];
+          const url = pt.customdata;
+          if (url && typeof url === 'string' && url.startsWith('http')) {
+            window.open(url, '_blank');
+          }
+        }
+      });
+    }
+  </script>
+</body>
+</html>
