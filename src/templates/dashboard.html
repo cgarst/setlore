@@ -307,7 +307,7 @@
           </div>
 
           <!-- Concert Artists & Sets Body -->
-          <div id="concert-details-{{ c.id }}" class="space-y-6 pt-1">
+          <div id="concert-details-{{ c.id }}" class="hidden space-y-6 pt-1">
             {% for a in c.artists %}
             <div class="rounded-xl bg-slate-900/40 border border-slate-800/80 p-4 space-y-3">
               
@@ -1140,6 +1140,17 @@
         searchInput.value = date || venueName;
         filterConcertCards(searchInput.value);
       }
+      // Expand matching concert cards when jumping to them
+      document.querySelectorAll('.concert-card').forEach(card => {
+        if (card.style.display !== 'none') {
+          const details = card.querySelector('[id^="concert-details-"]');
+          const chevron = card.querySelector('[id^="concert-chevron-"]');
+          if (details) {
+            details.classList.remove('hidden');
+            if (chevron) chevron.classList.add('rotate-180');
+          }
+        }
+      });
     }
 
     function focusVenueOnMap(lat, lng, venueName) {
@@ -1161,16 +1172,16 @@
       });
     }
 
-    let allConcertsExpanded = true;
+    let allConcertsExpanded = false;
     function toggleConcertDetails(id) {
       const el = document.getElementById('concert-details-' + id);
       const ch = document.getElementById('concert-chevron-' + id);
       if (el.classList.contains('hidden')) {
         el.classList.remove('hidden');
-        if (ch) ch.classList.remove('rotate-180');
+        if (ch) ch.classList.add('rotate-180');
       } else {
         el.classList.add('hidden');
-        if (ch) ch.classList.add('rotate-180');
+        if (ch) ch.classList.remove('rotate-180');
       }
     }
 
@@ -1182,10 +1193,10 @@
         if (details) {
           if (allConcertsExpanded) {
             details.classList.remove('hidden');
-            if (chevron) chevron.classList.remove('rotate-180');
+            if (chevron) chevron.classList.add('rotate-180');
           } else {
             details.classList.add('hidden');
-            if (chevron) chevron.classList.add('rotate-180');
+            if (chevron) chevron.classList.remove('rotate-180');
           }
         }
       });
