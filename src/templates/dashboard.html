@@ -192,20 +192,21 @@
                 {% for s in stats.top_songs %}
                 <tr class="hover:bg-slate-800/40 transition">
                   <td class="px-3 py-2 text-xs font-mono text-slate-500">{{ loop.index }}</td>
-                  <td class="px-3 py-2 text-xs font-bold text-white">{{ s.song }}</td>
+                  <td class="px-3 py-2 text-xs font-bold text-white">
+                    <button onclick="jumpToSongInDrilldown('{{ s.artist.replace('\'', '\\\'') }}', '{{ s.song.replace('\'', '\\\'') }}');" class="hover:underline hover:text-indigo-300 text-left font-bold">
+                      {{ s.song }}
+                    </button>
+                  </td>
                   <td class="px-3 py-2 text-xs text-indigo-300">
-                    <button onclick="switchTab('drilldown'); selectArtist('{{ s.artist.replace('\'', '\\\'') }}');" class="hover:underline text-left">
+                    <button onclick="jumpToSongInDrilldown('{{ s.artist.replace('\'', '\\\'') }}', '');" class="hover:underline text-left">
                       {{ s.artist }}
                     </button>
                   </td>
                   <td class="px-3 py-2 text-xs text-center font-bold text-emerald-400">{{ s.count }}x</td>
                   <td class="px-3 py-2 text-xs text-slate-400">
-                    <div class="flex items-center justify-between gap-2">
-                      <span>{{ s.first_seen_date }} ({{ s.first_seen_venue }})</span>
-                      <button onclick="jumpToConcertInDrilldown('{{ s.first_seen_venue.replace('\'', '\\\'') }}', '{{ s.first_seen_date }}')" class="px-2 py-0.5 rounded bg-indigo-500/20 hover:bg-indigo-500/35 text-indigo-300 hover:text-white border border-indigo-500/30 text-[10px] font-semibold transition inline-flex items-center gap-1 shrink-0">
-                        View Setlist <i class="fa-solid fa-arrow-right text-[8px]"></i>
-                      </button>
-                    </div>
+                    <button onclick="jumpToConcertInDrilldown('{{ s.first_seen_venue.replace('\'', '\\\'') }}', '{{ s.first_seen_date }}');" class="hover:underline hover:text-indigo-300 text-left">
+                      {{ s.first_seen_date }} ({{ s.first_seen_venue }})
+                    </button>
                   </td>
                 </tr>
                 {% endfor %}
@@ -241,7 +242,7 @@
                 <tr class="hover:bg-slate-800/40 transition">
                   <td class="px-3 py-2 text-xs font-mono text-slate-500">{{ loop.index }}</td>
                   <td class="px-3 py-2 text-xs font-bold text-white">
-                    <button onclick="switchTab('map')" class="hover:underline hover:text-indigo-300 text-left">
+                    <button onclick="jumpToConcertInDrilldown('{{ v.venue.replace('\'', '\\\'') }}', '');" class="hover:underline hover:text-indigo-300 text-left">
                       {{ v.venue }}
                     </button>
                   </td>
@@ -322,7 +323,9 @@
               <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/50 pb-2.5">
                 <div class="flex flex-wrap items-center gap-2.5">
                   <h3 class="text-white font-black text-sm tracking-wide flex items-center gap-2">
-                    <i class="fa-solid fa-microphone-lines text-indigo-400"></i> {{ a.artist }}
+                    <button onclick="event.stopPropagation(); jumpToSongInDrilldown('{{ a.artist.replace('\'', '\\\'') }}', '');" class="hover:underline hover:text-indigo-300 flex items-center gap-2 text-left font-black">
+                      <i class="fa-solid fa-microphone-lines text-indigo-400"></i> {{ a.artist }}
+                    </button>
                   </h3>
                   <span class="badge bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 text-[11px] font-bold">
                     <i class="fa-solid fa-eye text-[9px] mr-1"></i> {% if a.artist_seen_nth == 1 %}1st Time Seen (Debut){% elif a.artist_seen_nth == 2 %}2nd Time Seen{% elif a.artist_seen_nth == 3 %}3rd Time Seen{% else %}{{ a.artist_seen_nth }}th Time Seen{% endif %}
@@ -362,7 +365,9 @@
                         <!-- Track Name & Nth-Time-Heard & Song Age -->
                         <div class="flex flex-wrap items-center gap-2.5">
                           <span class="font-mono text-slate-500 text-[11px] w-5">#{{ loop.index }}</span>
-                          <span class="text-white font-semibold">{{ track.song }}</span>
+                          <button onclick="jumpToSongInDrilldown('{{ a.artist.replace('\'', '\\\'') }}', '{{ track.song.replace('\'', '\\\'') }}');" class="text-white font-semibold hover:underline hover:text-indigo-300 text-left">
+                            {{ track.song }}
+                          </button>
 
                           <!-- Nth Time Heard & % of shows -->
                           <span class="badge bg-emerald-500/15 text-emerald-300 border border-emerald-500/25 text-[10px] font-mono flex items-center gap-1" title="Seen in {{ track.song_heard_nth }} out of {{ track.artist_seen_nth }} shows for this artist">
@@ -483,7 +488,11 @@
         </div>
         <div class="glass-card p-4">
           <span class="text-xs text-slate-400 font-semibold uppercase tracking-wider">#1 Most Seen Musician</span>
-          <p class="text-lg font-black text-indigo-400 mt-1 truncate">{{ stats.musicians.top_musicians[0].musician }}</p>
+          <p class="text-lg font-black text-indigo-400 mt-1 truncate">
+            <button onclick="jumpToSongInDrilldown('{{ stats.musicians.top_musicians[0].musician.replace('\'', '\\\'') }}', '');" class="hover:underline text-indigo-400 text-left font-black">
+              {{ stats.musicians.top_musicians[0].musician }}
+            </button>
+          </p>
           <p class="text-xs text-slate-500 mt-1">{{ stats.musicians.top_musicians[0].total_shows }} shows attended</p>
         </div>
         <div class="glass-card p-4">
@@ -493,7 +502,11 @@
         </div>
         <div class="glass-card p-4">
           <span class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Top Multi-Band Member</span>
-          <p class="text-base font-black text-pink-400 mt-1 truncate">{{ stats.musicians.supergroup_musicians[0].musician }}</p>
+          <p class="text-base font-black text-pink-400 mt-1 truncate">
+            <button onclick="jumpToSongInDrilldown('{{ stats.musicians.supergroup_musicians[0].musician.replace('\'', '\\\'') }}', '');" class="hover:underline text-pink-400 text-left font-black">
+              {{ stats.musicians.supergroup_musicians[0].musician }}
+            </button>
+          </p>
           <p class="text-xs text-slate-500 mt-1">{{ stats.musicians.supergroup_musicians[0].unique_bands_count }} different projects ({{ stats.musicians.supergroup_musicians[0].total_shows }} shows)</p>
         </div>
       </div>
@@ -516,7 +529,9 @@
             <div class="flex items-start justify-between">
               <div>
                 <h4 class="font-bold text-white text-sm flex items-center gap-1.5">
-                  <i class="fa-solid fa-user-tag text-indigo-400 text-xs"></i> {{ m.musician }}
+                  <button onclick="jumpToSongInDrilldown('{{ m.musician.replace('\'', '\\\'') }}', '');" class="hover:underline hover:text-indigo-300 flex items-center gap-1.5 text-white font-bold text-sm text-left">
+                    <i class="fa-solid fa-user-tag text-indigo-400 text-xs"></i> {{ m.musician }}
+                  </button>
                 </h4>
                 <p class="text-xs text-slate-400 mt-0.5">{{ m.role }}</p>
               </div>
@@ -530,9 +545,9 @@
               <p class="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Projects Seen Live ({{ m.unique_bands_count }}):</p>
               <div class="flex flex-wrap gap-1.5">
                 {% for b_name, b_count in m.bands.items() %}
-                <span class="badge bg-slate-800 text-slate-200 border border-slate-700 text-xs">
+                <button onclick="jumpToSongInDrilldown('{{ b_name.replace('\'', '\\\'') }}', '');" class="badge bg-slate-800 hover:bg-indigo-600/30 text-slate-200 hover:text-indigo-200 border border-slate-700 hover:border-indigo-500/50 text-xs transition cursor-pointer">
                   {{ b_name }} <span class="text-indigo-400 ml-1 font-bold">{{ b_count }}x</span>
-                </span>
+                </button>
                 {% endfor %}
               </div>
             </div>
@@ -582,7 +597,9 @@
               <tr class="musician-row hover:bg-slate-800/40 transition" data-musician-name="{{ m.musician.lower() }}" data-instrument="{{ m.instrument }}">
                 <td class="px-3 py-2.5 text-xs font-mono text-slate-500">{{ loop.index }}</td>
                 <td class="px-3 py-2.5">
-                  <div class="font-bold text-white text-xs">{{ m.musician }}</div>
+                  <button onclick="jumpToSongInDrilldown('{{ m.musician.replace('\'', '\\\'') }}', '');" class="font-bold text-white hover:text-indigo-300 hover:underline text-xs text-left">
+                    {{ m.musician }}
+                  </button>
                 </td>
                 <td class="px-3 py-2.5 text-xs">
                   <span class="badge {% if m.instrument == 'Drums' %}bg-amber-500/20 text-amber-300 border border-amber-500/30{% elif m.instrument == 'Guitar' %}bg-pink-500/20 text-pink-300 border border-pink-500/30{% elif m.instrument == 'Bass' %}bg-indigo-500/20 text-indigo-300 border border-indigo-500/30{% elif m.instrument == 'Vocals' %}bg-emerald-500/20 text-emerald-300 border border-emerald-500/30{% else %}bg-purple-500/20 text-purple-300 border border-purple-500/30{% endif %} text-[11px]">
@@ -593,9 +610,9 @@
                 <td class="px-3 py-2.5 text-xs">
                   <div class="flex flex-wrap gap-1">
                     {% for b_name, b_count in m.bands.items() %}
-                    <span class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700 text-[11px]">
+                    <button onclick="jumpToSongInDrilldown('{{ b_name.replace('\'', '\\\'') }}', '');" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-indigo-600/30 text-slate-300 hover:text-indigo-200 border border-slate-700 hover:border-indigo-500/50 text-[11px] transition">
                       {{ b_name }} <span class="text-indigo-400 font-bold">({{ b_count }}x)</span>
-                    </span>
+                    </button>
                     {% endfor %}
                   </div>
                 </td>
@@ -741,7 +758,11 @@
             <tbody class="divide-y divide-slate-800">
               {% for item in stats.setlist_variation %}
               <tr class="hover:bg-slate-800/40 transition">
-                <td class="px-4 py-3 font-semibold text-white">{{ item.artist }}</td>
+                <td class="px-4 py-3 font-semibold text-white">
+                  <button onclick="jumpToSongInDrilldown('{{ item.artist.replace('\'', '\\\'') }}', '');" class="hover:underline hover:text-indigo-300 font-semibold text-white text-left">
+                    {{ item.artist }}
+                  </button>
+                </td>
                 <td class="px-4 py-3 text-center font-mono text-indigo-300">{{ item.shows_analyzed }}</td>
                 <td class="px-4 py-3 text-center font-mono text-purple-300">{{ item.unique_songs_total }}</td>
                 <td class="px-4 py-3 text-center font-mono text-amber-300">{{ item.avg_setlist_overlap_pct }}%</td>
@@ -842,13 +863,19 @@
                   
                   <!-- Date Column -->
                   <td class="px-4 py-3 font-mono text-xs text-indigo-300 whitespace-nowrap align-top">
-                    {{ item.record.display_date }}
+                    <button onclick="jumpToConcertInDrilldown('{{ item.record.venue.replace('\'', '\\\'') }}', '{{ item.record.display_date }}')" class="hover:underline hover:text-white font-mono text-xs text-indigo-300 text-left">
+                      {{ item.record.display_date }}
+                    </button>
                   </td>
 
                   <!-- Concert & Venue -->
                   <td class="px-4 py-3 align-top max-w-xs">
                     <p class="font-medium text-white text-sm">{{ item.record.raw_artists }}</p>
-                    <p class="text-xs text-slate-400 mt-0.5"><i class="fa-solid fa-location-dot text-[11px] text-slate-500 mr-1"></i>{{ item.record.venue }}</p>
+                    <p class="text-xs text-slate-400 mt-0.5">
+                      <button onclick="jumpToConcertInDrilldown('{{ item.record.venue.replace('\'', '\\\'') }}', '{{ item.record.display_date }}')" class="hover:underline hover:text-indigo-300 text-left text-slate-400">
+                        <i class="fa-solid fa-location-dot text-[11px] text-slate-500 mr-1"></i>{{ item.record.venue }}
+                      </button>
+                    </p>
                     <button onclick="jumpToConcertInDrilldown('{{ item.record.venue.replace('\'', '\\\'') }}', '{{ item.record.display_date }}')" class="mt-2 px-2.5 py-1 rounded bg-indigo-500/20 hover:bg-indigo-500/35 text-indigo-300 hover:text-white border border-indigo-500/30 text-[11px] font-semibold transition inline-flex items-center gap-1.5 cursor-pointer">
                       View Setlist <i class="fa-solid fa-arrow-right text-[9px]"></i>
                     </button>
@@ -859,7 +886,9 @@
                     {% for b in item.missing_bands_info %}
                       <div class="flex flex-wrap items-center justify-between gap-2 p-2 rounded-lg bg-slate-900/50 border border-slate-800/80">
                         <div class="flex items-center gap-2">
-                          <span class="font-semibold text-slate-200 text-xs">{{ b.artist }}</span>
+                          <button onclick="jumpToSongInDrilldown('{{ b.artist.replace('\'', '\\\'') }}', '')" class="font-semibold text-slate-200 hover:text-indigo-300 hover:underline text-xs text-left">
+                            {{ b.artist }}
+                          </button>
                           {% if b.status == 'exists_unattended' %}
                             <span class="badge bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 text-[10px]">
                               <i class="fa-solid fa-circle-check mr-1"></i> On Setlist.fm
@@ -921,7 +950,11 @@
               {% for item in gap.setlist_only %}
               <tr class="hover:bg-slate-800/40 transition">
                 <td class="px-4 py-3 font-mono text-xs text-blue-300 whitespace-nowrap">{{ item.display_date }}</td>
-                <td class="px-4 py-3 font-medium text-white">{{ item.artist.name }}</td>
+                <td class="px-4 py-3 font-medium text-white">
+                  <button onclick="jumpToSongInDrilldown('{{ item.artist.name.replace('\'', '\\\'') }}', '')" class="hover:underline hover:text-indigo-300 font-medium text-white text-left">
+                    {{ item.artist.name }}
+                  </button>
+                </td>
                 <td class="px-4 py-3 text-slate-400 whitespace-nowrap">{{ item.venue.name }} ({{ item.venue.city.name }})</td>
                 <td class="px-4 py-3 text-right whitespace-nowrap">
                   <a href="{{ item.url }}" target="_blank" class="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded text-xs transition">
@@ -1083,20 +1116,24 @@
 
         // Top artists badges at this venue
         let topArtistsHtml = (v.top_artists || []).map(a => `
-          <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 mr-1 mb-1">
+          <button onclick="jumpToSongInDrilldown('${a.artist.replace(/'/g, "\\'")}', '')" class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-500/20 hover:bg-indigo-500/40 text-indigo-300 hover:text-white border border-indigo-500/30 mr-1 mb-1 transition cursor-pointer">
             ${a.artist} (${a.count}x)
-          </span>
+          </button>
         `).join('');
 
         let concertItems = (v.concerts || []).map(c => `
           <div class="p-2 rounded-lg bg-slate-900/90 border border-slate-800 text-xs mb-1.5 hover:border-slate-700 transition">
             <div class="flex items-center justify-between text-indigo-300 font-mono font-semibold mb-1">
-              <span><i class="fa-solid fa-calendar mr-1 text-[10px]"></i>${c.date}</span>
+              <button onclick="jumpToConcertInDrilldown('${v.name.replace(/'/g, "\\'")}', '${c.date}')" class="text-[10px] text-indigo-300 hover:text-white hover:underline font-mono">
+                <i class="fa-solid fa-calendar mr-1 text-[10px]"></i>${c.date}
+              </button>
               <button onclick="jumpToConcertInDrilldown('${v.name.replace(/'/g, "\\'")}', '${c.date}')" class="px-2 py-0.5 rounded bg-indigo-500/20 hover:bg-indigo-500/35 text-indigo-300 hover:text-white border border-indigo-500/30 text-[10px] font-semibold transition inline-flex items-center gap-1 cursor-pointer">
                 View Setlist <i class="fa-solid fa-arrow-right text-[8px]"></i>
               </button>
             </div>
-            <p class="text-white font-medium text-xs leading-snug">${c.raw_artists}</p>
+            <button onclick="jumpToConcertInDrilldown('${v.name.replace(/'/g, "\\'")}', '${c.date}')" class="text-white font-medium text-xs leading-snug hover:underline hover:text-indigo-300 text-left block">
+              ${c.raw_artists}
+            </button>
           </div>
         `).join('');
 
@@ -1247,7 +1284,27 @@
     let currentArtistName = null;
     let allExpanded = false;
 
-    function selectArtist(artistName) {
+    function jumpToSongInDrilldown(artistName, songName = '') {
+      switchTab('drilldown');
+      if (!artistName) return;
+
+      let matchedKey = Object.keys(drilldownData).find(k => k.toLowerCase() === artistName.toLowerCase());
+      if (!matchedKey) {
+        matchedKey = Object.keys(drilldownData).find(k => k.toLowerCase().includes(artistName.toLowerCase()) || artistName.toLowerCase().includes(k.toLowerCase()));
+      }
+
+      if (matchedKey) {
+        selectArtist(matchedKey, songName);
+      } else {
+        const songFilterInput = document.getElementById('drilldown-song-filter');
+        if (songFilterInput) {
+          songFilterInput.value = songName || '';
+          filterDrilldownSongs();
+        }
+      }
+    }
+
+    function selectArtist(artistName, songName = '') {
       currentArtistName = artistName;
       const data = drilldownData[artistName];
       if (!data) return;
@@ -1255,6 +1312,7 @@
       document.querySelectorAll('.artist-btn').forEach(btn => {
         if (btn.getAttribute('data-name') === artistName.toLowerCase()) {
           btn.className = 'artist-btn px-3 py-1.5 rounded-lg bg-indigo-600 text-white border border-indigo-400 text-xs font-semibold shadow-lg shadow-indigo-600/30 flex items-center gap-2';
+          btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
         } else {
           btn.className = 'artist-btn px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-indigo-600/30 text-slate-200 hover:text-indigo-200 border border-slate-700 hover:border-indigo-500/50 text-xs font-medium transition flex items-center gap-2';
         }
@@ -1276,7 +1334,26 @@
         albumSelect.appendChild(opt);
       });
 
+      const songFilterInput = document.getElementById('drilldown-song-filter');
+      if (songFilterInput) {
+        songFilterInput.value = songName || '';
+      }
+
       renderArtistSongs(data.songs);
+
+      if (songName) {
+        filterDrilldownSongs();
+        setTimeout(() => {
+          const firstMatch = document.querySelector('.song-item:not([style*="display: none"])');
+          if (firstMatch) {
+            const occList = firstMatch.querySelector('[id^="occ-list-"]');
+            const chevron = firstMatch.querySelector('[id^="chevron-"]');
+            if (occList) occList.classList.remove('hidden');
+            if (chevron) chevron.classList.add('rotate-180');
+            firstMatch.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 50);
+      }
     }
 
     function renderArtistSongs(songs) {
@@ -1316,8 +1393,12 @@
           <div class="flex items-center justify-between p-2 rounded-lg bg-slate-950/40 border border-slate-800/50 text-xs">
             <div class="flex flex-wrap items-center gap-3">
               <span class="font-mono text-indigo-300">#${oIdx + 1}</span>
-              <span class="font-mono text-slate-300 font-semibold">${o.date}</span>
-              <span class="text-slate-400"><i class="fa-solid fa-location-dot text-[10px] text-slate-500 mr-1"></i>${o.venue}</span>
+              <button onclick="jumpToConcertInDrilldown('${(o.venue || '').replace(/'/g, "\\'")}', '${o.date || ''}')" class="font-mono text-slate-300 hover:text-white hover:underline font-semibold text-left">
+                ${o.date}
+              </button>
+              <button onclick="jumpToConcertInDrilldown('${(o.venue || '').replace(/'/g, "\\'")}', '${o.date || ''}')" class="text-slate-400 hover:text-indigo-300 hover:underline text-left inline-flex items-center">
+                <i class="fa-solid fa-location-dot text-[10px] text-slate-500 mr-1"></i>${o.venue}
+              </button>
               ${posBadge}
               ${o.is_cover ? `<span class="badge bg-pink-500/20 text-pink-300 text-[10px]">Cover (${o.cover_original || 'Cover'})</span>` : ''}
               ${o.info ? `<span class="text-slate-500 text-[11px] italic">(${o.info})</span>` : ''}
