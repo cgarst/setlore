@@ -71,12 +71,12 @@ def generate_plotly_charts(stats: Dict[str, Any], album_enrichments: Dict[str, A
         }
     }
 
-    # 3. Treemap (Artist -> Album -> Track) with explicit IDs and URLs
+    # 3. Treemap (Artist -> Album -> Track) with explicit IDs and metadata
     ids = ["root"]
     labels = ["All Live Music"]
     parents = [""]
     values = [0]
-    custom_data = [""]
+    custom_data = [{"type": "root"}]
 
     top_artist_names = {a["artist"] for a in stats["top_artists"][:12]}
     artist_tracks = stats["all_songs_list"]
@@ -111,7 +111,7 @@ def generate_plotly_charts(stats: Dict[str, Any], album_enrichments: Dict[str, A
         labels.append(art)
         parents.append("root")
         values.append(art_total)
-        custom_data.append(f"https://www.setlist.fm/search?query=artist:%22{urllib.parse.quote(art)}%22")
+        custom_data.append({"type": "artist", "artist": art})
 
         for album_label, songs in albums.items():
             album_id = f"alb_{art}_{album_label}"
@@ -121,7 +121,7 @@ def generate_plotly_charts(stats: Dict[str, Any], album_enrichments: Dict[str, A
             labels.append(album_label)
             parents.append(art_id)
             values.append(album_total)
-            custom_data.append("")
+            custom_data.append({"type": "album", "artist": art, "album": album_label})
 
             for song, cnt in songs.items():
                 song_id = f"trk_{art}_{album_label}_{song}"
@@ -129,8 +129,7 @@ def generate_plotly_charts(stats: Dict[str, Any], album_enrichments: Dict[str, A
                 labels.append(song)
                 parents.append(album_id)
                 values.append(cnt)
-                song_url = f"https://www.setlist.fm/search?query=artist:%22{urllib.parse.quote(art)}%22+song:%22{urllib.parse.quote(song)}%22"
-                custom_data.append(song_url)
+                custom_data.append({"type": "song", "artist": art, "album": album_label, "song": song})
 
     values[0] = total_root_val or 1
 
@@ -144,11 +143,20 @@ def generate_plotly_charts(stats: Dict[str, Any], album_enrichments: Dict[str, A
             "customdata": custom_data,
             "textinfo": "label+value",
             "branchvalues": "remainder",
-            "marker": {"colorscale": "Sunsetdark"},
-            "hovertemplate": "<b>%{label}</b><br>Plays heard: %{value}<br><i>Click to zoom / view on Setlist.fm</i><extra></extra>"
+            "pathbar": {
+                "visible": True,
+                "thickness": 28,
+                "textfont": {"size": 12, "color": "#ffffff"},
+                "side": "top"
+            },
+            "marker": {
+                "colorscale": "Sunsetdark",
+                "line": {"width": 1.5, "color": "#0f172a"}
+            },
+            "hovertemplate": "<b>%{label}</b><br>Plays heard: %{value}<br><i>Click to zoom or open drilldown</i><extra></extra>"
         }],
         "layout": {
-            "margin": {"t": 10, "b": 10, "l": 10, "r": 10}
+            "margin": {"t": 35, "b": 10, "l": 10, "r": 10}
         }
     }
 
