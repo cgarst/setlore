@@ -4,7 +4,7 @@ services:
     container_name: concert-trakr
     restart: unless-stopped
     ports:
-      - "8010:8000"
+      - "3010:8000"
     volumes:
       # Host-mounted volume for persistent SQLite DB and files
       - ./data:/app/data
