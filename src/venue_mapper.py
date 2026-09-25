@@ -53,15 +53,68 @@ VENUE_COORDINATES = {
     'weinberg': (39.4144, -77.4116, 'Frederick, MD', 'United States')
 }
 
+CANONICAL_VENUE_NAMES = {
+    '9:30 club': '9:30 Club',
+    'arlenes grocery': 'Arlenes Grocery',
+    'baker park bandshell': 'Baker Park Bandshell',
+    'blue fox': 'Blue Fox',
+    'blues alley': 'Blues Alley',
+    'burdick field': 'Burdick Field',
+    'cafe 611': 'Cafe 611',
+    'center stage': 'Center Stage',
+    'chevy amphitheater': 'Chevy Amphitheater',
+    'club orpheus': 'Club Orpheus',
+    'd.a.r.': 'D.A.R.',
+    'dar': 'D.A.R.',
+    'empire': 'Empire',
+    'hilton lake las vegas': 'Hilton Lake Las Vegas',
+    'hippodrome': 'Hippodrome',
+    'howard theater': 'Howard Theater',
+    'howard theatre': 'Howard Theatre',
+    "jammin' java": "Jammin' Java",
+    'jaxx': 'Jaxx',
+    'jiffy lube live': 'Jiffy Lube Live',
+    'lincoln theater': 'Lincoln Theater',
+    'magfest': 'MAGfest',
+    'merriweather': 'Merriweather',
+    'metro gallery': 'Metro Gallery',
+    'meyerhoff': 'Meyerhoff',
+    'nation': 'Nation',
+    'nationals field': 'Nationals Field',
+    'northwest stadium': 'Northwest Stadium',
+    'ottobar': 'Ottobar',
+    'pier six': 'Pier Six',
+    'rfk stadium': 'RFK Stadium',
+    'rams head live': 'Rams Head Live',
+    'rams head live!': 'Rams Head Live!',
+    'rams head on stage': 'Rams Head On Stage',
+    'royal albert hall': 'Royal Albert Hall',
+    'sirbaugh acres': 'Sirbaugh Acres',
+    'sound stage': 'Soundstage',
+    'soundstage': 'Soundstage',
+    'state theater': 'State Theater',
+    'state theatre': 'State Theatre',
+    'tally ho': 'Tally Ho',
+    'terminal 5': 'Terminal 5',
+    'the anthem': 'The Anthem',
+    'the fillmore': 'The Fillmore',
+    'the lyric': 'The Lyric',
+    'verizon center': 'Verizon Center',
+    'warner theater': 'Warner Theater',
+    'warner theatre': 'Warner Theatre',
+    'weinberg': 'Weinberg'
+}
+
 def generate_venue_map_data(all_csv_records: List[Dict[str, Any]],
                             matched_setlists: List[Dict[str, Any]]) -> Dict[str, Any]:
     venue_concerts = defaultdict(list)
     venue_artists = defaultdict(Counter)
 
     for rec in all_csv_records:
-        venue = rec.get('venue', '').strip()
-        if not venue:
+        raw_venue = rec.get('venue', '').strip()
+        if not raw_venue:
             continue
+        venue = CANONICAL_VENUE_NAMES.get(raw_venue.lower(), raw_venue)
         venue_concerts[venue].append({
             'id': rec['id'],
             'date': rec.get('display_date', rec.get('raw_date', '')),
@@ -103,7 +156,7 @@ def generate_venue_map_data(all_csv_records: List[Dict[str, Any]],
 
         sorted_concerts = sorted(
             concerts,
-            key=lambda c: c.get('_date_obj') if c.get('_date_obj') else datetime.min,
+            key=lambda c: str(c.get('_date_obj') or ""),
             reverse=True
         )
 

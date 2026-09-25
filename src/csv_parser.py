@@ -146,7 +146,7 @@ def parse_concerts_source(source: str, ignored_list: Optional[List[str]] = None)
                 print(f"      Successfully fetched live data from Google Sheets!")
                 return parse_csv_rows(csv.reader(io.StringIO(res.text)), ignored_list)
             elif res.status_code == 401 or res.status_code == 403:
-                print(f"      ⚠️ Google Sheet requires permission (HTTP {res.status_code}).")
+                print(f"      [!] Google Sheet requires permission (HTTP {res.status_code}).")
                 print("      Please set Sheet sharing to 'Anyone with the link can view' or use local CSV.")
         except Exception as e:
             print(f"      Failed to fetch from Google Sheets: {e}")

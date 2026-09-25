@@ -1,0 +1,17 @@
+services:
+  web:
+    build: .
+    container_name: concert-trakr
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      # Host-mounted volume for persistent SQLite DB and files
+      - ./data:/app/data
+    env_file:
+      - .env
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings
+      - DATABASE_PATH=/app/data/db.sqlite3
+      - DATA_DIR=/app/data
+      - PYTHONUNBUFFERED=1

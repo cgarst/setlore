@@ -205,6 +205,8 @@ def reconcile_history(csv_records: List[Dict[str, Any]], user_attended_setlists:
             "matched_bands": matched_bands,
             "missing_bands_info": missing_bands_info,
             "missing_bands": [b["artist"] for b in missing_bands_info],
+            "has_exists": any(b.get("status") == "exists_unattended" for b in missing_bands_info),
+            "has_missing": any(b.get("status") == "missing_from_setlistfm" for b in missing_bands_info),
             "setlists": matched_sl_for_row,
             "is_fully_matched": len(missing_bands_info) == 0 and len(matched_bands) > 0,
             "is_partially_matched": len(matched_bands) > 0 and len(missing_bands_info) > 0,

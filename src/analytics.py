@@ -43,7 +43,7 @@ class ConcertAnalytics:
 
         sorted_pairs = sorted(
             [p for p in self.matched_setlists if p.get("setlist")],
-            key=lambda p: p["csv"]["date_obj"] if p["csv"].get("date_obj") else ""
+            key=lambda p: str(p["csv"].get("date_obj") or "")
         )
 
         for pair in sorted_pairs:
@@ -239,11 +239,24 @@ class ConcertAnalytics:
                 "songs": sorted_songs
             }
 
-        # Sort artist_drilldown by highest total plays heard, then unique songs
+        # Ensure all seen artists are included in artist_drilldown even if no setlists are matched yet
+        for artist, concert_count in artist_counter.items():
+            if artist not in artist_drilldown:
+                artist_drilldown[artist] = {
+                    "artist": artist,
+                    "concert_count": concert_count,
+                    "total_plays": 0,
+                    "unique_songs": 0,
+                    "songs": []
+                }
+            else:
+                artist_drilldown[artist]["concert_count"] = concert_count
+
+        # Sort artist_drilldown by highest total plays heard, then unique songs, then concert count
         artist_drilldown = dict(
             sorted(
                 artist_drilldown.items(),
-                key=lambda x: (x[1]["total_plays"], x[1]["unique_songs"]),
+                key=lambda x: (x[1]["total_plays"], x[1]["unique_songs"], x[1].get("concert_count", 0)),
                 reverse=True
             )
         )
@@ -308,7 +321,7 @@ class ConcertAnalytics:
         # Sort CSV records chronologically (oldest to newest) to build accurate cumulative counts
         sorted_records = sorted(
             self.all_csv_records,
-            key=lambda r: (r.get("date_obj") is not None, r.get("date_obj"))
+            key=lambda r: (r.get("date_obj") is not None, str(r.get("date_obj") or ""))
         )
 
         artist_show_counter = defaultdict(int)

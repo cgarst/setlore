@@ -1,13 +1,15 @@
 # 🎸 concert-trakr
 
-A powerful Python analytics engine and interactive dashboard for tracking, reconciling, and visualizing your live concert history.
+A powerful Python analytics engine and multi-user web dashboard for tracking, reconciling, and visualizing your live concert history.
 
-`concert-trakr` synchronizes your personal concert attendance spreadsheet (or CSV) with [Setlist.fm](https://www.setlist.fm/), enriches your catalog with [MusicBrainz](https://musicbrainz.org/) discography data, analyzes musician lineup tenures across bands, maps venues geographically, and generates a rich, responsive HTML dashboard.
+`concert-trakr` synchronizes your personal concert attendance spreadsheet (or CSV) with [Setlist.fm](https://www.setlist.fm/), enriches your catalog with [MusicBrainz](https://musicbrainz.org/) discography data, analyzes musician lineup tenures across bands, maps venues geographically, and generates a rich, responsive interactive dashboard.
 
 ---
 
 ## ✨ Features
 
+- **👥 Multi-User Self-Hosting**: Built-in user authentication, isolated attendance tracking, and individual Setlist.fm syncs.
+- **🎛️ Django Admin Superpowers**: Full `/admin/` portal out-of-the-box to manage users, correct misattributed albums/songs, edit band lineups, and adjust venue coordinates.
 - **📊 Comprehensive Concert Analytics**: Summarizes shows attended, unique artists seen, venues visited, songs heard (total and unique), attendance patterns by year, decade, month, and day of week.
 - **🔄 Bidirectional Gap Analysis**:
   - Reconciles your personal spreadsheet with your Setlist.fm attended history using fuzzy matching ([RapidFuzz](https://github.com/rapidfuzz/RapidFuzz)).
@@ -17,131 +19,72 @@ A powerful Python analytics engine and interactive dashboard for tracking, recon
 - **💿 MusicBrainz Album & Discography Enrichment**:
   - Automatically queries MusicBrainz to map live songs to studio albums, original release years, and release groups.
   - Smart album title normalization and filtering (strips remaster tags, ignores live/compilation noise).
-  - Categorizes songs into studio albums vs. non-album singles/covers.
+  - Global shared catalog: cached albums and tracks are shared across users to eliminate redundant API queries.
 - **👥 Musician Tenure & Lineup Tracker**:
   - Tracks individual band members and historical tenures across multiple bands/projects (e.g., Mike Portnoy across Dream Theater, The Winery Dogs, Transatlantic, etc.).
   - Calculates individual musician attendance counts based on the exact concert date and historical lineup dates.
 - **🗺️ Venue Mapping & Geocoding**:
   - Geocodes venue and city information into map coordinates for interactive venue visualization.
-- **🎨 Interactive Dashboard Report**:
-  - Produces a self-contained, interactive HTML report (`concert_report.html`) complete with searchable concert drilldowns, album breakdown matrices, coverage indicators, and venue mapping.
-- **⚡ Resilient Multi-Tier Caching**:
-  - Caches Setlist.fm user history, venue/artist setlists, and MusicBrainz metadata locally in JSON to minimize network calls and respect API rate limits.
+- **⚡ Resilient SQLite Persistence**:
+  - All data and API responses are persisted in a host-mounted SQLite database (`data/db.sqlite3`) with WAL concurrency.
 
 ---
 
-## 📁 Project Structure
+## 🐳 Quickstart: Docker & Docker Compose (Recommended)
 
-```text
-concerts/
-├── cache/                     # Local JSON API cache
-│   ├── musicbrainz/           # MusicBrainz query and recording cache
-│   ├── setlists/              # Cached show setlists from Setlist.fm
-│   └── user/                  # Cached user attendance data
-├── src/
-│   ├── __init__.py
-│   ├── album_enricher.py      # MusicBrainz API client, rate limiter & album mapping
-│   ├── analytics.py          # Metric calculations, aggregations & concert drilldown
-│   ├── config.py             # App configuration, directories, and environment variables
-│   ├── csv_parser.py         # Parser for Google Sheets URLs and local CSV files
-│   ├── gap_analysis.py       # Reconciles spreadsheet entries against Setlist.fm records
-│   ├── musician_tracker.py   # Musician tenure database & cross-band attendance counter
-│   ├── reporter.py           # Jinja2 HTML report generator
-│   ├── setlist_api.py        # Setlist.fm REST API client with local caching
-│   ├── templates/
-│   │   └── dashboard.html    # Jinja2 dashboard UI template
-│   └── venue_mapper.py       # Venue geocoding and map layer generator
-├── tests/
-│   └── test_pipeline.py      # Unit tests for date parsing, cleanup, and gap analysis
-├── .env                      # Environment variables (API keys, user settings)
-├── concert_report.html       # Default rendered HTML output
-├── main.py                   # Main CLI entrypoint
-└── requirements.txt          # Python dependencies
+The easiest way to self-host `concert-trakr` is using **Docker Compose**:
+
+### 1. Configure `.env`
+Copy the example environment file:
+```bash
+cp .env.example .env
+```
+Edit `.env` to set your credentials:
+```dotenv
+DJANGO_SECRET_KEY=generate_a_random_secret_key
+SETLISTFM_KEY=your_setlistfm_api_key_here
+ADMIN_USERNAME=Zathu
+ADMIN_PASSWORD=change_this_password
+SETLISTFM_USER=Zathu
 ```
 
+### 2. Launch Container
+```bash
+docker compose up -d
+```
+
+### 3. Open the App
+- **Dashboard**: Visit [http://localhost:8000](http://localhost:8000) and sign in.
+- **Admin Panel**: Visit [http://localhost:8000/admin](http://localhost:8000/admin) to manage users and catalog metadata.
+- **Data Persistence**: All database state is stored in your host machine's `./data/db.sqlite3` file and persists across container rebuilds.
+
 ---
 
-## 🛠️ Installation & Setup
+## 🛠️ Local Development Setup with `uv`
+
+Dependencies and virtual environments are managed using [uv](https://github.com/astral-sh/uv):
 
 ### 1. Prerequisites
-- **Python 3.9+**
+- **Python 3.12+**
+- **uv** (`pip install uv` or `curl -LsSf https://astral.sh/uv/install.sh | sh`)
 - A **Setlist.fm API Key** (obtainable free from [Setlist.fm API settings](https://www.setlist.fm/settings/api))
 
-### 2. Clone the Repository
+### 2. Install Dependencies
 ```bash
-git clone https://github.com/your-username/concert-trakr.git
-cd concert-trakr
+uv sync
 ```
 
-### 3. Create a Virtual Environment
+### 3. Initialize Database & Seed User 1
 ```bash
-python3 -m venv venv
-source venv/bin/activate
+uv run python manage.py migrate
+uv run python manage.py seed_user_one
 ```
 
-### 4. Install Dependencies
+### 4. Run the Development Server
 ```bash
-pip install -r requirements.txt
+uv run python manage.py runserver
 ```
-
-### 5. Configure Environment Variables
-Create a `.env` file in the root directory (or edit the existing `.env`):
-
-```dotenv
-# Your Setlist.fm API Key
-setlistfm_key=your_setlistfm_api_key_here
-
-# Your default Setlist.fm username
-setlistfm_user=YourUsername
-
-# (Optional) CARTO API Key for advanced map layers
-carto_api_key=cb1_2exf_1_3b2a43a7cdd980ffef0b756c
-```
-
----
-
-## 🚀 Usage
-
-### Run Default Analysis
-By default, the script reads from the configured Google Sheet URL / default CSV, fetches Setlist.fm data for the user configured in `.env`, runs gap analysis, enriches album data, and exports `concert_report.html`:
-
-```bash
-python main.py
-```
-
-### Command-Line Options
-
-| Argument | Type | Default | Description |
-| :--- | :--- | :--- | :--- |
-| `--source` | `str` | *Configured Sheet URL* | Path to a local CSV file or public Google Sheets URL. |
-| `--user` | `str` | `SETLISTFM_USER` / `.env` | Setlist.fm username to reconcile against. |
-| `--output` | `str` | `concert_report.html` | Destination path for the generated HTML report. |
-| `--no-cache` | `flag` | `False` | Force fresh API fetch bypassing all local caches. |
-| `--refresh-setlists` | `flag` | `False` | Force a fresh fetch of user-attended setlists from Setlist.fm. |
-| `--refresh-unresolved` | `flag` | `False` | Re-query MusicBrainz only for songs marked as Non-Album / Singles. |
-| `--refresh-all` | `flag` | `False` | Force re-query of all songs in catalog across MusicBrainz and Setlist.fm. |
-
-### Examples
-
-**Using a local CSV file and custom output path:**
-```bash
-python main.py --source "/path/to/my_concerts.csv" --output "my_dashboard.html"
-```
-
-**Analyzing a different Setlist.fm user:**
-```bash
-python main.py --user "Zathu"
-```
-
-**Refreshing unresolved MusicBrainz album tracks:**
-```bash
-python main.py --refresh-unresolved
-```
-
-**Bypassing all cached API responses:**
-```bash
-python main.py --no-cache
-```
+Visit `http://localhost:8000` and log in with your configured admin credentials.
 
 ---
 
@@ -163,24 +106,20 @@ When supplying a CSV or Google Sheet, the parser expects header columns matching
 
 ## 🧪 Running Tests
 
-Run the test suite using Python's built-in `unittest` runner:
+Run the full test suite (pipeline + Django models & auth):
 
 ```bash
-python -m unittest discover tests
-```
-
-Or run the pipeline tests directly:
-```bash
-python -m unittest tests/test_pipeline.py
+uv run python manage.py test tests
 ```
 
 ---
 
 ## 💾 Caching Strategy & Rate Limiting
 
-- **Setlist.fm**: Cached in `cache/setlists/` and `cache/user/` to prevent hitting the 2 req/sec rate limit.
-- **MusicBrainz**: Cached in `cache/musicbrainz/` with a compliant 1.0-second delay between live API queries.
-- To safely purge or invalidate caches, use the respective `--refresh-*` flags or remove individual JSON files in the `cache/` directory.
+- **Setlist.fm**: Rate-limited to ~1.6 req/sec to safely stay under the 2 req/sec limit.
+- **MusicBrainz**: Complies with the 1.0-second delay between live queries.
+- **Single-Worker Queue**: Background syncs across all users are queued sequentially in `sync_worker.py` to prevent multi-user concurrency from triggering IP bans.
+- **SQLite Storage**: API responses are cached in the `catalog.ApiCache` SQLite table.
 
 ---
 

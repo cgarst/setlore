@@ -1,3 +1,4 @@
+import os
 import json
 import re
 import time
@@ -7,7 +8,7 @@ from pathlib import Path
 from typing import Dict, Any, Optional, Tuple, List
 import requests
 from rapidfuzz import fuzz
-from src.config import MB_CACHE_DIR
+from src.config import MB_CACHE_DIR, CONTACT_EMAIL
 
 def clean_album_title(title: str) -> str:
     """Normalizes album title by removing edition/remaster tags and standardizing casing."""
@@ -475,9 +476,10 @@ class AlbumEnricher:
     by querying MusicBrainz with strict studio release filtering, edition normalization,
     and thread-safe disk caching.
     """
-    def __init__(self):
+    def __init__(self, contact_email: Optional[str] = None):
+        email = contact_email or os.getenv("CONTACT_EMAIL", "admin@localhost").strip()
         self.headers = {
-            "User-Agent": "ConcertAnalyticsApp/1.0 ( cgarst@gmail.com )",
+            "User-Agent": f"ConcertTrakr/1.0 ({email})",
             "Accept": "application/json"
         }
         self._last_req_time = 0.0
@@ -712,56 +714,28 @@ class AlbumEnricher:
 
         return result
 
-    def enrich_catalog(self, songs_list: list, max_workers: int = 1, refresh_unresolved: bool = False, refresh_all: bool = False) -> Dict[str, Any]:
+    def enrich_catalog(self, songs_list: list, max_workers: int = 1,
+                       refresh_unresolved: bool = False, refresh_all: bool = False,
+                       progress_callback: Optional[Any] = None,
+                       batch_save_callback: Optional[Any] = None) -> Dict[str, Any]:
         """
         Enriches a list of song records with album info, deduplicating unique artist-song
         pairs, pre-loading from disk cache, and fetching uncached tracks with live progress reporting.
         """
         import sys
 
-        # Deduplicate
-        unique_pairs = {}
-        for item in songs_list:
-            art = item.get("artist")
-            song = item.get("song")
-            if not art or not song:
-                continue
-            key = f"{art}_{song}".lower()
-            if key not in unique_pairs:
-                unique_pairs[key] = (art, song)
-
-        total_unique = len(unique_pairs)
-        results: Dict[str, Any] = {}
-        uncached = []
-
-        # 1. Quick local cache check with validity verification
-        for key, (art, song) in unique_pairs.items():
-            if refresh_all:
-                uncached.append((key, art, song))
-                continue
-
-            cache_key = "".join(c if c.isalnum() else "_" for c in key)
-            cache_file = MB_CACHE_DIR / f"{cache_key}.json"
-            if cache_file.exists():
-                try:
-                    with open(cache_file, "r", encoding="utf-8") as f:
-                        cached = json.load(f)
-                        if self._is_valid_cache_entry(cached, refresh_unresolved=refresh_unresolved):
-                            cached["album"] = clean_album_title(cached.get("album", "Non-Album / Singles"))
-                            results[key] = cached
-                            continue
-                except Exception:
-                    pass
-            uncached.append((key, art, song))
+        results, uncached, total_unique = self.load_cached_catalog(
+            songs_list, refresh_all=refresh_all, refresh_unresolved=refresh_unresolved
+        )
 
         cached_count = len(results)
-        print(f"      ⚡ Album cache: {cached_count}/{total_unique} songs loaded from disk cache.")
+        print(f"      [CACHE] Album cache: {cached_count}/{total_unique} songs loaded from disk cache.")
 
         if not uncached:
-            print(f"      ✅ All {total_unique} songs ready (0 API calls needed).")
+            print(f"      [OK] All {total_unique} songs ready (0 API calls needed).")
             return results
 
-        print(f"      🌐 Fetching/refreshing studio albums for {len(uncached)} uncached/new songs...")
+        print(f"      [FETCH] Fetching/refreshing studio albums for {len(uncached)} uncached/new songs...")
 
         completed = cached_count
         for key, art, song in uncached:
@@ -782,10 +756,61 @@ class AlbumEnricher:
             if len(disp) > 35:
                 disp = disp[:32] + "..."
             pct = (completed / total_unique) * 100
-            sys.stdout.write(f"\r      ⏳ [{completed}/{total_unique}] ({pct:4.1f}%) Resolving: {disp:<35} ")
+            sys.stdout.write(f"\r      [{completed}/{total_unique}] ({pct:4.1f}%) Resolving: {disp:<35} ")
             sys.stdout.flush()
 
+            if progress_callback and (completed % 5 == 0 or completed == total_unique):
+                try:
+                    progress_callback(completed, total_unique, f"{art} - {song}")
+                except Exception:
+                    pass
+
+            if batch_save_callback and completed % 25 == 0:
+                try:
+                    batch_save_callback(results)
+                except Exception:
+                    pass
+
         sys.stdout.write("\n")
-        print(f"      ✅ Finished album enrichment: {total_unique} songs ready.")
+        print(f"      [OK] Finished album enrichment: {total_unique} songs ready.")
         return results
+
+    def load_cached_catalog(self, songs_list: List[Dict[str, Any]],
+                            refresh_all: bool = False,
+                            refresh_unresolved: bool = False) -> Tuple[Dict[str, Any], List[Tuple[str, str, str]], int]:
+        """Loads all existing cached album entries from disk without making any external API calls."""
+        unique_pairs = {}
+        for item in songs_list:
+            art = item.get("artist")
+            song = item.get("song")
+            if not art or not song:
+                continue
+            key = f"{art}_{song}".lower()
+            if key not in unique_pairs:
+                unique_pairs[key] = (art, song)
+
+        total_unique = len(unique_pairs)
+        results: Dict[str, Any] = {}
+        uncached = []
+
+        for key, (art, song) in unique_pairs.items():
+            if refresh_all:
+                uncached.append((key, art, song))
+                continue
+
+            cache_key = "".join(c if c.isalnum() else "_" for c in key)
+            cache_file = MB_CACHE_DIR / f"{cache_key}.json"
+            if cache_file.exists():
+                try:
+                    with open(cache_file, "r", encoding="utf-8") as f:
+                        cached = json.load(f)
+                        if self._is_valid_cache_entry(cached, refresh_unresolved=refresh_unresolved):
+                            cached["album"] = clean_album_title(cached.get("album", "Non-Album / Singles"))
+                            results[key] = cached
+                            continue
+                except Exception:
+                    pass
+            uncached.append((key, art, song))
+
+        return results, uncached, total_unique
 

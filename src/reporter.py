@@ -2,7 +2,6 @@ import json
 import urllib.parse
 from pathlib import Path
 from typing import Dict, Any
-from jinja2 import Environment, FileSystemLoader
 
 def generate_plotly_charts(stats: Dict[str, Any], album_enrichments: Dict[str, Any]) -> Dict[str, str]:
     # 1. Timeline Chart (Yearly Concerts & Songs)
@@ -239,6 +238,7 @@ def generate_plotly_charts(stats: Dict[str, Any], album_enrichments: Dict[str, A
 def render_html_report(template_dir: Path, output_path: Path, username: str,
                        gap_results: Dict[str, Any], stats: Dict[str, Any],
                        album_enrichments: Dict[str, Any]) -> Path:
+    from jinja2 import Environment, FileSystemLoader
     env = Environment(loader=FileSystemLoader(str(template_dir)))
     template = env.get_template("dashboard.html")
 

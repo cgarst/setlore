@@ -1,6 +1,7 @@
 # Environment variables / secrets
 .env
 .env.*
+!.env.example
 
 # Python
 __pycache__/
@@ -15,9 +16,13 @@ ENV/
 
 # Output & Cache
 cache/
+data/
+*.sqlite3
 *.html
 !src/templates/*.html
+!templates/**/*.html
 
 # OS metadata
 .DS_Store
 Thumbs.db
+
