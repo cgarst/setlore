@@ -74,10 +74,11 @@ Dependencies and virtual environments are managed using [uv](https://github.com/
 uv sync
 ```
 
-### 3. Initialize Database & Seed User 1
+### 3. Initialize Database, Seed User 1 & Collect Static Files
 ```bash
 uv run python manage.py migrate
 uv run python manage.py seed_user_one
+uv run python manage.py collectstatic --noinput
 ```
 
 ### 4. Run the Development Server

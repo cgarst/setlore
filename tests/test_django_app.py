@@ -79,3 +79,17 @@ class DjangoAppTests(TestCase):
         self.assertIn('artist-btn', content)
         self.assertIn('Dream Theater', content)
         self.assertIn('9:30 Club', content)
+
+    def test_admin_login_page_renders(self):
+        # Admin login page should render HTTP 200 without staticfile manifest errors
+        res = self.client.get('/admin/login/?next=/admin/')
+        self.assertEqual(res.status_code, 200)
+        self.assertIn('Log in', res.content.decode('utf-8'))
+
+    def test_admin_portal_accessible_by_staff(self):
+        admin_user = User.objects.create_superuser(username='admin', password='adminpassword', email='admin@example.com')
+        self.client.force_login(admin_user)
+        res = self.client.get('/admin/')
+        self.assertEqual(res.status_code, 200)
+        self.assertIn('Django administration', res.content.decode('utf-8'))
+

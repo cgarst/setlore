@@ -4,7 +4,7 @@ from .models import Concert, ConcertArtist, ConcertSong
 class ConcertSongInline(admin.TabularInline):
     model = ConcertSong
     extra = 0
-    fields = ['raw_song_name', 'set_name', 'is_encore', 'track_num', 'slot', 'is_cover', 'original_artist']
+    fields = ['song', 'raw_song_name', 'set_name', 'is_encore', 'track_num', 'slot', 'is_cover', 'original_artist']
     autocomplete_fields = ['song']
 
 class ConcertArtistInline(admin.TabularInline):
