@@ -272,6 +272,49 @@ BAND_MEMBERS_TENURE = {
 
 from src.csv_parser import normalize_artist_name
 
+def get_effective_band_tenures() -> Dict[str, List[Dict[str, Any]]]:
+    """
+    Returns a unified mapping of normalized band name (lowercase) -> list of member dicts.
+    If Django is initialized and MusicianTenure records exist, they are loaded.
+    For any band present in the database, its database tenures take precedence.
+    For any band not present in the database, BAND_MEMBERS_TENURE is used as a fallback.
+    This guarantees zero duplication between DB records and static dictionary data.
+    """
+    tenure_map = defaultdict(list)
+    db_artists_seen = set()
+
+    try:
+        from django.apps import apps
+        if apps.ready:
+            from apps.catalog.models import MusicianTenure
+            db_tenures = MusicianTenure.objects.select_related('artist').all()
+            for mt in db_tenures:
+                art_name = mt.artist.name
+                art_norm = (mt.artist.normalized_name or art_name).lower().strip()
+                db_artists_seen.add(art_norm)
+                db_artists_seen.add(art_name.lower().strip())
+
+                member_dict = {
+                    "musician": mt.musician_name,
+                    "role": mt.role,
+                    "instrument": mt.instrument,
+                    "start": mt.start_year,
+                    "end": mt.end_year
+                }
+                tenure_map[art_norm].append(member_dict)
+                if art_name.lower().strip() != art_norm:
+                    tenure_map[art_name.lower().strip()].append(member_dict)
+    except Exception:
+        pass
+
+    # Fallback to BAND_MEMBERS_TENURE for any bands not populated in DB
+    for band_key, members in BAND_MEMBERS_TENURE.items():
+        k = band_key.lower().strip()
+        if k not in db_artists_seen and not tenure_map[k]:
+            tenure_map[k] = list(members)
+
+    return tenure_map
+
 def analyze_musicians_live(all_csv_records: List[Dict[str, Any]]) -> Dict[str, Any]:
     """
     Cross-references every attended concert with band member tenures (by year)
@@ -281,6 +324,10 @@ def analyze_musicians_live(all_csv_records: List[Dict[str, Any]]) -> Dict[str, A
     musician_shows = defaultdict(list)
     musician_bands = defaultdict(lambda: Counter())
     musician_roles = {}
+    musician_instruments = {}
+    seen_show_keys = set()
+
+    effective_tenures = get_effective_band_tenures()
 
     for rec in all_csv_records:
         year = rec.get("year")
@@ -291,11 +338,12 @@ def analyze_musicians_live(all_csv_records: List[Dict[str, Any]]) -> Dict[str, A
         for art in artists:
             canonical_art = normalize_artist_name(art)
             art_key = canonical_art.lower().strip()
-            tenures = BAND_MEMBERS_TENURE.get(art_key, [])
+            tenures = effective_tenures.get(art_key, [])
 
             for member in tenures:
                 m_name = member["musician"]
                 m_role = member["role"]
+                m_instr = member.get("instrument")
                 start_yr = member.get("start", 1900)
                 end_yr = member.get("end")
 
@@ -306,7 +354,16 @@ def analyze_musicians_live(all_csv_records: List[Dict[str, Any]]) -> Dict[str, A
                     if end_yr is not None and year > end_yr:
                         continue
 
+                # Deduplicate: Avoid counting the same musician twice for the same show and band
+                show_key = (m_name, date_str, venue, canonical_art)
+                if show_key in seen_show_keys:
+                    continue
+                seen_show_keys.add(show_key)
+
                 musician_roles[m_name] = m_role
+                if m_instr and m_instr != "Other":
+                    musician_instruments[m_name] = m_instr
+
                 musician_bands[m_name][canonical_art] += 1
                 musician_shows[m_name].append({
                     "date": date_str,
@@ -326,19 +383,21 @@ def analyze_musicians_live(all_csv_records: List[Dict[str, Any]]) -> Dict[str, A
         unique_bands = len(bands_dict)
         primary_role = musician_roles.get(m_name, "Musician")
 
-        # Categorize primary instrument
-        instr = "Other"
-        r_low = primary_role.lower()
-        if "drum" in r_low:
-            instr = "Drums"
-        elif "guitar" in r_low:
-            instr = "Guitar"
-        elif "bass" in r_low:
-            instr = "Bass"
-        elif "vocal" in r_low or "singer" in r_low:
-            instr = "Vocals"
-        elif "key" in r_low or "piano" in r_low or "synth" in r_low:
-            instr = "Keyboards"
+        # Categorize primary instrument (use pre-stored instrument if available)
+        instr = musician_instruments.get(m_name)
+        if not instr or instr == "Other":
+            instr = "Other"
+            r_low = primary_role.lower()
+            if "drum" in r_low:
+                instr = "Drums"
+            elif "guitar" in r_low:
+                instr = "Guitar"
+            elif "bass" in r_low:
+                instr = "Bass"
+            elif "vocal" in r_low or "singer" in r_low:
+                instr = "Vocals"
+            elif "key" in r_low or "piano" in r_low or "synth" in r_low:
+                instr = "Keyboards"
 
         data = {
             "musician": m_name,
@@ -370,3 +429,4 @@ def analyze_musicians_live(all_csv_records: List[Dict[str, Any]]) -> Dict[str, A
         "by_instrument": dict(role_counters),
         "total_musicians_tracked": len(musician_list)
     }
+

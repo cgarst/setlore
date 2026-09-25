@@ -97,10 +97,10 @@ class Command(BaseCommand):
                     _, is_m_new = MusicianTenure.objects.get_or_create(
                         artist=artist_obj,
                         musician_name=m_name,
-                        role=m_role,
+                        start_year=m_start,
                         defaults={
+                            'role': m_role,
                             'instrument': instr,
-                            'start_year': m_start,
                             'end_year': m_end
                         }
                     )

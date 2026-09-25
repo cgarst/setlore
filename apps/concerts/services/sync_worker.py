@@ -8,13 +8,14 @@ from django.contrib.auth.models import User
 from django.db import transaction
 
 from apps.core.models import UserProfile
-from apps.catalog.models import Artist, Album, Song, Venue, ApiCache
+from apps.catalog.models import Artist, Album, Song, Venue, ApiCache, MusicianTenure
 from apps.concerts.models import Concert, ConcertArtist, ConcertSong
 
 from src.setlist_api import SetlistFMClient
 from src.gap_analysis import reconcile_history
 from src.analytics import ConcertAnalytics
 from src.album_enricher import AlbumEnricher
+from src.musician_enricher import MusicianEnricher
 from src.venue_mapper import generate_venue_map_data
 from src.musician_tracker import analyze_musicians_live
 from src.config import SETLISTFM_API_KEY
@@ -185,6 +186,30 @@ class SyncWorker:
                         }
                     }
                 )
+
+            # 4. Enrich musician lineup tenures for artists in user's concert history
+            try:
+                update_progress("Enriching musician lineup tenures...")
+                m_enricher = MusicianEnricher()
+                user_artist_ids = ConcertArtist.objects.filter(concert__user=user).values_list('artist_id', flat=True).distinct()
+                user_artists = Artist.objects.filter(id__in=user_artist_ids)
+                for art in user_artists:
+                    if not MusicianTenure.objects.filter(artist=art).exists():
+                        m_enricher.enrich_artist(art.name, artist_obj=art)
+                stats["musicians"] = analyze_musicians_live(csv_records)
+                ApiCache.objects.update_or_create(
+                    cache_key=cache_key,
+                    defaults={
+                        'endpoint': 'dashboard_bundle',
+                        'payload': {
+                            'gap_results': gap_results,
+                            'stats': stats,
+                            'album_enrichments': album_enrichments
+                        }
+                    }
+                )
+            except Exception as e:
+                logger.warning("Error enriching musicians during sync: %s", e)
 
             profile.sync_status = 'completed'
             profile.last_synced_at = timezone.now()
