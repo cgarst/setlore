@@ -10,6 +10,7 @@ from django.db import transaction
 from apps.core.models import UserProfile
 from apps.catalog.models import Artist, Album, Song, Venue, ApiCache, MusicianTenure
 from apps.concerts.models import Concert, ConcertArtist, ConcertSong
+from apps.concerts.utils import build_manual_setlist_for_concert_artist
 
 from src.setlist_api import SetlistFMClient
 from src.gap_analysis import reconcile_history
@@ -82,12 +83,14 @@ class SyncWorker:
             update_progress(f"Retrieved {len(user_attended)} attended setlists. Reconciling with concert history...")
 
             # Build CSV-like records from DB Concerts
-            db_concerts = Concert.objects.filter(user=user).select_related('venue').prefetch_related('artists__artist')
+            db_concerts = Concert.objects.filter(user=user).select_related('venue').prefetch_related('artists__artist', 'artists__songs')
             csv_records = []
+            manual_matched_pairs = []
+
             for c in db_concerts:
                 artist_names = [ca.artist.name for ca in c.artists.all()]
                 dt = datetime.combine(c.date, datetime.min.time()) if c.date else None
-                csv_records.append({
+                rec = {
                     "id": f"concert_{c.id}",
                     "db_id": c.id,
                     "date": c.date.strftime("%d-%m-%Y") if c.date else None,
@@ -99,10 +102,41 @@ class SyncWorker:
                     "artists": artist_names,
                     "primary_artist": c.primary_artist,
                     "venue": c.raw_venue or (c.venue.name if c.venue else ""),
-                    "seen_before": c.seen_before
-                })
+                    "seen_before": c.seen_before,
+                    "is_custom_offline": c.is_custom_offline,
+                    "source": c.source
+                }
+                csv_records.append(rec)
+
+                for ca in c.artists.all():
+                    if ca.songs.exists():
+                        sl_dict = build_manual_setlist_for_concert_artist(ca)
+                        if sl_dict:
+                            manual_matched_pairs.append({
+                                "csv": rec,
+                                "artist": ca.artist.name,
+                                "setlist": sl_dict,
+                                "score": 100.0,
+                                "is_manual": True
+                            })
 
             gap_results = reconcile_history(csv_records, user_attended, client=client, ignored_artists=profile.ignored_artists)
+
+            # Merge manual matched pairs
+            if manual_matched_pairs:
+                gap_results["matched"].extend(manual_matched_pairs)
+                for mp in manual_matched_pairs:
+                    rec_id = mp["csv"]["id"]
+                    if rec_id in gap_results.get("csv_status", {}):
+                        st = gap_results["csv_status"][rec_id]
+                        if mp["artist"] not in st["matched_bands"]:
+                            st["matched_bands"].append(mp["artist"])
+                        st["setlists"].append(mp["setlist"])
+                        st["missing_bands_info"] = [b for b in st["missing_bands_info"] if b["artist"].lower() != mp["artist"].lower()]
+                        st["missing_bands"] = [b["artist"] for b in st["missing_bands_info"]]
+                        st["is_fully_matched"] = (len(st["missing_bands"]) == 0)
+                        st["is_partially_matched"] = (len(st["matched_bands"]) > 0 and len(st["missing_bands"]) > 0)
+                        st["is_unmatched"] = (len(st["matched_bands"]) == 0)
 
             update_progress(f"Matched {gap_results['matched_count']}/{gap_results['total_csv']} concerts. Analyzing songs...")
 
@@ -113,6 +147,8 @@ class SyncWorker:
             matched_pairs = gap_results["matched"]
             with transaction.atomic():
                 for p in matched_pairs:
+                    if p.get("is_manual"):
+                        continue
                     rec = p.get("csv", {})
                     c_id = rec.get("db_id")
                     art_name = p.get("artist")

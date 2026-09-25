@@ -179,7 +179,8 @@ def reconcile_history(csv_records: List[Dict[str, Any]], user_attended_setlists:
                 })
             else:
                 global_sl = None
-                if client:
+                is_offline = csv_rec.get("is_custom_offline", False)
+                if client and not is_offline:
                     global_sl = find_global_setlist_match(client, art, csv_date, csv_rec.get("year"), venue)
 
                 if global_sl:
@@ -190,6 +191,14 @@ def reconcile_history(csv_records: List[Dict[str, Any]], user_attended_setlists:
                         "url": global_sl.get("url"),
                         "global_venue": global_sl.get("venue", {}).get("name", ""),
                         "global_date": format_setlist_date_us(global_sl.get("eventDate", ""))
+                    })
+                elif is_offline:
+                    missing_bands_info.append({
+                        "artist": art,
+                        "status": "custom_offline",
+                        "status_label": "Offline / Custom Show (Unlisted)",
+                        "url": None,
+                        "search_url": f"https://www.setlist.fm/search?query={art}+{venue}"
                     })
                 else:
                     missing_bands_info.append({
@@ -207,6 +216,7 @@ def reconcile_history(csv_records: List[Dict[str, Any]], user_attended_setlists:
             "missing_bands": [b["artist"] for b in missing_bands_info],
             "has_exists": any(b.get("status") == "exists_unattended" for b in missing_bands_info),
             "has_missing": any(b.get("status") == "missing_from_setlistfm" for b in missing_bands_info),
+            "is_custom_offline": csv_rec.get("is_custom_offline", False),
             "setlists": matched_sl_for_row,
             "is_fully_matched": len(missing_bands_info) == 0 and len(matched_bands) > 0,
             "is_partially_matched": len(matched_bands) > 0 and len(missing_bands_info) > 0,
@@ -214,8 +224,11 @@ def reconcile_history(csv_records: List[Dict[str, Any]], user_attended_setlists:
         }
 
     csv_missing_or_partial = []
+    offline_shows = []
     for csv_id, st in csv_status.items():
-        if not st["is_fully_matched"]:
+        if st.get("is_custom_offline") and not st.get("has_exists"):
+            offline_shows.append(st)
+        elif not st["is_fully_matched"]:
             csv_missing_or_partial.append(st)
 
     setlist_only = []
@@ -225,13 +238,14 @@ def reconcile_history(csv_records: List[Dict[str, Any]], user_attended_setlists:
             s_copy["display_date"] = format_setlist_date_us(s.get("eventDate", ""))
             setlist_only.append(s_copy)
 
-    fully_matched_csv_count = sum(1 for st in csv_status.values() if st["is_fully_matched"] or st["is_partially_matched"])
+    fully_matched_csv_count = sum(1 for st in csv_status.values() if st["is_fully_matched"] or st["is_partially_matched"] or st.get("is_custom_offline"))
 
     return {
         "matched": matched_pairs,
         "csv_status": csv_status,
-        "csv_only": [st["record"] for st in csv_status.values() if st["is_unmatched"]],
+        "csv_only": [st["record"] for st in csv_status.values() if st["is_unmatched"] and not st.get("is_custom_offline")],
         "csv_missing_or_partial": csv_missing_or_partial,
+        "offline_shows": offline_shows,
         "setlist_only": setlist_only,
         "total_csv": len(csv_records),
         "total_setlist_user": len(user_attended_filtered),

@@ -18,4 +18,5 @@ urlpatterns = [
     path('api/sync/', concerts_views.trigger_sync, name='api_sync'),
     path('api/sync/status/', concerts_views.sync_status, name='api_sync_status'),
     path('api/upload-csv/', concerts_views.upload_csv, name='api_upload_csv'),
+    path('api/concerts/add/', concerts_views.add_concert, name='api_add_concert'),
 ]

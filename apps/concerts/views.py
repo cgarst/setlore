@@ -1,6 +1,7 @@
 import io
 import csv
 import json
+import re
 from datetime import datetime
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
@@ -9,14 +10,16 @@ from django.views.decorators.http import require_POST
 from django.db import transaction
 
 import os
-from apps.catalog.models import ApiCache, Artist, Venue
-from apps.concerts.models import Concert, ConcertArtist
+from apps.catalog.models import ApiCache, Artist, Venue, Song
+from apps.concerts.models import Concert, ConcertArtist, ConcertSong
+from apps.concerts.utils import parse_setlist_text, resolve_venue_coordinates, build_manual_setlist_for_concert_artist
 from src.reporter import generate_plotly_charts
 from src.analytics import ConcertAnalytics
 from src.csv_parser import parse_csv_rows, normalize_artist_name
 from src.setlist_api import SetlistFMClient
 from src.gap_analysis import reconcile_history
 from src.album_enricher import AlbumEnricher
+from src.musician_enricher import MusicianEnricher
 from src.venue_mapper import generate_venue_map_data
 from src.musician_tracker import analyze_musicians_live
 from src.config import SETLISTFM_API_KEY, USER_CACHE_DIR
@@ -36,12 +39,14 @@ def dashboard_view(request):
         album_enrichments = bundle.get("album_enrichments", {})
     else:
         # Build baseline statistics directly from database
-        db_concerts = Concert.objects.filter(user=user).select_related('venue').prefetch_related('artists__artist')
+        db_concerts = Concert.objects.filter(user=user).select_related('venue').prefetch_related('artists__artist', 'artists__songs')
         csv_records = []
+        manual_matched_pairs = []
+
         for c in db_concerts:
             artist_names = [ca.artist.name for ca in c.artists.all()]
             dt = datetime.combine(c.date, datetime.min.time()) if c.date else None
-            csv_records.append({
+            rec = {
                 "id": f"concert_{c.id}",
                 "db_id": c.id,
                 "date": c.date.strftime("%d-%m-%Y") if c.date else None,
@@ -53,8 +58,23 @@ def dashboard_view(request):
                 "artists": artist_names,
                 "primary_artist": c.primary_artist,
                 "venue": c.raw_venue or (c.venue.name if c.venue else ""),
-                "seen_before": c.seen_before
-            })
+                "seen_before": c.seen_before,
+                "is_custom_offline": c.is_custom_offline,
+                "source": c.source
+            }
+            csv_records.append(rec)
+
+            for ca in c.artists.all():
+                if ca.songs.exists():
+                    sl_dict = build_manual_setlist_for_concert_artist(ca)
+                    if sl_dict:
+                        manual_matched_pairs.append({
+                            "csv": rec,
+                            "artist": ca.artist.name,
+                            "setlist": sl_dict,
+                            "score": 100.0,
+                            "is_manual": True
+                        })
 
         # Check if user has attended setlists in disk cache to auto-reconcile without network calls
         setlist_username = profile.setlistfm_username or user.username
@@ -75,14 +95,46 @@ def dashboard_view(request):
             gap_results = {
                 "matched": [],
                 "csv_status": {},
-                "csv_only": csv_records,
+                "csv_only": [r for r in csv_records if not r.get("is_custom_offline")],
                 "csv_missing_or_partial": [],
+                "offline_shows": [
+                    {
+                        "record": r,
+                        "matched_bands": [],
+                        "missing_bands_info": [{"artist": r.get("primary_artist", ""), "status": "custom_offline", "status_label": "Offline / Custom Show (Unlisted)"}],
+                        "missing_bands": [r.get("primary_artist", "")],
+                        "has_exists": False,
+                        "has_missing": False,
+                        "is_custom_offline": True,
+                        "setlists": [],
+                        "is_fully_matched": False,
+                        "is_partially_matched": False,
+                        "is_unmatched": True
+                    } for r in csv_records if r.get("is_custom_offline")
+                ],
                 "setlist_only": [],
                 "total_csv": len(csv_records),
                 "total_setlist_user": 0,
-                "matched_count": 0,
-                "coverage_percentage": 0.0
+                "matched_count": len([r for r in csv_records if r.get("is_custom_offline")]),
+                "coverage_percentage": round(len([r for r in csv_records if r.get("is_custom_offline")]) / len(csv_records) * 100, 1) if csv_records else 0.0
             }
+
+        # Merge manual matched pairs
+        if manual_matched_pairs:
+            matched.extend(manual_matched_pairs)
+            gap_results["matched"] = matched
+            for mp in manual_matched_pairs:
+                rec_id = mp["csv"]["id"]
+                if rec_id in gap_results.get("csv_status", {}):
+                    st = gap_results["csv_status"][rec_id]
+                    if mp["artist"] not in st["matched_bands"]:
+                        st["matched_bands"].append(mp["artist"])
+                    st["setlists"].append(mp["setlist"])
+                    st["missing_bands_info"] = [b for b in st["missing_bands_info"] if b["artist"].lower() != mp["artist"].lower()]
+                    st["missing_bands"] = [b["artist"] for b in st["missing_bands_info"]]
+                    st["is_fully_matched"] = (len(st["missing_bands"]) == 0)
+                    st["is_partially_matched"] = (len(st["matched_bands"]) > 0 and len(st["missing_bands"]) > 0)
+                    st["is_unmatched"] = (len(st["matched_bands"]) == 0)
 
         analytics = ConcertAnalytics(matched, csv_records, ignored_artists=profile.ignored_artists)
         stats = analytics.compute_all_metrics()
@@ -95,7 +147,7 @@ def dashboard_view(request):
         stats["musicians"] = analyze_musicians_live(csv_records)
 
         # Cache this bundle so subsequent loads are instant
-        if matched:
+        if matched or csv_records:
             ApiCache.objects.update_or_create(
                 cache_key=f"user_dashboard_bundle_{user.id}",
                 defaults={
@@ -139,6 +191,8 @@ def dashboard_view(request):
         'stats': stats,
         'artist_drilldown_json': artist_drilldown_json,
         'venue_map_json': venue_map_json,
+        'all_venues': list(Venue.objects.order_by('name').values_list('name', flat=True).distinct()),
+        'all_artists': list(Artist.objects.order_by('name').values_list('name', flat=True).distinct()),
         **charts
     }
     return render(request, 'dashboard.html', context)
@@ -177,7 +231,7 @@ def upload_csv(request):
             return JsonResponse({"error": "No valid concert rows found in CSV"}, status=400)
 
         with transaction.atomic():
-            Concert.objects.filter(user=request.user).delete()
+            Concert.objects.filter(user=request.user, source='csv').delete()
             for rec in csv_records:
                 dt = rec.get("date_obj")
                 venue_str = rec.get("venue", "").strip()
@@ -201,7 +255,9 @@ def upload_csv(request):
                     primary_artist=rec.get("primary_artist", ""),
                     raw_artists=rec.get("raw_artists", ""),
                     seen_before=rec.get("seen_before", ""),
-                    notes=""
+                    notes="",
+                    source='csv',
+                    is_custom_offline=False
                 )
 
                 for idx, art_name in enumerate(rec.get("artists", [])):
@@ -222,3 +278,219 @@ def upload_csv(request):
         })
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+
+@login_required
+@require_POST
+def add_concert(request):
+    try:
+        try:
+            data = json.loads(request.body.decode('utf-8'))
+        except Exception:
+            data = request.POST
+
+        date_str = str(data.get('date', '')).strip()
+        primary_artist_raw = str(data.get('primary_artist', '')).strip()
+        supporting_artists_raw = str(data.get('supporting_artists', '')).strip()
+        venue_name_raw = str(data.get('venue_name', '')).strip()
+        city = str(data.get('city', '')).strip()
+        state = str(data.get('state', '')).strip()
+        country = str(data.get('country', '')).strip() or 'United States'
+        notes = str(data.get('notes', '')).strip()
+        setlist_text = str(data.get('setlist_text', '')).strip()
+        is_custom_offline = data.get('is_custom_offline', True)
+        if isinstance(is_custom_offline, str):
+            is_custom_offline = is_custom_offline.lower() in ['true', '1', 'on', 'yes']
+
+        if not date_str:
+            return JsonResponse({"error": "Date is required."}, status=400)
+        if not primary_artist_raw:
+            return JsonResponse({"error": "Artist/Headliner is required."}, status=400)
+        if not venue_name_raw:
+            return JsonResponse({"error": "Venue name is required."}, status=400)
+
+        # Parse date
+        dt = None
+        for fmt in ("%Y-%m-%d", "%m/%d/%Y", "%m-%d-%Y", "%d-%m-%Y"):
+            try:
+                dt = datetime.strptime(date_str, fmt)
+                break
+            except ValueError:
+                pass
+
+        if not dt:
+            return JsonResponse({"error": "Invalid date format. Please use YYYY-MM-DD or MM/DD/YYYY."}, status=400)
+
+        year = dt.year
+        raw_date = dt.strftime("%m/%d/%Y")
+
+        with transaction.atomic():
+            # Venue resolution / creation
+            venue_obj = Venue.objects.filter(name__iexact=venue_name_raw.lower()).first()
+            if not venue_obj:
+                lat, lng, source_type = resolve_venue_coordinates(venue_name_raw, city, state, country)
+                venue_obj = Venue.objects.create(
+                    name=venue_name_raw,
+                    city=city,
+                    state=state,
+                    country=country,
+                    latitude=lat,
+                    longitude=lng,
+                    geocode_source=source_type
+                )
+            elif (city or state) and not venue_obj.city:
+                venue_obj.city = city or venue_obj.city
+                venue_obj.state = state or venue_obj.state
+                if venue_obj.latitude is None:
+                    lat, lng, source_type = resolve_venue_coordinates(venue_name_raw, venue_obj.city, venue_obj.state, country)
+                    if lat is not None:
+                        venue_obj.latitude = lat
+                        venue_obj.longitude = lng
+                        venue_obj.geocode_source = source_type
+                venue_obj.save()
+
+            # Artist resolution
+            can_primary = normalize_artist_name(primary_artist_raw) or primary_artist_raw
+            primary_art_obj, _ = Artist.objects.get_or_create(
+                name=can_primary,
+                defaults={'normalized_name': can_primary.lower()}
+            )
+
+            # Supporting artists
+            artists_list = [can_primary]
+            supporting_objs = []
+            if supporting_artists_raw:
+                parts = re.split(r'[,;/]+', supporting_artists_raw)
+                for p in parts:
+                    p_clean = p.strip()
+                    if p_clean:
+                        can_supp = normalize_artist_name(p_clean) or p_clean
+                        supp_obj, _ = Artist.objects.get_or_create(
+                            name=can_supp,
+                            defaults={'normalized_name': can_supp.lower()}
+                        )
+                        artists_list.append(can_supp)
+                        supporting_objs.append(supp_obj)
+
+            raw_artists = ", ".join(artists_list)
+
+            # Create Concert
+            concert = Concert.objects.create(
+                user=request.user,
+                date=dt.date(),
+                raw_date=raw_date,
+                year=year,
+                venue=venue_obj,
+                raw_venue=venue_obj.name,
+                primary_artist=can_primary,
+                raw_artists=raw_artists,
+                seen_before="",
+                notes=notes,
+                source='manual',
+                is_custom_offline=bool(is_custom_offline)
+            )
+
+            # Create primary ConcertArtist
+            ca_primary = ConcertArtist.objects.create(
+                concert=concert,
+                artist=primary_art_obj,
+                billing_order=0,
+                has_setlist=bool(setlist_text)
+            )
+
+            # Create supporting ConcertArtists
+            for idx, s_obj in enumerate(supporting_objs, start=1):
+                ConcertArtist.objects.create(
+                    concert=concert,
+                    artist=s_obj,
+                    billing_order=idx,
+                    has_setlist=False
+                )
+
+            # Parse and save setlist if provided
+            new_songs_to_enrich = []
+            if setlist_text:
+                parsed_tracks = parse_setlist_text(setlist_text)
+                total_tracks = len(parsed_tracks)
+
+                for idx, t in enumerate(parsed_tracks):
+                    track_num = idx + 1
+                    pct = round((track_num / total_tracks) * 100) if total_tracks > 0 else 100
+
+                    if track_num == 1:
+                        slot = "Opener"
+                        slot_category = "opener"
+                    elif t["is_encore"]:
+                        if track_num == total_tracks:
+                            slot = "Show Closer"
+                        else:
+                            slot = f"Encore {t['encore_number']}" if t['encore_number'] else "Encore"
+                        slot_category = "encore"
+                    elif track_num == total_tracks:
+                        slot = "Show Closer"
+                        slot_category = "closer"
+                    elif pct <= 35:
+                        slot = "Early Set"
+                        slot_category = "early"
+                    elif pct <= 70:
+                        slot = "Mid-Set"
+                        slot_category = "mid"
+                    else:
+                        slot = "Late Set"
+                        slot_category = "late"
+
+                    clean_title_key = t["title"].lower().strip()
+                    song_obj, _ = Song.objects.get_or_create(
+                        artist=primary_art_obj,
+                        clean_title=clean_title_key,
+                        defaults={
+                            'title': t["title"],
+                            'is_cover': t["is_cover"],
+                            'original_artist': t["original_artist"] or None
+                        }
+                    )
+
+                    ConcertSong.objects.create(
+                        concert_artist=ca_primary,
+                        song=song_obj,
+                        raw_song_name=t["title"],
+                        set_name=t["set_name"],
+                        is_encore=t["is_encore"],
+                        encore_number=t["encore_number"],
+                        track_num=track_num,
+                        total_tracks=total_tracks,
+                        pct_position=pct,
+                        slot=slot,
+                        slot_category=slot_category,
+                        is_cover=t["is_cover"],
+                        original_artist=t["original_artist"] or '',
+                        info=t["info"] or ''
+                    )
+                    new_songs_to_enrich.append((primary_art_obj.name, t["title"]))
+
+        # Optional quick album and musician enrichment for new artists/songs
+        if new_songs_to_enrich:
+            try:
+                enricher = AlbumEnricher()
+                enricher.load_cached_catalog(new_songs_to_enrich)
+            except Exception:
+                pass
+
+        try:
+            m_enricher = MusicianEnricher()
+            if not primary_art_obj.members.exists():
+                m_enricher.enrich_artist(primary_art_obj.name, artist_obj=primary_art_obj)
+        except Exception:
+            pass
+
+        # Clear dashboard bundle cache for this user so changes reflect immediately
+        ApiCache.objects.filter(cache_key=f"user_dashboard_bundle_{request.user.id}").delete()
+
+        song_count_msg = f" with {len(new_songs_to_enrich)} songs" if new_songs_to_enrich else ""
+        return JsonResponse({
+            "status": "success",
+            "message": f"Concert for '{can_primary}' on {raw_date} added successfully{song_count_msg}!",
+            "concert_id": concert.id
+        })
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+

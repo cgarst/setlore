@@ -149,7 +149,22 @@ def generate_venue_map_data(all_csv_records: List[Dict[str, Any]],
             loc_name = 'United States'
             country = 'United States'
         else:
-            lat, lng, loc_name, country = (38.9072, -77.0369, 'Washington, DC', 'United States')
+            try:
+                from apps.catalog.models import Venue
+                v_db = Venue.objects.filter(name__iexact=venue_name).first()
+                if v_db and v_db.latitude is not None and v_db.longitude is not None:
+                    lat = v_db.latitude
+                    lng = v_db.longitude
+                    loc_name = f"{v_db.city}, {v_db.state}" if v_db.city and v_db.state else (v_db.city or venue_name)
+                    country = v_db.country or 'United States'
+                elif v_db and v_db.city:
+                    lat, lng = (38.9072, -77.0369)
+                    loc_name = f"{v_db.city}, {v_db.state}" if v_db.state else v_db.city
+                    country = v_db.country or 'United States'
+                else:
+                    lat, lng, loc_name, country = (38.9072, -77.0369, 'Washington, DC', 'United States')
+            except Exception:
+                lat, lng, loc_name, country = (38.9072, -77.0369, 'Washington, DC', 'United States')
 
         cities_set.add(loc_name)
         countries_set.add(country)

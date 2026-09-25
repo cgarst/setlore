@@ -9,6 +9,7 @@ A powerful Python analytics engine and multi-user web dashboard for tracking, re
 ## ✨ Features
 
 - **👥 Multi-User Self-Hosting**: Built-in user authentication, isolated attendance tracking, and individual Setlist.fm syncs.
+- **🎫 Direct Concert Logging (Without CSV or Setlist.fm)**: Log concerts directly via the interactive "+ Add Concert" modal with autocomplete, venue geocoding, and an optional plaintext setlist paste parser without CSV imports.
 - **🎛️ Django Admin Superpowers**: Full `/admin/` portal out-of-the-box to manage users, correct misattributed albums/songs, edit band lineups, and adjust venue coordinates.
 - **📊 Comprehensive Concert Analytics**: Summarizes shows attended, unique artists seen, venues visited, songs heard (total and unique), attendance patterns by year, decade, month, and day of week.
 - **🔄 Bidirectional Gap Analysis**:

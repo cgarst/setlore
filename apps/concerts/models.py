@@ -12,6 +12,16 @@ class Concert(models.Model):
     raw_artists = models.CharField(max_length=500)
     seen_before = models.CharField(max_length=255, blank=True, default='')
     notes = models.TextField(blank=True, default='')
+    source = models.CharField(
+        max_length=20,
+        default='csv',
+        choices=[('manual', 'Manual Entry'), ('csv', 'CSV Import'), ('setlistfm', 'Setlist.fm')],
+        db_index=True
+    )
+    is_custom_offline = models.BooleanField(
+        default=False,
+        help_text="True if this concert is marked as an offline show not on Setlist.fm"
+    )
     is_fully_matched = models.BooleanField(default=False)
     is_partially_matched = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
