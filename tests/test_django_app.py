@@ -93,3 +93,44 @@ class DjangoAppTests(TestCase):
         self.assertEqual(res.status_code, 200)
         self.assertIn('Django administration', res.content.decode('utf-8'))
 
+    def test_dashboard_renders_user_profile_dropdown(self):
+        self.client.force_login(self.user)
+        res = self.client.get('/')
+        self.assertEqual(res.status_code, 200)
+        content = res.content.decode('utf-8')
+        self.assertIn('user-menu-btn', content)
+        self.assertIn('user-dropdown-menu', content)
+        self.assertIn('Change Password', content)
+        self.assertIn('Log Out', content)
+
+    def test_password_change_requires_login(self):
+        res = self.client.get('/accounts/password_change/')
+        self.assertEqual(res.status_code, 302)
+        self.assertIn('/accounts/login/', res.get('Location'))
+
+    def test_password_change_flow(self):
+        self.client.force_login(self.user)
+        # Form page renders
+        res = self.client.get('/accounts/password_change/')
+        self.assertEqual(res.status_code, 200)
+        self.assertIn('Change Password', res.content.decode('utf-8'))
+
+        # Post new password
+        post_res = self.client.post('/accounts/password_change/', {
+            'old_password': 'password123',
+            'new_password1': 'BrandNewPass987!',
+            'new_password2': 'BrandNewPass987!'
+        })
+        self.assertEqual(post_res.status_code, 302)
+        self.assertEqual(post_res.get('Location'), '/accounts/password_change/done/')
+
+        # Password change done page renders
+        done_res = self.client.get('/accounts/password_change/done/')
+        self.assertEqual(done_res.status_code, 200)
+        self.assertIn('Password Changed!', done_res.content.decode('utf-8'))
+
+        # Verify new password is set
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password('BrandNewPass987!'))
+
+
