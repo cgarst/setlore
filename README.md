@@ -12,10 +12,10 @@ A powerful Python analytics engine and multi-user web dashboard for tracking, re
 - **🎫 Direct Concert Logging (Without CSV or Setlist.fm)**: Log concerts directly via the interactive "+ Add Concert" modal with autocomplete, venue geocoding, and an optional plaintext setlist paste parser without CSV imports.
 - **🎛️ Django Admin Superpowers**: Full `/admin/` portal out-of-the-box to manage users, correct misattributed albums/songs, edit band lineups, and adjust venue coordinates.
 - **📊 Comprehensive Concert Analytics**: Summarizes shows attended, unique artists seen, venues visited, songs heard (total and unique), attendance patterns by year, decade, month, and day of week.
-- **🔄 Bidirectional Gap Analysis**:
-  - Reconciles your personal spreadsheet with your Setlist.fm attended history using fuzzy matching ([RapidFuzz](https://github.com/rapidfuzz/RapidFuzz)).
+- **🔄 Bidirectional Setlist Audit & Reconciliation**:
+  - Reconciles your logged shows with your Setlist.fm attended history using fuzzy matching ([RapidFuzz](https://github.com/rapidfuzz/RapidFuzz)).
   - Flags attended shows missing `I was there` tags on Setlist.fm.
-  - Identifies shows logged on Setlist.fm that are missing from your spreadsheet.
+  - Identifies shows logged on Setlist.fm that are missing from your shows.
   - Automatically searches global Setlist.fm archives for missing setlists.
 - **💿 MusicBrainz Album & Discography Enrichment**:
   - Automatically queries MusicBrainz to map live songs to studio albums, original release years, and release groups.
