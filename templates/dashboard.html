@@ -1,9 +1,11 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Live Concert & Setlist Analytics Dashboard</title>
+  <title>Setlore - Live Concert & Setlist Analytics</title>
+  <link rel="icon" type="image/png" href="{% static 'img/setlore_icon.png' %}">
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Chart.js and Plotly -->
@@ -58,15 +60,8 @@
   <!-- Header -->
   <header class="max-w-7xl mx-auto mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
     <div>
-      <button onclick="switchTab('overview')" class="flex items-center gap-3 text-left group focus:outline-none transition cursor-pointer">
-        <div class="w-12 h-12 rounded-xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/30 group-hover:scale-105 group-hover:shadow-indigo-500/50 transition-all">
-          <i class="fa-solid fa-guitar text-2xl"></i>
-        </div>
-        <div>
-          <h1 class="text-3xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-200 to-slate-400 group-hover:from-white group-hover:to-indigo-200 transition-all">
-            Concert & Setlist Analytics
-          </h1>
-        </div>
+      <button onclick="switchTab('overview')" class="flex items-center text-left group focus:outline-none transition cursor-pointer" title="Setlore - Overview">
+        <img src="{% static 'img/setlore_banner.png' %}" alt="Setlore" class="h-10 md:h-12 w-auto object-contain rounded-xl group-hover:scale-105 transition-all">
       </button>
     </div>
 

@@ -1,8 +1,8 @@
-# 🎸 concert-trakr
+# 🎸 Setlore
 
 A powerful Python analytics engine and multi-user web dashboard for tracking, reconciling, and visualizing your live concert history.
 
-`concert-trakr` synchronizes your personal concert attendance spreadsheet (or CSV) with [Setlist.fm](https://www.setlist.fm/), enriches your catalog with [MusicBrainz](https://musicbrainz.org/) discography data, analyzes musician lineup tenures across bands, maps venues geographically, and generates a rich, responsive interactive dashboard.
+`Setlore` synchronizes your personal concert history with [Setlist.fm](https://www.setlist.fm/), enriches your catalog with [MusicBrainz](https://musicbrainz.org/) discography data, analyzes musician lineup tenures across bands, maps venues geographically, and generates a rich, responsive interactive dashboard.
 
 ---
 
