@@ -4,6 +4,7 @@ import re
 import time
 import urllib.parse
 import threading
+import unicodedata
 from pathlib import Path
 from typing import Dict, Any, Optional, Tuple, List
 import requests
@@ -25,22 +26,64 @@ def clean_album_title(title: str) -> str:
     
     # Fix known casing and name duplicates
     c_low = cleaned.lower()
-    if c_low == "metropolis, pt. 2: scenes from a memory":
-        return "Metropolis, Pt. 2: Scenes from a Memory"
-    if c_low in ["kill 'em all", "kill 'em all (remastered)"]:
-        return "Kill 'Em All"
-    if c_low == "reload":
-        return "Reload"
-    if c_low == "load":
-        return "Load"
-    if c_low in ["hardwired... to self-destruct", "hardwired...to self-destruct"]:
-        return "Hardwired... to Self-Destruct"
-    if c_low == "...and justice for all":
-        return "...And Justice for All"
-    if c_low == "ride the lightning":
-        return "Ride the Lightning"
-    if c_low == "master of puppets":
-        return "Master of Puppets"
+    canonical_titles = {
+        "metropolis, pt. 2: scenes from a memory": "Metropolis, Pt. 2: Scenes from a Memory",
+        "metropolis pt. 2: scenes from a memory": "Metropolis, Pt. 2: Scenes from a Memory",
+        "kill 'em all": "Kill 'Em All",
+        "kill 'em all (remastered)": "Kill 'Em All",
+        "reload": "Reload",
+        "load": "Load",
+        "hardwired... to self-destruct": "Hardwired... to Self-Destruct",
+        "hardwired...to self-destruct": "Hardwired... to Self-Destruct",
+        "...and justice for all": "...And Justice for All",
+        "and justice for all": "...And Justice for All",
+        "ride the lightning": "Ride the Lightning",
+        "master of puppets": "Master of Puppets",
+        "72 seasons": "72 Seasons",
+        "garage inc.": "Garage Inc.",
+        "death magnetic": "Death Magnetic",
+        "st. anger": "St. Anger",
+        # Dream Theater
+        "when dream and day unite": "When Dream and Day Unite",
+        "images and words": "Images and Words",
+        "awake": "Awake",
+        "a change of seasons": "A Change of Seasons",
+        "falling into infinity": "Falling into Infinity",
+        "six degrees of inner turbulence": "Six Degrees of Inner Turbulence",
+        "train of thought": "Train of Thought",
+        "octavarium": "Octavarium",
+        "systematic chaos": "Systematic Chaos",
+        "black clouds & silver linings": "Black Clouds & Silver Linings",
+        "a dramatic turn of events": "A Dramatic Turn of Events",
+        "dream theater": "Dream Theater",
+        "the astonishing": "The Astonishing",
+        "distance over time": "Distance over Time",
+        "a view from the top of the world": "A View from the Top of the World",
+        "parasomnia": "Parasomnia",
+        # Iron Maiden
+        "the number of the beast": "The Number of the Beast",
+        "piece of mind": "Piece of Mind",
+        "seventh son of a seventh son": "Seventh Son of a Seventh Son",
+        "somewhere in time": "Somewhere in Time",
+        "fear of the dark": "Fear of the Dark",
+        "the book of souls": "The Book of Souls",
+        "the final frontier": "The Final Frontier",
+        "a matter of life and death": "A Matter of Life and Death",
+        "brave new world": "Brave New World",
+        "dance of death": "Dance of Death",
+        "the x factor": "The X Factor",
+        "virtual xi": "Virtual XI",
+        # Megadeth
+        "rust in peace": "Rust in Peace",
+        "peace sells... but who's buying?": "Peace Sells... But Who's Buying?",
+        "countdown to extinction": "Countdown to Extinction",
+        "youthanasia": "Youthanasia",
+        "cryptic writings": "Cryptic Writings",
+        "killing is my business... and business is good!": "Killing Is My Business... and Business Is Good!",
+        "so far, so good... so what!": "So Far, So Good... So What!",
+    }
+    if c_low in canonical_titles:
+        return canonical_titles[c_low]
     return cleaned
 
 def is_blacklisted_album(title: str) -> bool:
@@ -57,473 +100,99 @@ def is_blacklisted_album(title: str) -> bool:
     ]
     return any(b in t for b in blacklisted)
 
-CANONICAL_ALBUM_YEARS = {
-    # Metallica
-    ("metallica", "kill 'em all"): 1983,
-    ("metallica", "ride the lightning"): 1984,
-    ("metallica", "master of puppets"): 1986,
-    ("metallica", "...and justice for all"): 1988,
-    ("metallica", "metallica"): 1991,
-    ("metallica", "load"): 1996,
-    ("metallica", "reload"): 1997,
-    ("metallica", "garage inc."): 1998,
-    ("metallica", "st. anger"): 2003,
-    ("metallica", "death magnetic"): 2008,
-    ("metallica", "hardwired... to self-destruct"): 2016,
-    ("metallica", "72 seasons"): 2023,
-    # Dream Theater
-    ("dream theater", "when dream and day unite"): 1989,
-    ("dream theater", "images and words"): 1992,
-    ("dream theater", "awake"): 1994,
-    ("dream theater", "falling into infinity"): 1997,
-    ("dream theater", "metropolis, pt. 2: scenes from a memory"): 1999,
-    ("dream theater", "six degrees of inner turbulence"): 2002,
-    ("dream theater", "train of thought"): 2003,
-    ("dream theater", "octavarium"): 2005,
-    ("dream theater", "systematic chaos"): 2007,
-    ("dream theater", "black clouds & silver linings"): 2009,
-    ("dream theater", "a dramatic turn of events"): 2011,
-    ("dream theater", "dream theater"): 2013,
-    ("dream theater", "the astonishing"): 2016,
-    ("dream theater", "distance over time"): 2019,
-    ("dream theater", "a view from the top of the world"): 2021,
-    ("dream theater", "parasomnia"): 2025,
-    # Iron Maiden
-    ("iron maiden", "iron maiden"): 1980,
-    ("iron maiden", "killers"): 1981,
-    ("iron maiden", "the number of the beast"): 1982,
-    ("iron maiden", "piece of mind"): 1983,
-    ("iron maiden", "powerslave"): 1984,
-    ("iron maiden", "somewhere in time"): 1986,
-    ("iron maiden", "seventh son of a seventh son"): 1988,
-    ("iron maiden", "no prayer for the dying"): 1990,
-    ("iron maiden", "fear of the dark"): 1992,
-    ("iron maiden", "the x factor"): 1995,
-    ("iron maiden", "virtual xi"): 1998,
-    ("iron maiden", "brave new world"): 2000,
-    ("iron maiden", "dance of death"): 2003,
-    ("iron maiden", "a matter of life and death"): 2006,
-    ("iron maiden", "the final frontier"): 2010,
-    ("iron maiden", "the book of souls"): 2015,
-    ("iron maiden", "senjutsu"): 2021,
-    # Megadeth
-    ("megadeth", "killing is my business... and business is good!"): 1985,
-    ("megadeth", "peace sells... but who's buying?"): 1986,
-    ("megadeth", "so far, so good... so what!"): 1988,
-    ("megadeth", "rust in peace"): 1990,
-    ("megadeth", "countdown to extinction"): 1992,
-    ("megadeth", "youthanasia"): 1994,
-    ("megadeth", "cryptic writings"): 1997,
-    ("megadeth", "risk"): 1999,
-    ("megadeth", "the world needs a hero"): 2001,
-    ("megadeth", "the system has failed"): 2004,
-    ("megadeth", "united abominations"): 2007,
-    ("megadeth", "endgame"): 2009,
-    ("megadeth", "th1rt3en"): 2011,
-    ("megadeth", "super collider"): 2013,
-    ("megadeth", "dystopia"): 2016,
-    ("megadeth", "the sick, the dying... and the dead!"): 2022,
-}
-
-CANONICAL_TRACK_ALBUMS = {
-    # Metallica - Kill 'Em All (1983)
-    ("metallica", "hit the lights"): ("Kill 'Em All", 1983),
-    ("metallica", "the four horsemen"): ("Kill 'Em All", 1983),
-    ("metallica", "motorbreath"): ("Kill 'Em All", 1983),
-    ("metallica", "jump in the fire"): ("Kill 'Em All", 1983),
-    ("metallica", "(anesthesia) - pulling teeth"): ("Kill 'Em All", 1983),
-    ("metallica", "(anesthesia) pulling teeth"): ("Kill 'Em All", 1983),
-    ("metallica", "anesthesia - pulling teeth"): ("Kill 'Em All", 1983),
-    ("metallica", "whiplash"): ("Kill 'Em All", 1983),
-    ("metallica", "phantom lord"): ("Kill 'Em All", 1983),
-    ("metallica", "no remorse"): ("Kill 'Em All", 1983),
-    ("metallica", "seek & destroy"): ("Kill 'Em All", 1983),
-    ("metallica", "seek and destroy"): ("Kill 'Em All", 1983),
-    ("metallica", "metal militia"): ("Kill 'Em All", 1983),
-    # Metallica - Ride the Lightning (1984)
-    ("metallica", "fight fire with fire"): ("Ride the Lightning", 1984),
-    ("metallica", "ride the lightning"): ("Ride the Lightning", 1984),
-    ("metallica", "for whom the bell tolls"): ("Ride the Lightning", 1984),
-    ("metallica", "fade to black"): ("Ride the Lightning", 1984),
-    ("metallica", "trapped under ice"): ("Ride the Lightning", 1984),
-    ("metallica", "escape"): ("Ride the Lightning", 1984),
-    ("metallica", "creeping death"): ("Ride the Lightning", 1984),
-    ("metallica", "the call of ktulu"): ("Ride the Lightning", 1984),
-    # Metallica - Master of Puppets (1986)
-    ("metallica", "battery"): ("Master of Puppets", 1986),
-    ("metallica", "master of puppets"): ("Master of Puppets", 1986),
-    ("metallica", "the thing that should not be"): ("Master of Puppets", 1986),
-    ("metallica", "welcome home (sanitarium)"): ("Master of Puppets", 1986),
-    ("metallica", "disposable heroes"): ("Master of Puppets", 1986),
-    ("metallica", "leper messiah"): ("Master of Puppets", 1986),
-    ("metallica", "orion"): ("Master of Puppets", 1986),
-    ("metallica", "damage, inc."): ("Master of Puppets", 1986),
-    ("metallica", "damage inc."): ("Master of Puppets", 1986),
-    # Metallica - ...And Justice for All (1988)
-    ("metallica", "blackened"): ("...And Justice for All", 1988),
-    ("metallica", "...and justice for all"): ("...And Justice for All", 1988),
-    ("metallica", "and justice for all"): ("...And Justice for All", 1988),
-    ("metallica", "eye of the beholder"): ("...And Justice for All", 1988),
-    ("metallica", "one"): ("...And Justice for All", 1988),
-    ("metallica", "the shortest straw"): ("...And Justice for All", 1988),
-    ("metallica", "harvester of sorrow"): ("...And Justice for All", 1988),
-    ("metallica", "the frayed ends of sanity"): ("...And Justice for All", 1988),
-    ("metallica", "to live is to die"): ("...And Justice for All", 1988),
-    ("metallica", "dyers eve"): ("...And Justice for All", 1988),
-    # Metallica - Metallica / The Black Album (1991)
-    ("metallica", "enter sandman"): ("Metallica", 1991),
-    ("metallica", "sad but true"): ("Metallica", 1991),
-    ("metallica", "holier than thou"): ("Metallica", 1991),
-    ("metallica", "the unforgiven"): ("Metallica", 1991),
-    ("metallica", "wherever i may roam"): ("Metallica", 1991),
-    ("metallica", "don't tread on me"): ("Metallica", 1991),
-    ("metallica", "through the never"): ("Metallica", 1991),
-    ("metallica", "nothing else matters"): ("Metallica", 1991),
-    ("metallica", "of wolf and man"): ("Metallica", 1991),
-    ("metallica", "the god that failed"): ("Metallica", 1991),
-    ("metallica", "my friend of misery"): ("Metallica", 1991),
-    ("metallica", "the struggle within"): ("Metallica", 1991),
-    # Metallica - Load (1996)
-    ("metallica", "ain't my bitch"): ("Load", 1996),
-    ("metallica", "2 x 4"): ("Load", 1996),
-    ("metallica", "2x4"): ("Load", 1996),
-    ("metallica", "the house jack built"): ("Load", 1996),
-    ("metallica", "until it sleeps"): ("Load", 1996),
-    ("metallica", "king nothing"): ("Load", 1996),
-    ("metallica", "hero of the day"): ("Load", 1996),
-    ("metallica", "bleeding me"): ("Load", 1996),
-    ("metallica", "cure"): ("Load", 1996),
-    ("metallica", "poor twisted me"): ("Load", 1996),
-    ("metallica", "wasting my hate"): ("Load", 1996),
-    ("metallica", "mama said"): ("Load", 1996),
-    ("metallica", "thorn within"): ("Load", 1996),
-    ("metallica", "ronnie"): ("Load", 1996),
-    ("metallica", "the outlaw torn"): ("Load", 1996),
-    # Metallica - Reload (1997)
-    ("metallica", "fuel"): ("Reload", 1997),
-    ("metallica", "the memory remains"): ("Reload", 1997),
-    ("metallica", "devil's dance"): ("Reload", 1997),
-    ("metallica", "the unforgiven ii"): ("Reload", 1997),
-    ("metallica", "the unforgiven 2"): ("Reload", 1997),
-    ("metallica", "better than you"): ("Reload", 1997),
-    ("metallica", "slither"): ("Reload", 1997),
-    ("metallica", "carpe diem baby"): ("Reload", 1997),
-    ("metallica", "bad seed"): ("Reload", 1997),
-    ("metallica", "where the wild things are"): ("Reload", 1997),
-    ("metallica", "prince charming"): ("Reload", 1997),
-    ("metallica", "low man's lyric"): ("Reload", 1997),
-    ("metallica", "attitude"): ("Reload", 1997),
-    ("metallica", "fixxxer"): ("Reload", 1997),
-    # Metallica - Garage Inc. (1998)
-    ("metallica", "whiskey in the jar"): ("Garage Inc.", 1998),
-    ("metallica", "turn the page"): ("Garage Inc.", 1998),
-    ("metallica", "die, die my darling"): ("Garage Inc.", 1998),
-    ("metallica", "am i evil?"): ("Garage Inc.", 1998),
-    ("metallica", "breadfan"): ("Garage Inc.", 1998),
-    ("metallica", "blitzkrieg"): ("Garage Inc.", 1998),
-    ("metallica", "the prince"): ("Garage Inc.", 1998),
-    ("metallica", "stone cold crazy"): ("Garage Inc.", 1998),
-    ("metallica", "sabbra cadabra"): ("Garage Inc.", 1998),
-    ("metallica", "mercyful fate"): ("Garage Inc.", 1998),
-    ("metallica", "astronomy"): ("Garage Inc.", 1998),
-    ("metallica", "it's electric"): ("Garage Inc.", 1998),
-    # Metallica - St. Anger (2003)
-    ("metallica", "frantic"): ("St. Anger", 2003),
-    ("metallica", "st. anger"): ("St. Anger", 2003),
-    ("metallica", "some kind of monster"): ("St. Anger", 2003),
-    ("metallica", "dirty window"): ("St. Anger", 2003),
-    ("metallica", "invisible kid"): ("St. Anger", 2003),
-    ("metallica", "my world"): ("St. Anger", 2003),
-    ("metallica", "shoot me again"): ("St. Anger", 2003),
-    ("metallica", "sweet amber"): ("St. Anger", 2003),
-    ("metallica", "the unnamed feeling"): ("St. Anger", 2003),
-    ("metallica", "purify"): ("St. Anger", 2003),
-    ("metallica", "all within my hands"): ("St. Anger", 2003),
-    # Metallica - Death Magnetic (2008)
-    ("metallica", "that was just your life"): ("Death Magnetic", 2008),
-    ("metallica", "the end of the line"): ("Death Magnetic", 2008),
-    ("metallica", "broken, beat & scarred"): ("Death Magnetic", 2008),
-    ("metallica", "the day that never comes"): ("Death Magnetic", 2008),
-    ("metallica", "all nightmare long"): ("Death Magnetic", 2008),
-    ("metallica", "cyanide"): ("Death Magnetic", 2008),
-    ("metallica", "the unforgiven iii"): ("Death Magnetic", 2008),
-    ("metallica", "the unforgiven 3"): ("Death Magnetic", 2008),
-    ("metallica", "the judas kiss"): ("Death Magnetic", 2008),
-    ("metallica", "suicide & redemption"): ("Death Magnetic", 2008),
-    ("metallica", "my apocalypse"): ("Death Magnetic", 2008),
-    # Metallica - Hardwired... to Self-Destruct (2016)
-    ("metallica", "hardwired"): ("Hardwired... to Self-Destruct", 2016),
-    ("metallica", "atlas, rise!"): ("Hardwired... to Self-Destruct", 2016),
-    ("metallica", "now that we're dead"): ("Hardwired... to Self-Destruct", 2016),
-    ("metallica", "moth into flame"): ("Hardwired... to Self-Destruct", 2016),
-    ("metallica", "dream no more"): ("Hardwired... to Self-Destruct", 2016),
-    ("metallica", "halo on fire"): ("Hardwired... to Self-Destruct", 2016),
-    ("metallica", "confusion"): ("Hardwired... to Self-Destruct", 2016),
-    ("metallica", "manunkind"): ("Hardwired... to Self-Destruct", 2016),
-    ("metallica", "here comes revenge"): ("Hardwired... to Self-Destruct", 2016),
-    ("metallica", "am i savage?"): ("Hardwired... to Self-Destruct", 2016),
-    ("metallica", "murder one"): ("Hardwired... to Self-Destruct", 2016),
-    ("metallica", "spit out the bone"): ("Hardwired... to Self-Destruct", 2016),
-    ("metallica", "lords of summer"): ("Hardwired... to Self-Destruct", 2016),
-    # Metallica - 72 Seasons (2023)
-    ("metallica", "72 seasons"): ("72 Seasons", 2023),
-    ("metallica", "shadows follow"): ("72 Seasons", 2023),
-    ("metallica", "screaming suicide"): ("72 Seasons", 2023),
-    ("metallica", "sleepwalk my life away"): ("72 Seasons", 2023),
-    ("metallica", "you must burn!"): ("72 Seasons", 2023),
-    ("metallica", "lux æterna"): ("72 Seasons", 2023),
-    ("metallica", "lux aeterna"): ("72 Seasons", 2023),
-    ("metallica", "crown of barbed wire"): ("72 Seasons", 2023),
-    ("metallica", "chasing light"): ("72 Seasons", 2023),
-    ("metallica", "if darkness had a son"): ("72 Seasons", 2023),
-    ("metallica", "too far gone?"): ("72 Seasons", 2023),
-    ("metallica", "room of mirrors"): ("72 Seasons", 2023),
-    ("metallica", "inamorata"): ("72 Seasons", 2023),
-
-    # Iron Maiden - Iron Maiden (1980)
-    ("iron maiden", "prowler"): ("Iron Maiden", 1980),
-    ("iron maiden", "sanctuary"): ("Iron Maiden", 1980),
-    ("iron maiden", "remember tomorrow"): ("Iron Maiden", 1980),
-    ("iron maiden", "running free"): ("Iron Maiden", 1980),
-    ("iron maiden", "phantom of the opera"): ("Iron Maiden", 1980),
-    ("iron maiden", "transylvania"): ("Iron Maiden", 1980),
-    ("iron maiden", "strange world"): ("Iron Maiden", 1980),
-    ("iron maiden", "charlotte the harlot"): ("Iron Maiden", 1980),
-    ("iron maiden", "iron maiden"): ("Iron Maiden", 1980),
-    # Iron Maiden - Killers (1981)
-    ("iron maiden", "the ides of march"): ("Killers", 1981),
-    ("iron maiden", "wrathchild"): ("Killers", 1981),
-    ("iron maiden", "murders in the rue morgue"): ("Killers", 1981),
-    ("iron maiden", "another life"): ("Killers", 1981),
-    ("iron maiden", "genghis khan"): ("Killers", 1981),
-    ("iron maiden", "innocent exile"): ("Killers", 1981),
-    ("iron maiden", "killers"): ("Killers", 1981),
-    ("iron maiden", "prodigal son"): ("Killers", 1981),
-    ("iron maiden", "purgatory"): ("Killers", 1981),
-    ("iron maiden", "twilight zone"): ("Killers", 1981),
-    ("iron maiden", "drifter"): ("Killers", 1981),
-    # Iron Maiden - The Number of the Beast (1982)
-    ("iron maiden", "invaders"): ("The Number of the Beast", 1982),
-    ("iron maiden", "children of the damned"): ("The Number of the Beast", 1982),
-    ("iron maiden", "the prisoner"): ("The Number of the Beast", 1982),
-    ("iron maiden", "22 acacia avenue"): ("The Number of the Beast", 1982),
-    ("iron maiden", "the number of the beast"): ("The Number of the Beast", 1982),
-    ("iron maiden", "run to the hills"): ("The Number of the Beast", 1982),
-    ("iron maiden", "gangland"): ("The Number of the Beast", 1982),
-    ("iron maiden", "total eclipse"): ("The Number of the Beast", 1982),
-    ("iron maiden", "hallowed be thy name"): ("The Number of the Beast", 1982),
-    # Iron Maiden - Piece of Mind (1983)
-    ("iron maiden", "where eagles dare"): ("Piece of Mind", 1983),
-    ("iron maiden", "revelations"): ("Piece of Mind", 1983),
-    ("iron maiden", "flight of icarus"): ("Piece of Mind", 1983),
-    ("iron maiden", "die with your boots on"): ("Piece of Mind", 1983),
-    ("iron maiden", "the trooper"): ("Piece of Mind", 1983),
-    ("iron maiden", "still life"): ("Piece of Mind", 1983),
-    ("iron maiden", "quest for fire"): ("Piece of Mind", 1983),
-    ("iron maiden", "sun and steel"): ("Piece of Mind", 1983),
-    ("iron maiden", "to tame a land"): ("Piece of Mind", 1983),
-    # Iron Maiden - Powerslave (1984)
-    ("iron maiden", "aces high"): ("Powerslave", 1984),
-    ("iron maiden", "2 minutes to midnight"): ("Powerslave", 1984),
-    ("iron maiden", "losfer words (big 'orra)"): ("Powerslave", 1984),
-    ("iron maiden", "losfer words"): ("Powerslave", 1984),
-    ("iron maiden", "flash of the blade"): ("Powerslave", 1984),
-    ("iron maiden", "the duellists"): ("Powerslave", 1984),
-    ("iron maiden", "back in the village"): ("Powerslave", 1984),
-    ("iron maiden", "powerslave"): ("Powerslave", 1984),
-    ("iron maiden", "rime of the ancient mariner"): ("Powerslave", 1984),
-    # Iron Maiden - Somewhere in Time (1986)
-    ("iron maiden", "caught somewhere in time"): ("Somewhere in Time", 1986),
-    ("iron maiden", "wasted years"): ("Somewhere in Time", 1986),
-    ("iron maiden", "sea of madness"): ("Somewhere in Time", 1986),
-    ("iron maiden", "heaven can wait"): ("Somewhere in Time", 1986),
-    ("iron maiden", "the loneliness of the long distance runner"): ("Somewhere in Time", 1986),
-    ("iron maiden", "stranger in a strange land"): ("Somewhere in Time", 1986),
-    ("iron maiden", "deja-vu"): ("Somewhere in Time", 1986),
-    ("iron maiden", "deja vu"): ("Somewhere in Time", 1986),
-    ("iron maiden", "alexander the great"): ("Somewhere in Time", 1986),
-    # Iron Maiden - Seventh Son of a Seventh Son (1988)
-    ("iron maiden", "moonchild"): ("Seventh Son of a Seventh Son", 1988),
-    ("iron maiden", "infinite dreams"): ("Seventh Son of a Seventh Son", 1988),
-    ("iron maiden", "can i play with madness"): ("Seventh Son of a Seventh Son", 1988),
-    ("iron maiden", "the evil that men do"): ("Seventh Son of a Seventh Son", 1988),
-    ("iron maiden", "seventh son of a seventh son"): ("Seventh Son of a Seventh Son", 1988),
-    ("iron maiden", "the prophecy"): ("Seventh Son of a Seventh Son", 1988),
-    ("iron maiden", "the clairvoyant"): ("Seventh Son of a Seventh Son", 1988),
-    ("iron maiden", "only the good die young"): ("Seventh Son of a Seventh Son", 1988),
-    # Iron Maiden - No Prayer for the Dying (1990)
-    ("iron maiden", "tailgunner"): ("No Prayer for the Dying", 1990),
-    ("iron maiden", "holy smoke"): ("No Prayer for the Dying", 1990),
-    ("iron maiden", "no prayer for the dying"): ("No Prayer for the Dying", 1990),
-    ("iron maiden", "public enema number one"): ("No Prayer for the Dying", 1990),
-    ("iron maiden", "fates warning"): ("No Prayer for the Dying", 1990),
-    ("iron maiden", "the assassin"): ("No Prayer for the Dying", 1990),
-    ("iron maiden", "run silent run deep"): ("No Prayer for the Dying", 1990),
-    ("iron maiden", "hooks in you"): ("No Prayer for the Dying", 1990),
-    ("iron maiden", "bring your daughter... to the slaughter"): ("No Prayer for the Dying", 1990),
-    ("iron maiden", "bring your daughter to the slaughter"): ("No Prayer for the Dying", 1990),
-    ("iron maiden", "mother russia"): ("No Prayer for the Dying", 1990),
-    # Iron Maiden - Fear of the Dark (1992)
-    ("iron maiden", "be quick or be dead"): ("Fear of the Dark", 1992),
-    ("iron maiden", "from here to eternity"): ("Fear of the Dark", 1992),
-    ("iron maiden", "afraid to shoot strangers"): ("Fear of the Dark", 1992),
-    ("iron maiden", "fear is the key"): ("Fear of the Dark", 1992),
-    ("iron maiden", "childhood's end"): ("Fear of the Dark", 1992),
-    ("iron maiden", "wasting love"): ("Fear of the Dark", 1992),
-    ("iron maiden", "the fugitive"): ("Fear of the Dark", 1992),
-    ("iron maiden", "chains of misfortune"): ("Fear of the Dark", 1992),
-    ("iron maiden", "the apparition"): ("Fear of the Dark", 1992),
-    ("iron maiden", "judas be my guide"): ("Fear of the Dark", 1992),
-    ("iron maiden", "weekend warrior"): ("Fear of the Dark", 1992),
-    ("iron maiden", "fear of the dark"): ("Fear of the Dark", 1992),
-    # Iron Maiden - The X Factor (1995)
-    ("iron maiden", "sign of the cross"): ("The X Factor", 1995),
-    ("iron maiden", "lord of the flies"): ("The X Factor", 1995),
-    ("iron maiden", "man on the edge"): ("The X Factor", 1995),
-    ("iron maiden", "fortunes of war"): ("The X Factor", 1995),
-    ("iron maiden", "look for the truth"): ("The X Factor", 1995),
-    ("iron maiden", "the aftermath"): ("The X Factor", 1995),
-    ("iron maiden", "judgement of heaven"): ("The X Factor", 1995),
-    ("iron maiden", "blood on the world's hands"): ("The X Factor", 1995),
-    ("iron maiden", "the edge of darkness"): ("The X Factor", 1995),
-    ("iron maiden", "2 a.m."): ("The X Factor", 1995),
-    # Iron Maiden - Virtual XI (1998)
-    ("iron maiden", "futureal"): ("Virtual XI", 1998),
-    ("iron maiden", "the angel and the gambler"): ("Virtual XI", 1998),
-    ("iron maiden", "lightning strikes twice"): ("Virtual XI", 1998),
-    ("iron maiden", "the clansman"): ("Virtual XI", 1998),
-    ("iron maiden", "when two worlds collide"): ("Virtual XI", 1998),
-    ("iron maiden", "the educated fool"): ("Virtual XI", 1998),
-    ("iron maiden", "don't look to the eyes of a stranger"): ("Virtual XI", 1998),
-    ("iron maiden", "como estais amigos"): ("Virtual XI", 1998),
-    # Iron Maiden - Brave New World (2000)
-    ("iron maiden", "the wicker man"): ("Brave New World", 2000),
-    ("iron maiden", "ghost of the navigator"): ("Brave New World", 2000),
-    ("iron maiden", "brave new world"): ("Brave New World", 2000),
-    ("iron maiden", "blood brothers"): ("Brave New World", 2000),
-    ("iron maiden", "the mercenary"): ("Brave New World", 2000),
-    ("iron maiden", "dream of mirrors"): ("Brave New World", 2000),
-    ("iron maiden", "the fallen angel"): ("Brave New World", 2000),
-    ("iron maiden", "the nomad"): ("Brave New World", 2000),
-    ("iron maiden", "out of the silent planet"): ("Brave New World", 2000),
-    ("iron maiden", "the thin line between love and hate"): ("Brave New World", 2000),
-    # Iron Maiden - Dance of Death (2003)
-    ("iron maiden", "wildest dreams"): ("Dance of Death", 2003),
-    ("iron maiden", "rainmaker"): ("Dance of Death", 2003),
-    ("iron maiden", "no more lies"): ("Dance of Death", 2003),
-    ("iron maiden", "montségur"): ("Dance of Death", 2003),
-    ("iron maiden", "montsegur"): ("Dance of Death", 2003),
-    ("iron maiden", "dance of death"): ("Dance of Death", 2003),
-    ("iron maiden", "gates of tomorrow"): ("Dance of Death", 2003),
-    ("iron maiden", "new frontier"): ("Dance of Death", 2003),
-    ("iron maiden", "paschendale"): ("Dance of Death", 2003),
-    ("iron maiden", "face in the sand"): ("Dance of Death", 2003),
-    ("iron maiden", "age of innocence"): ("Dance of Death", 2003),
-    ("iron maiden", "journeyman"): ("Dance of Death", 2003),
-    # Iron Maiden - A Matter of Life and Death (2006)
-    ("iron maiden", "different world"): ("A Matter of Life and Death", 2006),
-    ("iron maiden", "these colours don't run"): ("A Matter of Life and Death", 2006),
-    ("iron maiden", "these colors don't run"): ("A Matter of Life and Death", 2006),
-    ("iron maiden", "brighter than a thousand suns"): ("A Matter of Life and Death", 2006),
-    ("iron maiden", "the pilgrim"): ("A Matter of Life and Death", 2006),
-    ("iron maiden", "the longest day"): ("A Matter of Life and Death", 2006),
-    ("iron maiden", "out of the shadows"): ("A Matter of Life and Death", 2006),
-    ("iron maiden", "the reincarnation of benjamin breeg"): ("A Matter of Life and Death", 2006),
-    ("iron maiden", "for the greater good of god"): ("A Matter of Life and Death", 2006),
-    ("iron maiden", "lord of light"): ("A Matter of Life and Death", 2006),
-    ("iron maiden", "the legacy"): ("A Matter of Life and Death", 2006),
-    # Iron Maiden - The Final Frontier (2010)
-    ("iron maiden", "satellite 15... the final frontier"): ("The Final Frontier", 2010),
-    ("iron maiden", "satellite 15...the final frontier"): ("The Final Frontier", 2010),
-    ("iron maiden", "the final frontier"): ("The Final Frontier", 2010),
-    ("iron maiden", "el dorado"): ("The Final Frontier", 2010),
-    ("iron maiden", "mother of mercy"): ("The Final Frontier", 2010),
-    ("iron maiden", "coming home"): ("The Final Frontier", 2010),
-    ("iron maiden", "the alchemist"): ("The Final Frontier", 2010),
-    ("iron maiden", "isle of avalon"): ("The Final Frontier", 2010),
-    ("iron maiden", "starblind"): ("The Final Frontier", 2010),
-    ("iron maiden", "the talisman"): ("The Final Frontier", 2010),
-    ("iron maiden", "the man who would be king"): ("The Final Frontier", 2010),
-    ("iron maiden", "when the wild wind blows"): ("The Final Frontier", 2010),
-    # Iron Maiden - The Book of Souls (2015)
-    ("iron maiden", "if eternity should fail"): ("The Book of Souls", 2015),
-    ("iron maiden", "speed of light"): ("The Book of Souls", 2015),
-    ("iron maiden", "the great unknown"): ("The Book of Souls", 2015),
-    ("iron maiden", "the red and the black"): ("The Book of Souls", 2015),
-    ("iron maiden", "when the river runs deep"): ("The Book of Souls", 2015),
-    ("iron maiden", "the book of souls"): ("The Book of Souls", 2015),
-    ("iron maiden", "death or glory"): ("The Book of Souls", 2015),
-    ("iron maiden", "shadows of the valley"): ("The Book of Souls", 2015),
-    ("iron maiden", "tears of a clown"): ("The Book of Souls", 2015),
-    ("iron maiden", "the man of sorrows"): ("The Book of Souls", 2015),
-    ("iron maiden", "empire of the clouds"): ("The Book of Souls", 2015),
-    # Iron Maiden - Senjutsu (2021)
-    ("iron maiden", "senjutsu"): ("Senjutsu", 2021),
-    ("iron maiden", "stratego"): ("Senjutsu", 2021),
-    ("iron maiden", "the writing on the wall"): ("Senjutsu", 2021),
-    ("iron maiden", "lost in a lost world"): ("Senjutsu", 2021),
-    ("iron maiden", "days of future past"): ("Senjutsu", 2021),
-    ("iron maiden", "the time machine"): ("Senjutsu", 2021),
-    ("iron maiden", "darkest hour"): ("Senjutsu", 2021),
-    ("iron maiden", "death of the celts"): ("Senjutsu", 2021),
-    ("iron maiden", "the parchment"): ("Senjutsu", 2021),
-    ("iron maiden", "hell on earth"): ("Senjutsu", 2021),
-}
+# Empty dicts preserved for backwards-compatibility imports
+CANONICAL_ALBUM_YEARS: Dict[Tuple[str, str], int] = {}
+CANONICAL_TRACK_ALBUMS: Dict[Tuple[str, str], Tuple[str, int]] = {}
 
 class AlbumEnricher:
     """
-    Enriches track metadata with original studio album name and release year
-    by querying MusicBrainz with strict studio release filtering, edition normalization,
-    and thread-safe disk caching.
+    Enriches track metadata dynamically with original studio album names and release years
+    by querying MusicBrainz with studio release filtering, title variation handling,
+    and thread-safe persistent disk caching.
     """
     def __init__(self, contact_email: Optional[str] = None):
         email = contact_email or os.getenv("CONTACT_EMAIL", "admin@localhost").strip()
         self.headers = {
-            "User-Agent": f"ConcertTrakr/1.0 ({email})",
+            "User-Agent": f"SetloreConcertAnalytics/1.0 ({email})",
             "Accept": "application/json"
         }
+        self.session = requests.Session()
         self._last_req_time = 0.0
         self._req_lock = threading.Lock()
 
-    def _rate_limited_get(self, url: str) -> Optional[requests.Response]:
-        with self._req_lock:
-            elapsed = time.time() - self._last_req_time
-            if elapsed < 1.05:
-                time.sleep(1.05 - elapsed)
-            self._last_req_time = time.time()
-        try:
-            r = requests.get(url, headers=self.headers, timeout=8)
-            return r
-        except Exception:
-            return None
+    def _rate_limited_get(self, url: str, max_retries: int = 4) -> Optional[requests.Response]:
+        """Performs a rate-limited HTTP GET with exponential backoff on 429/503/network errors."""
+        for attempt in range(max_retries):
+            with self._req_lock:
+                elapsed = time.time() - self._last_req_time
+                if elapsed < 1.15:
+                    time.sleep(1.15 - elapsed)
+                self._last_req_time = time.time()
+            try:
+                r = self.session.get(url, headers=self.headers, timeout=12)
+                if r.status_code == 200:
+                    return r
+                elif r.status_code in [429, 503]:
+                    wait_s = 2 ** (attempt + 1)
+                    time.sleep(wait_s)
+                elif r.status_code == 404:
+                    return None
+            except Exception:
+                time.sleep(1.5 * (attempt + 1))
+        return None
 
     def _generate_query_variations(self, song_name: str) -> List[str]:
-        queries = [song_name]
-        # Medleys: take first song
+        """Generates clean query strings for suites, subtitles, medleys, and roman numerals."""
+        queries = [song_name.strip()]
+
+        # Medleys / Slashes: take individual parts
         if "/" in song_name:
-            parts = [p.strip() for p in song_name.split("/") if p.strip()]
-            if parts and parts[0] not in queries:
-                queries.append(parts[0])
-        # Suite / Act / Roman numeral variations
-        if ":" in song_name:
-            parts = [p.strip() for p in song_name.split(":") if p.strip()]
-            last_part = parts[-1]
-            cleaned_last = re.sub(r'^[IVXLCDM]+\.?\s*', '', last_part).strip()
-            if cleaned_last and cleaned_last not in queries:
+            for part in song_name.split("/"):
+                p = part.strip()
+                if p and p not in queries:
+                    queries.append(p)
+
+        # Suite / Act / Part / Colon variations
+        if ":" in song_name or " - " in song_name or ", Pt" in song_name or ", Part" in song_name:
+            # First major part (parent suite)
+            first_part = re.split(r'[:\-]', song_name)[0].strip()
+            if not re.match(r'^(?:act|scene)\s+[ivxlcdm0-9]+$', first_part, re.IGNORECASE):
+                if first_part and len(first_part) > 2 and first_part not in queries:
+                    queries.append(first_part)
+
+            # Last part (specific movement/title)
+            parts = re.split(r'[:\-]', song_name)
+            last_part = parts[-1].strip()
+            cleaned_last = re.sub(r'^[IVXLCDM0-9]+[\.\:\s\-]+', '', last_part).strip()
+            if cleaned_last and len(cleaned_last) > 2 and cleaned_last not in queries:
                 queries.append(cleaned_last)
-            if "A Change of Seasons" in song_name and "A Change of Seasons" not in queries:
-                queries.append("A Change of Seasons")
-            if "Six Degrees of Inner Turbulence" in song_name and "Six Degrees of Inner Turbulence" not in queries:
-                queries.append("Six Degrees of Inner Turbulence")
+
+            # Unicode accent normalization (e.g. Déjà Vu -> Deja Vu)
+            normalized = unicodedata.normalize('NFKD', song_name).encode('ASCII', 'ignore').decode('utf-8')
+            if normalized != song_name and normalized not in queries:
+                queries.append(normalized)
+            if cleaned_last:
+                norm_last = unicodedata.normalize('NFKD', cleaned_last).encode('ASCII', 'ignore').decode('utf-8')
+                if norm_last != cleaned_last and norm_last not in queries:
+                    queries.append(norm_last)
+
+        # Parenthetical variations: "Song (Remastered)" -> "Song"
+        if "(" in song_name and ")" in song_name:
+            no_parens = re.sub(r'\s*\([^)]*\)', '', song_name).strip()
+            if no_parens and len(no_parens) > 2 and no_parens not in queries:
+                queries.append(no_parens)
+
         return queries
 
     def _query_musicbrainz_studio_album(self, artist_name: str, song_name: str) -> Tuple[Optional[str], Optional[int]]:
+        """Queries MusicBrainz API dynamically to find the original studio album and release year."""
         queries = self._generate_query_variations(song_name)
 
         for q_song in queries:
-            q_str = f'recording:"{q_song}" AND artist:"{artist_name}"'
-            url = f'https://musicbrainz.org/ws/2/recording?query={urllib.parse.quote(q_str)}&limit=60&fmt=json'
-            
+            clean_q = q_song.replace('"', '').strip()
+            q_str = f'recording:"{clean_q}" AND artist:"{artist_name}"'
+            url = f'https://musicbrainz.org/ws/2/recording?query={urllib.parse.quote(q_str)}&limit=40&fmt=json'
+
             resp = self._rate_limited_get(url)
             if not resp or resp.status_code != 200:
                 continue
@@ -538,7 +207,7 @@ class AlbumEnricher:
             for rec in data.get("recordings", []):
                 rec_title = rec.get("title", "")
                 rec_disam = (rec.get("disambiguation") or "").lower()
-                if fuzz.ratio(rec_title.lower(), q_song.lower()) < 70 and not any(q.lower() in rec_title.lower() for q in queries):
+                if fuzz.ratio(rec_title.lower(), clean_q.lower()) < 65 and not any(q.lower() in rec_title.lower() for q in queries):
                     continue
                 if any(kw in rec_title.lower() for kw in ["demo", "live", "instrumental demo", "bootleg"]):
                     continue
@@ -558,27 +227,20 @@ class AlbumEnricher:
                         continue
 
                     title = clean_album_title(raw_title)
-                    
+
                     # Extract earliest valid year across release-group, recording, and release dates
                     rg_date = rg.get("first-release-date", "")
                     rec_date = rec.get("first-release-date", "")
                     rel_date = rel.get("date", "")
-                    
+
                     years = []
                     for d_str in [rg_date, rec_date, rel_date]:
                         if d_str and len(d_str) >= 4 and d_str[:4].isdigit():
                             y = int(d_str[:4])
-                            if 1950 <= y <= 2026:
+                            if 1950 <= y <= 2030:
                                 years.append(y)
-                    
-                    yr = min(years) if years else None
-                    
-                    # Canonical year override for known albums
-                    artist_clean = artist_name.strip().lower()
-                    album_clean = title.strip().lower()
-                    if (artist_clean, album_clean) in CANONICAL_ALBUM_YEARS:
-                        yr = CANONICAL_ALBUM_YEARS[(artist_clean, album_clean)]
 
+                    yr = min(years) if years else None
                     if yr:
                         album_years[title] = min(album_years.get(title, 9999), yr)
 
@@ -617,35 +279,14 @@ class AlbumEnricher:
             return False
         if is_blacklisted_album(album):
             return False
-        # Check if contains unclean edition tags
         if re.search(r'[\(\[](?:special edition|deluxe edition|remastered|bonus tracks|box set)[\)\]]', album, re.IGNORECASE):
             return False
-        # Check casing consistency
-        if album == "Metropolis, Pt. 2: Scenes From a Memory":
-            return False
-        # If user explicitly requested refresh of unresolved tracks
         if refresh_unresolved and album == "Non-Album / Singles":
             return False
-
-        # Invalidate known misattributed or future-dated records
-        artist = (cached.get("artist") or "").strip().lower()
-        song = (cached.get("song") or "").strip().lower()
-        album_clean = clean_album_title(album).strip().lower()
-        yr = cached.get("release_year")
-
-        if (artist, song) in CANONICAL_TRACK_ALBUMS:
-            expected_album, expected_yr = CANONICAL_TRACK_ALBUMS[(artist, song)]
-            if album_clean != expected_album.strip().lower() or yr != expected_yr:
-                return False
-
-        if (artist, album_clean) in CANONICAL_ALBUM_YEARS:
-            expected_yr = CANONICAL_ALBUM_YEARS[(artist, album_clean)]
-            if yr != expected_yr:
-                return False
-
         return True
 
     def get_track_info(self, artist_name: str, song_name: str, song_obj: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Retrieves track studio album information dynamically from cache or MusicBrainz."""
         result = {
             "song": song_name,
             "artist": artist_name,
@@ -669,48 +310,43 @@ class AlbumEnricher:
         cache_key = "".join(c if c.isalnum() else "_" for c in f"{artist_name}_{song_name}".lower())
         cache_file = MB_CACHE_DIR / f"{cache_key}.json"
 
-        # Check canonical track albums first!
-        art_norm = artist_name.strip().lower()
-        song_norm = song_name.strip().lower()
-        if (art_norm, song_norm) in CANONICAL_TRACK_ALBUMS:
-            can_album, can_yr = CANONICAL_TRACK_ALBUMS[(art_norm, song_norm)]
-            result["album"] = can_album
-            result["release_year"] = can_yr
-            result["resolved"] = True
-            try:
-                with open(cache_file, "w", encoding="utf-8") as f:
-                    json.dump(result, f, indent=2)
-            except Exception:
-                pass
-            return result
-
         if cache_file.exists():
             try:
                 with open(cache_file, "r", encoding="utf-8") as f:
                     cached = json.load(f)
                     if self._is_valid_cache_entry(cached):
                         result.update(cached)
-                        # Ensure cleaned title
                         result["album"] = clean_album_title(result.get("album", "Non-Album / Singles"))
                         return result
             except Exception:
                 pass
 
-        # Query MusicBrainz canonical studio database
+        # Query MusicBrainz canonical studio database dynamically
         album_name, release_yr = self._query_musicbrainz_studio_album(artist_name, song_name)
 
         if album_name:
             result["album"] = clean_album_title(album_name)
             result["release_year"] = release_yr
-
-        result["resolved"] = True
-
-        # Save to disk cache
-        try:
-            with open(cache_file, "w", encoding="utf-8") as f:
-                json.dump(result, f, indent=2)
-        except Exception:
-            pass
+            result["resolved"] = True
+            try:
+                with open(cache_file, "w", encoding="utf-8") as f:
+                    json.dump(result, f, indent=2)
+            except Exception:
+                pass
+        else:
+            # Solos, audio clips, walk-ons, or genuinely unresolved
+            is_solo_or_intro = any(w in song_name.lower() for w in [
+                "solo", "intro", "outro", "tape", "intermission", "schmedley", "lobby", "zarathustra"
+            ])
+            if is_solo_or_intro:
+                result["resolved"] = True
+                try:
+                    with open(cache_file, "w", encoding="utf-8") as f:
+                        json.dump(result, f, indent=2)
+                except Exception:
+                    pass
+            else:
+                result["resolved"] = False
 
         return result
 
@@ -749,7 +385,8 @@ class AlbumEnricher:
                     "album": "Non-Album / Singles",
                     "release_year": None,
                     "is_cover": False,
-                    "original_artist": None
+                    "original_artist": None,
+                    "resolved": False
                 }
             completed += 1
             disp = f"{art} - {song}"
@@ -813,4 +450,3 @@ class AlbumEnricher:
             uncached.append((key, art, song))
 
         return results, uncached, total_unique
-

@@ -6,7 +6,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-CACHE_DIR = BASE_DIR / "cache"
+DATA_DIR = Path(os.getenv("DATA_DIR", BASE_DIR / "data"))
+CACHE_DIR = Path(os.getenv("CACHE_DIR", DATA_DIR / "cache" if DATA_DIR.exists() else BASE_DIR / "cache"))
 SETLIST_CACHE_DIR = CACHE_DIR / "setlists"
 USER_CACHE_DIR = CACHE_DIR / "user"
 MB_CACHE_DIR = CACHE_DIR / "musicbrainz"
