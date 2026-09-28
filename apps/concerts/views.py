@@ -26,7 +26,24 @@ from src.config import SETLISTFM_API_KEY, USER_CACHE_DIR
 from .services.sync_worker import sync_worker
 
 @login_required
-def dashboard_view(request):
+def dashboard_view(request, tab_name='overview'):
+    alias_map = {
+        '': 'overview',
+        'overview': 'overview',
+        'concerts': 'concerts',
+        'drilldown': 'drilldown',
+        'artists': 'drilldown',
+        'musicians': 'musicians',
+        'map': 'map',
+        'venues': 'map',
+        'advanced': 'advanced',
+        'albums': 'advanced',
+        'setlists': 'setlists',
+        'freshness': 'setlists',
+        'gap': 'gap',
+        'audit': 'gap',
+    }
+    initial_tab = alias_map.get(str(tab_name).lower().strip('/'), 'overview')
     user = request.user
     profile = user.profile
 
@@ -185,6 +202,7 @@ def dashboard_view(request):
     venue_map_json = json.dumps(stats.get("venue_map", {}))
 
     context = {
+        'initial_tab': initial_tab,
         'username': profile.setlistfm_username or user.username,
         'profile': profile,
         'gap': gap_results,

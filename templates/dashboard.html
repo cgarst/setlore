@@ -1361,12 +1361,29 @@
     let venueMap = null;
     let venueMarkers = {};
 
-    function switchTab(tabId, updateHash = true) {
-      if (tabId === 'audit') tabId = 'gap';
+    function normalizeTab(tabId) {
+      const aliasMap = {
+        '': 'overview',
+        'overview': 'overview',
+        'concerts': 'concerts',
+        'drilldown': 'drilldown',
+        'artists': 'drilldown',
+        'musicians': 'musicians',
+        'map': 'map',
+        'venues': 'map',
+        'advanced': 'advanced',
+        'albums': 'advanced',
+        'setlists': 'setlists',
+        'freshness': 'setlists',
+        'gap': 'gap',
+        'audit': 'gap'
+      };
+      return aliasMap[String(tabId || '').toLowerCase().trim()] || 'overview';
+    }
+
+    function switchTab(tabId, updateUrl = true) {
+      tabId = normalizeTab(tabId);
       const validTabs = ['overview', 'concerts', 'drilldown', 'musicians', 'map', 'advanced', 'setlists', 'gap'];
-      if (!validTabs.includes(tabId)) {
-        tabId = 'overview';
-      }
 
       validTabs.forEach(t => {
         const tabEl = document.getElementById('tab-' + t);
@@ -1391,8 +1408,11 @@
         }
       }
 
-      if (updateHash) {
-        history.replaceState(null, null, '#' + tabId);
+      if (updateUrl) {
+        const targetPath = (tabId === 'overview') ? '/' : `/${tabId}/`;
+        if (window.location.pathname !== targetPath || window.location.hash) {
+          history.pushState({ tabId: tabId }, '', targetPath);
+        }
       }
 
       if (tabId === 'map') {
@@ -1419,18 +1439,38 @@
       window.dispatchEvent(new Event('resize'));
     }
 
-    // URL Hash deep linking support on page load and back/forward navigation
+    // URL path & legacy hash deep linking support on page load and back/forward navigation
     window.addEventListener('DOMContentLoaded', () => {
       const hash = window.location.hash.replace('#', '').trim();
       if (hash) {
-        switchTab(hash, false);
+        const resolvedTab = normalizeTab(hash);
+        const targetPath = (resolvedTab === 'overview') ? '/' : `/${resolvedTab}/`;
+        history.replaceState({ tabId: resolvedTab }, '', targetPath);
+        switchTab(resolvedTab, false);
+      } else {
+        const pathSegment = window.location.pathname.split('/').filter(Boolean)[0] || '';
+        const serverTab = "{{ initial_tab|default:'overview'|escapejs }}";
+        const targetTab = normalizeTab(pathSegment || serverTab);
+        switchTab(targetTab, false);
+      }
+    });
+
+    window.addEventListener('popstate', (event) => {
+      if (event.state && event.state.tabId) {
+        switchTab(event.state.tabId, false);
+      } else {
+        const pathSegment = window.location.pathname.split('/').filter(Boolean)[0] || '';
+        switchTab(normalizeTab(pathSegment), false);
       }
     });
 
     window.addEventListener('hashchange', () => {
       const hash = window.location.hash.replace('#', '').trim();
       if (hash) {
-        switchTab(hash, false);
+        const resolvedTab = normalizeTab(hash);
+        const targetPath = (resolvedTab === 'overview') ? '/' : `/${resolvedTab}/`;
+        history.replaceState({ tabId: resolvedTab }, '', targetPath);
+        switchTab(resolvedTab, false);
       }
     });
 

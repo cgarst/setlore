@@ -22,6 +22,20 @@ urlpatterns = [
 
     # Concert Dashboard & API
     path('', concerts_views.dashboard_view, name='dashboard'),
+    path('overview/', concerts_views.dashboard_view, {'tab_name': 'overview'}, name='dashboard_overview'),
+    path('concerts/', concerts_views.dashboard_view, {'tab_name': 'concerts'}, name='dashboard_concerts'),
+    path('drilldown/', concerts_views.dashboard_view, {'tab_name': 'drilldown'}, name='dashboard_drilldown'),
+    path('artists/', concerts_views.dashboard_view, {'tab_name': 'drilldown'}, name='dashboard_artists'),
+    path('musicians/', concerts_views.dashboard_view, {'tab_name': 'musicians'}, name='dashboard_musicians'),
+    path('map/', concerts_views.dashboard_view, {'tab_name': 'map'}, name='dashboard_map'),
+    path('venues/', concerts_views.dashboard_view, {'tab_name': 'map'}, name='dashboard_venues'),
+    path('advanced/', concerts_views.dashboard_view, {'tab_name': 'advanced'}, name='dashboard_advanced'),
+    path('albums/', concerts_views.dashboard_view, {'tab_name': 'advanced'}, name='dashboard_albums'),
+    path('setlists/', concerts_views.dashboard_view, {'tab_name': 'setlists'}, name='dashboard_setlists'),
+    path('freshness/', concerts_views.dashboard_view, {'tab_name': 'setlists'}, name='dashboard_freshness'),
+    path('gap/', concerts_views.dashboard_view, {'tab_name': 'gap'}, name='dashboard_gap'),
+    path('audit/', concerts_views.dashboard_view, {'tab_name': 'gap'}, name='dashboard_audit'),
+
     path('api/sync/', concerts_views.trigger_sync, name='api_sync'),
     path('api/sync/status/', concerts_views.sync_status, name='api_sync_status'),
     path('api/upload-csv/', concerts_views.upload_csv, name='api_upload_csv'),

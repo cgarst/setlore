@@ -133,4 +133,28 @@ class DjangoAppTests(TestCase):
         self.user.refresh_from_db()
         self.assertTrue(self.user.check_password('BrandNewPass987!'))
 
+    def test_dashboard_tab_urls(self):
+        self.client.force_login(self.user)
+        tabs = [
+            ('/', 'overview'),
+            ('/overview/', 'overview'),
+            ('/concerts/', 'concerts'),
+            ('/drilldown/', 'drilldown'),
+            ('/artists/', 'drilldown'),
+            ('/musicians/', 'musicians'),
+            ('/map/', 'map'),
+            ('/venues/', 'map'),
+            ('/advanced/', 'advanced'),
+            ('/albums/', 'advanced'),
+            ('/setlists/', 'setlists'),
+            ('/freshness/', 'setlists'),
+            ('/gap/', 'gap'),
+            ('/audit/', 'gap'),
+        ]
+        for url, expected_tab in tabs:
+            res = self.client.get(url)
+            self.assertEqual(res.status_code, 200, f"Expected 200 for {url}")
+            self.assertEqual(res.context['initial_tab'], expected_tab, f"Expected {expected_tab} tab for {url}")
+
+
 
