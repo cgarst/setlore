@@ -14,33 +14,33 @@ class TicketmasterImportFlowTestCase(TestCase):
         self.client = Client()
         self.client.login(username='tm_tester', password='password123')
 
-        # Create an existing concert to test deduplication
-        self.venue = Venue.objects.create(name='Capital One Arena', city='Washington', state='DC', country='United States')
-        self.artist = Artist.objects.create(name='Iron Maiden', normalized_name='iron maiden')
+        # Create an existing concert with synthetic data to test deduplication
+        self.venue = Venue.objects.create(name='Starlight Arena', city='Star City', state='CA', country='United States')
+        self.artist = Artist.objects.create(name='Quantum Echo', normalized_name='quantum echo')
         self.existing_concert = Concert.objects.create(
             user=self.user,
-            date='2024-10-24',
-            raw_date='10/24/2024',
-            year=2024,
+            date='2026-10-24',
+            raw_date='10/24/2026',
+            year=2026,
             venue=self.venue,
-            raw_venue='Capital One Arena',
-            primary_artist='Iron Maiden',
-            raw_artists='Iron Maiden',
+            raw_venue='Starlight Arena',
+            primary_artist='Quantum Echo',
+            raw_artists='Quantum Echo',
             source='manual'
         )
 
     def test_preview_endpoint_parsing_and_deduplication(self):
         paste_text = """
-        OCT 24, 2024
-        Iron Maiden - The Future Past Tour
-        Capital One Arena - Washington, DC
-        Order # 12-34567/VA1
+        OCT 24, 2026
+        Quantum Echo - Nebula World Tour
+        Starlight Arena - Star City, CA
+        Order # 11-22334/CA1
         Past Event
 
-        Fri, Aug 25, 2023 • 7:30 PM
-        Ghost: RE-IMPERATOUR U.S.A. 2023
-        Jiffy Lube Live - Bristow, VA
-        Order # 98-76543/VA2
+        Fri, Aug 25, 2025 • 7:30 PM
+        Cosmic Voyager: Odyssey 2025
+        Solaris Amphitheater - Austin, TX
+        Order # 55-66778/TX2
         """
         response = self.client.post(
             '/api/ticketmaster/preview/',
@@ -54,31 +54,31 @@ class TicketmasterImportFlowTestCase(TestCase):
         self.assertEqual(data['duplicates_count'], 1)
 
         events = data['events']
-        # First event is duplicate of Iron Maiden on 2024-10-24
+        # First event is duplicate of Quantum Echo on 2026-10-24
         self.assertTrue(events[0]['is_duplicate'])
         self.assertFalse(events[0]['selected'])
-        self.assertEqual(events[0]['artist'], 'Iron Maiden')
-        self.assertEqual(events[0]['order_number'], '12-34567/VA1')
+        self.assertEqual(events[0]['artist'], 'Quantum Echo')
+        self.assertEqual(events[0]['order_number'], '11-22334/CA1')
 
-        # Second event is new (Ghost)
+        # Second event is new (Cosmic Voyager)
         self.assertFalse(events[1]['is_duplicate'])
         self.assertTrue(events[1]['selected'])
-        self.assertEqual(events[1]['artist'], 'Ghost')
-        self.assertEqual(events[1]['venue'], 'Jiffy Lube Live')
-        self.assertEqual(events[1]['city'], 'Bristow')
-        self.assertEqual(events[1]['state'], 'VA')
+        self.assertEqual(events[1]['artist'], 'Cosmic Voyager')
+        self.assertEqual(events[1]['venue'], 'Solaris Amphitheater')
+        self.assertEqual(events[1]['city'], 'Austin')
+        self.assertEqual(events[1]['state'], 'TX')
 
     def test_confirm_import_endpoint(self):
         events_to_confirm = [
             {
-                'date': '2023-08-25',
-                'artist': 'Ghost',
-                'venue': 'Jiffy Lube Live',
-                'city': 'Bristow',
-                'state': 'VA',
+                'date': '2025-08-25',
+                'artist': 'Cosmic Voyager',
+                'venue': 'Solaris Amphitheater',
+                'city': 'Austin',
+                'state': 'TX',
                 'country': 'United States',
-                'tour_notes': 'RE-IMPERATOUR U.S.A. 2023',
-                'order_number': '98-76543/VA2',
+                'tour_notes': 'Odyssey 2025',
+                'order_number': '55-66778/TX2',
                 'setlist_id': ''
             }
         ]
@@ -93,10 +93,10 @@ class TicketmasterImportFlowTestCase(TestCase):
         self.assertEqual(data['imported_count'], 1)
 
         # Verify in database
-        ghost_concert = Concert.objects.filter(user=self.user, primary_artist='Ghost').first()
-        self.assertIsNotNone(ghost_concert)
-        self.assertEqual(str(ghost_concert.date), '2023-08-25')
-        self.assertEqual(ghost_concert.source, 'ticketmaster')
-        self.assertTrue(ghost_concert.is_custom_offline)
-        self.assertIn('RE-IMPERATOUR', ghost_concert.notes)
-        self.assertIn('Ticketmaster Order: 98-76543/VA2', ghost_concert.notes)
+        cosmic_concert = Concert.objects.filter(user=self.user, primary_artist='Cosmic Voyager').first()
+        self.assertIsNotNone(cosmic_concert)
+        self.assertEqual(str(cosmic_concert.date), '2025-08-25')
+        self.assertEqual(cosmic_concert.source, 'ticketmaster')
+        self.assertTrue(cosmic_concert.is_custom_offline)
+        self.assertIn('Odyssey 2025', cosmic_concert.notes)
+        self.assertIn('Ticketmaster Order: 55-66778/TX2', cosmic_concert.notes)
