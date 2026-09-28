@@ -165,6 +165,134 @@ class TestTicketmasterParser(unittest.TestCase):
         self.assertEqual(events[3]["date"], "2025-05-10")
         self.assertEqual(events[3]["order_number"], "14-18736/WDC")
 
+    def test_full_page_copypaste_with_excess_noise(self):
+        sample = """Skip to main content
+USUnited States selected, change country
+
+    Hotels
+    Sell
+    Gift Cards
+    Help
+    VIP
+
+PayPal Preferred Payments Partner
+Ticketmaster Home page
+
+Search
+Search
+My Account
+
+    Home
+    My Tickets
+
+My Tickets
+
+    Upcoming Events
+    Past Events
+    My Listings
+
+Welcome back! Corey
+My Tickets
+
+    Upcoming Events
+    Past Events
+    My Listings
+
+My Profile
+My Settings
+Sign Out
+Need Help?
+Loaded 36 past orders
+
+2026
+    Iron Maiden: Run For Your Lives World Tour 2026
+    Friday, September 11, 2026
+
+    Fri • Sep 11, 2026
+
+    Jiffy Lube Live
+    View details
+
+    Order #3-12036/WDC
+    RUSH: Fifty Something
+    Monday, August 3, 2026
+
+    Mon • Aug 3, 2026
+
+    Madison Square Garden
+    View details
+
+    Order #60-27114/NY7
+
+Ticketmaster Logo
+Let's connect
+
+    Facebook(Opens in new tab)X(Opens in new tab)Blog(Opens in new tab)Youtube(Opens in new tab)Instagram(Opens in new tab)
+
+Download Our Apps
+
+    Download on the App Store(Opens in new tab)Get it on Google Play(Opens in new tab)
+
+By continuing past this page, you agree to our terms of use
+Helpful Links
+
+    Help/FAQ
+    Sell
+    My Account
+    Contact Us
+    Gift Cards
+    Do Not Sell or Share My Personal Information
+    Get Started on Ticketmaster
+
+Our Network
+
+    Live Nation
+    House of Blues
+    Front Gate Tickets
+    TicketWeb
+    universe
+    NFL
+    NBA
+    NHL
+
+About Us
+
+    Ticketmaster Blog
+    Ticketing Truths
+    Ad Choices
+    Careers
+    Ticket Your Event
+    Innovation
+
+Friends & Partners
+
+    PayPal
+    Allianz
+    AWS
+    Affiliates
+
+    Our Policies
+    Privacy Policy
+    Cookie Policy
+    Manage my cookies and ad choices
+
+© 1999-2026 Ticketmaster. All rights reserved.
+        """
+        events = parse_ticketmaster_text(sample)
+        self.assertEqual(len(events), 2)
+        self.assertEqual(events[0]["artist"], "Iron Maiden")
+        self.assertEqual(events[0]["venue"], "Jiffy Lube Live")
+        self.assertEqual(events[0]["date"], "2026-09-11")
+        self.assertEqual(events[0]["order_number"], "3-12036/WDC")
+        self.assertEqual(events[0]["tour_notes"], "Run For Your Lives World Tour 2026")
+
+        self.assertEqual(events[1]["artist"], "RUSH")
+        self.assertEqual(events[1]["venue"], "Madison Square Garden")
+        self.assertEqual(events[1]["date"], "2026-08-03")
+        self.assertEqual(events[1]["order_number"], "60-27114/NY7")
+        self.assertEqual(events[1]["tour_notes"], "Fifty Something")
+
 if __name__ == "__main__":
     unittest.main()
+
 

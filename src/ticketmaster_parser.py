@@ -19,12 +19,28 @@ MONTH_MAP = {
 
 IGNORE_LINE_PATTERNS = [
     r'^\d{4}$',  # Standalone 4-digit years e.g. 2026, 2025, 2024
-    r'^(?:past\s*events?|upcoming\s*events?|my\s*tickets?|order\s*history)$',
+    r'^skip\s+to\s+main\s+content',
+    r'.*selected,\s*change\s*country.*',
+    r'^(?:hotels|sell|gift\s*cards|help|vip|search)$',
+    r'^paypal\s+preferred\s+payments\s+partner',
+    r'^ticketmaster\s+(?:home\s+page|logo)',
+    r'^(?:my\s*account|my\s*profile|my\s*settings|my\s*listings|my\s*tickets)$',
+    r'^(?:home|upcoming\s*events?|past\s*events?|order\s*history|sign\s*out|need\s*help\??)$',
+    r'^welcome\s+back.*',
+    r'^loaded\s+\d+\s+past\s+orders',
     r'^(?:view\s*(?:order\s*)?details|see\s*tickets?|receipt|view\s*receipt|add\s*to\s*calendar)$',
     r'^(?:past\s*event|event\s*details|completed|cancelled|canceled)$',
     r'^(?:standard\s*ticket|verified\s*resale|general\s*admission|vip\s*package|lawn)$',
     r'^(?:sec(?:tion)?\s*\w+|row\s*\w+|seat\s*\w+)$',
     r'^(?:total|subtotal|fees|taxes|\$[\d\.,]+)$',
+    r'^(?:let\'?s\s*connect|download\s*our\s*apps|helpful\s*links|our\s*network|about\s*us|friends\s*&\s*partners|our\s*policies)$',
+    r'.*\(opens\s+in\s+new\s+tab\).*',
+    r'^by\s+continuing\s+past\s+this\s+page.*',
+    r'^(?:help/faq|contact\s*us|do\s*not\s*sell.*|get\s*started\s*on\s*ticketmaster)$',
+    r'^(?:live\s*nation|house\s*of\s*blues|front\s*gate\s*tickets|ticketweb|universe|nfl|nba|nhl)$',
+    r'^(?:ticketmaster\s*blog|ticketing\s*truths|ad\s*choices|careers|ticket\s*your\s*event|innovation)$',
+    r'^(?:allianz|aws|affiliates|privacy\s*policy|cookie\s*policy|manage\s*my\s*cookies.*)$',
+    r'^©\s*\d{4}.*ticketmaster.*',
     r'^(?:https?://\S+)$',
 ]
 
@@ -186,7 +202,8 @@ def clean_event_title(event_title: str) -> Tuple[str, str]:
 def parse_ticketmaster_text(raw_text: str) -> List[Dict[str, Any]]:
     """
     Parses pasted text from Ticketmaster past events page into a structured list of events.
-    Handles Ticketmaster order blocks with Order # delimiters, date rows, venues, and artist titles.
+    Robustly handles full-page copy-pastes containing page headers, footers, navigation links,
+    Order # delimiters, dates, venues, and artist titles.
     """
     if not raw_text:
         return []
@@ -215,10 +232,8 @@ def parse_ticketmaster_text(raw_text: str) -> List[Dict[str, Any]]:
         # Fallback: Group by date occurrences
         cur_card = []
         for l in lines:
-            # Check if line contains a date
             is_date = parse_tm_date(l) is not None
             if is_date and cur_card:
-                # If current card already has a date and a venue after it, start new card
                 dates_in_cur = [idx for idx, x in enumerate(cur_card) if parse_tm_date(x) is not None]
                 if dates_in_cur and (len(cur_card) - 1 > dates_in_cur[-1]):
                     cards.append(cur_card)
@@ -263,24 +278,29 @@ def parse_ticketmaster_text(raw_text: str) -> List[Dict[str, Any]]:
         last_date_idx = date_indices[-1]
 
         if first_date_idx > 0:
-            # Title precedes the date
+            # Title precedes the date (take the closest non-date line right before the date)
             title_lines = filtered[:first_date_idx]
+            # Strip any residual noise lines from beginning
+            clean_title_lines = [tl for tl in title_lines if not is_ignorable_line(tl)]
+            # In case multiple lines precede, take the line immediately above date
+            title_str = clean_title_lines[-1] if clean_title_lines else "Unknown Event"
             venue_lines = filtered[last_date_idx + 1:]
         else:
             # Date is at the start of the card
-            non_date_lines = filtered[last_date_idx + 1:]
+            non_date_lines = [nl for nl in filtered[last_date_idx + 1:] if not is_ignorable_line(nl)]
             if len(non_date_lines) == 1:
-                title_lines = non_date_lines[:1]
+                title_str = non_date_lines[0]
                 venue_lines = []
             elif len(non_date_lines) >= 2:
-                title_lines = non_date_lines[:1]
+                title_str = non_date_lines[0]
                 venue_lines = non_date_lines[1:]
             else:
-                title_lines = []
+                title_str = "Unknown Event"
                 venue_lines = []
 
-        title_str = " ".join(title_lines) if title_lines else "Unknown Event"
-        venue_str = " ".join(venue_lines) if venue_lines else "Unknown Venue"
+        # Filter venue lines for ignorable noise
+        clean_venue_lines = [vl for vl in venue_lines if not is_ignorable_line(vl)]
+        venue_str = clean_venue_lines[0] if clean_venue_lines else "Unknown Venue"
 
         art_name, tour_notes = clean_event_title(title_str)
         v_name, city, state = extract_venue_and_location(venue_str)
