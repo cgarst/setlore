@@ -147,13 +147,17 @@ class ConcertAnalytics:
                 if is_cover:
                     covers_count += 1
 
+                with_guest = song_obj.get("with", {}).get("name") if isinstance(song_obj.get("with"), dict) else (song_obj.get("with") or None)
+                info_str = song_obj.get("info", "")
+
                 occ_info = {
                     "date": date_str,
                     "venue": venue,
                     "year": year,
                     "is_cover": is_cover,
                     "cover_original": song_obj.get("cover", {}).get("name") if is_cover else None,
-                    "info": song_obj.get("info", ""),
+                    "with_guest": with_guest,
+                    "info": info_str,
                     "setlist_url": setlist_url,
                     "track_num": track_num,
                     "total_tracks": total_set_tracks,
@@ -179,7 +183,8 @@ class ConcertAnalytics:
                     "venue": venue,
                     "is_cover": is_cover,
                     "cover_original": song_obj.get("cover", {}).get("name") if is_cover else None,
-                    "info": song_obj.get("info", ""),
+                    "with_guest": with_guest,
+                    "info": info_str,
                     "setlist_url": setlist_url,
                     "track_num": track_num,
                     "total_tracks": total_set_tracks,
@@ -383,14 +388,12 @@ class ConcertAnalytics:
                             album = enrich_info.get("album", "Non-Album / Singles")
                             rel_year = enrich_info.get("release_year")
                             is_cov = bool(s_song.get("cover")) or enrich_info.get("is_cover")
-                            cov_artist = s_song.get("cover", {}).get("name") or enrich_info.get("original_artist")
+                            cov_artist = s_song.get("cover", {}).get("name") if isinstance(s_song.get("cover"), dict) else (enrich_info.get("original_artist") or None)
                             if is_cov and album == "Non-Album / Singles":
                                 album = "Covers"
                             
                             song_age_str = None
-                            if is_cov and cov_artist:
-                                song_age_str = f"Cover ({cov_artist})"
-                            elif year and rel_year:
+                            if year and rel_year:
                                 diff = year - rel_year
                                 if diff < 0:
                                     song_age_str = f"Unreleased / Debut (rel. {rel_year})"
@@ -403,8 +406,10 @@ class ConcertAnalytics:
                             elif rel_year:
                                 song_age_str = f"Released {rel_year}"
 
-                            is_cover = bool(s_song.get("cover"))
-                            cover_orig = s_song.get("cover", {}).get("name") if is_cover else None
+                            is_cover = bool(s_song.get("cover")) or bool(is_cov)
+                            cover_orig = cov_artist
+                            with_guest = s_song.get("with", {}).get("name") if isinstance(s_song.get("with"), dict) else (s_song.get("with") or None)
+                            info_str = s_song.get("info", "")
 
                             songs_in_set.append({
                                 "song": s_name,
@@ -417,7 +422,8 @@ class ConcertAnalytics:
                                 "song_age_str": song_age_str,
                                 "is_cover": is_cover,
                                 "cover_original": cover_orig,
-                                "info": s_song.get("info", ""),
+                                "with_guest": with_guest,
+                                "info": info_str,
                                 "tape": bool(s_song.get("tape"))
                             })
                             artist_songs_played += 1

@@ -613,11 +613,11 @@
                           </span>
 
                           {% if track.is_cover %}
-                          <span class="badge bg-pink-500/20 text-pink-300 text-[10px]">Cover ({{ track.cover_original|default:'Cover' }})</span>
+                          <span class="badge bg-pink-500/20 text-pink-300 text-[10px]">Cover{% if track.cover_original and track.cover_original != 'Cover' %} ({{ track.cover_original }}){% endif %}</span>
                           {% endif %}
 
-                          {% if track.info %}
-                          <span class="text-slate-500 text-[11px] italic">({{ track.info }})</span>
+                          {% if track.with_guest or track.info %}
+                          <span class="text-slate-500 text-[11px] italic">{% if track.with_guest %}(with {{ track.with_guest }}) {% endif %}{% if track.info %}({{ track.info }}){% endif %}</span>
                           {% endif %}
                         </div>
 
@@ -1663,7 +1663,8 @@
                 <i class="fa-solid fa-location-dot text-[10px] text-slate-500 mr-1"></i>${o.venue}
               </button>
               ${posBadge}
-              ${o.is_cover ? `<span class="badge bg-pink-500/20 text-pink-300 text-[10px]">Cover (${o.cover_original || 'Cover'})</span>` : ''}
+              ${o.is_cover ? `<span class="badge bg-pink-500/20 text-pink-300 text-[10px]">Cover${(o.cover_original && o.cover_original !== 'Cover') ? ` (${o.cover_original})` : ''}</span>` : ''}
+              ${o.with_guest ? `<span class="text-slate-500 text-[11px] italic">(with ${o.with_guest})</span>` : ''}
               ${o.info ? `<span class="text-slate-500 text-[11px] italic">(${o.info})</span>` : ''}
             </div>
             <button onclick="jumpToConcertInDrilldown('${(o.venue || '').replace(/'/g, "\\'")}', '${o.date || ''}')" class="px-2.5 py-1 rounded bg-indigo-500/20 hover:bg-indigo-500/35 text-indigo-300 hover:text-white border border-indigo-500/30 text-[11px] font-semibold transition inline-flex items-center gap-1.5 cursor-pointer">
@@ -1794,8 +1795,12 @@
 
     function resetTreemapZoom() {
       const el = document.getElementById('chart-treemap');
-      if (el && typeof treemapData !== 'undefined') {
-        Plotly.react('chart-treemap', treemapData.data, Object.assign({}, layoutDefaults, treemapData.layout), {responsive: true, displayModeBar: false});
+      if (el) {
+        Plotly.restyle(el, { level: '' }).catch(() => {
+          if (typeof treemapData !== 'undefined') {
+            Plotly.newPlot(el, treemapData.data, Object.assign({}, layoutDefaults, treemapData.layout), {responsive: true, displayModeBar: false});
+          }
+        });
       }
     }
 

@@ -35,5 +35,54 @@ class TestConcertPipeline(unittest.TestCase):
         self.assertEqual(reconciled["coverage_percentage"], 100.0)
         self.assertEqual(len(reconciled["csv_only"]), 0)
 
+    def test_analytics_guest_and_covers(self):
+        from src.analytics import ConcertAnalytics
+        matched = [{
+            "csv": {
+                "id": "csv_1",
+                "display_date": "05-03-2015",
+                "primary_artist": "Haken",
+                "artists": ["Haken"],
+                "venue": "Empire",
+                "year": 2015
+            },
+            "artist": "Haken",
+            "setlist": {
+                "id": "sl_1",
+                "artist": {"name": "Haken"},
+                "url": "https://setlist.fm/123",
+                "sets": {
+                    "set": [
+                        {
+                            "name": "Main Set",
+                            "song": [
+                                {
+                                    "name": "The Mirror",
+                                    "cover": {"name": "Dream Theater"},
+                                    "info": "on drums",
+                                    "with": {"name": "Mike Portnoy"}
+                                }
+                            ]
+                        }
+                    ]
+                }
+            }
+        }]
+        analytics = ConcertAnalytics(matched, [m["csv"] for m in matched])
+        metrics = analytics.compute_all_metrics()
+        self.assertEqual(metrics["all_songs_list"][0]["with_guest"], "Mike Portnoy")
+        self.assertEqual(metrics["all_songs_list"][0]["info"], "on drums")
+        self.assertEqual(metrics["all_songs_list"][0]["cover_original"], "Dream Theater")
+        self.assertTrue(metrics["all_songs_list"][0]["is_cover"])
+
+        drilldown = analytics.compute_concert_drilldown({})
+        song_entry = drilldown[0]["artists"][0]["grouped_sets"][0]["songs"][0]
+        self.assertEqual(song_entry["with_guest"], "Mike Portnoy")
+        self.assertEqual(song_entry["info"], "on drums")
+        self.assertEqual(song_entry["cover_original"], "Dream Theater")
+        self.assertTrue(song_entry["is_cover"])
+        # Song age should NOT duplicate Cover (Dream Theater)
+        self.assertIsNone(song_entry["song_age_str"])
+
 if __name__ == "__main__":
     unittest.main()
