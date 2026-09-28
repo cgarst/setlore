@@ -77,7 +77,7 @@
 
       <button id="sync-btn" onclick="triggerSync()" class="px-3 py-1.5 rounded-xl bg-indigo-600/30 hover:bg-indigo-600/50 border border-indigo-500/40 text-xs font-semibold text-indigo-200 flex items-center gap-1.5 transition cursor-pointer">
         <i id="sync-btn-icon" class="fa-solid fa-rotate text-indigo-400"></i>
-        <span id="sync-btn-text">Sync Setlist.fm</span>
+        <span id="sync-btn-text">Sync</span>
       </button>
 
       <!-- User Profile Dropdown Menu -->
@@ -422,7 +422,7 @@
                 {% empty %}
                 <tr>
                   <td colspan="5" class="px-3 py-6 text-center text-xs text-slate-500 italic">
-                    No song setlist tracks recorded yet. Click "Sync Setlist.fm" above to fetch setlist data.
+                    No song setlist tracks recorded yet. Click "Sync" above to fetch setlist data.
                   </td>
                 </tr>
                 {% endfor %}
@@ -1013,7 +1013,7 @@
               {% empty %}
               <tr>
                 <td colspan="5" class="px-4 py-8 text-center text-xs text-slate-500 italic">
-                  No setlists synced yet to compare variation across multi-show artists. Click "Sync Setlist.fm" above to fetch setlist tracks.
+                  No setlists synced yet to compare variation across multi-show artists. Click "Sync" above to fetch setlist tracks.
                 </td>
               </tr>
               {% endfor %}
@@ -1617,7 +1617,7 @@
           <div class="p-8 text-center glass-card rounded-xl border border-slate-800 space-y-2">
             <i class="fa-solid fa-compact-disc text-3xl text-slate-600 block mb-2"></i>
             <p class="text-sm font-semibold text-slate-300">No setlist songs recorded yet for this artist.</p>
-            <p class="text-xs text-slate-500">Click <strong class="text-indigo-400">Sync Setlist.fm</strong> in the header to import live song setlists.</p>
+            <p class="text-xs text-slate-500">Click <strong class="text-indigo-400">Sync</strong> in the header to import live song setlists.</p>
           </div>
         `;
         return;
@@ -2018,7 +2018,7 @@
               alert('Sync error: ' + data.progress);
               if (banner) banner.classList.add('hidden');
               if (icon) icon.classList.remove('animate-spin');
-              if (text) text.innerText = 'Sync Setlist.fm';
+              if (text) text.innerText = 'Sync';
             }
           }
         } catch (e) {
