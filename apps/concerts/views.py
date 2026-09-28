@@ -471,7 +471,7 @@ def add_concert(request):
         if new_songs_to_enrich:
             try:
                 enricher = AlbumEnricher()
-                enricher.load_cached_catalog(new_songs_to_enrich)
+                enricher.load_cached_catalog([{"artist": a, "song": s} for a, s in new_songs_to_enrich])
             except Exception:
                 pass
 

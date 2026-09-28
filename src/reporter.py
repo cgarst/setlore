@@ -77,13 +77,15 @@ def generate_plotly_charts(stats: Dict[str, Any], album_enrichments: Dict[str, A
     values = [0]
     custom_data = [{"type": "root"}]
 
-    top_artist_names = {a["artist"] for a in stats["top_artists"][:12]}
-    artist_tracks = stats["all_songs_list"]
+    top_artist_names = {a["artist"] for a in stats.get("top_artists", [])}
+    artist_tracks = stats.get("all_songs_list", [])
 
     tree_map_counts = {}
     for item in artist_tracks:
-        art = item["artist"]
-        if art not in top_artist_names:
+        art = item.get("artist")
+        if not art:
+            continue
+        if top_artist_names and art not in top_artist_names:
             continue
         song = item["song"]
         is_cov = item.get("is_cover")
