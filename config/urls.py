@@ -26,4 +26,7 @@ urlpatterns = [
     path('api/sync/status/', concerts_views.sync_status, name='api_sync_status'),
     path('api/upload-csv/', concerts_views.upload_csv, name='api_upload_csv'),
     path('api/concerts/add/', concerts_views.add_concert, name='api_add_concert'),
+    path('api/ticketmaster/preview/', concerts_views.parse_ticketmaster_preview, name='api_ticketmaster_preview'),
+    path('api/ticketmaster/confirm/', concerts_views.confirm_ticketmaster_import, name='api_ticketmaster_confirm'),
 ]
+

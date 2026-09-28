@@ -15,7 +15,7 @@ class Concert(models.Model):
     source = models.CharField(
         max_length=20,
         default='csv',
-        choices=[('manual', 'Manual Entry'), ('csv', 'CSV Import'), ('setlistfm', 'Setlist.fm')],
+        choices=[('manual', 'Manual Entry'), ('csv', 'CSV Import'), ('ticketmaster', 'Ticketmaster Import'), ('setlistfm', 'Setlist.fm')],
         db_index=True
     )
     is_custom_offline = models.BooleanField(

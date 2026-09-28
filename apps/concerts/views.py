@@ -494,3 +494,386 @@ def add_concert(request):
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
 
+@login_required
+@require_POST
+def parse_ticketmaster_preview(request):
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+        raw_text = data.get('raw_text', '')
+        if not raw_text or not raw_text.strip():
+            return JsonResponse({"error": "No Ticketmaster text provided. Please paste your past events list."}, status=400)
+
+        from src.ticketmaster_parser import parse_ticketmaster_text
+        from src.gap_analysis import match_score, normalize_name
+        from rapidfuzz import fuzz
+
+        events = parse_ticketmaster_text(raw_text)
+        if not events:
+            return JsonResponse({"error": "Could not detect any events in the pasted text. Please verify the format."}, status=400)
+
+        user = request.user
+        profile = user.profile
+        existing_concerts = list(Concert.objects.filter(user=user).select_related('venue').prefetch_related('artists__artist'))
+
+        # Prepare client if API key is present
+        api_key = profile.setlistfm_api_key or SETLISTFM_API_KEY
+        client = None
+        if api_key:
+            try:
+                client = SetlistFMClient(api_key=api_key)
+            except Exception:
+                client = None
+
+        # Load attended setlists cache if available
+        setlist_username = profile.setlistfm_username or user.username
+        user_cache_file = USER_CACHE_DIR / f"{setlist_username}_attended.json"
+        user_attended = []
+        if user_cache_file.exists():
+            try:
+                with open(user_cache_file, "r", encoding="utf-8") as f:
+                    user_attended = json.load(f)
+            except Exception:
+                pass
+
+        processed_events = []
+        duplicates_count = 0
+
+        for idx, ev in enumerate(events):
+            ev_date_str = ev.get("date")  # YYYY-MM-DD
+            ev_artist = ev.get("artist", "")
+            ev_venue = ev.get("venue", "")
+            ev_dt = datetime.strptime(ev_date_str, "%Y-%m-%d") if ev_date_str else None
+
+            # 1. Deduplication check against user's existing concert records
+            is_dup = False
+            dup_reason = ""
+            existing_match_id = None
+            for ex in existing_concerts:
+                if ex.date and ev_dt and ex.date == ev_dt.date():
+                    norm_ex_art = normalize_name(ex.primary_artist)
+                    norm_ev_art = normalize_name(ev_artist)
+                    ratio = fuzz.ratio(norm_ex_art, norm_ev_art)
+                    if ratio >= 65 or norm_ev_art in normalize_name(ex.raw_artists) or norm_ex_art in norm_ev_art:
+                        is_dup = True
+                        dup_reason = f"Matches existing concert '{ex.primary_artist}' on {ex.date.strftime('%m-%d-%Y')}"
+                        existing_match_id = ex.id
+                        break
+
+            if is_dup:
+                duplicates_count += 1
+
+            # 2. Setlist.fm matching
+            sl_date_str = ev_dt.strftime("%d-%m-%Y") if ev_dt else ""
+            candidate_setlists = []
+
+            # Check user attended setlists first
+            if user_attended and sl_date_str:
+                for sl in user_attended:
+                    if sl.get("eventDate") == sl_date_str:
+                        sc = match_score(ev_artist, ev_venue, sl, require_venue=False)
+                        if sc >= 50:
+                            candidate_setlists.append((sc, sl))
+
+            # If no matches in attended list and client available, search setlist.fm API
+            if not candidate_setlists and client and sl_date_str:
+                try:
+                    search_res = client.search_setlists(artist_name=ev_artist, date_str=sl_date_str)
+                    for sl in search_res:
+                        if sl.get("eventDate") == sl_date_str:
+                            sc = match_score(ev_artist, ev_venue, sl, require_venue=False)
+                            if sc >= 50:
+                                candidate_setlists.append((sc, sl))
+                except Exception:
+                    pass
+
+            # Sort candidate setlists by match score descending
+            candidate_setlists.sort(key=lambda x: x[0], reverse=True)
+
+            best_match_obj = None
+            available_setlists_info = []
+
+            for sc, sl in candidate_setlists[:5]:
+                sets = sl.get("sets", {}).get("set", [])
+                song_count = sum(len([s for s in st.get("song", []) if not s.get("tape")]) for st in sets)
+                v_obj = sl.get("venue", {})
+                v_name = v_obj.get("name", "")
+                c_name = v_obj.get("city", {}).get("name", "")
+                s_name = v_obj.get("city", {}).get("stateCode") or v_obj.get("city", {}).get("state", "")
+                loc_disp = f"{v_name} ({c_name}, {s_name})" if c_name else v_name
+
+                info = {
+                    "id": sl.get("id"),
+                    "score": round(sc, 1),
+                    "artist": sl.get("artist", {}).get("name", ev_artist),
+                    "venue": v_name,
+                    "location": loc_disp,
+                    "song_count": song_count,
+                    "url": sl.get("url", ""),
+                    "event_date": sl.get("eventDate", "")
+                }
+                available_setlists_info.append(info)
+                if best_match_obj is None:
+                    best_match_obj = info
+
+            processed_events.append({
+                "temp_id": f"tm_evt_{idx}",
+                "date": ev_date_str,
+                "display_date": ev.get("display_date"),
+                "raw_date": ev.get("raw_date"),
+                "artist": ev_artist,
+                "venue": ev_venue,
+                "city": ev.get("city", ""),
+                "state": ev.get("state", ""),
+                "country": ev.get("country", "United States"),
+                "tour_notes": ev.get("tour_notes", ""),
+                "order_number": ev.get("order_number", ""),
+                "is_duplicate": is_dup,
+                "duplicate_reason": dup_reason,
+                "existing_match_id": existing_match_id,
+                "setlist_match": best_match_obj,
+                "available_setlists": available_setlists_info,
+                "selected": not is_dup
+            })
+
+        return JsonResponse({
+            "status": "success",
+            "events": processed_events,
+            "total_parsed": len(processed_events),
+            "duplicates_count": duplicates_count
+        })
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+@login_required
+@require_POST
+def confirm_ticketmaster_import(request):
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+        events_to_import = data.get('events', [])
+        if not events_to_import:
+            return JsonResponse({"error": "No events were selected for import."}, status=400)
+
+        user = request.user
+        profile = user.profile
+        api_key = profile.setlistfm_api_key or SETLISTFM_API_KEY
+        client = SetlistFMClient(api_key=api_key) if api_key else None
+
+        created_concerts = []
+        new_songs_to_enrich = []
+
+        with transaction.atomic():
+            for ev in events_to_import:
+                date_str = str(ev.get('date', '')).strip()
+                artist_raw = str(ev.get('artist', '')).strip()
+                venue_raw = str(ev.get('venue', '')).strip()
+                city = str(ev.get('city', '')).strip()
+                state = str(ev.get('state', '')).strip()
+                country = str(ev.get('country', '')).strip() or 'United States'
+                tour_notes = str(ev.get('tour_notes', '')).strip()
+                order_num = str(ev.get('order_number', '')).strip()
+                setlist_id = str(ev.get('setlist_id', '')).strip()
+
+                if not date_str or not artist_raw or not venue_raw:
+                    continue
+
+                dt = None
+                for fmt in ("%Y-%m-%d", "%m/%d/%Y", "%m-%d-%Y", "%d-%m-%Y"):
+                    try:
+                        dt = datetime.strptime(date_str, fmt)
+                        break
+                    except ValueError:
+                        pass
+
+                if not dt:
+                    continue
+
+                notes_parts = []
+                if tour_notes:
+                    notes_parts.append(tour_notes)
+                if order_num:
+                    notes_parts.append(f"Ticketmaster Order: {order_num}")
+                combined_notes = " | ".join(notes_parts)
+
+                # Resolve Venue
+                venue_obj = Venue.objects.filter(name__iexact=venue_raw.lower()).first()
+                if not venue_obj:
+                    lat, lng, source_type = resolve_venue_coordinates(venue_raw, city, state, country)
+                    venue_obj = Venue.objects.create(
+                        name=venue_raw,
+                        city=city,
+                        state=state,
+                        country=country,
+                        latitude=lat,
+                        longitude=lng,
+                        geocode_source=source_type
+                    )
+                elif (city or state) and not venue_obj.city:
+                    venue_obj.city = city or venue_obj.city
+                    venue_obj.state = state or venue_obj.state
+                    venue_obj.save()
+
+                # Resolve Artist
+                can_primary = normalize_artist_name(artist_raw) or artist_raw
+                primary_art_obj, _ = Artist.objects.get_or_create(
+                    name=can_primary,
+                    defaults={'normalized_name': can_primary.lower()}
+                )
+
+                # Fetch setlist if setlist_id is provided
+                sl_data = None
+                if setlist_id and client:
+                    try:
+                        sl_data = client.get_setlist_by_id(setlist_id, use_cache=True)
+                    except Exception:
+                        pass
+
+                # Check if setlist contains songs
+                sets_list = sl_data.get("sets", {}).get("set", []) if sl_data else []
+                has_songs = any(bool(s.get("song")) for s in sets_list)
+
+                concert = Concert.objects.create(
+                    user=user,
+                    date=dt.date(),
+                    raw_date=dt.strftime("%m/%d/%Y"),
+                    year=dt.year,
+                    venue=venue_obj,
+                    raw_venue=venue_obj.name,
+                    primary_artist=can_primary,
+                    raw_artists=can_primary,
+                    seen_before="",
+                    notes=combined_notes,
+                    source='ticketmaster',
+                    is_custom_offline=not (bool(setlist_id) and has_songs),
+                    is_fully_matched=bool(setlist_id) and has_songs
+                )
+
+                ca = ConcertArtist.objects.create(
+                    concert=concert,
+                    artist=primary_art_obj,
+                    billing_order=0,
+                    setlistfm_id=setlist_id if (setlist_id and sl_data) else "",
+                    setlist_url=sl_data.get("url", "") if sl_data else "",
+                    has_setlist=has_songs
+                )
+
+                if has_songs and sl_data:
+                    flat_songs = []
+                    for s_idx, s in enumerate(sets_list):
+                        is_encore = bool(s.get("encore"))
+                        encore_num = s.get("encore")
+                        set_name = s.get("name", "")
+                        song_list = s.get("song", [])
+                        for s_order, song_obj in enumerate(song_list):
+                            if song_obj.get("tape"):
+                                continue
+                            s_name = song_obj.get("name", "").strip()
+                            if s_name:
+                                flat_songs.append({
+                                    "song_obj": song_obj,
+                                    "name": s_name,
+                                    "is_encore": is_encore,
+                                    "encore_num": encore_num,
+                                    "set_name": set_name or ("Encore" if is_encore else "Main Set"),
+                                    "set_idx": s_idx,
+                                    "is_last_in_set": (s_order == len(song_list) - 1)
+                                })
+
+                    total_tracks = len(flat_songs)
+                    main_sets = [s for s in sets_list if not s.get("encore")]
+                    for idx, item in enumerate(flat_songs):
+                        track_num = idx + 1
+                        pct = round((track_num / total_tracks) * 100) if total_tracks > 0 else 100
+                        set_name = item["set_name"]
+                        set_idx = item["set_idx"]
+                        song_obj_data = item["song_obj"]
+                        name = item["name"]
+
+                        if track_num == 1:
+                            slot = "Opener"
+                            slot_category = "opener"
+                        elif item["is_encore"]:
+                            if track_num == total_tracks:
+                                slot = "Show Closer"
+                            else:
+                                slot = f"Encore {item['encore_num']}" if item["encore_num"] else "Encore"
+                            slot_category = "encore"
+                        elif track_num == total_tracks:
+                            slot = "Show Closer"
+                            slot_category = "closer"
+                        elif item["is_last_in_set"]:
+                            if len(main_sets) > 1 and set_idx < len(main_sets) - 1:
+                                slot = f"{set_name} Closer" if set_name else f"Set {set_idx + 1} Closer"
+                                slot_category = "closer"
+                            elif any(bool(s.get("encore")) for s in sets_list):
+                                slot = "Main Set Closer"
+                                slot_category = "closer"
+                            elif pct <= 35:
+                                slot = "Early Set"
+                                slot_category = "early"
+                            elif pct <= 70:
+                                slot = "Mid-Set"
+                                slot_category = "mid"
+                            else:
+                                slot = "Late Set"
+                                slot_category = "late"
+                        elif pct <= 35:
+                            slot = "Early Set"
+                            slot_category = "early"
+                        elif pct <= 70:
+                            slot = "Mid-Set"
+                            slot_category = "mid"
+                        else:
+                            slot = "Late Set"
+                            slot_category = "late"
+
+                        cover_info = song_obj_data.get("cover", {})
+                        is_cover = bool(cover_info)
+                        orig_artist = cover_info.get("name", "") if is_cover else ""
+                        info_str = song_obj_data.get("info", "")
+
+                        clean_title_key = name.lower().strip()
+                        song_db_obj, _ = Song.objects.get_or_create(
+                            artist=primary_art_obj,
+                            clean_title=clean_title_key,
+                            defaults={
+                                'title': name,
+                                'is_cover': is_cover,
+                                'original_artist': orig_artist or None
+                            }
+                        )
+
+                        ConcertSong.objects.create(
+                            concert_artist=ca,
+                            song=song_db_obj,
+                            raw_song_name=name,
+                            set_name=set_name,
+                            is_encore=item["is_encore"],
+                            encore_number=item["encore_num"],
+                            track_num=track_num,
+                            total_tracks=total_tracks,
+                            pct_position=pct,
+                            slot=slot,
+                            slot_category=slot_category,
+                            is_cover=is_cover,
+                            original_artist=orig_artist,
+                            info=info_str
+                        )
+                        new_songs_to_enrich.append((primary_art_obj.name, name))
+
+                created_concerts.append(concert)
+
+        # Clear dashboard bundle cache for this user
+        ApiCache.objects.filter(cache_key=f"user_dashboard_bundle_{user.id}").delete()
+
+        # Trigger background sync
+        sync_worker.enqueue_sync(user.id)
+
+        return JsonResponse({
+            "status": "success",
+            "imported_count": len(created_concerts),
+            "message": f"Successfully imported {len(created_concerts)} concerts from Ticketmaster! Syncing with Setlist.fm..."
+        })
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+

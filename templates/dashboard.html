@@ -71,10 +71,6 @@
         <i class="fa-solid fa-plus text-xs"></i> Add Concert
       </button>
 
-      <button onclick="openUploadModal()" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 flex items-center gap-1.5 transition cursor-pointer">
-        <i class="fa-solid fa-cloud-arrow-up text-cyan-400"></i> Import CSV
-      </button>
-
       <button id="sync-btn" onclick="triggerSync()" class="px-3 py-1.5 rounded-xl bg-indigo-600/30 hover:bg-indigo-600/50 border border-indigo-500/40 text-xs font-semibold text-indigo-200 flex items-center gap-1.5 transition cursor-pointer">
         <i id="sync-btn-icon" class="fa-solid fa-rotate text-indigo-400"></i>
         <span id="sync-btn-text">Sync</span>
@@ -109,6 +105,16 @@
           </div>
 
           <div class="py-1">
+            <button type="button" onclick="openUploadModal(); closeUserMenu();" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-slate-200 hover:text-white hover:bg-indigo-600/20 transition text-left cursor-pointer">
+              <i class="fa-solid fa-file-csv text-cyan-400 w-4 text-center"></i>
+              <span>Import CSV</span>
+            </button>
+
+            <button type="button" onclick="openTicketmasterModal(); closeUserMenu();" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-slate-200 hover:text-white hover:bg-indigo-600/20 transition text-left cursor-pointer">
+              <i class="fa-solid fa-ticket text-emerald-400 w-4 text-center"></i>
+              <span>Import Ticketmaster</span>
+            </button>
+
             <a href="{% url 'password_change' %}" class="flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-slate-200 hover:text-white hover:bg-indigo-600/20 transition">
               <i class="fa-solid fa-key text-indigo-400 w-4 text-center"></i>
               <span>Change Password</span>
@@ -174,6 +180,103 @@
           <button type="submit" id="upload-submit-btn" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-bold text-white">Upload & Sync</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Ticketmaster Import Modal -->
+  <div id="ticketmaster-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="max-w-2xl w-full glass-card p-6 shadow-2xl space-y-4 border border-slate-700 max-h-[90vh] flex flex-col">
+      
+      <!-- Step 1: Paste View -->
+      <div id="tm-step-input" class="space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div>
+            <h3 class="text-lg font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-ticket text-emerald-400"></i> Import from Ticketmaster
+            </h3>
+            <p class="text-xs text-slate-400 mt-0.5">Quickly import your past concert attendance directly from Ticketmaster order history.</p>
+          </div>
+          <button type="button" onclick="closeTicketmasterModal()" class="text-slate-400 hover:text-white p-1 cursor-pointer"><i class="fa-solid fa-xmark text-lg"></i></button>
+        </div>
+
+        <!-- Instructions -->
+        <div class="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 text-xs text-slate-300 space-y-2.5">
+          <div class="flex items-start gap-2.5">
+            <span class="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center text-[10px] font-bold flex-shrink-0 mt-0.5">1</span>
+            <div>
+              <p class="font-medium text-slate-200">Open your Ticketmaster Past Events page:</p>
+              <a href="https://www.ticketmaster.com/user/orders/past-events" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 text-emerald-400 hover:text-emerald-300 font-semibold mt-1 bg-emerald-950/60 px-2 py-1 rounded-lg border border-emerald-500/30 hover:border-emerald-500/60 transition">
+                <span>https://www.ticketmaster.com/user/orders/past-events</span>
+                <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+              </a>
+            </div>
+          </div>
+          <div class="flex items-start gap-2.5">
+            <span class="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center text-[10px] font-bold flex-shrink-0 mt-0.5">2</span>
+            <p><span class="font-medium text-slate-200">Select & Copy</span> the events on the page (highlight or <kbd class="px-1 py-0.5 bg-slate-800 rounded border border-slate-700 font-mono text-[10px]">Cmd+A</kbd> / <kbd class="px-1 py-0.5 bg-slate-800 rounded border border-slate-700 font-mono text-[10px]">Cmd+C</kbd>).</p>
+          </div>
+          <div class="flex items-start gap-2.5">
+            <span class="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center text-[10px] font-bold flex-shrink-0 mt-0.5">3</span>
+            <p><span class="font-medium text-slate-200">Paste below</span> and click <span class="text-emerald-400 font-semibold">Parse & Match Events</span> to match with Setlist.fm and deduplicate against existing concerts.</p>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1.5">Paste Past Events Text</label>
+          <textarea id="tm-paste-text" rows="8" placeholder="Oct 24, 2024 • 7:30 PM&#10;Iron Maiden - The Future Past Tour&#10;Capital One Arena - Washington, DC&#10;Order # 12-34567/VA1&#10;Past Event&#10;&#10;Fri, Aug 25, 2023 • 7:30 PM&#10;Ghost: RE-IMPERATOUR U.S.A. 2023&#10;Jiffy Lube Live - Bristow, VA&#10;Order # 98-76543/VA2" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-white placeholder-slate-500 font-mono focus:outline-none focus:border-emerald-500 transition"></textarea>
+        </div>
+
+        <div id="tm-paste-error" class="hidden text-xs p-2.5 rounded-lg bg-rose-950/60 text-rose-200 border border-rose-500/40"></div>
+
+        <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+          <button type="button" onclick="closeTicketmasterModal()" class="px-4 py-2 rounded-lg bg-slate-800 text-xs font-semibold text-slate-300 hover:bg-slate-700 cursor-pointer">Cancel</button>
+          <button type="button" id="tm-parse-btn" onclick="parseTicketmasterPaste()" class="px-4 py-2 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-xs font-bold text-white flex items-center gap-1.5 cursor-pointer shadow-md shadow-emerald-600/25">
+            <i class="fa-solid fa-magnifying-glass"></i> Parse & Match Events
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 2: Confirmation & Review View -->
+      <div id="tm-step-preview" class="space-y-4 hidden flex-1 flex flex-col min-h-0">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3 flex-shrink-0">
+          <div>
+            <h3 class="text-lg font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-clipboard-check text-emerald-400"></i> Review & Confirm Matches
+            </h3>
+            <p id="tm-preview-summary" class="text-xs text-slate-400 mt-0.5">Found events. Confirm selections and Setlist.fm links before importing.</p>
+          </div>
+          <button type="button" onclick="closeTicketmasterModal()" class="text-slate-400 hover:text-white p-1 cursor-pointer"><i class="fa-solid fa-xmark text-lg"></i></button>
+        </div>
+
+        <!-- Filter / Quick Action Bar -->
+        <div class="flex items-center justify-between gap-2 px-1 flex-shrink-0">
+          <div class="flex items-center gap-2">
+            <button type="button" onclick="toggleSelectAllTmEvents(true)" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[11px] font-medium text-slate-300 transition cursor-pointer">Select All New</button>
+            <button type="button" onclick="toggleSelectAllTmEvents(false)" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[11px] font-medium text-slate-300 transition cursor-pointer">Deselect All</button>
+          </div>
+          <span id="tm-selected-count-badge" class="badge bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">0 selected</span>
+        </div>
+
+        <!-- Scrollable events list -->
+        <div id="tm-events-list" class="flex-1 overflow-y-auto space-y-3 pr-1 min-h-[220px] max-h-[50vh]">
+          <!-- Event rows rendered by JavaScript -->
+        </div>
+
+        <div id="tm-confirm-error" class="hidden text-xs p-2.5 rounded-lg bg-rose-950/60 text-rose-200 border border-rose-500/40 flex-shrink-0"></div>
+
+        <div class="flex items-center justify-between gap-2 pt-3 border-t border-slate-800 flex-shrink-0">
+          <button type="button" onclick="backToTicketmasterPaste()" class="px-3.5 py-2 rounded-lg bg-slate-800 text-xs font-semibold text-slate-300 hover:bg-slate-700 flex items-center gap-1.5 cursor-pointer">
+            <i class="fa-solid fa-arrow-left"></i> Back to Paste
+          </button>
+          <div class="flex items-center gap-2">
+            <button type="button" onclick="closeTicketmasterModal()" class="px-4 py-2 rounded-lg bg-slate-800 text-xs font-semibold text-slate-300 hover:bg-slate-700 cursor-pointer">Cancel</button>
+            <button type="button" id="tm-confirm-btn" onclick="submitTicketmasterImport()" class="px-4 py-2 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-xs font-bold text-white flex items-center gap-1.5 cursor-pointer shadow-md shadow-emerald-600/30">
+              <i class="fa-solid fa-file-import"></i> Confirm & Import Selected
+            </button>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -2032,6 +2135,17 @@
       }, 2000);
     }
 
+    function closeUserMenu() {
+      const menu = document.getElementById('user-dropdown-menu');
+      const chevron = document.getElementById('user-menu-chevron');
+      const btn = document.getElementById('user-menu-btn');
+      if (menu) {
+        menu.classList.add('hidden');
+        if (chevron) chevron.classList.remove('rotate-180');
+        if (btn) btn.setAttribute('aria-expanded', 'false');
+      }
+    }
+
     function toggleUserMenu() {
       const menu = document.getElementById('user-dropdown-menu');
       const chevron = document.getElementById('user-menu-chevron');
@@ -2047,6 +2161,286 @@
           if (chevron) chevron.classList.remove('rotate-180');
           if (btn) btn.setAttribute('aria-expanded', 'false');
         }
+      }
+    }
+
+    /* --- Ticketmaster Import Flow --- */
+    let tmParsedEvents = [];
+
+    function openTicketmasterModal() {
+      const modal = document.getElementById('ticketmaster-modal');
+      const inputStep = document.getElementById('tm-step-input');
+      const previewStep = document.getElementById('tm-step-preview');
+      const errorBox = document.getElementById('tm-paste-error');
+      if (modal) modal.classList.remove('hidden');
+      if (inputStep) inputStep.classList.remove('hidden');
+      if (previewStep) previewStep.classList.add('hidden');
+      if (errorBox) {
+        errorBox.classList.add('hidden');
+        errorBox.innerHTML = '';
+      }
+    }
+
+    function closeTicketmasterModal() {
+      const modal = document.getElementById('ticketmaster-modal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function backToTicketmasterPaste() {
+      const inputStep = document.getElementById('tm-step-input');
+      const previewStep = document.getElementById('tm-step-preview');
+      if (inputStep) inputStep.classList.remove('hidden');
+      if (previewStep) previewStep.classList.add('hidden');
+    }
+
+    async function parseTicketmasterPaste() {
+      const textarea = document.getElementById('tm-paste-text');
+      const errorBox = document.getElementById('tm-paste-error');
+      const parseBtn = document.getElementById('tm-parse-btn');
+      const rawText = textarea ? textarea.value.trim() : '';
+
+      if (!rawText) {
+        if (errorBox) {
+          errorBox.classList.remove('hidden');
+          errorBox.innerHTML = '<i class="fa-solid fa-circle-exclamation mr-1.5 text-rose-400"></i> Please paste your Ticketmaster past events list before parsing.';
+        }
+        return;
+      }
+
+      if (errorBox) {
+        errorBox.classList.add('hidden');
+        errorBox.innerHTML = '';
+      }
+
+      parseBtn.disabled = true;
+      parseBtn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> Parsing & Matching Setlists...';
+
+      try {
+        const res = await fetch('/api/ticketmaster/preview/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+          },
+          body: JSON.stringify({ raw_text: rawText })
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          tmParsedEvents = data.events || [];
+          renderTicketmasterPreview(data);
+          document.getElementById('tm-step-input').classList.add('hidden');
+          document.getElementById('tm-step-preview').classList.remove('hidden');
+        } else {
+          if (errorBox) {
+            errorBox.classList.remove('hidden');
+            errorBox.innerHTML = '<i class="fa-solid fa-circle-exclamation mr-1.5 text-rose-400"></i> ' + (data.error || 'Failed to parse events.');
+          }
+        }
+      } catch (err) {
+        if (errorBox) {
+          errorBox.classList.remove('hidden');
+          errorBox.innerHTML = '<i class="fa-solid fa-circle-exclamation mr-1.5 text-rose-400"></i> ' + err.message;
+        }
+      } finally {
+        parseBtn.disabled = false;
+        parseBtn.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i> Parse & Match Events';
+      }
+    }
+
+    function renderTicketmasterPreview(data) {
+      const summaryElem = document.getElementById('tm-preview-summary');
+      const listContainer = document.getElementById('tm-events-list');
+      const events = tmParsedEvents;
+
+      const dupCount = data.duplicates_count || 0;
+      const newCount = events.length - dupCount;
+
+      if (summaryElem) {
+        summaryElem.innerHTML = `Found <strong class="text-white">${events.length}</strong> event${events.length === 1 ? '' : 's'} (<span class="text-emerald-400">${newCount} new</span>, <span class="text-amber-400">${dupCount} existing duplicate${dupCount === 1 ? '' : 's'}</span>). Review and confirm before importing.`;
+      }
+
+      if (!listContainer) return;
+
+      if (events.length === 0) {
+        listContainer.innerHTML = `<div class="p-6 text-center text-slate-400 text-xs">No events parsed. Go back and check the pasted text.</div>`;
+        updateTmSelectedCountBadge();
+        return;
+      }
+
+      let html = '';
+      events.forEach((ev, idx) => {
+        const isDup = ev.is_duplicate;
+        const setlistMatch = ev.setlist_match;
+        const borderClass = isDup ? 'border-amber-500/40 bg-amber-950/10' : (setlistMatch ? 'border-emerald-500/40 bg-emerald-950/10' : 'border-slate-800 bg-slate-900/60');
+
+        let statusBadge = '';
+        if (isDup) {
+          statusBadge = `<span class="badge bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px]"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Already in Library</span>`;
+        } else if (setlistMatch) {
+          statusBadge = `<span class="badge bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px]"><i class="fa-solid fa-music mr-1"></i> Setlist Found (${setlistMatch.song_count} songs)</span>`;
+        } else {
+          statusBadge = `<span class="badge bg-slate-700/40 text-slate-300 border border-slate-600/30 text-[10px]"><i class="fa-solid fa-compact-disc mr-1"></i> Offline / Custom Show</span>`;
+        }
+
+        let setlistSelectHtml = '';
+        if (ev.available_setlists && ev.available_setlists.length > 0) {
+          const options = ev.available_setlists.map((sl, sIdx) => {
+            const isSelected = setlistMatch && setlistMatch.id === sl.id;
+            return `<option value="${sl.id}" ${isSelected ? 'selected' : ''}>${sl.artist} @ ${sl.location} (${sl.song_count} songs, score ${sl.score}%)</option>`;
+          }).join('');
+
+          setlistSelectHtml = `
+            <div class="mt-2 pt-2 border-t border-slate-800/80 flex flex-wrap items-center gap-2 text-xs">
+              <span class="text-slate-400 text-[11px] flex items-center gap-1"><i class="fa-brands fa-lastfm text-amber-400"></i> Setlist.fm Match:</span>
+              <select onchange="updateTmSetlistSelection(${idx}, this.value)" class="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-[11px] text-slate-200 focus:outline-none focus:border-indigo-500">
+                ${options}
+                <option value="">-- Do not link setlist (Log as offline show) --</option>
+              </select>
+              ${setlistMatch && setlistMatch.url ? `<a href="${setlistMatch.url}" target="_blank" class="text-emerald-400 hover:text-emerald-300 text-[11px] underline flex items-center gap-1" title="View on Setlist.fm"><i class="fa-solid fa-arrow-up-right-from-square"></i></a>` : ''}
+            </div>
+          `;
+        }
+
+        html += `
+          <div class="rounded-xl border ${borderClass} p-3.5 space-y-2 transition">
+            <div class="flex items-start justify-between gap-3">
+              <div class="flex items-start gap-3 min-w-0 flex-1">
+                <input type="checkbox" id="tm-check-${idx}" ${ev.selected ? 'checked' : ''} onchange="updateTmEventSelection(${idx}, this.checked)" class="mt-1 rounded border-slate-700 bg-slate-900 text-emerald-600 focus:ring-0 cursor-pointer">
+                <div class="min-w-0 flex-1">
+                  <div class="flex flex-wrap items-center gap-2 mb-1">
+                    <span class="text-xs font-mono font-semibold text-white px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700">${ev.display_date || ev.date}</span>
+                    <strong class="text-sm font-bold text-white truncate">${ev.artist}</strong>
+                    ${statusBadge}
+                  </div>
+                  <div class="text-xs text-slate-400 flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <span><i class="fa-solid fa-location-dot text-indigo-400 mr-1"></i> ${ev.venue}${ev.city ? ` (${ev.city}${ev.state ? `, ${ev.state}` : ''})` : ''}</span>
+                    ${ev.tour_notes ? `<span class="text-slate-400"><i class="fa-solid fa-tag text-purple-400 mr-1"></i> ${ev.tour_notes}</span>` : ''}
+                    ${ev.order_number ? `<span class="text-slate-500 font-mono text-[11px]"><i class="fa-solid fa-receipt text-slate-400 mr-1"></i> ${ev.order_number}</span>` : ''}
+                  </div>
+                  ${isDup ? `<p class="text-[11px] text-amber-400/90 mt-1 flex items-center gap-1"><i class="fa-solid fa-info-circle text-[10px]"></i> ${ev.duplicate_reason}</p>` : ''}
+                </div>
+              </div>
+            </div>
+            ${setlistSelectHtml}
+          </div>
+        `;
+      });
+
+      listContainer.innerHTML = html;
+      updateTmSelectedCountBadge();
+    }
+
+    function updateTmEventSelection(idx, isChecked) {
+      if (tmParsedEvents[idx]) {
+        tmParsedEvents[idx].selected = isChecked;
+      }
+      updateTmSelectedCountBadge();
+    }
+
+    function updateTmSetlistSelection(idx, selectedId) {
+      if (tmParsedEvents[idx]) {
+        if (!selectedId) {
+          tmParsedEvents[idx].setlist_match = null;
+        } else if (tmParsedEvents[idx].available_setlists) {
+          const matched = tmParsedEvents[idx].available_setlists.find(s => s.id === selectedId);
+          tmParsedEvents[idx].setlist_match = matched || null;
+        }
+        renderTicketmasterPreview({ duplicates_count: tmParsedEvents.filter(e => e.is_duplicate).length });
+      }
+    }
+
+    function toggleSelectAllTmEvents(selectNewOnly) {
+      tmParsedEvents.forEach(ev => {
+        if (selectNewOnly) {
+          ev.selected = !ev.is_duplicate;
+        } else {
+          ev.selected = false;
+        }
+      });
+      renderTicketmasterPreview({ duplicates_count: tmParsedEvents.filter(e => e.is_duplicate).length });
+    }
+
+    function updateTmSelectedCountBadge() {
+      const selected = tmParsedEvents.filter(e => e.selected).length;
+      const badge = document.getElementById('tm-selected-count-badge');
+      const confirmBtn = document.getElementById('tm-confirm-btn');
+      if (badge) {
+        badge.innerText = `${selected} selected`;
+      }
+      if (confirmBtn) {
+        confirmBtn.innerHTML = `<i class="fa-solid fa-file-import"></i> Confirm & Import Selected (${selected})`;
+        confirmBtn.disabled = (selected === 0);
+        if (selected === 0) {
+          confirmBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        } else {
+          confirmBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
+      }
+    }
+
+    async function submitTicketmasterImport() {
+      const selectedEvents = tmParsedEvents.filter(e => e.selected);
+      const confirmError = document.getElementById('tm-confirm-error');
+      const confirmBtn = document.getElementById('tm-confirm-btn');
+
+      if (selectedEvents.length === 0) {
+        if (confirmError) {
+          confirmError.classList.remove('hidden');
+          confirmError.innerHTML = '<i class="fa-solid fa-circle-exclamation mr-1.5 text-rose-400"></i> No events selected to import.';
+        }
+        return;
+      }
+
+      if (confirmError) {
+        confirmError.classList.add('hidden');
+        confirmError.innerHTML = '';
+      }
+
+      confirmBtn.disabled = true;
+      confirmBtn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> Importing...';
+
+      const payloadEvents = selectedEvents.map(ev => ({
+        date: ev.date,
+        artist: ev.artist,
+        venue: ev.venue,
+        city: ev.city,
+        state: ev.state,
+        country: ev.country || 'United States',
+        tour_notes: ev.tour_notes,
+        order_number: ev.order_number,
+        setlist_id: ev.setlist_match ? ev.setlist_match.id : ''
+      }));
+
+      try {
+        const res = await fetch('/api/ticketmaster/confirm/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+          },
+          body: JSON.stringify({ events: payloadEvents })
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          closeTicketmasterModal();
+          startSyncPolling();
+        } else {
+          if (confirmError) {
+            confirmError.classList.remove('hidden');
+            confirmError.innerHTML = '<i class="fa-solid fa-circle-exclamation mr-1.5 text-rose-400"></i> ' + (data.error || 'Import failed.');
+          }
+          confirmBtn.disabled = false;
+          confirmBtn.innerHTML = `<i class="fa-solid fa-file-import"></i> Confirm & Import Selected (${selectedEvents.length})`;
+        }
+      } catch (err) {
+        if (confirmError) {
+          confirmError.classList.remove('hidden');
+          confirmError.innerHTML = '<i class="fa-solid fa-circle-exclamation mr-1.5 text-rose-400"></i> ' + err.message;
+        }
+        confirmBtn.disabled = false;
+        confirmBtn.innerHTML = `<i class="fa-solid fa-file-import"></i> Confirm & Import Selected (${selectedEvents.length})`;
       }
     }
 
