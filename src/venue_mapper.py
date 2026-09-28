@@ -1,6 +1,7 @@
+from __future__ import annotations
 from datetime import datetime
 from collections import defaultdict, Counter
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 
 VENUE_COORDINATES: Dict[str, Tuple[float, float, str, str]] = {}
 CANONICAL_VENUE_NAMES: Dict[str, str] = {}
