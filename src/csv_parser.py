@@ -30,35 +30,7 @@ def is_ignored_artist(name: str, ignored_list: List[str]) -> bool:
             return True
     return False
 
-CANONICAL_ARTIST_NAMES = {
-    "between the buried and me": "Between the Buried and Me",
-    "winery dogs": "The Winery Dogs",
-    "the winery dogs": "The Winery Dogs",
-    "the aristocrats": "The Aristocrats",
-    "aristocrats": "The Aristocrats",
-    "neal morse band": "The Neal Morse Band",
-    "the neal morse band": "The Neal Morse Band",
-    "neal morse": "Neal Morse",
-    "steve morse band": "Steve Morse Band",
-    "steve morse": "Steve Morse Band",
-    "transatlantic": "Transatlantic",
-    "flying colors": "Flying Colors",
-    "sons of apollo": "Sons of Apollo",
-    "liquid tension experiment": "Liquid Tension Experiment",
-    "a sound of thunder": "A Sound of Thunder",
-    "animals as leaders": "Animals as Leaders",
-    "dream theater": "Dream Theater",
-    "steven wilson": "Steven Wilson",
-    "porcupine tree": "Porcupine Tree",
-    "tesseract": "Tesseract",
-    "symphony x": "Symphony X",
-    "iron maiden": "Iron Maiden",
-    "eyes of the nile": "Eyes of the Nile",
-    "paul mccartney": "Paul McCartney",
-    "john petrucci": "John Petrucci",
-    "joe satriani": "Joe Satriani",
-    "devin townsend": "Devin Townsend",
-}
+CANONICAL_ARTIST_NAMES: Dict[str, str] = {}
 
 def normalize_artist_name(name: str) -> str:
     if not name:

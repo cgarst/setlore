@@ -117,26 +117,33 @@ def parse_setlist_text(text: str) -> List[Dict[str, Any]]:
 
 def resolve_venue_coordinates(venue_name: str, city: str = "", state: str = "", country: str = "United States") -> Tuple[Optional[float], Optional[float], str]:
     """
-    Attempts to resolve latitude and longitude for a venue.
-    1. Checks the known static coordinates table.
-    2. Falls back to OpenStreetMap Nominatim geocoding if city/state provided.
+    Attempts to resolve latitude and longitude for a venue dynamically using
+    OpenStreetMap Nominatim geocoding with persistent local disk caching.
     """
-    from src.venue_mapper import VENUE_COORDINATES
-
-    v_key = venue_name.strip().lower()
-    if v_key in VENUE_COORDINATES:
-        lat, lng, _, _ = VENUE_COORDINATES[v_key]
-        return lat, lng, "canonical_lookup"
+    from src.config import CACHE_DIR
+    v_cache_dir = CACHE_DIR / "venues"
+    v_cache_dir.mkdir(parents=True, exist_ok=True)
+    
+    clean_k = re.sub(r'[^a-zA-Z0-9_-]', '_', venue_name.strip().lower())
+    cache_file = v_cache_dir / f"{clean_k}.json"
+    if cache_file.exists():
+        try:
+            with open(cache_file, "r", encoding="utf-8") as f:
+                cached = json.load(f)
+                if cached.get("lat") is not None and cached.get("lon") is not None:
+                    return cached["lat"], cached["lon"], "nominatim_cache"
+        except Exception:
+            pass
 
     # Query Nominatim with strict 2.5s timeout
     query_parts = [p.strip() for p in [venue_name, city, state, country] if p and p.strip()]
-    if len(query_parts) >= 2:
+    if query_parts:
         query_str = ", ".join(query_parts)
         try:
             url = f"https://nominatim.openstreetmap.org/search?q={urllib.parse.quote(query_str)}&format=json&limit=1"
             req = urllib.request.Request(
                 url,
-                headers={"User-Agent": "concert-trakr/1.0 (concert analytics app)"}
+                headers={"User-Agent": "concert-trakr/1.0 (concert analytics app; admin@localhost)"}
             )
             with urllib.request.urlopen(req, timeout=2.5) as response:
                 if response.status == 200:
@@ -144,6 +151,11 @@ def resolve_venue_coordinates(venue_name: str, city: str = "", state: str = "", 
                     if data and len(data) > 0:
                         lat = float(data[0]['lat'])
                         lon = float(data[0]['lon'])
+                        try:
+                            with open(cache_file, "w", encoding="utf-8") as f:
+                                json.dump({"lat": lat, "lon": lon, "query": query_str}, f)
+                        except Exception:
+                            pass
                         return lat, lon, "nominatim"
         except Exception as e:
             logger.debug("Nominatim geocoding lookup failed for %s: %s", query_str, e)

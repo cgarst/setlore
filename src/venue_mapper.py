@@ -2,111 +2,43 @@ from datetime import datetime
 from collections import defaultdict, Counter
 from typing import List, Dict, Any, Optional
 
-VENUE_COORDINATES = {
-    '9:30 club': (38.9174, -77.0238, 'Washington, DC', 'United States'),
-    'arlenes grocery': (40.7208, -73.9882, 'New York, NY', 'United States'),
-    'baker park bandshell': (39.4144, -77.4189, 'Frederick, MD', 'United States'),
-    'blue fox': (38.7512, -77.4728, 'Winchester, VA', 'United States'),
-    'blues alley': (38.9048, -77.0601, 'Washington, DC', 'United States'),
-    'cafe 611': (39.4194, -77.4082, 'Frederick, MD', 'United States'),
-    'center stage': (33.7911, -84.3892, 'Atlanta, GA', 'United States'),
-    'chevy amphitheater': (40.4355, -80.0076, 'Pittsburgh, PA', 'United States'),
-    'club orpheus': (39.2904, -76.6062, 'Baltimore, MD', 'United States'),
-    'd.a.r.': (38.8927, -77.0401, 'Washington, DC', 'United States'),
-    'dar': (38.8927, -77.0401, 'Washington, DC', 'United States'),
-    'empire': (38.8744, -77.2183, 'Springfield, VA', 'United States'),
-    'hilton lake las vegas': (36.1081, -114.9317, 'Henderson, NV', 'United States'),
-    'hippodrome': (39.2892, -76.6214, 'Baltimore, MD', 'United States'),
-    'howard theater': (38.9152, -77.0211, 'Washington, DC', 'United States'),
-    'howard theatre': (38.9152, -77.0211, 'Washington, DC', 'United States'),
-    "jammin' java": (38.8997, -77.2625, 'Vienna, VA', 'United States'),
-    'jaxx': (38.7758, -77.1858, 'Springfield, VA', 'United States'),
-    'jiffy lube live': (38.8021, -77.6044, 'Bristow, VA', 'United States'),
-    'lincoln theater': (38.9174, -77.0261, 'Washington, DC', 'United States'),
-    'magfest': (38.7828, -77.0163, 'National Harbor, MD', 'United States'),
-    'merriweather': (39.2093, -76.8617, 'Columbia, MD', 'United States'),
-    'metro gallery': (39.3090, -76.6166, 'Baltimore, MD', 'United States'),
-    'meyerhoff': (39.3054, -76.6201, 'Baltimore, MD', 'United States'),
-    'nation': (38.8753, -77.0069, 'Washington, DC', 'United States'),
-    'nationals field': (38.8730, -77.0074, 'Washington, DC', 'United States'),
-    'northwest stadium': (38.9076, -76.8644, 'Landover, MD', 'United States'),
-    'ottobar': (39.3218, -76.6214, 'Baltimore, MD', 'United States'),
-    'pier six': (39.2847, -76.6042, 'Baltimore, MD', 'United States'),
-    'rfk stadium': (38.8898, -76.9720, 'Washington, DC', 'United States'),
-    'rams head live': (39.2894, -76.6080, 'Baltimore, MD', 'United States'),
-    'rams head live!': (39.2894, -76.6080, 'Baltimore, MD', 'United States'),
-    'rams head on stage': (38.9774, -76.4925, 'Annapolis, MD', 'United States'),
-    'royal albert hall': (51.5009, -0.1774, 'London, UK', 'United Kingdom'),
-    'sirbaugh acres': (39.4678, -78.4719, 'Capon Bridge, WV', 'United States'),
-    'sound stage': (39.2878, -76.6067, 'Baltimore, MD', 'United States'),
-    'soundstage': (39.2878, -76.6067, 'Baltimore, MD', 'United States'),
-    'state theater': (38.8824, -77.1711, 'Falls Church, VA', 'United States'),
-    'state theatre': (38.8824, -77.1711, 'Falls Church, VA', 'United States'),
-    'tally ho': (39.1157, -77.5644, 'Leesburg, VA', 'United States'),
-    'terminal 5': (40.7697, -73.9928, 'New York, NY', 'United States'),
-    'the anthem': (38.8804, -77.0270, 'Washington, DC', 'United States'),
-    'the fillmore': (38.9912, -77.0267, 'Silver Spring, MD', 'United States'),
-    'the lyric': (39.3045, -76.6198, 'Baltimore, MD', 'United States'),
-    'verizon center': (38.8981, -77.0209, 'Washington, DC', 'United States'),
-    'warner theater': (38.8966, -77.0289, 'Washington, DC', 'United States'),
-    'warner theatre': (38.8966, -77.0289, 'Washington, DC', 'United States'),
-    'weinberg': (39.4144, -77.4116, 'Frederick, MD', 'United States')
-}
-
-CANONICAL_VENUE_NAMES = {
-    '9:30 club': '9:30 Club',
-    'arlenes grocery': 'Arlenes Grocery',
-    'baker park bandshell': 'Baker Park Bandshell',
-    'blue fox': 'Blue Fox',
-    'blues alley': 'Blues Alley',
-    'burdick field': 'Burdick Field',
-    'cafe 611': 'Cafe 611',
-    'center stage': 'Center Stage',
-    'chevy amphitheater': 'Chevy Amphitheater',
-    'club orpheus': 'Club Orpheus',
-    'd.a.r.': 'D.A.R.',
-    'dar': 'D.A.R.',
-    'empire': 'Empire',
-    'hilton lake las vegas': 'Hilton Lake Las Vegas',
-    'hippodrome': 'Hippodrome',
-    'howard theater': 'Howard Theater',
-    'howard theatre': 'Howard Theatre',
-    "jammin' java": "Jammin' Java",
-    'jaxx': 'Jaxx',
-    'jiffy lube live': 'Jiffy Lube Live',
-    'lincoln theater': 'Lincoln Theater',
-    'magfest': 'MAGfest',
-    'merriweather': 'Merriweather',
-    'metro gallery': 'Metro Gallery',
-    'meyerhoff': 'Meyerhoff',
-    'nation': 'Nation',
-    'nationals field': 'Nationals Field',
-    'northwest stadium': 'Northwest Stadium',
-    'ottobar': 'Ottobar',
-    'pier six': 'Pier Six',
-    'rfk stadium': 'RFK Stadium',
-    'rams head live': 'Rams Head Live',
-    'rams head live!': 'Rams Head Live!',
-    'rams head on stage': 'Rams Head On Stage',
-    'royal albert hall': 'Royal Albert Hall',
-    'sirbaugh acres': 'Sirbaugh Acres',
-    'sound stage': 'Soundstage',
-    'soundstage': 'Soundstage',
-    'state theater': 'State Theater',
-    'state theatre': 'State Theatre',
-    'tally ho': 'Tally Ho',
-    'terminal 5': 'Terminal 5',
-    'the anthem': 'The Anthem',
-    'the fillmore': 'The Fillmore',
-    'the lyric': 'The Lyric',
-    'verizon center': 'Verizon Center',
-    'warner theater': 'Warner Theater',
-    'warner theatre': 'Warner Theatre',
-    'weinberg': 'Weinberg'
-}
+VENUE_COORDINATES: Dict[str, Tuple[float, float, str, str]] = {}
+CANONICAL_VENUE_NAMES: Dict[str, str] = {}
 
 def generate_venue_map_data(all_csv_records: List[Dict[str, Any]],
                             matched_setlists: List[Dict[str, Any]]) -> Dict[str, Any]:
+    # Extract rich venue metadata directly from matched Setlist.fm setlists
+    sl_venue_info: Dict[str, Dict[str, Any]] = {}
+    for p in matched_setlists:
+        sl = p.get('setlist')
+        if sl:
+            v_obj = sl.get('venue', {})
+            v_name = v_obj.get('name', '').strip()
+            city_obj = v_obj.get('city', {})
+            city_name = city_obj.get('name', '').strip()
+            state_code = city_obj.get('stateCode') or city_obj.get('state', '').strip()
+            country_obj = city_obj.get('country', {})
+            country_name = country_obj.get('name', 'United States').strip() if isinstance(country_obj, dict) else (country_obj or 'United States')
+            city_coords = city_obj.get('coords', {})
+            lat = city_coords.get('lat')
+            lng = city_coords.get('long')
+
+            loc_str = f"{city_name}, {state_code}" if city_name and state_code else (city_name or country_name)
+            
+            info = {
+                'name': v_name,
+                'lat': lat,
+                'lng': lng,
+                'location': loc_str,
+                'country': country_name
+            }
+            if v_name:
+                sl_venue_info[v_name.lower().strip()] = info
+            csv_rec = p.get('csv', {})
+            csv_venue = csv_rec.get('venue', '').strip()
+            if csv_venue:
+                sl_venue_info[csv_venue.lower().strip()] = info
+
     venue_concerts = defaultdict(list)
     venue_artists = defaultdict(Counter)
 
@@ -114,7 +46,9 @@ def generate_venue_map_data(all_csv_records: List[Dict[str, Any]],
         raw_venue = rec.get('venue', '').strip()
         if not raw_venue:
             continue
-        venue = CANONICAL_VENUE_NAMES.get(raw_venue.lower(), raw_venue)
+        # Use canonical name from Setlist.fm if matched, otherwise raw name
+        v_matched = sl_venue_info.get(raw_venue.lower())
+        venue = v_matched['name'] if v_matched and v_matched.get('name') else CANONICAL_VENUE_NAMES.get(raw_venue.lower(), raw_venue)
         venue_concerts[venue].append({
             'id': rec['id'],
             'date': rec.get('display_date', rec.get('raw_date', '')),
@@ -126,28 +60,25 @@ def generate_venue_map_data(all_csv_records: List[Dict[str, Any]],
         for a in rec.get('artists', []):
             venue_artists[venue][a] += 1
 
-    sl_venue_coords = {}
-    for p in matched_setlists:
-        sl = p.get('setlist')
-        if sl:
-            v_obj = sl.get('venue', {})
-            v_name = v_obj.get('name', '')
-            city_coords = v_obj.get('city', {}).get('coords', {})
-            if v_name and city_coords.get('lat') and city_coords.get('long'):
-                sl_venue_coords[v_name.lower()] = (city_coords.get('lat'), city_coords.get('long'))
-
     venues_list = []
     cities_set = set()
     countries_set = set()
 
     for venue_name, concerts in venue_concerts.items():
         v_key = venue_name.lower().strip()
+        lat = None
+        lng = None
+        loc_name = "United States"
+        country = "United States"
+
         if v_key in VENUE_COORDINATES:
             lat, lng, loc_name, country = VENUE_COORDINATES[v_key]
-        elif v_key in sl_venue_coords:
-            lat, lng = sl_venue_coords[v_key]
-            loc_name = 'United States'
-            country = 'United States'
+        elif v_key in sl_venue_info and sl_venue_info[v_key].get('lat') is not None:
+            v_inf = sl_venue_info[v_key]
+            lat = v_inf['lat']
+            lng = v_inf['lng']
+            loc_name = v_inf['location']
+            country = v_inf['country']
         else:
             try:
                 from apps.catalog.models import Venue
@@ -158,12 +89,23 @@ def generate_venue_map_data(all_csv_records: List[Dict[str, Any]],
                     loc_name = f"{v_db.city}, {v_db.state}" if v_db.city and v_db.state else (v_db.city or venue_name)
                     country = v_db.country or 'United States'
                 elif v_db and v_db.city:
-                    lat, lng = (38.9072, -77.0369)
                     loc_name = f"{v_db.city}, {v_db.state}" if v_db.state else v_db.city
                     country = v_db.country or 'United States'
-                else:
-                    lat, lng, loc_name, country = (38.9072, -77.0369, 'Washington, DC', 'United States')
             except Exception:
+                pass
+
+            if lat is None or lng is None:
+                # Attempt OpenStreetMap Nominatim geocoding
+                try:
+                    from apps.concerts.utils import resolve_venue_coordinates
+                    n_lat, n_lng, _ = resolve_venue_coordinates(venue_name)
+                    if n_lat is not None and n_lng is not None:
+                        lat = n_lat
+                        lng = n_lng
+                except Exception:
+                    pass
+
+            if lat is None or lng is None:
                 lat, lng, loc_name, country = (38.9072, -77.0369, 'Washington, DC', 'United States')
 
         cities_set.add(loc_name)
