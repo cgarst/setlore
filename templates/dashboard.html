@@ -597,7 +597,12 @@
             <p class="text-xs text-slate-400 mt-0.5">Explore every concert from latest to oldest, grouped by event and artist set, with nth-time heard, show frequencies, and song release ages.</p>
           </div>
           <div class="flex flex-wrap items-center gap-3">
-            <input type="text" id="concert-search-input" placeholder="Search artist, venue, or year..." onkeyup="filterConcertCards(this.value)" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 w-64">
+            <div class="relative flex items-center w-64">
+              <input type="text" id="concert-search-input" placeholder="Search artist, venue, or year..." oninput="handleFilterInput('concert-search-input', 'concert-search-clear', filterConcertCards)" class="bg-slate-900 border border-slate-700 rounded-lg pl-3 pr-7 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 w-full">
+              <button type="button" id="concert-search-clear" onclick="clearFilterField('concert-search-input', 'concert-search-clear', filterConcertCards)" class="hidden absolute right-2 text-slate-400 hover:text-white p-0.5 cursor-pointer text-xs transition" title="Clear search">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
             <button onclick="openAddConcertModal()" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold text-white flex items-center gap-1.5 transition shadow-sm cursor-pointer">
               <i class="fa-solid fa-plus text-xs"></i> Add Concert
             </button>
@@ -759,7 +764,12 @@
             </h2>
             <p class="text-xs text-slate-400">Click any artist below to inspect all songs heard, filtered by album, ranked by play count, and expand each to see concert dates and venues.</p>
           </div>
-          <input type="text" id="artist-search-input" placeholder="Filter artist name..." onkeyup="filterArtistButtons(this.value)" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+          <div class="relative flex items-center w-56">
+            <input type="text" id="artist-search-input" placeholder="Filter artist name..." oninput="handleFilterInput('artist-search-input', 'artist-search-clear', filterArtistButtons)" class="bg-slate-900 border border-slate-700 rounded-lg pl-3 pr-7 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 w-full">
+            <button type="button" id="artist-search-clear" onclick="clearFilterField('artist-search-input', 'artist-search-clear', filterArtistButtons)" class="hidden absolute right-2 text-slate-400 hover:text-white p-0.5 cursor-pointer text-xs transition" title="Clear filter">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
         </div>
 
         <div id="artist-button-grid" class="flex flex-wrap gap-2 max-h-48 overflow-y-auto p-1">
@@ -787,7 +797,12 @@
         <!-- Filter Controls Row (Song Search & Album Dropdown) -->
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-slate-900/50 p-3 rounded-xl border border-slate-800">
           <div class="flex flex-wrap items-center gap-3">
-            <input type="text" id="drilldown-song-filter" placeholder="Search song title..." onkeyup="filterDrilldownSongs()" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 w-64">
+            <div class="relative flex items-center w-64">
+              <input type="text" id="drilldown-song-filter" placeholder="Search song title..." oninput="handleFilterInput('drilldown-song-filter', 'drilldown-song-clear', filterDrilldownSongs)" class="bg-slate-900 border border-slate-700 rounded-lg pl-3 pr-7 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 w-full">
+              <button type="button" id="drilldown-song-clear" onclick="clearFilterField('drilldown-song-filter', 'drilldown-song-clear', filterDrilldownSongs)" class="hidden absolute right-2 text-slate-400 hover:text-white p-0.5 cursor-pointer text-xs transition" title="Clear filter">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
             
             <div class="flex items-center gap-2">
               <span class="text-xs text-slate-400 font-medium"><i class="fa-solid fa-compact-disc text-indigo-400 mr-1"></i>Album:</span>
@@ -908,7 +923,12 @@
               <button onclick="filterMusicianInstrument('Vocals')" id="btn-instr-Vocals" class="px-2.5 py-1 rounded text-slate-400 hover:text-white transition">Vocals</button>
               <button onclick="filterMusicianInstrument('Keyboards')" id="btn-instr-Keyboards" class="px-2.5 py-1 rounded text-slate-400 hover:text-white transition">Keys</button>
             </div>
-            <input type="text" id="musician-search-input" placeholder="Search musician..." onkeyup="filterMusicianSearch(this.value)" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 w-48">
+            <div class="relative flex items-center w-48">
+              <input type="text" id="musician-search-input" placeholder="Search musician..." oninput="handleFilterInput('musician-search-input', 'musician-search-clear', filterMusicianSearch)" class="bg-slate-900 border border-slate-700 rounded-lg pl-3 pr-7 py-1 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 w-full">
+              <button type="button" id="musician-search-clear" onclick="clearFilterField('musician-search-input', 'musician-search-clear', filterMusicianSearch)" class="hidden absolute right-2 text-slate-400 hover:text-white p-0.5 cursor-pointer text-xs transition" title="Clear search">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -1006,7 +1026,12 @@
               <i class="fa-solid fa-list-ol text-purple-400"></i> All Venues ({{ stats.venue_map.total_venues }})
             </h3>
           </div>
-          <input type="text" id="map-venue-search" placeholder="Filter venue name or city..." onkeyup="filterMapVenues(this.value)" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+          <div class="relative flex items-center">
+            <input type="text" id="map-venue-search" placeholder="Filter venue name or city..." oninput="handleFilterInput('map-venue-search', 'map-venue-clear', filterMapVenues)" class="bg-slate-900 border border-slate-700 rounded-lg pl-3 pr-7 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 w-full">
+            <button type="button" id="map-venue-clear" onclick="clearFilterField('map-venue-search', 'map-venue-clear', filterMapVenues)" class="hidden absolute right-2 text-slate-400 hover:text-white p-0.5 cursor-pointer text-xs transition" title="Clear filter">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
           
           <div id="map-venue-list" class="space-y-2 overflow-y-auto pr-1 flex-1">
             {% for v in stats.venue_map.venues %}
@@ -1537,12 +1562,47 @@
       }
     }
 
+    function handleFilterInput(inputId, clearBtnId, filterFn) {
+      const input = document.getElementById(inputId);
+      const clearBtn = document.getElementById(clearBtnId);
+      if (input && clearBtn) {
+        if (input.value && input.value.trim() !== '') {
+          clearBtn.classList.remove('hidden');
+        } else {
+          clearBtn.classList.add('hidden');
+        }
+      }
+      if (typeof filterFn === 'function') {
+        filterFn(input ? input.value : '');
+      }
+    }
+
+    function clearFilterField(inputId, clearBtnId, filterFn) {
+      const input = document.getElementById(inputId);
+      const clearBtn = document.getElementById(clearBtnId);
+      if (input) {
+        input.value = '';
+        input.focus();
+      }
+      if (clearBtn) {
+        clearBtn.classList.add('hidden');
+      }
+      if (typeof filterFn === 'function') {
+        filterFn('');
+      }
+    }
+
     function jumpToConcertInDrilldown(venueName, date) {
       switchTab('concerts');
       const searchInput = document.getElementById('concert-search-input');
+      const clearBtn = document.getElementById('concert-search-clear');
       const query = date || venueName || '';
       if (searchInput) {
         searchInput.value = query;
+        if (clearBtn) {
+          if (query) clearBtn.classList.remove('hidden');
+          else clearBtn.classList.add('hidden');
+        }
         filterConcertCards(query);
       }
       // Expand matching concert cards when jumping to them and smoothly scroll to the first match
@@ -1692,8 +1752,13 @@
       });
 
       const songFilterInput = document.getElementById('drilldown-song-filter');
+      const songClearBtn = document.getElementById('drilldown-song-clear');
       if (songFilterInput) {
         songFilterInput.value = songName || '';
+        if (songClearBtn) {
+          if (songName) songClearBtn.classList.remove('hidden');
+          else songClearBtn.classList.add('hidden');
+        }
       }
 
       renderArtistSongs(data.songs);
