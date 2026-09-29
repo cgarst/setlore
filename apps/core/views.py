@@ -33,7 +33,7 @@ def home_view(request):
         .annotate(concert_count=Count('concerts', distinct=True))
         .filter(concert_count__gt=0)
         .select_related('profile')
-        .order_by('-concert_count', 'username')[:12]
+        .order_by('-concert_count', 'username')[:10]
     )
 
     top_users = []
