@@ -449,106 +449,101 @@
   </div>
 
   <!-- Add Concert Modal -->
-  <div id="add-concert-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
-    <div class="max-w-xl w-full glass-card p-6 shadow-2xl space-y-4 border border-slate-700 max-h-[90vh] overflow-y-auto">
-      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-        <div>
-          <h3 class="text-lg font-bold text-white flex items-center gap-2">
-            <i class="fa-solid fa-ticket text-indigo-400"></i> Log Concert (Not on Setlist.fm)
-          </h3>
-          <p class="text-xs text-slate-400 mt-0.5">Quickly log an attended show. Entering a setlist is completely optional.</p>
-        </div>
-        <button type="button" onclick="closeAddConcertModal()" class="text-slate-400 hover:text-white p-1 cursor-pointer"><i class="fa-solid fa-xmark text-lg"></i></button>
+  <div id="add-concert-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto overscroll-contain overflow-x-hidden hidden">
+    <div class="relative w-full max-w-lg glass-card p-4 sm:p-6 shadow-2xl border border-slate-700/80 rounded-2xl max-h-[92vh] my-auto flex flex-col overflow-hidden">
+      <div class="shrink-0 flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-ticket text-indigo-400"></i> Log Concert
+        </h3>
+        <button type="button" onclick="closeAddConcertModal()" class="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition cursor-pointer" aria-label="Close modal">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
       </div>
 
-      <form id="add-concert-form" onsubmit="submitAddConcert(event)" class="space-y-4">
+      <form id="add-concert-form" onsubmit="submitAddConcert(event)" class="flex flex-col flex-1 min-h-0 overflow-hidden mt-3">
         {% csrf_token %}
 
-        <!-- Date & Venue Name Row -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-1">Date <span class="text-rose-400">*</span></label>
-            <input type="date" id="add-concert-date" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+        <div class="overflow-y-auto overflow-x-hidden pr-1 space-y-3.5 flex-1 min-h-0 custom-scrollbar">
+          <!-- Date & Venue Name Row -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Date <span class="text-rose-400">*</span></label>
+              <input type="date" id="add-concert-date" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+            </div>
+            <div class="relative">
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Venue Name <span class="text-rose-400">*</span></label>
+              <input type="text" id="add-concert-venue" placeholder="e.g. 9:30 Club or The Fillmore" required autocomplete="off" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+              <div id="venue-suggestions" class="absolute left-0 right-0 top-full mt-1 bg-slate-900/95 border border-slate-700 rounded-lg shadow-2xl z-50 max-h-48 overflow-y-auto hidden divide-y divide-slate-800/80 backdrop-blur-md"></div>
+            </div>
           </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-1">Venue Name <span class="text-rose-400">*</span></label>
-            <input type="text" id="add-concert-venue" list="venue-datalist" placeholder="e.g. 9:30 Club or Joe's Garage" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+
+          <!-- City & State / Region Row -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="relative">
+              <label class="block text-xs font-semibold text-slate-300 mb-1">City <span class="text-slate-500 font-normal">(optional)</span></label>
+              <input type="text" id="add-concert-city" placeholder="e.g. Washington" autocomplete="off" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+              <div id="city-suggestions" class="absolute left-0 right-0 top-full mt-1 bg-slate-900/95 border border-slate-700 rounded-lg shadow-2xl z-50 max-h-48 overflow-y-auto hidden divide-y divide-slate-800/80 backdrop-blur-md"></div>
+            </div>
+            <div class="relative">
+              <label class="block text-xs font-semibold text-slate-300 mb-1">State / Region <span class="text-slate-500 font-normal">(optional)</span></label>
+              <input type="text" id="add-concert-state" placeholder="e.g. DC" autocomplete="off" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+              <div id="state-suggestions" class="absolute left-0 right-0 top-full mt-1 bg-slate-900/95 border border-slate-700 rounded-lg shadow-2xl z-50 max-h-48 overflow-y-auto hidden divide-y divide-slate-800/80 backdrop-blur-md"></div>
+            </div>
           </div>
+
+          <!-- Artist / Headliner & Support Row -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="relative">
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Headliner / Primary Artist <span class="text-rose-400">*</span></label>
+              <input type="text" id="add-concert-artist" placeholder="e.g. Dream Theater" required autocomplete="off" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+              <div id="artist-suggestions" class="absolute left-0 right-0 top-full mt-1 bg-slate-900/95 border border-slate-700 rounded-lg shadow-2xl z-50 max-h-48 overflow-y-auto hidden divide-y divide-slate-800/80 backdrop-blur-md"></div>
+            </div>
+            <div class="relative">
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Supporting Acts <span class="text-slate-500 font-normal">(optional)</span></label>
+              <input type="text" id="add-concert-supporting" placeholder="e.g. Opeth, Bigelf (comma-separated)" autocomplete="off" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+              <div id="supporting-suggestions" class="absolute left-0 right-0 top-full mt-1 bg-slate-900/95 border border-slate-700 rounded-lg shadow-2xl z-50 max-h-48 overflow-y-auto hidden divide-y divide-slate-800/80 backdrop-blur-md"></div>
+            </div>
+          </div>
+
+          <!-- Tour / Notes -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Tour Name or Notes <span class="text-slate-500 font-normal">(optional)</span></label>
+            <input type="text" id="add-concert-notes" placeholder="e.g. Progressive Nation 2009 or Front row with friends" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+          </div>
+
+          <!-- Optional Setlist Section Accordion -->
+          <div class="rounded-xl border border-slate-800 bg-slate-900/50 overflow-hidden">
+            <button type="button" onclick="toggleAddSetlistSection()" class="w-full flex items-center justify-between p-3 text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800/60 transition cursor-pointer select-none">
+              <span class="flex items-center gap-2">
+                <i class="fa-solid fa-music text-purple-400"></i> Add Setlist / Songs <span class="text-slate-500 font-normal text-[11px]">(Optional)</span>
+              </span>
+              <i id="add-setlist-chevron" class="fa-solid fa-chevron-down text-slate-400 text-xs transition-transform duration-200"></i>
+            </button>
+            <div id="add-setlist-container" class="hidden p-3 pt-0 space-y-2 border-t border-slate-800/60">
+              <p class="text-[11px] text-slate-400">
+                Paste or type songs, one per line. Use <code class="text-indigo-300 bg-slate-800 px-1 py-0.5 rounded">Encore:</code> to mark encores, or <code class="text-indigo-300 bg-slate-800 px-1 py-0.5 rounded">(Cover - Artist)</code> for covers.
+              </p>
+              <textarea id="add-concert-setlist" rows="4" placeholder="Pull Me Under&#10;Under a Glass Moon&#10;Take the Time&#10;Encore:&#10;Metropolis Pt. 1" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white placeholder-slate-600 font-mono focus:outline-none focus:border-indigo-500"></textarea>
+            </div>
+          </div>
+
+          <!-- Setlist Audit Exemption Checkbox (Unselected and Hidden) -->
+          <div class="hidden">
+            <input type="checkbox" id="add-concert-offline" class="hidden">
+          </div>
+
+          <div id="add-concert-status" class="hidden text-xs p-2.5 rounded-lg"></div>
         </div>
 
-        <!-- City & State / Region Row -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-1">City <span class="text-slate-500 font-normal">(optional)</span></label>
-            <input type="text" id="add-concert-city" placeholder="e.g. Washington" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-1">State / Region <span class="text-slate-500 font-normal">(optional)</span></label>
-            <input type="text" id="add-concert-state" placeholder="e.g. DC" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
-          </div>
-        </div>
-
-        <!-- Artist / Headliner & Support Row -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-1">Headliner / Primary Artist <span class="text-rose-400">*</span></label>
-            <input type="text" id="add-concert-artist" list="artist-datalist" placeholder="e.g. Dream Theater" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-1">Supporting Acts <span class="text-slate-500 font-normal">(optional)</span></label>
-            <input type="text" id="add-concert-supporting" placeholder="e.g. Opeth, Bigelf (comma-separated)" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
-          </div>
-        </div>
-
-        <!-- Tour / Notes -->
-        <div>
-          <label class="block text-xs font-semibold text-slate-300 mb-1">Tour Name or Notes <span class="text-slate-500 font-normal">(optional)</span></label>
-          <input type="text" id="add-concert-notes" placeholder="e.g. Progressive Nation 2009 or Front row with friends" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
-        </div>
-
-        <!-- Optional Setlist Section Accordion -->
-        <div class="rounded-xl border border-slate-800 bg-slate-900/50 overflow-hidden">
-          <button type="button" onclick="toggleAddSetlistSection()" class="w-full flex items-center justify-between p-3 text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800/60 transition cursor-pointer select-none">
-            <span class="flex items-center gap-2">
-              <i class="fa-solid fa-music text-purple-400"></i> Add Setlist / Songs <span class="text-slate-500 font-normal text-[11px]">(Optional)</span>
-            </span>
-            <i id="add-setlist-chevron" class="fa-solid fa-chevron-down text-slate-400 text-xs transition-transform duration-200"></i>
-          </button>
-          <div id="add-setlist-container" class="hidden p-3 pt-0 space-y-2 border-t border-slate-800/60">
-            <p class="text-[11px] text-slate-400">
-              Paste or type songs, one per line. Use <code class="text-indigo-300 bg-slate-800 px-1 py-0.5 rounded">Encore:</code> to mark encores, or <code class="text-indigo-300 bg-slate-800 px-1 py-0.5 rounded">(Cover - Artist)</code> for covers.
-            </p>
-            <textarea id="add-concert-setlist" rows="5" placeholder="Pull Me Under&#10;Under a Glass Moon&#10;Take the Time&#10;Encore:&#10;Metropolis Pt. 1" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white placeholder-slate-600 font-mono focus:outline-none focus:border-indigo-500"></textarea>
-          </div>
-        </div>
-
-        <!-- Setlist Audit Exemption Checkbox -->
-        <div class="pt-1">
-          <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer select-none">
-            <input type="checkbox" id="add-concert-offline" checked class="rounded border-slate-700 bg-slate-900 text-indigo-600 focus:ring-0">
-            <span>Offline / Custom show (Exclude from Setlist Audit alerts)</span>
-          </label>
-        </div>
-
-        <div id="add-concert-status" class="hidden text-xs p-2.5 rounded-lg"></div>
-
-        <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
-          <button type="button" onclick="closeAddConcertModal()" class="px-4 py-2 rounded-lg bg-slate-800 text-xs font-semibold text-slate-300 hover:bg-slate-700 cursor-pointer">Cancel</button>
-          <button type="submit" id="add-concert-submit-btn" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-bold text-white flex items-center gap-1.5 cursor-pointer shadow-md shadow-indigo-600/30">
+        <div class="shrink-0 flex items-center justify-end gap-2 pt-3 border-t border-slate-800 mt-2">
+          <button type="button" onclick="closeAddConcertModal()" class="px-4 py-2 rounded-lg bg-slate-800 text-xs font-semibold text-slate-300 hover:bg-slate-700 cursor-pointer transition">Cancel</button>
+          <button type="submit" id="add-concert-submit-btn" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-bold text-white flex items-center gap-1.5 cursor-pointer shadow-md shadow-indigo-600/30 transition">
             <i class="fa-solid fa-check"></i> Save Concert
           </button>
         </div>
       </form>
     </div>
   </div>
-
-  <!-- Autocomplete Datalists -->
-  <datalist id="venue-datalist">
-    {% for v in all_venues %}<option value="{{ v }}">{% endfor %}
-  </datalist>
-  <datalist id="artist-datalist">
-    {% for a in all_artists %}<option value="{{ a }}">{% endfor %}
-  </datalist>
 
   <!-- Header Stats Bar -->
   <div class="max-w-7xl mx-auto mb-6 flex flex-wrap gap-2 items-center justify-between">
@@ -2638,6 +2633,170 @@
       }
     }
 
+    function setupModalAutocomplete(inputId, dropdownId, type, options = {}) {
+      const input = document.getElementById(inputId);
+      const dropdown = document.getElementById(dropdownId);
+      if (!input || !dropdown) return;
+
+      let debounceTimer = null;
+      let cachedRecent = null;
+
+      async function fetchSuggestions(query = '') {
+        try {
+          const res = await fetch(`/api/autocomplete/?type=${encodeURIComponent(type)}&q=${encodeURIComponent(query)}`);
+          if (!res.ok) return [];
+          const data = await res.json();
+          return data.results || [];
+        } catch (e) {
+          console.error('Autocomplete fetch error:', e);
+          return [];
+        }
+      }
+
+      function renderItems(items, query) {
+        if (!items || items.length === 0) {
+          if (query) {
+            dropdown.innerHTML = `<div class="px-3 py-2 text-[11px] text-slate-500 italic">No matches in catalog</div>`;
+            dropdown.classList.remove('hidden');
+          } else {
+            dropdown.classList.add('hidden');
+          }
+          return;
+        }
+
+        let html = '';
+        if (!query) {
+          const label = type === 'venue' ? 'Venues' : type === 'artist' ? 'Artists' : type === 'city' ? 'Cities' : 'States';
+          html += `<div class="px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-indigo-400 bg-slate-950/70 flex items-center gap-1.5"><i class="fa-solid fa-clock-rotate-left text-[9px]"></i> Recent ${label}</div>`;
+        }
+
+        items.forEach((item, idx) => {
+          const name = item.name || '';
+          let subText = '';
+          if (type === 'venue' && (item.city || item.state)) {
+            const loc = [item.city, item.state].filter(Boolean).join(', ');
+            subText = `<span class="text-[10px] text-slate-400 font-normal truncate ml-2">${escapeHtml(loc)}</span>`;
+          }
+          const recentIcon = (item.is_recent && query) ? `<i class="fa-solid fa-clock-rotate-left text-indigo-400/80 text-[9px] mr-1.5" title="Recently attended"></i>` : '';
+
+          html += `
+            <div class="autocomplete-item px-3 py-2 text-xs text-slate-200 hover:bg-indigo-600/20 active:bg-indigo-600/30 hover:text-white cursor-pointer flex items-center justify-between transition-colors select-none" data-index="${idx}">
+              <div class="flex items-center min-w-0 truncate">
+                ${recentIcon}<span class="font-medium truncate">${escapeHtml(name)}</span>
+              </div>
+              ${subText}
+            </div>
+          `;
+        });
+
+        dropdown.innerHTML = html;
+        dropdown.classList.remove('hidden');
+
+        dropdown.querySelectorAll('.autocomplete-item').forEach(el => {
+          el.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            const idx = parseInt(el.getAttribute('data-index'), 10);
+            const selected = items[idx];
+            selectItem(selected);
+          });
+        });
+      }
+
+      function selectItem(item) {
+        if (!item) return;
+        if (options.multi) {
+          const curVal = input.value;
+          const tokens = curVal.split(',').map(s => s.trim());
+          tokens.pop();
+          tokens.push(item.name);
+          input.value = tokens.join(', ') + ', ';
+        } else {
+          input.value = item.name;
+          if (type === 'venue') {
+            const cityInput = document.getElementById('add-concert-city');
+            const stateInput = document.getElementById('add-concert-state');
+            if (cityInput && !cityInput.value && item.city) {
+              cityInput.value = item.city;
+            }
+            if (stateInput && !stateInput.value && item.state) {
+              stateInput.value = item.state;
+            }
+          }
+        }
+        dropdown.classList.add('hidden');
+        input.focus();
+      }
+
+      async function triggerSearch(forceOpen = false) {
+        let query = input.value.trim();
+        if (options.multi) {
+          const tokens = input.value.split(',');
+          query = tokens[tokens.length - 1].trim();
+        }
+
+        if (!query) {
+          if (cachedRecent) {
+            renderItems(cachedRecent, '');
+          } else {
+            const items = await fetchSuggestions('');
+            cachedRecent = items;
+            renderItems(items, '');
+          }
+        } else {
+          const items = await fetchSuggestions(query);
+          renderItems(items, query);
+        }
+      }
+
+      input.addEventListener('focus', () => {
+        triggerSearch(true);
+      });
+
+      input.addEventListener('click', () => {
+        if (dropdown.classList.contains('hidden')) {
+          triggerSearch(true);
+        }
+      });
+
+      input.addEventListener('input', () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+          triggerSearch();
+        }, 150);
+      });
+    }
+
+    document.addEventListener('pointerdown', (e) => {
+      const modal = document.getElementById('add-concert-modal');
+      if (!modal || modal.classList.contains('hidden')) return;
+      const dropdowns = [
+        { d: document.getElementById('venue-suggestions'), i: document.getElementById('add-concert-venue') },
+        { d: document.getElementById('city-suggestions'), i: document.getElementById('add-concert-city') },
+        { d: document.getElementById('state-suggestions'), i: document.getElementById('add-concert-state') },
+        { d: document.getElementById('artist-suggestions'), i: document.getElementById('add-concert-artist') },
+        { d: document.getElementById('supporting-suggestions'), i: document.getElementById('add-concert-supporting') },
+      ];
+      dropdowns.forEach(({ d, i }) => {
+        if (d && !d.contains(e.target) && i && !i.contains(e.target)) {
+          d.classList.add('hidden');
+        }
+      });
+    });
+
+    function initAddConcertAutocomplete() {
+      setupModalAutocomplete('add-concert-venue', 'venue-suggestions', 'venue');
+      setupModalAutocomplete('add-concert-city', 'city-suggestions', 'city');
+      setupModalAutocomplete('add-concert-state', 'state-suggestions', 'state');
+      setupModalAutocomplete('add-concert-artist', 'artist-suggestions', 'artist');
+      setupModalAutocomplete('add-concert-supporting', 'supporting-suggestions', 'artist', { multi: true });
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initAddConcertAutocomplete);
+    } else {
+      initAddConcertAutocomplete();
+    }
+
     function openAddConcertModal() {
       const modal = document.getElementById('add-concert-modal');
       const dateInput = document.getElementById('add-concert-date');
@@ -2646,7 +2805,10 @@
         statusBox.classList.add('hidden');
         statusBox.innerHTML = '';
       }
-      if (modal) modal.classList.remove('hidden');
+      if (modal) {
+        modal.classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+      }
       if (dateInput && !dateInput.value) {
         dateInput.value = new Date().toISOString().split('T')[0];
       }
@@ -2655,6 +2817,11 @@
     function closeAddConcertModal() {
       const modal = document.getElementById('add-concert-modal');
       if (modal) modal.classList.add('hidden');
+      document.body.classList.remove('overflow-hidden');
+      ['venue-suggestions', 'city-suggestions', 'state-suggestions', 'artist-suggestions', 'supporting-suggestions'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('hidden');
+      });
     }
 
     function toggleAddSetlistSection() {
@@ -2682,7 +2849,7 @@
         supporting_artists: document.getElementById('add-concert-supporting').value,
         notes: document.getElementById('add-concert-notes').value,
         setlist_text: document.getElementById('add-concert-setlist').value,
-        is_custom_offline: document.getElementById('add-concert-offline').checked
+        is_custom_offline: document.getElementById('add-concert-offline') ? document.getElementById('add-concert-offline').checked : false
       };
 
       btn.disabled = true;

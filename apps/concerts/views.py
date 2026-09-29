@@ -896,3 +896,102 @@ def confirm_ticketmaster_import(request):
         return JsonResponse({"error": str(e)}, status=500)
 
 
+@login_required
+def autocomplete_view(request):
+    field_type = request.GET.get('type', '').strip().lower()
+    q = request.GET.get('q', '').strip()
+    user = request.user
+    results = []
+
+    if field_type == 'venue':
+        if q:
+            user_venue_ids = Concert.objects.filter(user=user, venue__isnull=False).values_list('venue_id', flat=True).distinct()
+            user_venues = list(Venue.objects.filter(id__in=user_venue_ids, name__icontains=q).values('name', 'city', 'state')[:10])
+            for v in user_venues:
+                v['is_recent'] = True
+            
+            seen_names = {v['name'].lower() for v in user_venues}
+            other_venues = list(Venue.objects.filter(name__icontains=q).exclude(name__in=[v['name'] for v in user_venues]).values('name', 'city', 'state')[:15])
+            for v in other_venues:
+                v['is_recent'] = False
+                
+            results = user_venues + other_venues
+        else:
+            recent_user_concerts = Concert.objects.filter(user=user, venue__isnull=False).select_related('venue').order_by('-date', '-id')[:60]
+            seen = set()
+            for c in recent_user_concerts:
+                if c.venue and c.venue.name and c.venue.name.lower() not in seen:
+                    seen.add(c.venue.name.lower())
+                    results.append({
+                        'name': c.venue.name,
+                        'city': c.venue.city or '',
+                        'state': c.venue.state or '',
+                        'is_recent': True
+                    })
+                if len(results) >= 12:
+                    break
+            if not results:
+                venues = Venue.objects.all().order_by('name').values('name', 'city', 'state')[:12]
+                results = list(venues)
+
+    elif field_type == 'artist':
+        if q:
+            user_artists = list(ConcertArtist.objects.filter(concert__user=user, artist__name__icontains=q).values_list('artist__name', flat=True).distinct()[:10])
+            user_artist_results = [{'name': name, 'is_recent': True} for name in user_artists]
+            seen_artists = {name.lower() for name in user_artists}
+            
+            other_artists = list(Artist.objects.filter(name__icontains=q).exclude(name__in=user_artists).values_list('name', flat=True)[:15])
+            other_artist_results = [{'name': name, 'is_recent': False} for name in other_artists if name.lower() not in seen_artists]
+            
+            results = user_artist_results + other_artist_results
+        else:
+            recent_artists = ConcertArtist.objects.filter(concert__user=user).select_related('artist').order_by('-concert__date', '-concert__id')[:60]
+            seen = set()
+            for ca in recent_artists:
+                if ca.artist and ca.artist.name and ca.artist.name.lower() not in seen:
+                    seen.add(ca.artist.name.lower())
+                    results.append({'name': ca.artist.name, 'is_recent': True})
+                if len(results) >= 12:
+                    break
+            if not results:
+                artists = Artist.objects.all().order_by('name').values_list('name', flat=True)[:12]
+                results = [{'name': a} for a in artists]
+
+    elif field_type == 'city':
+        if q:
+            cities = Venue.objects.filter(city__icontains=q).exclude(city='').values_list('city', flat=True).distinct().order_by('city')[:15]
+            results = [{'name': c} for c in cities]
+        else:
+            recent_user_concerts = Concert.objects.filter(user=user, venue__isnull=False).select_related('venue').order_by('-date', '-id')[:60]
+            seen = set()
+            for c in recent_user_concerts:
+                if c.venue and c.venue.city and c.venue.city.lower() not in seen:
+                    seen.add(c.venue.city.lower())
+                    results.append({'name': c.venue.city, 'is_recent': True})
+                if len(results) >= 10:
+                    break
+            if not results:
+                cities = Venue.objects.exclude(city='').values_list('city', flat=True).distinct().order_by('city')[:10]
+                results = [{'name': c} for c in cities]
+
+    elif field_type == 'state':
+        if q:
+            states = Venue.objects.filter(state__icontains=q).exclude(state='').values_list('state', flat=True).distinct().order_by('state')[:15]
+            results = [{'name': s} for s in states]
+        else:
+            recent_user_concerts = Concert.objects.filter(user=user, venue__isnull=False).select_related('venue').order_by('-date', '-id')[:60]
+            seen = set()
+            for c in recent_user_concerts:
+                if c.venue and c.venue.state and c.venue.state.lower() not in seen:
+                    seen.add(c.venue.state.lower())
+                    results.append({'name': c.venue.state, 'is_recent': True})
+                if len(results) >= 10:
+                    break
+            if not results:
+                states = Venue.objects.exclude(state='').values_list('state', flat=True).distinct().order_by('state')[:10]
+                results = [{'name': s} for s in states]
+
+    return JsonResponse({'results': results})
+
+
+

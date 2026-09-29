@@ -1,9 +1,25 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Live Concert & Setlist Analytics Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Setlore - Live Concert & Setlist Analytics</title>
+
+  <!-- PWA & Apple iOS Configuration -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Setlore">
+  <meta name="application-name" content="Setlore">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="icon" type="image/png" href="{% static 'img/setlore_icon.png' %}">
+  <link rel="apple-touch-icon" href="{% static 'img/setlore_icon.png' %}">
+  <link rel="apple-touch-icon" sizes="152x152" href="{% static 'img/setlore_icon.png' %}">
+  <link rel="apple-touch-icon" sizes="167x167" href="{% static 'img/setlore_icon.png' %}">
+  <link rel="apple-touch-icon" sizes="180x180" href="{% static 'img/setlore_icon.png' %}">
+  <link rel="manifest" href="{% static 'manifest.json' %}">
+
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Chart.js and Plotly -->
@@ -14,7 +30,17 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
-    body { background-color: #0f172a; color: #f8fafc; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; }
+    html, body {
+      background-color: #0f172a;
+      color: #f8fafc;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      touch-action: manipulation;
+      -webkit-touch-callout: none;
+      -webkit-text-size-adjust: 100%;
+    }
+    button, a, input, select, textarea {
+      touch-action: manipulation;
+    }
     .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 1rem; }
     .badge { display: inline-flex; align-items: center; padding: 0.2rem 0.6rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; }
     ::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -58,19 +84,469 @@
   <!-- Header -->
   <header class="max-w-7xl mx-auto mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
     <div>
-      <button onclick="switchTab('overview')" class="flex items-center gap-3 text-left group focus:outline-none transition cursor-pointer">
-        <div class="w-12 h-12 rounded-xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/30 group-hover:scale-105 group-hover:shadow-indigo-500/50 transition-all">
-          <i class="fa-solid fa-guitar text-2xl"></i>
-        </div>
-        <div>
-          <h1 class="text-3xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-200 to-slate-400 group-hover:from-white group-hover:to-indigo-200 transition-all">
-            Concert & Setlist Analytics
-          </h1>
-        </div>
+      <button onclick="switchTab('overview')" class="flex items-center text-left group focus:outline-none transition cursor-pointer" title="Setlore - Overview">
+        <img src="{% static 'img/setlore_banner.png' %}" alt="Setlore" class="h-10 md:h-12 w-auto object-contain rounded-xl group-hover:scale-105 transition-all">
       </button>
     </div>
 
-    <!-- Quick Stats Pill Bar -->
+    <!-- User Profile & Action Controls (Desktop/Tablet) -->
+    <div class="hidden md:flex flex-wrap gap-2 items-center">
+      <button onclick="openAddConcertModal()" class="px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-xs font-bold text-white flex items-center gap-1.5 transition cursor-pointer shadow-md shadow-indigo-600/25">
+        <i class="fa-solid fa-plus text-xs"></i> Add Concert
+      </button>
+
+      <button id="sync-btn" onclick="triggerSync()" class="px-3 py-1.5 rounded-xl bg-indigo-600/30 hover:bg-indigo-600/50 border border-indigo-500/40 text-xs font-semibold text-indigo-200 flex items-center gap-1.5 transition cursor-pointer">
+        <i id="sync-btn-icon" class="fa-solid fa-rotate text-indigo-400"></i>
+        <span id="sync-btn-text">Sync</span>
+      </button>
+
+      <!-- User Profile Dropdown Menu -->
+      <div class="relative" id="user-menu-container">
+        <button id="user-menu-btn" onclick="toggleUserMenu()" class="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-600 text-xs text-slate-200 transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500/50" aria-label="User account menu" aria-haspopup="true" aria-expanded="false" title="Account settings">
+          <div class="w-6 h-6 rounded-lg bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xs shadow-sm">
+            <i class="fa-solid fa-user"></i>
+          </div>
+          <span class="font-medium text-slate-200">{{ request.user.username }}</span>
+          <i class="fa-solid fa-chevron-down text-[10px] text-slate-400 transition-transform duration-200" id="user-menu-chevron"></i>
+        </button>
+
+        <!-- Dropdown Menu -->
+        <div id="user-dropdown-menu" class="hidden absolute right-0 mt-2 w-56 rounded-xl glass-card border border-slate-700/80 bg-slate-900/95 shadow-2xl py-1.5 z-50 backdrop-blur-xl">
+          <div class="px-3.5 py-2.5 border-b border-slate-800">
+            <div class="flex items-center gap-2.5">
+              <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white text-sm shadow-sm flex-shrink-0">
+                <i class="fa-solid fa-user"></i>
+              </div>
+              <div class="min-w-0 flex-1">
+                <p class="text-xs font-semibold text-white truncate">{{ request.user.username }}</p>
+                <div id="desktop-setlist-badge">
+                  {% if profile.setlistfm_username %}
+                    <p class="text-[11px] text-slate-400 truncate flex items-center gap-1">
+                      <i class="fa-brands fa-lastfm text-amber-400 text-[10px]"></i> @<span class="user-setlist-name">{{ profile.setlistfm_username }}</span>
+                    </p>
+                  {% else %}
+                    <p class="text-[11px] text-amber-400/90 truncate flex items-center gap-1 cursor-pointer hover:underline" onclick="openProfileModal(); closeUserMenu();">
+                      <i class="fa-brands fa-lastfm text-[10px]"></i> Link Setlist.fm
+                    </p>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="py-1">
+            <button type="button" onclick="openProfileModal(); closeUserMenu();" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-slate-200 hover:text-white hover:bg-amber-500/10 transition text-left cursor-pointer">
+              <i class="fa-solid fa-user-gear text-amber-400 w-4 text-center"></i>
+              <span>Setlist.fm Settings</span>
+            </button>
+
+            <button type="button" onclick="openUploadModal(); closeUserMenu();" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-slate-200 hover:text-white hover:bg-indigo-600/20 transition text-left cursor-pointer">
+              <i class="fa-solid fa-file-csv text-cyan-400 w-4 text-center"></i>
+              <span>Import CSV</span>
+            </button>
+
+            <button type="button" onclick="openTicketmasterModal(); closeUserMenu();" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-slate-200 hover:text-white hover:bg-indigo-600/20 transition text-left cursor-pointer">
+              <i class="fa-solid fa-ticket text-emerald-400 w-4 text-center"></i>
+              <span>Import Ticketmaster</span>
+            </button>
+          </div>
+
+          <div class="border-t border-slate-800 py-1">
+            <a href="{% url 'password_change' %}" class="flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-slate-200 hover:text-white hover:bg-indigo-600/20 transition">
+              <i class="fa-solid fa-key text-indigo-400 w-4 text-center"></i>
+              <span>Change Password</span>
+            </a>
+
+            {% if request.user.is_staff %}
+              <a href="/admin/" target="_blank" class="flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-purple-300 hover:text-purple-200 hover:bg-purple-600/20 transition">
+                <i class="fa-solid fa-sliders text-purple-400 w-4 text-center"></i>
+                <span>Admin Portal</span>
+              </a>
+            {% endif %}
+          </div>
+
+          <div class="border-t border-slate-800 pt-1">
+            <form method="post" action="{% url 'logout' %}" class="block m-0">
+              {% csrf_token %}
+              <button type="submit" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition text-left cursor-pointer">
+                <i class="fa-solid fa-arrow-right-from-bracket text-rose-400 w-4 text-center"></i>
+                <span>Log Out</span>
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Live Sync Banner -->
+  <div id="sync-banner" class="max-w-7xl mx-auto mb-6 p-4 rounded-xl glass-card border border-indigo-500/40 bg-indigo-950/40 flex items-center justify-between gap-4 {% if profile.sync_status != 'syncing' %}hidden{% endif %}">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-400 animate-spin">
+        <i class="fa-solid fa-circle-notch"></i>
+      </div>
+      <div>
+        <p class="text-xs font-bold text-white">Live Sync in Progress</p>
+        <p id="sync-banner-text" class="text-xs text-indigo-300">{{ profile.sync_progress|default:'Connecting to Setlist.fm...' }}</p>
+      </div>
+    </div>
+    <span class="text-[11px] font-mono text-slate-400">Polling status...</span>
+  </div>
+
+  <!-- Profile & Setlist.fm Settings Modal -->
+  <div id="profile-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="max-w-md w-full glass-card p-6 shadow-2xl space-y-4 border border-slate-700 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400">
+            <i class="fa-solid fa-user-gear text-sm"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-white">Setlist.fm Settings</h3>
+            <p class="text-[11px] text-slate-400">Manage account & sync preferences</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeProfileModal()" class="text-slate-400 hover:text-white p-1 cursor-pointer">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div id="profile-modal-alert" class="hidden p-3 rounded-xl text-xs"></div>
+
+      <form id="profile-form" onsubmit="saveProfileSettings(event)" class="space-y-4">
+        {% csrf_token %}
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center gap-1.5">
+            <i class="fa-brands fa-lastfm text-amber-400"></i> Setlist.fm Username
+          </label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500 text-xs font-mono">@</span>
+            <input type="text" id="profile-setlist-username" name="setlistfm_username" value="{{ profile.setlistfm_username|default:'' }}"
+              placeholder="e.g. your_username"
+              class="w-full pl-7 pr-3 py-2 text-xs rounded-xl bg-slate-900/90 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500">
+          </div>
+          <p class="text-[11px] text-slate-400 mt-1.5 leading-relaxed">
+            Your public Setlist.fm account. Setlore automatically uses a global integration key to pull your attended shows and songs.
+          </p>
+        </div>
+
+        <div class="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2">
+          <label class="flex items-start gap-2.5 cursor-pointer">
+            <input type="checkbox" id="profile-prompt-sync" name="prompt_setlistfm" {% if profile.prompt_setlistfm %}checked{% endif %}
+              class="mt-0.5 rounded bg-slate-800 border-slate-700 text-indigo-600 focus:ring-0 focus:ring-offset-0">
+            <div>
+              <span class="text-xs font-medium text-slate-200 block">Prompt for username on sync</span>
+              <span class="text-[11px] text-slate-400 block mt-0.5">When enabled, syncing without a linked username will prompt you to connect your account.</span>
+            </div>
+          </label>
+        </div>
+
+        <!-- Optional Advanced API Key Override Accordion -->
+        <div class="border border-slate-800/80 rounded-xl overflow-hidden bg-slate-900/40">
+          <button type="button" onclick="toggleAdvancedProfileSettings()" class="w-full flex items-center justify-between px-3.5 py-2.5 text-xs font-semibold text-slate-400 hover:text-slate-200 transition cursor-pointer">
+            <span class="flex items-center gap-1.5"><i class="fa-solid fa-key text-xs"></i> Advanced: Custom API Key</span>
+            <i id="advanced-profile-chevron" class="fa-solid fa-chevron-down text-[10px] transition-transform"></i>
+          </button>
+          <div id="advanced-profile-content" class="hidden px-3.5 pb-3.5 pt-1 space-y-2 border-t border-slate-800/60">
+            <label class="block text-[11px] text-slate-400">
+              Setlist.fm Personal API Key (Optional override):
+            </label>
+            <input type="password" id="profile-setlist-apikey" name="setlistfm_api_key" value="{{ profile.setlistfm_api_key|default:'' }}"
+              placeholder="Leave blank to use default global key"
+              class="w-full px-3 py-1.5 text-xs rounded-lg bg-slate-950 border border-slate-700 text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500">
+            <p class="text-[10px] text-slate-500">Only needed if you prefer using your personal key instead of the server key.</p>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+          <button type="button" onclick="closeProfileModal()" class="px-3.5 py-2 rounded-xl bg-slate-800 text-xs font-semibold text-slate-300 hover:bg-slate-700 transition cursor-pointer">Cancel</button>
+          <button type="submit" id="profile-save-btn" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-bold text-white transition cursor-pointer shadow-md shadow-indigo-600/30">Save</button>
+          <button type="button" id="profile-save-sync-btn" onclick="saveProfileSettings(event, true)" class="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-indigo-600 hover:from-amber-500 hover:to-indigo-500 text-xs font-bold text-white transition cursor-pointer shadow-md">Save & Sync</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Sync Prompt Modal for Unlinked Users -->
+  <div id="setlist-prompt-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="max-w-md w-full glass-card p-6 shadow-2xl space-y-4 border border-amber-500/40">
+      <div class="flex items-start justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 text-lg shrink-0">
+            <i class="fa-brands fa-lastfm"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-white">Connect Setlist.fm</h3>
+            <p class="text-xs text-slate-400">Sync attended concerts & tracklists</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeSetlistPromptModal()" class="text-slate-400 hover:text-white p-1 cursor-pointer">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <p class="text-xs text-slate-300 leading-relaxed">
+        To discover song analytics, match setlists, and audit missing tracks, enter your public <strong class="text-amber-300">Setlist.fm</strong> username.
+      </p>
+
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Setlist.fm Username</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500 text-xs font-mono">@</span>
+            <input type="text" id="sync-prompt-username" placeholder="e.g. setlist_user"
+              class="w-full pl-7 pr-3 py-2 text-xs rounded-xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+              onkeydown="if(event.key==='Enter'){event.preventDefault(); submitSyncPrompt(true);}">
+          </div>
+        </div>
+
+        <div class="p-3 rounded-xl bg-slate-900/60 border border-slate-800/80">
+          <label class="flex items-center gap-2.5 cursor-pointer">
+            <input type="checkbox" id="sync-prompt-dont-ask"
+              class="rounded bg-slate-800 border-slate-700 text-indigo-600 focus:ring-0 focus:ring-offset-0">
+            <span class="text-xs text-slate-300 font-medium">Don't ask me again</span>
+          </label>
+          <p class="text-[11px] text-slate-500 ml-6 mt-0.5">You can still configure your username anytime from your Profile menu.</p>
+        </div>
+      </div>
+
+      <div class="flex flex-col sm:flex-row items-center justify-end gap-2 pt-2 border-t border-slate-800">
+        <button type="button" onclick="closeSetlistPromptModal()" class="w-full sm:w-auto px-3.5 py-2 rounded-xl bg-slate-800 text-xs font-semibold text-slate-300 hover:bg-slate-700 transition cursor-pointer">
+          Cancel
+        </button>
+        <button type="button" onclick="submitSyncPrompt(false)" class="w-full sm:w-auto px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300 hover:text-white transition cursor-pointer">
+          Sync Without Linking
+        </button>
+        <button type="button" onclick="submitSyncPrompt(true)" id="sync-prompt-submit-btn" class="w-full sm:w-auto px-4 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-indigo-600 hover:from-amber-500 hover:to-indigo-500 text-xs font-bold text-white transition cursor-pointer shadow-md shadow-indigo-600/30">
+          Save & Sync
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Upload Modal -->
+  <div id="upload-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="max-w-md w-full glass-card p-6 shadow-2xl space-y-4 border border-slate-700">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-file-csv text-cyan-400"></i> Import Concert CSV
+        </h3>
+        <button onclick="closeUploadModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+      <p class="text-xs text-slate-400">Upload your concert attendance spreadsheet. Header columns expected: Date, Bands/Artist, Venue, etc.</p>
+      <form id="csv-upload-form" onsubmit="submitCsvUpload(event)" class="space-y-4">
+        {% csrf_token %}
+        <div class="border-2 border-dashed border-slate-700 hover:border-indigo-500 rounded-xl p-6 text-center cursor-pointer transition">
+          <input type="file" id="csv-file-input" name="csv_file" accept=".csv" required class="hidden" onchange="updateFileName(this)">
+          <label for="csv-file-input" class="cursor-pointer block space-y-2">
+            <i class="fa-solid fa-cloud-arrow-up text-3xl text-slate-400"></i>
+            <p id="file-label" class="text-xs font-semibold text-slate-300">Click to choose CSV or drag here</p>
+          </label>
+        </div>
+        <div class="flex justify-end gap-2">
+          <button type="button" onclick="closeUploadModal()" class="px-4 py-2 rounded-lg bg-slate-800 text-xs font-semibold text-slate-300 hover:bg-slate-700">Cancel</button>
+          <button type="submit" id="upload-submit-btn" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-bold text-white">Upload & Sync</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Ticketmaster Import Modal -->
+  <div id="ticketmaster-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="max-w-2xl w-full glass-card p-6 shadow-2xl space-y-4 border border-slate-700 max-h-[90vh] flex flex-col">
+      
+      <!-- Step 1: Paste View -->
+      <div id="tm-step-input" class="space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div>
+            <h3 class="text-lg font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-ticket text-emerald-400"></i> Import from Ticketmaster
+            </h3>
+            <p class="text-xs text-slate-400 mt-0.5">Quickly import your past concert attendance directly from Ticketmaster order history.</p>
+          </div>
+          <button type="button" onclick="closeTicketmasterModal()" class="text-slate-400 hover:text-white p-1 cursor-pointer"><i class="fa-solid fa-xmark text-lg"></i></button>
+        </div>
+
+        <!-- Instructions -->
+        <div class="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 text-xs text-slate-300 space-y-2.5">
+          <div class="flex items-start gap-2.5">
+            <span class="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center text-[10px] font-bold flex-shrink-0 mt-0.5">1</span>
+            <div>
+              <p class="font-medium text-slate-200">Open your Ticketmaster Past Events page:</p>
+              <a href="https://www.ticketmaster.com/user/orders/past-events" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 text-emerald-400 hover:text-emerald-300 font-semibold mt-1 bg-emerald-950/60 px-2 py-1 rounded-lg border border-emerald-500/30 hover:border-emerald-500/60 transition">
+                <span>https://www.ticketmaster.com/user/orders/past-events</span>
+                <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+              </a>
+            </div>
+          </div>
+          <div class="flex items-start gap-2.5">
+            <span class="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center text-[10px] font-bold flex-shrink-0 mt-0.5">2</span>
+            <p><span class="font-medium text-slate-200">Select & Copy</span> the events on the page (highlight or <kbd class="px-1 py-0.5 bg-slate-800 rounded border border-slate-700 font-mono text-[10px]">Cmd+A</kbd> / <kbd class="px-1 py-0.5 bg-slate-800 rounded border border-slate-700 font-mono text-[10px]">Cmd+C</kbd>).</p>
+          </div>
+          <div class="flex items-start gap-2.5">
+            <span class="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center text-[10px] font-bold flex-shrink-0 mt-0.5">3</span>
+            <p><span class="font-medium text-slate-200">Paste below</span> and click <span class="text-emerald-400 font-semibold">Parse & Match Events</span> to match with Setlist.fm and deduplicate against existing concerts.</p>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1.5">Paste Past Events Text</label>
+          <textarea id="tm-paste-text" rows="8" placeholder="2026&#10;    Quantum Echo: World Tour 2026&#10;    Friday, September 11, 2026&#10;&#10;    Fri • Sep 11, 2026&#10;&#10;    Starlight Amphitheater&#10;    View details&#10;&#10;    Order #12-34567/US1&#10;&#10;    Cosmic Voyager: Nebula Tour&#10;    Monday, August 3, 2026&#10;&#10;    Mon • Aug 3, 2026&#10;&#10;    Metropolis Arena&#10;    View details&#10;&#10;    Order #98-76543/US2" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-white placeholder-slate-500 font-mono focus:outline-none focus:border-emerald-500 transition"></textarea>
+        </div>
+
+        <div id="tm-paste-error" class="hidden text-xs p-2.5 rounded-lg bg-rose-950/60 text-rose-200 border border-rose-500/40"></div>
+
+        <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+          <button type="button" onclick="closeTicketmasterModal()" class="px-4 py-2 rounded-lg bg-slate-800 text-xs font-semibold text-slate-300 hover:bg-slate-700 cursor-pointer">Cancel</button>
+          <button type="button" id="tm-parse-btn" onclick="parseTicketmasterPaste()" class="px-4 py-2 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-xs font-bold text-white flex items-center gap-1.5 cursor-pointer shadow-md shadow-emerald-600/25">
+            <i class="fa-solid fa-magnifying-glass"></i> Parse & Match Events
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 2: Confirmation & Review View -->
+      <div id="tm-step-preview" class="space-y-4 hidden flex-1 flex flex-col min-h-0">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3 flex-shrink-0">
+          <div>
+            <h3 class="text-lg font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-clipboard-check text-emerald-400"></i> Review & Confirm Matches
+            </h3>
+            <p id="tm-preview-summary" class="text-xs text-slate-400 mt-0.5">Found events. Confirm selections and Setlist.fm links before importing.</p>
+          </div>
+          <button type="button" onclick="closeTicketmasterModal()" class="text-slate-400 hover:text-white p-1 cursor-pointer"><i class="fa-solid fa-xmark text-lg"></i></button>
+        </div>
+
+        <!-- Filter / Quick Action Bar -->
+        <div class="flex items-center justify-between gap-2 px-1 flex-shrink-0">
+          <div class="flex items-center gap-2">
+            <button type="button" onclick="toggleSelectAllTmEvents(true)" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[11px] font-medium text-slate-300 transition cursor-pointer">Select All New</button>
+            <button type="button" onclick="toggleSelectAllTmEvents(false)" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[11px] font-medium text-slate-300 transition cursor-pointer">Deselect All</button>
+          </div>
+          <span id="tm-selected-count-badge" class="badge bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">0 selected</span>
+        </div>
+
+        <!-- Scrollable events list -->
+        <div id="tm-events-list" class="flex-1 overflow-y-auto space-y-3 pr-1 min-h-[220px] max-h-[50vh]">
+          <!-- Event rows rendered by JavaScript -->
+        </div>
+
+        <div id="tm-confirm-error" class="hidden text-xs p-2.5 rounded-lg bg-rose-950/60 text-rose-200 border border-rose-500/40 flex-shrink-0"></div>
+
+        <div class="flex items-center justify-between gap-2 pt-3 border-t border-slate-800 flex-shrink-0">
+          <button type="button" onclick="backToTicketmasterPaste()" class="px-3.5 py-2 rounded-lg bg-slate-800 text-xs font-semibold text-slate-300 hover:bg-slate-700 flex items-center gap-1.5 cursor-pointer">
+            <i class="fa-solid fa-arrow-left"></i> Back to Paste
+          </button>
+          <div class="flex items-center gap-2">
+            <button type="button" onclick="closeTicketmasterModal()" class="px-4 py-2 rounded-lg bg-slate-800 text-xs font-semibold text-slate-300 hover:bg-slate-700 cursor-pointer">Cancel</button>
+            <button type="button" id="tm-confirm-btn" onclick="submitTicketmasterImport()" class="px-4 py-2 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-xs font-bold text-white flex items-center gap-1.5 cursor-pointer shadow-md shadow-emerald-600/30">
+              <i class="fa-solid fa-file-import"></i> Confirm & Import Selected
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Add Concert Modal -->
+  <div id="add-concert-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto overscroll-contain overflow-x-hidden hidden">
+    <div class="relative w-full max-w-lg glass-card p-4 sm:p-6 shadow-2xl border border-slate-700/80 rounded-2xl max-h-[92vh] my-auto flex flex-col overflow-hidden">
+      <div class="shrink-0 flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-ticket text-indigo-400"></i> Log Concert
+        </h3>
+        <button type="button" onclick="closeAddConcertModal()" class="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition cursor-pointer" aria-label="Close modal">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <form id="add-concert-form" onsubmit="submitAddConcert(event)" class="flex flex-col flex-1 min-h-0 overflow-hidden mt-3">
+        {% csrf_token %}
+
+        <div class="overflow-y-auto overflow-x-hidden pr-1 space-y-3.5 flex-1 min-h-0 custom-scrollbar">
+          <!-- Date & Venue Name Row -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Date <span class="text-rose-400">*</span></label>
+              <input type="date" id="add-concert-date" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+            </div>
+            <div class="relative">
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Venue Name <span class="text-rose-400">*</span></label>
+              <input type="text" id="add-concert-venue" placeholder="e.g. 9:30 Club or The Fillmore" required autocomplete="off" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+              <div id="venue-suggestions" class="absolute left-0 right-0 top-full mt-1 bg-slate-900/95 border border-slate-700 rounded-lg shadow-2xl z-50 max-h-48 overflow-y-auto hidden divide-y divide-slate-800/80 backdrop-blur-md"></div>
+            </div>
+          </div>
+
+          <!-- City & State / Region Row -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="relative">
+              <label class="block text-xs font-semibold text-slate-300 mb-1">City <span class="text-slate-500 font-normal">(optional)</span></label>
+              <input type="text" id="add-concert-city" placeholder="e.g. Washington" autocomplete="off" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+              <div id="city-suggestions" class="absolute left-0 right-0 top-full mt-1 bg-slate-900/95 border border-slate-700 rounded-lg shadow-2xl z-50 max-h-48 overflow-y-auto hidden divide-y divide-slate-800/80 backdrop-blur-md"></div>
+            </div>
+            <div class="relative">
+              <label class="block text-xs font-semibold text-slate-300 mb-1">State / Region <span class="text-slate-500 font-normal">(optional)</span></label>
+              <input type="text" id="add-concert-state" placeholder="e.g. DC" autocomplete="off" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+              <div id="state-suggestions" class="absolute left-0 right-0 top-full mt-1 bg-slate-900/95 border border-slate-700 rounded-lg shadow-2xl z-50 max-h-48 overflow-y-auto hidden divide-y divide-slate-800/80 backdrop-blur-md"></div>
+            </div>
+          </div>
+
+          <!-- Artist / Headliner & Support Row -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="relative">
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Headliner / Primary Artist <span class="text-rose-400">*</span></label>
+              <input type="text" id="add-concert-artist" placeholder="e.g. Dream Theater" required autocomplete="off" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+              <div id="artist-suggestions" class="absolute left-0 right-0 top-full mt-1 bg-slate-900/95 border border-slate-700 rounded-lg shadow-2xl z-50 max-h-48 overflow-y-auto hidden divide-y divide-slate-800/80 backdrop-blur-md"></div>
+            </div>
+            <div class="relative">
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Supporting Acts <span class="text-slate-500 font-normal">(optional)</span></label>
+              <input type="text" id="add-concert-supporting" placeholder="e.g. Opeth, Bigelf (comma-separated)" autocomplete="off" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+              <div id="supporting-suggestions" class="absolute left-0 right-0 top-full mt-1 bg-slate-900/95 border border-slate-700 rounded-lg shadow-2xl z-50 max-h-48 overflow-y-auto hidden divide-y divide-slate-800/80 backdrop-blur-md"></div>
+            </div>
+          </div>
+
+          <!-- Tour / Notes -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Tour Name or Notes <span class="text-slate-500 font-normal">(optional)</span></label>
+            <input type="text" id="add-concert-notes" placeholder="e.g. Progressive Nation 2009 or Front row with friends" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+          </div>
+
+          <!-- Optional Setlist Section Accordion -->
+          <div class="rounded-xl border border-slate-800 bg-slate-900/50 overflow-hidden">
+            <button type="button" onclick="toggleAddSetlistSection()" class="w-full flex items-center justify-between p-3 text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800/60 transition cursor-pointer select-none">
+              <span class="flex items-center gap-2">
+                <i class="fa-solid fa-music text-purple-400"></i> Add Setlist / Songs <span class="text-slate-500 font-normal text-[11px]">(Optional)</span>
+              </span>
+              <i id="add-setlist-chevron" class="fa-solid fa-chevron-down text-slate-400 text-xs transition-transform duration-200"></i>
+            </button>
+            <div id="add-setlist-container" class="hidden p-3 pt-0 space-y-2 border-t border-slate-800/60">
+              <p class="text-[11px] text-slate-400">
+                Paste or type songs, one per line. Use <code class="text-indigo-300 bg-slate-800 px-1 py-0.5 rounded">Encore:</code> to mark encores, or <code class="text-indigo-300 bg-slate-800 px-1 py-0.5 rounded">(Cover - Artist)</code> for covers.
+              </p>
+              <textarea id="add-concert-setlist" rows="4" placeholder="Pull Me Under&#10;Under a Glass Moon&#10;Take the Time&#10;Encore:&#10;Metropolis Pt. 1" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white placeholder-slate-600 font-mono focus:outline-none focus:border-indigo-500"></textarea>
+            </div>
+          </div>
+
+          <!-- Setlist Audit Exemption Checkbox (Unselected and Hidden) -->
+          <div class="hidden">
+            <input type="checkbox" id="add-concert-offline" class="hidden">
+          </div>
+
+          <div id="add-concert-status" class="hidden text-xs p-2.5 rounded-lg"></div>
+        </div>
+
+        <div class="shrink-0 flex items-center justify-end gap-2 pt-3 border-t border-slate-800 mt-2">
+          <button type="button" onclick="closeAddConcertModal()" class="px-4 py-2 rounded-lg bg-slate-800 text-xs font-semibold text-slate-300 hover:bg-slate-700 cursor-pointer transition">Cancel</button>
+          <button type="submit" id="add-concert-submit-btn" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-bold text-white flex items-center gap-1.5 cursor-pointer shadow-md shadow-indigo-600/30 transition">
+            <i class="fa-solid fa-check"></i> Save Concert
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Header Stats Bar -->
+  <div class="max-w-7xl mx-auto mb-6 flex flex-wrap gap-2 items-center justify-between">
     <div class="flex flex-wrap gap-2 items-center">
       <span class="badge bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
         <i class="fa-solid fa-ticket mr-1.5"></i> {{ stats.total_concerts }} Concerts
@@ -85,7 +561,7 @@
         <i class="fa-solid fa-location-dot mr-1.5"></i> {{ stats.total_venues }} Venues
       </span>
     </div>
-  </header>
+  </div>
 
   <!-- Navigation Tabs (Modern Segmented Pill Bar - Desktop/Tablet) -->
   <div id="desktop-nav-bar" class="hidden md:block max-w-7xl mx-auto mb-8">
@@ -116,7 +592,7 @@
 
       <div class="flex items-center gap-2 w-full lg:w-auto justify-end border-t lg:border-t-0 border-slate-800/80 pt-2 lg:pt-0">
         <button onclick="switchTab('gap')" id="tab-gap-btn" class="nav-tab-btn px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:text-white bg-slate-800/80 border border-slate-700 hover:border-amber-500/50 flex items-center gap-2 transition-all shadow-sm">
-          <i class="fa-solid fa-arrows-split-up-and-left text-amber-400"></i> Gap Analysis
+          <i class="fa-solid fa-clipboard-check text-amber-400"></i> Setlist Audit
           {% if gap.csv_missing_or_partial|length > 0 %}
             <span class="bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-md text-[11px] font-mono font-bold border border-amber-500/30">{{ gap.csv_missing_or_partial|length }}</span>
           {% endif %}
@@ -191,22 +667,28 @@
               <tbody class="divide-y divide-slate-800/50">
                 {% for s in stats.top_songs %}
                 <tr class="hover:bg-slate-800/40 transition">
-                  <td class="px-3 py-2 text-xs font-mono text-slate-500">{{ loop.index }}</td>
+                  <td class="px-3 py-2 text-xs font-mono text-slate-500">{{ forloop.counter }}</td>
                   <td class="px-3 py-2 text-xs font-bold text-white">
-                    <button onclick="jumpToSongInDrilldown('{{ s.artist.replace('\'', '\\\'') }}', '{{ s.song.replace('\'', '\\\'') }}');" class="hover:underline hover:text-indigo-300 text-left font-bold">
+                    <button onclick="jumpToSongInDrilldown('{{ s.artist|escapejs }}', '{{ s.song|escapejs }}');" class="hover:underline hover:text-indigo-300 text-left font-bold">
                       {{ s.song }}
                     </button>
                   </td>
                   <td class="px-3 py-2 text-xs text-indigo-300">
-                    <button onclick="jumpToSongInDrilldown('{{ s.artist.replace('\'', '\\\'') }}', '');" class="hover:underline text-left">
+                    <button onclick="jumpToSongInDrilldown('{{ s.artist|escapejs }}', '');" class="hover:underline text-left">
                       {{ s.artist }}
                     </button>
                   </td>
                   <td class="px-3 py-2 text-xs text-center font-bold text-emerald-400">{{ s.count }}x</td>
                   <td class="px-3 py-2 text-xs text-slate-400">
-                    <button onclick="jumpToConcertInDrilldown('{{ s.first_seen_venue.replace('\'', '\\\'') }}', '{{ s.first_seen_date }}');" class="hover:underline hover:text-indigo-300 text-left">
+                    <button onclick="jumpToConcertInDrilldown('{{ s.first_seen_venue|escapejs }}', '{{ s.first_seen_date }}');" class="hover:underline hover:text-indigo-300 text-left">
                       {{ s.first_seen_date }} ({{ s.first_seen_venue }})
                     </button>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="5" class="px-3 py-6 text-center text-xs text-slate-500 italic">
+                    No song setlist tracks recorded yet. Click "Sync" above to fetch setlist data.
                   </td>
                 </tr>
                 {% endfor %}
@@ -240,13 +722,19 @@
               <tbody class="divide-y divide-slate-800/50">
                 {% for v in stats.top_venues %}
                 <tr class="hover:bg-slate-800/40 transition">
-                  <td class="px-3 py-2 text-xs font-mono text-slate-500">{{ loop.index }}</td>
+                  <td class="px-3 py-2 text-xs font-mono text-slate-500">{{ forloop.counter }}</td>
                   <td class="px-3 py-2 text-xs font-bold text-white">
-                    <button onclick="jumpToConcertInDrilldown('{{ v.venue.replace('\'', '\\\'') }}', '');" class="hover:underline hover:text-indigo-300 text-left">
+                    <button onclick="jumpToConcertInDrilldown('{{ v.venue|escapejs }}', '');" class="hover:underline hover:text-indigo-300 text-left">
                       {{ v.venue }}
                     </button>
                   </td>
                   <td class="px-3 py-2 text-xs text-center font-bold text-indigo-400">{{ v.count }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="3" class="px-3 py-6 text-center text-xs text-slate-500 italic">
+                    No venues recorded yet.
+                  </td>
                 </tr>
                 {% endfor %}
               </tbody>
@@ -270,7 +758,15 @@
             <p class="text-xs text-slate-400 mt-0.5">Explore every concert from latest to oldest, grouped by event and artist set, with nth-time heard, show frequencies, and song release ages.</p>
           </div>
           <div class="flex flex-wrap items-center gap-3">
-            <input type="text" id="concert-search-input" placeholder="Search artist, venue, or year..." onkeyup="filterConcertCards(this.value)" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 w-64">
+            <div class="relative flex items-center w-64">
+              <input type="text" id="concert-search-input" placeholder="Search artist, venue, or year..." oninput="handleFilterInput('concert-search-input', 'concert-search-clear', filterConcertCards)" class="bg-slate-900 border border-slate-700 rounded-lg pl-3 pr-7 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 w-full">
+              <button type="button" id="concert-search-clear" onclick="clearFilterField('concert-search-input', 'concert-search-clear', filterConcertCards)" class="hidden absolute right-2 text-slate-400 hover:text-white p-0.5 cursor-pointer text-xs transition" title="Clear search">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+            <button onclick="openAddConcertModal()" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold text-white flex items-center gap-1.5 transition shadow-sm cursor-pointer">
+              <i class="fa-solid fa-plus text-xs"></i> Add Concert
+            </button>
             <button onclick="toggleAllConcertCards()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-indigo-300 border border-slate-700 hover:border-indigo-500/50 transition">
               Expand / Collapse All
             </button>
@@ -281,7 +777,7 @@
       <!-- Concert Cards List -->
       <div id="concert-cards-list" class="space-y-4">
         {% for c in stats.concerts_drilldown %}
-        <div class="concert-card glass-card p-5 space-y-4 border border-slate-800/80 hover:border-slate-700/80 transition" data-search="{{ c.date.lower() }} {{ c.venue.lower() }} {{ c.raw_artists.lower() }}">
+        <div class="concert-card glass-card p-5 space-y-4 border border-slate-800/80 hover:border-slate-700/80 transition" data-search="{{ c.date|lower }} {{ c.venue|lower }} {{ c.raw_artists|lower }}">
           
           <!-- Concert Event Header -->
           <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 cursor-pointer select-none border-b border-slate-800/60 pb-3" onclick="toggleConcertDetails('{{ c.id }}')">
@@ -323,7 +819,7 @@
               <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/50 pb-2.5">
                 <div class="flex flex-wrap items-center gap-2.5">
                   <h3 class="text-white font-black text-sm tracking-wide flex items-center gap-2">
-                    <button onclick="event.stopPropagation(); jumpToSongInDrilldown('{{ a.artist.replace('\'', '\\\'') }}', '');" class="hover:underline hover:text-indigo-300 flex items-center gap-2 text-left font-black">
+                    <button onclick="event.stopPropagation(); jumpToSongInDrilldown('{{ a.artist|escapejs }}', '');" class="hover:underline hover:text-indigo-300 flex items-center gap-2 text-left font-black">
                       <i class="fa-solid fa-microphone-lines text-indigo-400"></i> {{ a.artist }}
                     </button>
                   </h3>
@@ -364,8 +860,8 @@
                         
                         <!-- Track Name & Nth-Time-Heard & Song Age -->
                         <div class="flex flex-wrap items-center gap-2.5">
-                          <span class="font-mono text-slate-500 text-[11px] w-5">#{{ loop.index }}</span>
-                          <button onclick="jumpToSongInDrilldown('{{ a.artist.replace('\'', '\\\'') }}', '{{ track.song.replace('\'', '\\\'') }}');" class="text-white font-semibold hover:underline hover:text-indigo-300 text-left">
+                          <span class="font-mono text-slate-500 text-[11px] w-5">#{{ forloop.counter }}</span>
+                          <button onclick="jumpToSongInDrilldown('{{ a.artist|escapejs }}', '{{ track.song|escapejs }}');" class="text-white font-semibold hover:underline hover:text-indigo-300 text-left">
                             {{ track.song }}
                           </button>
 
@@ -429,15 +925,22 @@
             </h2>
             <p class="text-xs text-slate-400">Click any artist below to inspect all songs heard, filtered by album, ranked by play count, and expand each to see concert dates and venues.</p>
           </div>
-          <input type="text" id="artist-search-input" placeholder="Filter artist name..." onkeyup="filterArtistButtons(this.value)" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+          <div class="relative flex items-center w-56">
+            <input type="text" id="artist-search-input" placeholder="Filter artist name..." oninput="handleFilterInput('artist-search-input', 'artist-search-clear', filterArtistButtons)" class="bg-slate-900 border border-slate-700 rounded-lg pl-3 pr-7 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 w-full">
+            <button type="button" id="artist-search-clear" onclick="clearFilterField('artist-search-input', 'artist-search-clear', filterArtistButtons)" class="hidden absolute right-2 text-slate-400 hover:text-white p-0.5 cursor-pointer text-xs transition" title="Clear filter">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
         </div>
 
         <div id="artist-button-grid" class="flex flex-wrap gap-2 max-h-48 overflow-y-auto p-1">
-          {% for a in stats.artist_drilldown.values() %}
-          <button onclick="selectArtist('{{ a.artist|replace("'", "\\'") }}')" class="artist-btn px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-indigo-600/30 text-slate-200 hover:text-indigo-200 border border-slate-700 hover:border-indigo-500/50 text-xs font-medium transition flex items-center gap-2" data-name="{{ a.artist.lower() }}">
+          {% for a in stats.artist_drilldown.values %}
+          <button onclick="selectArtist('{{ a.artist|escapejs }}')" class="artist-btn px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-indigo-600/30 text-slate-200 hover:text-indigo-200 border border-slate-700 hover:border-indigo-500/50 text-xs font-medium transition flex items-center gap-2" data-name="{{ a.artist|lower }}">
             <span>{{ a.artist }}</span>
-            <span class="badge bg-indigo-500/20 text-indigo-300 text-[10px]">{{ a.unique_songs }} songs</span>
+            <span class="badge bg-indigo-500/20 text-indigo-300 text-[10px]">{% if a.unique_songs %}{{ a.unique_songs }} songs{% else %}{{ a.concert_count|default:1 }} shows{% endif %}</span>
           </button>
+          {% empty %}
+          <p class="text-xs text-slate-500 italic py-2">No artists found in concert history.</p>
           {% endfor %}
         </div>
       </div>
@@ -455,7 +958,12 @@
         <!-- Filter Controls Row (Song Search & Album Dropdown) -->
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-slate-900/50 p-3 rounded-xl border border-slate-800">
           <div class="flex flex-wrap items-center gap-3">
-            <input type="text" id="drilldown-song-filter" placeholder="Search song title..." onkeyup="filterDrilldownSongs()" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 w-64">
+            <div class="relative flex items-center w-64">
+              <input type="text" id="drilldown-song-filter" placeholder="Search song title..." oninput="handleFilterInput('drilldown-song-filter', 'drilldown-song-clear', filterDrilldownSongs)" class="bg-slate-900 border border-slate-700 rounded-lg pl-3 pr-7 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 w-full">
+              <button type="button" id="drilldown-song-clear" onclick="clearFilterField('drilldown-song-filter', 'drilldown-song-clear', filterDrilldownSongs)" class="hidden absolute right-2 text-slate-400 hover:text-white p-0.5 cursor-pointer text-xs transition" title="Clear filter">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
             
             <div class="flex items-center gap-2">
               <span class="text-xs text-slate-400 font-medium"><i class="fa-solid fa-compact-disc text-indigo-400 mr-1"></i>Album:</span>
@@ -489,11 +997,11 @@
         <div class="glass-card p-4">
           <span class="text-xs text-slate-400 font-semibold uppercase tracking-wider">#1 Most Seen Musician</span>
           <p class="text-lg font-black text-indigo-400 mt-1 truncate">
-            <button onclick="jumpToSongInDrilldown('{{ stats.musicians.top_musicians[0].musician.replace('\'', '\\\'') }}', '');" class="hover:underline text-indigo-400 text-left font-black">
-              {{ stats.musicians.top_musicians[0].musician }}
+            <button onclick="jumpToSongInDrilldown('{{ stats.musicians.top_musicians.0.musician|escapejs }}', '');" class="hover:underline text-indigo-400 text-left font-black">
+              {{ stats.musicians.top_musicians.0.musician }}
             </button>
           </p>
-          <p class="text-xs text-slate-500 mt-1">{{ stats.musicians.top_musicians[0].total_shows }} shows attended</p>
+          <p class="text-xs text-slate-500 mt-1">{{ stats.musicians.top_musicians.0.total_shows }} shows attended</p>
         </div>
         <div class="glass-card p-4">
           <span class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Multi-Project Masters</span>
@@ -503,11 +1011,11 @@
         <div class="glass-card p-4">
           <span class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Top Multi-Band Member</span>
           <p class="text-base font-black text-pink-400 mt-1 truncate">
-            <button onclick="jumpToSongInDrilldown('{{ stats.musicians.supergroup_musicians[0].musician.replace('\'', '\\\'') }}', '');" class="hover:underline text-pink-400 text-left font-black">
-              {{ stats.musicians.supergroup_musicians[0].musician }}
+            <button onclick="jumpToSongInDrilldown('{{ stats.musicians.supergroup_musicians.0.musician|escapejs }}', '');" class="hover:underline text-pink-400 text-left font-black">
+              {{ stats.musicians.supergroup_musicians.0.musician }}
             </button>
           </p>
-          <p class="text-xs text-slate-500 mt-1">{{ stats.musicians.supergroup_musicians[0].unique_bands_count }} different projects ({{ stats.musicians.supergroup_musicians[0].total_shows }} shows)</p>
+          <p class="text-xs text-slate-500 mt-1">{{ stats.musicians.supergroup_musicians.0.unique_bands_count }} different projects ({{ stats.musicians.supergroup_musicians.0.total_shows }} shows)</p>
         </div>
       </div>
 
@@ -529,7 +1037,7 @@
             <div class="flex items-start justify-between">
               <div>
                 <h4 class="font-bold text-white text-sm flex items-center gap-1.5">
-                  <button onclick="jumpToSongInDrilldown('{{ m.musician.replace('\'', '\\\'') }}', '');" class="hover:underline hover:text-indigo-300 flex items-center gap-1.5 text-white font-bold text-sm text-left">
+                  <button onclick="jumpToSongInDrilldown('{{ m.musician|escapejs }}', '');" class="hover:underline hover:text-indigo-300 flex items-center gap-1.5 text-white font-bold text-sm text-left">
                     <i class="fa-solid fa-user-tag text-indigo-400 text-xs"></i> {{ m.musician }}
                   </button>
                 </h4>
@@ -544,8 +1052,8 @@
             <div>
               <p class="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Projects Seen Live ({{ m.unique_bands_count }}):</p>
               <div class="flex flex-wrap gap-1.5">
-                {% for b_name, b_count in m.bands.items() %}
-                <button onclick="jumpToSongInDrilldown('{{ b_name.replace('\'', '\\\'') }}', '');" class="badge bg-slate-800 hover:bg-indigo-600/30 text-slate-200 hover:text-indigo-200 border border-slate-700 hover:border-indigo-500/50 text-xs transition cursor-pointer">
+                {% for b_name, b_count in m.bands.items %}
+                <button onclick="jumpToSongInDrilldown('{{ b_name|escapejs }}', '');" class="badge bg-slate-800 hover:bg-indigo-600/30 text-slate-200 hover:text-indigo-200 border border-slate-700 hover:border-indigo-500/50 text-xs transition cursor-pointer">
                   {{ b_name }} <span class="text-indigo-400 ml-1 font-bold">{{ b_count }}x</span>
                 </button>
                 {% endfor %}
@@ -576,7 +1084,12 @@
               <button onclick="filterMusicianInstrument('Vocals')" id="btn-instr-Vocals" class="px-2.5 py-1 rounded text-slate-400 hover:text-white transition">Vocals</button>
               <button onclick="filterMusicianInstrument('Keyboards')" id="btn-instr-Keyboards" class="px-2.5 py-1 rounded text-slate-400 hover:text-white transition">Keys</button>
             </div>
-            <input type="text" id="musician-search-input" placeholder="Search musician..." onkeyup="filterMusicianSearch(this.value)" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 w-48">
+            <div class="relative flex items-center w-48">
+              <input type="text" id="musician-search-input" placeholder="Search musician..." oninput="handleFilterInput('musician-search-input', 'musician-search-clear', filterMusicianSearch)" class="bg-slate-900 border border-slate-700 rounded-lg pl-3 pr-7 py-1 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 w-full">
+              <button type="button" id="musician-search-clear" onclick="clearFilterField('musician-search-input', 'musician-search-clear', filterMusicianSearch)" class="hidden absolute right-2 text-slate-400 hover:text-white p-0.5 cursor-pointer text-xs transition" title="Clear search">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -594,10 +1107,10 @@
             </thead>
             <tbody class="divide-y divide-slate-800/50">
               {% for m in stats.musicians.top_musicians %}
-              <tr class="musician-row hover:bg-slate-800/40 transition" data-musician-name="{{ m.musician.lower() }}" data-instrument="{{ m.instrument }}">
-                <td class="px-3 py-2.5 text-xs font-mono text-slate-500">{{ loop.index }}</td>
+              <tr class="musician-row hover:bg-slate-800/40 transition" data-musician-name="{{ m.musician|lower }}" data-instrument="{{ m.instrument }}">
+                <td class="px-3 py-2.5 text-xs font-mono text-slate-500">{{ forloop.counter }}</td>
                 <td class="px-3 py-2.5">
-                  <button onclick="jumpToSongInDrilldown('{{ m.musician.replace('\'', '\\\'') }}', '');" class="font-bold text-white hover:text-indigo-300 hover:underline text-xs text-left">
+                  <button onclick="jumpToSongInDrilldown('{{ m.musician|escapejs }}', '');" class="font-bold text-white hover:text-indigo-300 hover:underline text-xs text-left">
                     {{ m.musician }}
                   </button>
                 </td>
@@ -609,8 +1122,8 @@
                 <td class="px-3 py-2.5 text-xs text-center font-bold text-indigo-400 font-mono">{{ m.total_shows }}x</td>
                 <td class="px-3 py-2.5 text-xs">
                   <div class="flex flex-wrap gap-1">
-                    {% for b_name, b_count in m.bands.items() %}
-                    <button onclick="jumpToSongInDrilldown('{{ b_name.replace('\'', '\\\'') }}', '');" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-indigo-600/30 text-slate-300 hover:text-indigo-200 border border-slate-700 hover:border-indigo-500/50 text-[11px] transition">
+                    {% for b_name, b_count in m.bands.items %}
+                    <button onclick="jumpToSongInDrilldown('{{ b_name|escapejs }}', '');" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-indigo-600/30 text-slate-300 hover:text-indigo-200 border border-slate-700 hover:border-indigo-500/50 text-[11px] transition">
                       {{ b_name }} <span class="text-indigo-400 font-bold">({{ b_count }}x)</span>
                     </button>
                     {% endfor %}
@@ -674,11 +1187,16 @@
               <i class="fa-solid fa-list-ol text-purple-400"></i> All Venues ({{ stats.venue_map.total_venues }})
             </h3>
           </div>
-          <input type="text" id="map-venue-search" placeholder="Filter venue name or city..." onkeyup="filterMapVenues(this.value)" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+          <div class="relative flex items-center">
+            <input type="text" id="map-venue-search" placeholder="Filter venue name or city..." oninput="handleFilterInput('map-venue-search', 'map-venue-clear', filterMapVenues)" class="bg-slate-900 border border-slate-700 rounded-lg pl-3 pr-7 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 w-full">
+            <button type="button" id="map-venue-clear" onclick="clearFilterField('map-venue-search', 'map-venue-clear', filterMapVenues)" class="hidden absolute right-2 text-slate-400 hover:text-white p-0.5 cursor-pointer text-xs transition" title="Clear filter">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
           
           <div id="map-venue-list" class="space-y-2 overflow-y-auto pr-1 flex-1">
             {% for v in stats.venue_map.venues %}
-            <div onclick="focusVenueOnMap({{ v.lat }}, {{ v.lng }}, '{{ v.name|replace("'", "\\'") }}')" class="map-venue-card p-3 rounded-xl bg-slate-900/60 hover:bg-indigo-600/20 border border-slate-800 hover:border-indigo-500/50 cursor-pointer transition flex items-center justify-between" data-venue-name="{{ v.name.lower() }} {{ v.location.lower() }}">
+            <div onclick="focusVenueOnMap({{ v.lat }}, {{ v.lng }}, '{{ v.name|escapejs }}')" class="map-venue-card p-3 rounded-xl bg-slate-900/60 hover:bg-indigo-600/20 border border-slate-800 hover:border-indigo-500/50 cursor-pointer transition flex items-center justify-between" data-venue-name="{{ v.name|lower }} {{ v.location|lower }}">
               <div class="truncate mr-2">
                 <p class="text-xs font-bold text-white truncate">{{ v.name }}</p>
                 <p class="text-[11px] text-slate-400 flex items-center gap-1 mt-0.5">
@@ -770,7 +1288,7 @@
               {% for item in stats.setlist_variation %}
               <tr class="hover:bg-slate-800/40 transition">
                 <td class="px-4 py-3 font-semibold text-white">
-                  <button onclick="jumpToSongInDrilldown('{{ item.artist.replace('\'', '\\\'') }}', '');" class="hover:underline hover:text-indigo-300 font-semibold text-white text-left">
+                  <button onclick="jumpToSongInDrilldown('{{ item.artist|escapejs }}', '');" class="hover:underline hover:text-indigo-300 font-semibold text-white text-left">
                     {{ item.artist }}
                   </button>
                 </td>
@@ -783,6 +1301,12 @@
                   </span>
                 </td>
               </tr>
+              {% empty %}
+              <tr>
+                <td colspan="5" class="px-4 py-8 text-center text-xs text-slate-500 italic">
+                  No setlists synced yet to compare variation across multi-show artists. Click "Sync" above to fetch setlist tracks.
+                </td>
+              </tr>
               {% endfor %}
             </tbody>
           </table>
@@ -791,7 +1315,7 @@
 
     </div>
 
-    <!-- 5. GAP ANALYSIS TAB -->
+    <!-- 5. SETLIST AUDIT TAB -->
     <div id="tab-gap" class="hidden space-y-6">
       
       <!-- Coverage Scorecards -->
@@ -800,7 +1324,7 @@
           <div>
             <p class="text-xs uppercase font-semibold text-slate-400">Total Concerts</p>
             <p class="text-2xl font-bold text-white mt-1">{{ gap.total_csv }}</p>
-            <p class="text-xs text-slate-500 mt-1">Concerts in spreadsheet</p>
+            <p class="text-xs text-slate-500 mt-1">Total logged shows</p>
           </div>
           <div class="w-10 h-10 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center"><i class="fa-solid fa-file-csv"></i></div>
         </div>
@@ -825,9 +1349,9 @@
 
         <div class="glass-card p-5 flex items-center justify-between">
           <div>
-            <p class="text-xs uppercase font-semibold text-slate-400">Actionable Gaps</p>
+            <p class="text-xs uppercase font-semibold text-slate-400">Actionable Audit Items</p>
             <p class="text-2xl font-bold text-amber-400 mt-1">{{ gap.csv_missing_or_partial|length }}</p>
-            <p class="text-xs text-slate-500 mt-1">Shows with missing tags</p>
+            <p class="text-xs text-slate-500 mt-1">Shows needing review</p>
           </div>
           <div class="w-10 h-10 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center"><i class="fa-solid fa-triangle-exclamation"></i></div>
         </div>
@@ -840,18 +1364,27 @@
             <h2 class="text-lg font-bold text-white flex items-center gap-2">
               <i class="fa-solid fa-clipboard-check text-indigo-400"></i> Untagged / Missing Setlists to Review
             </h2>
-            <p class="text-xs text-slate-400 mt-1">Shows from your spreadsheet that are either missing an "I was there" tag or not yet added on Setlist.fm.</p>
+            <p class="text-xs text-slate-400 mt-1">Shows that are either missing an "I was there" tag or not yet added on Setlist.fm.</p>
           </div>
 
           <!-- Quick Filter Buttons -->
           <div class="flex items-center gap-2">
-            <button onclick="filterGapRows('all')" id="btn-gap-all" class="px-3 py-1 text-xs font-semibold rounded-lg bg-indigo-600 text-white transition">All Gaps ({{ gap.csv_missing_or_partial|length }})</button>
+            <button onclick="filterGapRows('all')" id="btn-gap-all" class="px-3 py-1 text-xs font-semibold rounded-lg bg-indigo-600 text-white transition">All Items ({{ gap.csv_missing_or_partial|length }})</button>
             <button onclick="filterGapRows('exists')" id="btn-gap-exists" class="px-3 py-1 text-xs font-semibold rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition">Ready to Tag</button>
             <button onclick="filterGapRows('missing')" id="btn-gap-missing" class="px-3 py-1 text-xs font-semibold rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition">Missing from Setlist.fm</button>
           </div>
         </div>
 
-        {% if gap.csv_missing_or_partial|length == 0 %}
+        {% if not profile.last_synced_at and gap.total_setlist_user == 0 %}
+          <div class="p-8 text-center text-slate-400 bg-slate-800/40 rounded-xl space-y-3">
+            <i class="fa-solid fa-cloud-arrow-down text-indigo-400 text-3xl mb-2 block"></i>
+            <p class="text-base font-semibold text-white">Setlist.fm Sync Has Not Run Yet</p>
+            <p class="text-xs text-slate-400 max-w-md mx-auto">Click the button below to query your Setlist.fm profile (@{{ username }}) and identify untagged shows or missing setlists.</p>
+            <button onclick="triggerSync()" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-lg shadow-indigo-600/30 transition">
+              <i class="fa-solid fa-arrows-rotate mr-2"></i>Run Initial Sync Now
+            </button>
+          </div>
+        {% elif gap.csv_missing_or_partial|length == 0 %}
           <div class="p-8 text-center text-slate-400 bg-slate-800/40 rounded-xl">
             <i class="fa-solid fa-badge-check text-emerald-400 text-3xl mb-2"></i>
             <p>Awesome! All concert records are synchronized with your Setlist.fm account.</p>
@@ -868,13 +1401,11 @@
               </thead>
               <tbody class="divide-y divide-slate-800/60">
                 {% for item in gap.csv_missing_or_partial %}
-                {% set has_exists = item.missing_bands_info|selectattr('status', 'equalto', 'exists_unattended')|list|length > 0 %}
-                {% set has_missing = item.missing_bands_info|selectattr('status', 'equalto', 'missing_from_setlistfm')|list|length > 0 %}
-                <tr class="hover:bg-slate-800/30 transition gap-row" data-has-exists="{{ 'true' if has_exists else 'false' }}" data-has-missing="{{ 'true' if has_missing else 'false' }}">
+                <tr class="hover:bg-slate-800/30 transition gap-row" data-has-exists="{{ item.has_exists|yesno:'true,false' }}" data-has-missing="{{ item.has_missing|yesno:'true,false' }}">
                   
                   <!-- Date Column -->
                   <td class="px-4 py-3 font-mono text-xs text-indigo-300 whitespace-nowrap align-top">
-                    <button onclick="jumpToConcertInDrilldown('{{ item.record.venue.replace('\'', '\\\'') }}', '{{ item.record.display_date }}')" class="hover:underline hover:text-white font-mono text-xs text-indigo-300 text-left">
+                    <button onclick="jumpToConcertInDrilldown('{{ item.record.venue|escapejs }}', '{{ item.record.display_date }}')" class="hover:underline hover:text-white font-mono text-xs text-indigo-300 text-left">
                       {{ item.record.display_date }}
                     </button>
                   </td>
@@ -883,11 +1414,11 @@
                   <td class="px-4 py-3 align-top max-w-xs">
                     <p class="font-medium text-white text-sm">{{ item.record.raw_artists }}</p>
                     <p class="text-xs text-slate-400 mt-0.5">
-                      <button onclick="jumpToConcertInDrilldown('{{ item.record.venue.replace('\'', '\\\'') }}', '{{ item.record.display_date }}')" class="hover:underline hover:text-indigo-300 text-left text-slate-400">
+                      <button onclick="jumpToConcertInDrilldown('{{ item.record.venue|escapejs }}', '{{ item.record.display_date }}')" class="hover:underline hover:text-indigo-300 text-left text-slate-400">
                         <i class="fa-solid fa-location-dot text-[11px] text-slate-500 mr-1"></i>{{ item.record.venue }}
                       </button>
                     </p>
-                    <button onclick="jumpToConcertInDrilldown('{{ item.record.venue.replace('\'', '\\\'') }}', '{{ item.record.display_date }}')" class="mt-2 px-2.5 py-1 rounded bg-indigo-500/20 hover:bg-indigo-500/35 text-indigo-300 hover:text-white border border-indigo-500/30 text-[11px] font-semibold transition inline-flex items-center gap-1.5 cursor-pointer">
+                    <button onclick="jumpToConcertInDrilldown('{{ item.record.venue|escapejs }}', '{{ item.record.display_date }}')" class="mt-2 px-2.5 py-1 rounded bg-indigo-500/20 hover:bg-indigo-500/35 text-indigo-300 hover:text-white border border-indigo-500/30 text-[11px] font-semibold transition inline-flex items-center gap-1.5 cursor-pointer">
                       View Setlist <i class="fa-solid fa-arrow-right text-[9px]"></i>
                     </button>
                   </td>
@@ -897,7 +1428,7 @@
                     {% for b in item.missing_bands_info %}
                       <div class="flex flex-wrap items-center justify-between gap-2 p-2 rounded-lg bg-slate-900/50 border border-slate-800/80">
                         <div class="flex items-center gap-2">
-                          <button onclick="jumpToSongInDrilldown('{{ b.artist.replace('\'', '\\\'') }}', '')" class="font-semibold text-slate-200 hover:text-indigo-300 hover:underline text-xs text-left">
+                          <button onclick="jumpToSongInDrilldown('{{ b.artist|escapejs }}', '')" class="font-semibold text-slate-200 hover:text-indigo-300 hover:underline text-xs text-left">
                             {{ b.artist }}
                           </button>
                           {% if b.status == 'exists_unattended' %}
@@ -934,15 +1465,15 @@
         {% endif %}
       </div>
 
-      <!-- Missing in Spreadsheet Table -->
+      <!-- Missing in Shows Table -->
       {% if gap.setlist_only|length > 0 %}
       <div class="glass-card p-6">
         <div class="flex items-center justify-between mb-4">
           <div>
             <h2 class="text-lg font-bold text-white flex items-center gap-2">
-              <i class="fa-solid fa-circle-arrow-down text-blue-400"></i> On Setlist.fm Profile but Missing from Spreadsheet
+              <i class="fa-solid fa-circle-arrow-down text-blue-400"></i> On Setlist.fm Profile but Missing from Shows
             </h2>
-            <p class="text-xs text-slate-400 mt-0.5">Shows marked as "I was there" on Setlist.fm that aren't matched in your spreadsheet.</p>
+            <p class="text-xs text-slate-400 mt-0.5">Shows marked as "I was there" on Setlist.fm that aren't matched in your shows.</p>
           </div>
           <span class="badge bg-blue-500/20 text-blue-300 border border-blue-500/30">{{ gap.setlist_only|length }} Shows</span>
         </div>
@@ -962,7 +1493,7 @@
               <tr class="hover:bg-slate-800/40 transition">
                 <td class="px-4 py-3 font-mono text-xs text-blue-300 whitespace-nowrap">{{ item.display_date }}</td>
                 <td class="px-4 py-3 font-medium text-white">
-                  <button onclick="jumpToSongInDrilldown('{{ item.artist.name.replace('\'', '\\\'') }}', '')" class="hover:underline hover:text-indigo-300 font-medium text-white text-left">
+                  <button onclick="jumpToSongInDrilldown('{{ item.artist.name|escapejs }}', '')" class="hover:underline hover:text-indigo-300 font-medium text-white text-left">
                     {{ item.artist.name }}
                   </button>
                 </td>
@@ -1003,12 +1534,12 @@
         <span class="text-[10px] tracking-tight truncate mt-0.5">Concerts</span>
       </button>
 
-      <!-- 3. Add Concert (Center Action Button) -->
-      <button onclick="window.scrollTo({top: 0, behavior: 'smooth'})" id="mobile-tab-add-btn" class="flex flex-col items-center justify-center -mt-4 group cursor-pointer" title="Analytics">
+      <!-- 3. Add Concert (Center Raised Action Button) -->
+      <button onclick="openAddConcertModal()" id="mobile-tab-add-btn" class="flex flex-col items-center justify-center -mt-4 group cursor-pointer" title="Add Concert">
         <div class="w-11 h-11 rounded-full bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/40 border-2 border-slate-900 group-active:scale-90 group-hover:scale-105 transition-all">
-          <i class="fa-solid fa-guitar text-base"></i>
+          <i class="fa-solid fa-plus text-base font-bold"></i>
         </div>
-        <span class="text-[10px] text-slate-300 font-semibold tracking-tight mt-0.5">Setlore</span>
+        <span class="text-[10px] text-slate-300 font-semibold tracking-tight mt-0.5">Add</span>
       </button>
 
       <!-- 4. Artists & Songs -->
@@ -1019,8 +1550,8 @@
         <span class="text-[10px] tracking-tight truncate mt-0.5">Artists</span>
       </button>
 
-      <!-- 5. More & Sections -->
-      <button onclick="toggleMobileMoreMenu()" id="mobile-tab-more-btn" class="mobile-nav-tab relative flex flex-col items-center justify-center py-1 px-1 rounded-xl text-slate-400 hover:text-slate-200 font-medium transition-all group cursor-pointer" title="More sections">
+      <!-- 5. More & Profile Menu -->
+      <button onclick="toggleMobileMoreMenu()" id="mobile-tab-more-btn" class="mobile-nav-tab relative flex flex-col items-center justify-center py-1 px-1 rounded-xl text-slate-400 hover:text-slate-200 font-medium transition-all group cursor-pointer" title="More sections & profile">
         <div class="w-8 h-7 flex items-center justify-center rounded-lg transition relative">
           <i id="mobile-more-icon" class="fa-solid fa-ellipsis text-lg transition-transform group-active:scale-90"></i>
           <span id="mobile-more-active-dot" class="hidden absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
@@ -1030,103 +1561,200 @@
     </div>
   </nav>
 
-  <!-- Mobile "More" Second-Level Navigation Sheet / Modal -->
+  <!-- Mobile "More" Second-Level Navigation & Profile Sheet / Modal -->
   <div id="mobile-more-sheet" class="hidden fixed inset-0 z-50 md:hidden flex flex-col justify-end">
     <!-- Backdrop -->
     <div id="mobile-more-backdrop" onclick="closeMobileMoreMenu()" class="fixed inset-0 bg-black/70 backdrop-blur-sm transition-opacity opacity-0"></div>
 
     <!-- Sheet Content -->
-    <div id="mobile-more-content" class="relative z-10 bg-slate-900 border-t border-slate-700/80 rounded-t-3xl p-5 shadow-2xl transform translate-y-full transition-transform duration-300 ease-out max-h-[85vh] overflow-y-auto pb-[max(1.5rem,env(safe-area-inset-bottom,0px))] space-y-4">
+    <div id="mobile-more-content" class="relative z-10 bg-slate-900 border-t border-slate-700/80 rounded-t-3xl p-5 shadow-2xl transform translate-y-full transition-transform duration-300 ease-out max-h-[88vh] overflow-y-auto pb-[max(1.5rem,env(safe-area-inset-bottom,0px))] space-y-4">
       <!-- iOS Drag Handle -->
       <div class="w-12 h-1.5 bg-slate-700 rounded-full mx-auto cursor-pointer" onclick="closeMobileMoreMenu()"></div>
 
-      <div class="flex items-center justify-between pb-2 border-b border-slate-800">
-        <div>
-          <h3 class="text-base font-bold text-white flex items-center gap-2">
-            <i class="fa-solid fa-layer-group text-indigo-400"></i> More Sections
-          </h3>
-          <p class="text-xs text-slate-400">Second-level analytics & audit tools</p>
+      <!-- User Profile Header -->
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div class="flex items-center gap-3 min-w-0">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white text-base shadow-sm shrink-0">
+            <i class="fa-solid fa-user"></i>
+          </div>
+          <div class="min-w-0 flex-1">
+            <p class="text-sm font-bold text-white truncate">{{ request.user.username }}</p>
+            <div id="mobile-setlist-badge">
+              {% if profile.setlistfm_username %}
+                <p class="text-[11px] text-amber-300 truncate flex items-center gap-1">
+                  <i class="fa-brands fa-lastfm text-[10px]"></i> @<span class="user-setlist-name">{{ profile.setlistfm_username }}</span>
+                </p>
+              {% else %}
+                <p class="text-[11px] text-amber-400/90 flex items-center gap-1 cursor-pointer hover:underline" onclick="openProfileModal(); closeMobileMoreMenu();">
+                  <i class="fa-brands fa-lastfm text-[10px]"></i> Link Setlist.fm account
+                </p>
+              {% endif %}
+            </div>
+          </div>
         </div>
         <button onclick="closeMobileMoreMenu()" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center transition cursor-pointer" aria-label="Close menu">
           <i class="fa-solid fa-xmark text-sm"></i>
         </button>
       </div>
 
+      <!-- Quick Actions (Sync, Setlist Settings & Imports) -->
       <div class="space-y-2">
-        <!-- Venue Map -->
-        <button onclick="switchTab('map'); closeMobileMoreMenu();" id="mobile-sheet-tab-map-btn" class="w-full flex items-center justify-between p-2.5 rounded-xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600 transition text-left group cursor-pointer">
+        <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Quick Actions</p>
+        
+        <!-- Mobile Sync Button -->
+        <button id="mobile-sync-btn" onclick="triggerSync()" class="w-full flex items-center justify-between p-3 rounded-2xl bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/40 text-indigo-200 transition cursor-pointer shadow-sm group">
           <div class="flex items-center gap-3">
-            <div class="w-8 h-8 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 group-hover:scale-105 transition shrink-0">
-              <i class="fa-solid fa-map-location-dot text-sm"></i>
+            <div class="w-9 h-9 rounded-xl bg-indigo-500/25 flex items-center justify-center text-indigo-400">
+              <i id="mobile-sync-btn-icon" class="fa-solid fa-rotate text-sm"></i>
             </div>
-            <div>
-              <p class="text-xs font-semibold text-white group-hover:text-emerald-300 transition">Venue Map</p>
-              <p class="text-[11px] text-slate-400">Interactive concert venues & geolocation</p>
+            <div class="text-left">
+              <p class="text-xs font-bold text-white"><span id="mobile-sync-btn-text">Sync</span></p>
+              <p class="text-[11px] text-indigo-300/70">Fetch latest data & update profile</p>
             </div>
           </div>
-          <i class="fa-solid fa-chevron-right text-slate-500 text-xs"></i>
+          <i class="fa-solid fa-chevron-right text-indigo-400/60 text-xs"></i>
         </button>
 
-        <!-- Musicians -->
-        <button onclick="switchTab('musicians'); closeMobileMoreMenu();" id="mobile-sheet-tab-musicians-btn" class="w-full flex items-center justify-between p-2.5 rounded-xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600 transition text-left group cursor-pointer">
+        <!-- Setlist.fm Settings Button in Mobile Sheet -->
+        <button type="button" onclick="openProfileModal(); closeMobileMoreMenu();" class="w-full flex items-center justify-between p-3 rounded-2xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-200 transition cursor-pointer shadow-sm group">
           <div class="flex items-center gap-3">
-            <div class="w-8 h-8 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 group-hover:scale-105 transition shrink-0">
-              <i class="fa-solid fa-users-viewfinder text-sm"></i>
+            <div class="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400">
+              <i class="fa-solid fa-user-gear text-sm"></i>
             </div>
-            <div>
-              <p class="text-xs font-semibold text-white group-hover:text-amber-300 transition">Musicians</p>
-              <p class="text-[11px] text-slate-400">Band lineups & live musician tracking</p>
+            <div class="text-left">
+              <p class="text-xs font-bold text-white">Setlist.fm Settings</p>
+              <p class="text-[11px] text-amber-300/70">Configure username & sync preferences</p>
             </div>
           </div>
-          <i class="fa-solid fa-chevron-right text-slate-500 text-xs"></i>
+          <i class="fa-solid fa-chevron-right text-amber-400/60 text-xs"></i>
         </button>
 
-        <!-- Albums & Eras -->
-        <button onclick="switchTab('advanced'); closeMobileMoreMenu();" id="mobile-sheet-tab-advanced-btn" class="w-full flex items-center justify-between p-2.5 rounded-xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600 transition text-left group cursor-pointer">
-          <div class="flex items-center gap-3">
-            <div class="w-8 h-8 rounded-lg bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 group-hover:scale-105 transition shrink-0">
-              <i class="fa-solid fa-wand-magic-sparkles text-sm"></i>
-            </div>
-            <div>
-              <p class="text-xs font-semibold text-white group-hover:text-cyan-300 transition">Albums & Eras</p>
-              <p class="text-[11px] text-slate-400">Album coverage, era charts & song age</p>
-            </div>
-          </div>
-          <i class="fa-solid fa-chevron-right text-slate-500 text-xs"></i>
-        </button>
+        <!-- Import Tools Grid -->
+        <div class="grid grid-cols-2 gap-2">
+          <button type="button" onclick="openUploadModal(); closeMobileMoreMenu();" class="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 text-xs font-semibold text-slate-200 transition cursor-pointer">
+            <i class="fa-solid fa-file-csv text-cyan-400 text-sm"></i>
+            <span>Import CSV</span>
+          </button>
+          <button type="button" onclick="openTicketmasterModal(); closeMobileMoreMenu();" class="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 text-xs font-semibold text-slate-200 transition cursor-pointer">
+            <i class="fa-solid fa-ticket text-emerald-400 text-sm"></i>
+            <span>Import TM</span>
+          </button>
+        </div>
+      </div>
 
-        <!-- Freshness -->
-        <button onclick="switchTab('setlists'); closeMobileMoreMenu();" id="mobile-sheet-tab-setlists-btn" class="w-full flex items-center justify-between p-2.5 rounded-xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600 transition text-left group cursor-pointer">
-          <div class="flex items-center gap-3">
-            <div class="w-8 h-8 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 group-hover:scale-105 transition shrink-0">
-              <i class="fa-solid fa-leaf text-sm"></i>
-            </div>
-            <div>
-              <p class="text-xs font-semibold text-white group-hover:text-emerald-300 transition">Freshness</p>
-              <p class="text-[11px] text-slate-400">Setlist cache freshness & sync state</p>
-            </div>
-          </div>
-          <i class="fa-solid fa-chevron-right text-slate-500 text-xs"></i>
-        </button>
-
-        <!-- Setlist Audit -->
-        <button onclick="switchTab('gap'); closeMobileMoreMenu();" id="mobile-sheet-tab-gap-btn" class="w-full flex items-center justify-between p-2.5 rounded-xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600 transition text-left group cursor-pointer">
-          <div class="flex items-center gap-3">
-            <div class="w-8 h-8 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 group-hover:scale-105 transition shrink-0">
-              <i class="fa-solid fa-clipboard-check text-sm"></i>
-            </div>
-            <div>
-              <div class="flex items-center gap-2">
-                <p class="text-xs font-semibold text-white group-hover:text-amber-300 transition">Setlist Audit</p>
-                {% if gap.csv_missing_or_partial|length > 0 %}
-                  <span class="bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold border border-amber-500/30">{{ gap.csv_missing_or_partial|length }}</span>
-                {% endif %}
+      <!-- Navigation Sections -->
+      <div class="space-y-2 pt-2 border-t border-slate-800">
+        <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Sections</p>
+        
+        <div class="space-y-2">
+          <!-- Venue Map -->
+          <button onclick="switchTab('map'); closeMobileMoreMenu();" id="mobile-sheet-tab-map-btn" class="w-full flex items-center justify-between p-2.5 rounded-xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600 transition text-left group cursor-pointer">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 group-hover:scale-105 transition shrink-0">
+                <i class="fa-solid fa-map-location-dot text-sm"></i>
               </div>
-              <p class="text-[11px] text-slate-400">Missing tracks & setlist discrepancy audit</p>
+              <div>
+                <p class="text-xs font-semibold text-white group-hover:text-emerald-300 transition">Venue Map</p>
+                <p class="text-[11px] text-slate-400">Interactive concert venues & geolocation</p>
+              </div>
             </div>
-          </div>
-          <i class="fa-solid fa-chevron-right text-slate-500 text-xs"></i>
-        </button>
+            <i class="fa-solid fa-chevron-right text-slate-500 text-xs"></i>
+          </button>
+
+          <!-- Musicians -->
+          <button onclick="switchTab('musicians'); closeMobileMoreMenu();" id="mobile-sheet-tab-musicians-btn" class="w-full flex items-center justify-between p-2.5 rounded-xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600 transition text-left group cursor-pointer">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 group-hover:scale-105 transition shrink-0">
+                <i class="fa-solid fa-users-viewfinder text-sm"></i>
+              </div>
+              <div>
+                <p class="text-xs font-semibold text-white group-hover:text-amber-300 transition">Musicians</p>
+                <p class="text-[11px] text-slate-400">Band lineups & live musician tracking</p>
+              </div>
+            </div>
+            <i class="fa-solid fa-chevron-right text-slate-500 text-xs"></i>
+          </button>
+
+          <!-- Albums & Eras -->
+          <button onclick="switchTab('advanced'); closeMobileMoreMenu();" id="mobile-sheet-tab-advanced-btn" class="w-full flex items-center justify-between p-2.5 rounded-xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600 transition text-left group cursor-pointer">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-lg bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 group-hover:scale-105 transition shrink-0">
+                <i class="fa-solid fa-wand-magic-sparkles text-sm"></i>
+              </div>
+              <div>
+                <p class="text-xs font-semibold text-white group-hover:text-cyan-300 transition">Albums & Eras</p>
+                <p class="text-[11px] text-slate-400">Album coverage, era charts & song age</p>
+              </div>
+            </div>
+            <i class="fa-solid fa-chevron-right text-slate-500 text-xs"></i>
+          </button>
+
+          <!-- Freshness -->
+          <button onclick="switchTab('setlists'); closeMobileMoreMenu();" id="mobile-sheet-tab-setlists-btn" class="w-full flex items-center justify-between p-2.5 rounded-xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600 transition text-left group cursor-pointer">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 group-hover:scale-105 transition shrink-0">
+                <i class="fa-solid fa-leaf text-sm"></i>
+              </div>
+              <div>
+                <p class="text-xs font-semibold text-white group-hover:text-emerald-300 transition">Freshness</p>
+                <p class="text-[11px] text-slate-400">Setlist cache freshness & sync state</p>
+              </div>
+            </div>
+            <i class="fa-solid fa-chevron-right text-slate-500 text-xs"></i>
+          </button>
+
+          <!-- Setlist Audit -->
+          <button onclick="switchTab('gap'); closeMobileMoreMenu();" id="mobile-sheet-tab-gap-btn" class="w-full flex items-center justify-between p-2.5 rounded-xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600 transition text-left group cursor-pointer">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 group-hover:scale-105 transition shrink-0">
+                <i class="fa-solid fa-clipboard-check text-sm"></i>
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <p class="text-xs font-semibold text-white group-hover:text-amber-300 transition">Setlist Audit</p>
+                  {% if gap.csv_missing_or_partial|length > 0 %}
+                    <span class="bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold border border-amber-500/30">{{ gap.csv_missing_or_partial|length }}</span>
+                  {% endif %}
+                </div>
+                <p class="text-[11px] text-slate-400">Missing tracks & setlist discrepancy audit</p>
+              </div>
+            </div>
+            <i class="fa-solid fa-chevron-right text-slate-500 text-xs"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Account Settings & Logout -->
+      <div class="pt-2 border-t border-slate-800 space-y-2">
+        <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Account</p>
+
+        <div class="space-y-1.5">
+          <a href="{% url 'password_change' %}" class="flex items-center justify-between p-2.5 rounded-xl bg-slate-800/50 hover:bg-slate-800 text-xs text-slate-300 hover:text-white transition">
+            <div class="flex items-center gap-2.5">
+              <i class="fa-solid fa-key text-indigo-400 w-4 text-center"></i>
+              <span>Change Password</span>
+            </div>
+            <i class="fa-solid fa-chevron-right text-slate-500 text-[10px]"></i>
+          </a>
+
+          {% if request.user.is_staff %}
+            <a href="/admin/" target="_blank" class="flex items-center justify-between p-2.5 rounded-xl bg-purple-950/30 hover:bg-purple-900/40 border border-purple-500/30 text-xs text-purple-200 transition">
+              <div class="flex items-center gap-2.5">
+                <i class="fa-solid fa-sliders text-purple-400 w-4 text-center"></i>
+                <span>Admin Portal</span>
+              </div>
+              <i class="fa-solid fa-arrow-up-right-from-square text-purple-400/70 text-[10px]"></i>
+            </a>
+          {% endif %}
+
+          <form method="post" action="{% url 'logout' %}" class="block m-0 pt-1">
+            {% csrf_token %}
+            <button type="submit" class="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-xs font-semibold text-rose-400 border border-rose-500/20 transition cursor-pointer">
+              <i class="fa-solid fa-arrow-right-from-bracket"></i>
+              <span>Log Out</span>
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   </div>
@@ -1138,11 +1766,29 @@
     let venueMap = null;
     let venueMarkers = {};
 
-    function switchTab(tabId, updateHash = true) {
+    function normalizeTab(tabId) {
+      const aliasMap = {
+        '': 'overview',
+        'overview': 'overview',
+        'concerts': 'concerts',
+        'drilldown': 'drilldown',
+        'artists': 'drilldown',
+        'musicians': 'musicians',
+        'map': 'map',
+        'venues': 'map',
+        'advanced': 'advanced',
+        'albums': 'advanced',
+        'setlists': 'setlists',
+        'freshness': 'setlists',
+        'gap': 'gap',
+        'audit': 'gap'
+      };
+      return aliasMap[String(tabId || '').toLowerCase().trim()] || 'overview';
+    }
+
+    function switchTab(tabId, updateUrl = true) {
+      tabId = normalizeTab(tabId);
       const validTabs = ['overview', 'concerts', 'drilldown', 'musicians', 'map', 'advanced', 'setlists', 'gap'];
-      if (!validTabs.includes(tabId)) {
-        tabId = 'overview';
-      }
 
       validTabs.forEach(t => {
         const tabEl = document.getElementById('tab-' + t);
@@ -1203,8 +1849,13 @@
             sheetBtn.className = 'w-full flex items-center justify-between p-2.5 rounded-xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600 transition text-left group cursor-pointer';
           }
         }
-      if (updateHash) {
-        history.replaceState(null, null, '#' + tabId);
+      });
+
+      if (updateUrl) {
+        const targetPath = (tabId === 'overview') ? '/' : `/${tabId}/`;
+        if (window.location.pathname !== targetPath || window.location.hash) {
+          history.pushState({ tabId: tabId }, '', targetPath);
+        }
       }
 
       if (tabId === 'map') {
@@ -1270,18 +1921,38 @@
       }
     }
 
-    // URL Hash deep linking support on page load and back/forward navigation
+    // URL path & legacy hash deep linking support on page load and back/forward navigation
     window.addEventListener('DOMContentLoaded', () => {
       const hash = window.location.hash.replace('#', '').trim();
       if (hash) {
-        switchTab(hash, false);
+        const resolvedTab = normalizeTab(hash);
+        const targetPath = (resolvedTab === 'overview') ? '/' : `/${resolvedTab}/`;
+        history.replaceState({ tabId: resolvedTab }, '', targetPath);
+        switchTab(resolvedTab, false);
+      } else {
+        const pathSegment = window.location.pathname.split('/').filter(Boolean)[0] || '';
+        const serverTab = "{{ initial_tab|default:'overview'|escapejs }}";
+        const targetTab = normalizeTab(pathSegment || serverTab);
+        switchTab(targetTab, false);
+      }
+    });
+
+    window.addEventListener('popstate', (event) => {
+      if (event.state && event.state.tabId) {
+        switchTab(event.state.tabId, false);
+      } else {
+        const pathSegment = window.location.pathname.split('/').filter(Boolean)[0] || '';
+        switchTab(normalizeTab(pathSegment), false);
       }
     });
 
     window.addEventListener('hashchange', () => {
       const hash = window.location.hash.replace('#', '').trim();
       if (hash) {
-        switchTab(hash, false);
+        const resolvedTab = normalizeTab(hash);
+        const targetPath = (resolvedTab === 'overview') ? '/' : `/${resolvedTab}/`;
+        history.replaceState({ tabId: resolvedTab }, '', targetPath);
+        switchTab(resolvedTab, false);
       }
     });
 
@@ -1413,12 +2084,47 @@
       }
     }
 
+    function handleFilterInput(inputId, clearBtnId, filterFn) {
+      const input = document.getElementById(inputId);
+      const clearBtn = document.getElementById(clearBtnId);
+      if (input && clearBtn) {
+        if (input.value && input.value.trim() !== '') {
+          clearBtn.classList.remove('hidden');
+        } else {
+          clearBtn.classList.add('hidden');
+        }
+      }
+      if (typeof filterFn === 'function') {
+        filterFn(input ? input.value : '');
+      }
+    }
+
+    function clearFilterField(inputId, clearBtnId, filterFn) {
+      const input = document.getElementById(inputId);
+      const clearBtn = document.getElementById(clearBtnId);
+      if (input) {
+        input.value = '';
+        input.focus();
+      }
+      if (clearBtn) {
+        clearBtn.classList.add('hidden');
+      }
+      if (typeof filterFn === 'function') {
+        filterFn('');
+      }
+    }
+
     function jumpToConcertInDrilldown(venueName, date) {
       switchTab('concerts');
       const searchInput = document.getElementById('concert-search-input');
+      const clearBtn = document.getElementById('concert-search-clear');
       const query = date || venueName || '';
       if (searchInput) {
         searchInput.value = query;
+        if (clearBtn) {
+          if (query) clearBtn.classList.remove('hidden');
+          else clearBtn.classList.add('hidden');
+        }
         filterConcertCards(query);
       }
       // Expand matching concert cards when jumping to them and smoothly scroll to the first match
@@ -1568,8 +2274,13 @@
       });
 
       const songFilterInput = document.getElementById('drilldown-song-filter');
+      const songClearBtn = document.getElementById('drilldown-song-clear');
       if (songFilterInput) {
         songFilterInput.value = songName || '';
+        if (songClearBtn) {
+          if (songName) songClearBtn.classList.remove('hidden');
+          else songClearBtn.classList.add('hidden');
+        }
       }
 
       renderArtistSongs(data.songs);
@@ -1592,6 +2303,17 @@
     function renderArtistSongs(songs) {
       const container = document.getElementById('drilldown-songs-container');
       container.innerHTML = '';
+
+      if (!songs || songs.length === 0) {
+        container.innerHTML = `
+          <div class="p-8 text-center glass-card rounded-xl border border-slate-800 space-y-2">
+            <i class="fa-solid fa-compact-disc text-3xl text-slate-600 block mb-2"></i>
+            <p class="text-sm font-semibold text-slate-300">No setlist songs recorded yet for this artist.</p>
+            <p class="text-xs text-slate-500">Click <strong class="text-indigo-400">Sync</strong> in the header to import live song setlists.</p>
+          </div>
+        `;
+        return;
+      }
 
       songs.forEach((s, idx) => {
         const item = document.createElement('div');
@@ -1756,6 +2478,13 @@
       colorway: ['#6366f1', '#a855f7', '#ec4899', '#10b981', '#f59e0b', '#3b82f6']
     };
 
+    const staticOverviewLayout = {
+      dragmode: false,
+      xaxis: { fixedrange: true },
+      yaxis: { fixedrange: true },
+      yaxis2: { fixedrange: true }
+    };
+
     Plotly.newPlot(
       'chart-timeline',
       timelineData.data,
@@ -1846,12 +2575,1032 @@
         }
       });
     }
+  </script>
+
+  <script>
+    function getCookie(name) {
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+          const cookie = cookies[i].trim();
+          if (cookie.substring(0, name.length + 1) === (name + '=')) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+          }
+        }
+      }
+      return cookieValue;
+    }
+
+    function openUploadModal() { document.getElementById('upload-modal').classList.remove('hidden'); }
+    function closeUploadModal() { document.getElementById('upload-modal').classList.add('hidden'); }
+    function updateFileName(input) {
+      if (input.files && input.files[0]) {
+        document.getElementById('file-label').innerText = input.files[0].name;
+      }
+    }
+
+    async function submitCsvUpload(e) {
+      e.preventDefault();
+      const fileInput = document.getElementById('csv-file-input');
+      if (!fileInput.files[0]) return;
+      const btn = document.getElementById('upload-submit-btn');
+      btn.disabled = true;
+      btn.innerText = 'Uploading...';
+
+      const formData = new FormData();
+      formData.append('csv_file', fileInput.files[0]);
+
+      try {
+        const res = await fetch('/api/upload-csv/', {
+          method: 'POST',
+          headers: { 'X-CSRFToken': getCookie('csrftoken') },
+          body: formData
+        });
+        const data = await res.json();
+        if (res.ok) {
+          closeUploadModal();
+          startSyncPolling();
+        } else {
+          alert('Upload failed: ' + (data.error || 'Unknown error'));
+        }
+      } catch (err) {
+        alert('Error: ' + err);
+      } finally {
+        btn.disabled = false;
+        btn.innerText = 'Upload & Sync';
+      }
+    }
+
+    function setupModalAutocomplete(inputId, dropdownId, type, options = {}) {
+      const input = document.getElementById(inputId);
+      const dropdown = document.getElementById(dropdownId);
+      if (!input || !dropdown) return;
+
+      let debounceTimer = null;
+      let cachedRecent = null;
+
+      async function fetchSuggestions(query = '') {
+        try {
+          const res = await fetch(`/api/autocomplete/?type=${encodeURIComponent(type)}&q=${encodeURIComponent(query)}`);
+          if (!res.ok) return [];
+          const data = await res.json();
+          return data.results || [];
+        } catch (e) {
+          console.error('Autocomplete fetch error:', e);
+          return [];
+        }
+      }
+
+      function renderItems(items, query) {
+        if (!items || items.length === 0) {
+          if (query) {
+            dropdown.innerHTML = `<div class="px-3 py-2 text-[11px] text-slate-500 italic">No matches in catalog</div>`;
+            dropdown.classList.remove('hidden');
+          } else {
+            dropdown.classList.add('hidden');
+          }
+          return;
+        }
+
+        let html = '';
+        if (!query) {
+          const label = type === 'venue' ? 'Venues' : type === 'artist' ? 'Artists' : type === 'city' ? 'Cities' : 'States';
+          html += `<div class="px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-indigo-400 bg-slate-950/70 flex items-center gap-1.5"><i class="fa-solid fa-clock-rotate-left text-[9px]"></i> Recent ${label}</div>`;
+        }
+
+        items.forEach((item, idx) => {
+          const name = item.name || '';
+          let subText = '';
+          if (type === 'venue' && (item.city || item.state)) {
+            const loc = [item.city, item.state].filter(Boolean).join(', ');
+            subText = `<span class="text-[10px] text-slate-400 font-normal truncate ml-2">${escapeHtml(loc)}</span>`;
+          }
+          const recentIcon = (item.is_recent && query) ? `<i class="fa-solid fa-clock-rotate-left text-indigo-400/80 text-[9px] mr-1.5" title="Recently attended"></i>` : '';
+
+          html += `
+            <div class="autocomplete-item px-3 py-2 text-xs text-slate-200 hover:bg-indigo-600/20 active:bg-indigo-600/30 hover:text-white cursor-pointer flex items-center justify-between transition-colors select-none" data-index="${idx}">
+              <div class="flex items-center min-w-0 truncate">
+                ${recentIcon}<span class="font-medium truncate">${escapeHtml(name)}</span>
+              </div>
+              ${subText}
+            </div>
+          `;
+        });
+
+        dropdown.innerHTML = html;
+        dropdown.classList.remove('hidden');
+
+        dropdown.querySelectorAll('.autocomplete-item').forEach(el => {
+          el.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            const idx = parseInt(el.getAttribute('data-index'), 10);
+            const selected = items[idx];
+            selectItem(selected);
+          });
+        });
+      }
+
+      function selectItem(item) {
+        if (!item) return;
+        if (options.multi) {
+          const curVal = input.value;
+          const tokens = curVal.split(',').map(s => s.trim());
+          tokens.pop();
+          tokens.push(item.name);
+          input.value = tokens.join(', ') + ', ';
+        } else {
+          input.value = item.name;
+          if (type === 'venue') {
+            const cityInput = document.getElementById('add-concert-city');
+            const stateInput = document.getElementById('add-concert-state');
+            if (cityInput && !cityInput.value && item.city) {
+              cityInput.value = item.city;
+            }
+            if (stateInput && !stateInput.value && item.state) {
+              stateInput.value = item.state;
+            }
+          }
+        }
+        dropdown.classList.add('hidden');
+        input.focus();
+      }
+
+      async function triggerSearch(forceOpen = false) {
+        let query = input.value.trim();
+        if (options.multi) {
+          const tokens = input.value.split(',');
+          query = tokens[tokens.length - 1].trim();
+        }
+
+        if (!query) {
+          if (cachedRecent) {
+            renderItems(cachedRecent, '');
+          } else {
+            const items = await fetchSuggestions('');
+            cachedRecent = items;
+            renderItems(items, '');
+          }
+        } else {
+          const items = await fetchSuggestions(query);
+          renderItems(items, query);
+        }
+      }
+
+      input.addEventListener('focus', () => {
+        triggerSearch(true);
+      });
+
+      input.addEventListener('click', () => {
+        if (dropdown.classList.contains('hidden')) {
+          triggerSearch(true);
+        }
+      });
+
+      input.addEventListener('input', () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+          triggerSearch();
+        }, 150);
+      });
+    }
+
+    document.addEventListener('pointerdown', (e) => {
+      const modal = document.getElementById('add-concert-modal');
+      if (!modal || modal.classList.contains('hidden')) return;
+      const dropdowns = [
+        { d: document.getElementById('venue-suggestions'), i: document.getElementById('add-concert-venue') },
+        { d: document.getElementById('city-suggestions'), i: document.getElementById('add-concert-city') },
+        { d: document.getElementById('state-suggestions'), i: document.getElementById('add-concert-state') },
+        { d: document.getElementById('artist-suggestions'), i: document.getElementById('add-concert-artist') },
+        { d: document.getElementById('supporting-suggestions'), i: document.getElementById('add-concert-supporting') },
+      ];
+      dropdowns.forEach(({ d, i }) => {
+        if (d && !d.contains(e.target) && i && !i.contains(e.target)) {
+          d.classList.add('hidden');
+        }
+      });
+    });
+
+    function initAddConcertAutocomplete() {
+      setupModalAutocomplete('add-concert-venue', 'venue-suggestions', 'venue');
+      setupModalAutocomplete('add-concert-city', 'city-suggestions', 'city');
+      setupModalAutocomplete('add-concert-state', 'state-suggestions', 'state');
+      setupModalAutocomplete('add-concert-artist', 'artist-suggestions', 'artist');
+      setupModalAutocomplete('add-concert-supporting', 'supporting-suggestions', 'artist', { multi: true });
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initAddConcertAutocomplete);
+    } else {
+      initAddConcertAutocomplete();
+    }
+
+    function openAddConcertModal() {
+      const modal = document.getElementById('add-concert-modal');
+      const dateInput = document.getElementById('add-concert-date');
+      const statusBox = document.getElementById('add-concert-status');
+      if (statusBox) {
+        statusBox.classList.add('hidden');
+        statusBox.innerHTML = '';
+      }
+      if (modal) {
+        modal.classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+      }
+      if (dateInput && !dateInput.value) {
+        dateInput.value = new Date().toISOString().split('T')[0];
+      }
+    }
+
+    function closeAddConcertModal() {
+      const modal = document.getElementById('add-concert-modal');
+      if (modal) modal.classList.add('hidden');
+      document.body.classList.remove('overflow-hidden');
+      ['venue-suggestions', 'city-suggestions', 'state-suggestions', 'artist-suggestions', 'supporting-suggestions'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('hidden');
+      });
+    }
+
+    function toggleAddSetlistSection() {
+      const container = document.getElementById('add-setlist-container');
+      const chevron = document.getElementById('add-setlist-chevron');
+      if (container) {
+        container.classList.toggle('hidden');
+        if (chevron) {
+          chevron.classList.toggle('rotate-180');
+        }
+      }
+    }
+
+    async function submitAddConcert(e) {
+      e.preventDefault();
+      const btn = document.getElementById('add-concert-submit-btn');
+      const statusBox = document.getElementById('add-concert-status');
+
+      const payload = {
+        date: document.getElementById('add-concert-date').value,
+        venue_name: document.getElementById('add-concert-venue').value,
+        city: document.getElementById('add-concert-city').value,
+        state: document.getElementById('add-concert-state').value,
+        primary_artist: document.getElementById('add-concert-artist').value,
+        supporting_artists: document.getElementById('add-concert-supporting').value,
+        notes: document.getElementById('add-concert-notes').value,
+        setlist_text: document.getElementById('add-concert-setlist').value,
+        is_custom_offline: document.getElementById('add-concert-offline') ? document.getElementById('add-concert-offline').checked : false
+      };
+
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> Saving...';
+      if (statusBox) {
+        statusBox.classList.remove('hidden', 'bg-rose-950/60', 'text-rose-200', 'border-rose-500/40', 'bg-emerald-950/60', 'text-emerald-200', 'border-emerald-500/40');
+        statusBox.classList.add('bg-indigo-950/50', 'text-indigo-200', 'border', 'border-indigo-500/40');
+        statusBox.innerHTML = '<i class="fa-solid fa-spinner animate-spin mr-1.5"></i> Logging concert and updating catalog...';
+      }
+
+      try {
+        const res = await fetch('/api/concerts/add/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+          },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          if (statusBox) {
+            statusBox.classList.remove('bg-indigo-950/50', 'text-indigo-200', 'border-indigo-500/40');
+            statusBox.classList.add('bg-emerald-950/60', 'text-emerald-200', 'border', 'border-emerald-500/40');
+            statusBox.innerHTML = '<i class="fa-solid fa-circle-check mr-1.5 text-emerald-400"></i> ' + (data.message || 'Concert logged successfully! Reloading...');
+          }
+          setTimeout(() => {
+            window.location.reload();
+          }, 900);
+        } else {
+          if (statusBox) {
+            statusBox.classList.remove('bg-indigo-950/50', 'text-indigo-200', 'border-indigo-500/40');
+            statusBox.classList.add('bg-rose-950/60', 'text-rose-200', 'border', 'border-rose-500/40');
+            statusBox.innerHTML = '<i class="fa-solid fa-circle-exclamation mr-1.5 text-rose-400"></i> ' + (data.error || 'Failed to add concert.');
+          }
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fa-solid fa-check"></i> Save Concert';
+        }
+      } catch (err) {
+        if (statusBox) {
+          statusBox.classList.remove('bg-indigo-950/50', 'text-indigo-200', 'border-indigo-500/40');
+          statusBox.classList.add('bg-rose-950/60', 'text-rose-200', 'border', 'border-rose-500/40');
+          statusBox.innerHTML = '<i class="fa-solid fa-circle-exclamation mr-1.5 text-rose-400"></i> ' + err.message;
+        }
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-check"></i> Save Concert';
+      }
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    window.userProfile = {
+      username: "{{ request.user.username|escapejs }}",
+      setlistfmUsername: "{{ profile.setlistfm_username|default:''|escapejs }}",
+      promptSetlistfm: {{ profile.prompt_setlistfm|yesno:"true,false" }},
+      hasApiKey: {{ profile.setlistfm_api_key|yesno:"true,false" }}
+    };
+
+    function updateSetlistBadges(username) {
+      const desktopBadge = document.getElementById('desktop-setlist-badge');
+      const mobileBadge = document.getElementById('mobile-setlist-badge');
+      
+      if (username) {
+        if (desktopBadge) {
+          desktopBadge.innerHTML = `<p class="text-[11px] text-slate-400 truncate flex items-center gap-1"><i class="fa-brands fa-lastfm text-amber-400 text-[10px]"></i> @<span class="user-setlist-name">${escapeHtml(username)}</span></p>`;
+        }
+        if (mobileBadge) {
+          mobileBadge.innerHTML = `<p class="text-[11px] text-amber-300 truncate flex items-center gap-1"><i class="fa-brands fa-lastfm text-[10px]"></i> @<span class="user-setlist-name">${escapeHtml(username)}</span></p>`;
+        }
+      } else {
+        if (desktopBadge) {
+          desktopBadge.innerHTML = `<p class="text-[11px] text-amber-400/90 truncate flex items-center gap-1 cursor-pointer hover:underline" onclick="openProfileModal(); closeUserMenu();"><i class="fa-brands fa-lastfm text-[10px]"></i> Link Setlist.fm</p>`;
+        }
+        if (mobileBadge) {
+          mobileBadge.innerHTML = `<p class="text-[11px] text-amber-400/90 flex items-center gap-1 cursor-pointer hover:underline" onclick="openProfileModal(); closeMobileMoreMenu();"><i class="fa-brands fa-lastfm text-[10px]"></i> Link Setlist.fm account</p>`;
+        }
+      }
+    }
+
+    function openProfileModal() {
+      const modal = document.getElementById('profile-modal');
+      const userInp = document.getElementById('profile-setlist-username');
+      const promptChk = document.getElementById('profile-prompt-sync');
+      const alertBox = document.getElementById('profile-modal-alert');
+
+      if (userInp) userInp.value = window.userProfile.setlistfmUsername || '';
+      if (promptChk) promptChk.checked = Boolean(window.userProfile.promptSetlistfm);
+      if (alertBox) {
+        alertBox.classList.add('hidden');
+        alertBox.innerHTML = '';
+      }
+      if (modal) modal.classList.remove('hidden');
+    }
+
+    function closeProfileModal() {
+      const modal = document.getElementById('profile-modal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function toggleAdvancedProfileSettings() {
+      const content = document.getElementById('advanced-profile-content');
+      const chevron = document.getElementById('advanced-profile-chevron');
+      if (content) {
+        content.classList.toggle('hidden');
+        if (chevron) {
+          chevron.classList.toggle('rotate-180');
+        }
+      }
+    }
+
+    async function saveProfileSettings(e, andSync = false) {
+      if (e && e.preventDefault) e.preventDefault();
+      const userInp = document.getElementById('profile-setlist-username');
+      const apiKeyInp = document.getElementById('profile-setlist-apikey');
+      const promptChk = document.getElementById('profile-prompt-sync');
+      const alertBox = document.getElementById('profile-modal-alert');
+      const saveBtn = document.getElementById('profile-save-btn');
+      const saveSyncBtn = document.getElementById('profile-save-sync-btn');
+
+      const setlistUsername = userInp ? userInp.value.trim().replace(/^@/, '') : '';
+      const setlistApiKey = apiKeyInp ? apiKeyInp.value.trim() : '';
+      const promptSetlistfm = promptChk ? promptChk.checked : true;
+
+      if (saveBtn) saveBtn.disabled = true;
+      if (saveSyncBtn) saveSyncBtn.disabled = true;
+      if (alertBox) {
+        alertBox.classList.remove('hidden', 'bg-emerald-950/60', 'text-emerald-200', 'border-emerald-500/40', 'bg-rose-950/60', 'text-rose-200', 'border-rose-500/40');
+        alertBox.classList.add('bg-slate-900', 'text-slate-300', 'border', 'border-slate-700');
+        alertBox.innerHTML = '<i class="fa-solid fa-circle-notch animate-spin mr-1.5 text-amber-400"></i> Saving settings...';
+      }
+
+      try {
+        const payload = {
+          setlistfm_username: setlistUsername,
+          setlistfm_api_key: setlistApiKey,
+          prompt_setlistfm: promptSetlistfm,
+          trigger_sync: andSync
+        };
+
+        const res = await fetch('/api/profile/update/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (res.ok && data.status === 'ok') {
+          window.userProfile.setlistfmUsername = data.profile.setlistfm_username || '';
+          window.userProfile.promptSetlistfm = Boolean(data.profile.prompt_setlistfm);
+          updateSetlistBadges(window.userProfile.setlistfmUsername);
+
+          if (alertBox) {
+            alertBox.classList.remove('bg-slate-900', 'text-slate-300', 'border-slate-700');
+            alertBox.classList.add('bg-emerald-950/60', 'text-emerald-200', 'border', 'border-emerald-500/40');
+            alertBox.innerHTML = '<i class="fa-solid fa-circle-check mr-1.5 text-emerald-400"></i> ' + (andSync ? 'Settings saved! Starting sync...' : 'Settings updated successfully.');
+          }
+
+          if (andSync) {
+            setTimeout(() => {
+              closeProfileModal();
+              startSyncPolling();
+            }, 600);
+          } else {
+            setTimeout(() => {
+              closeProfileModal();
+            }, 1000);
+          }
+        } else {
+          if (alertBox) {
+            alertBox.classList.remove('bg-slate-900', 'text-slate-300', 'border-slate-700');
+            alertBox.classList.add('bg-rose-950/60', 'text-rose-200', 'border', 'border-rose-500/40');
+            alertBox.innerHTML = '<i class="fa-solid fa-circle-exclamation mr-1.5 text-rose-400"></i> ' + (data.error || 'Failed to update profile.');
+          }
+        }
+      } catch (err) {
+        if (alertBox) {
+          alertBox.classList.remove('bg-slate-900', 'text-slate-300', 'border-slate-700');
+          alertBox.classList.add('bg-rose-950/60', 'text-rose-200', 'border', 'border-rose-500/40');
+          alertBox.innerHTML = '<i class="fa-solid fa-circle-exclamation mr-1.5 text-rose-400"></i> ' + err.message;
+        }
+      } finally {
+        if (saveBtn) saveBtn.disabled = false;
+        if (saveSyncBtn) saveSyncBtn.disabled = false;
+      }
+    }
+
+    function openSetlistPromptModal() {
+      const modal = document.getElementById('setlist-prompt-modal');
+      const userInp = document.getElementById('sync-prompt-username');
+      const dontAskChk = document.getElementById('sync-prompt-dont-ask');
+
+      if (userInp) {
+        userInp.value = '';
+        setTimeout(() => userInp.focus(), 100);
+      }
+      if (dontAskChk) dontAskChk.checked = false;
+      if (modal) modal.classList.remove('hidden');
+    }
+
+    function closeSetlistPromptModal() {
+      const modal = document.getElementById('setlist-prompt-modal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    async function submitSyncPrompt(saveUsername) {
+      const userInp = document.getElementById('sync-prompt-username');
+      const dontAskChk = document.getElementById('sync-prompt-dont-ask');
+      const submitBtn = document.getElementById('sync-prompt-submit-btn');
+
+      const username = userInp ? userInp.value.trim().replace(/^@/, '') : '';
+      const dontAsk = dontAskChk ? dontAskChk.checked : false;
+
+      if (saveUsername) {
+        if (!username) {
+          if (userInp) {
+            userInp.focus();
+            userInp.classList.add('border-rose-500');
+            setTimeout(() => userInp.classList.remove('border-rose-500'), 1500);
+          }
+          return;
+        }
+
+        if (submitBtn) submitBtn.disabled = true;
+        try {
+          const res = await fetch('/api/profile/update/', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+              setlistfm_username: username,
+              prompt_setlistfm: !dontAsk,
+              trigger_sync: true
+            })
+          });
+          const data = await res.json();
+          if (res.ok && data.status === 'ok') {
+            window.userProfile.setlistfmUsername = data.profile.setlistfm_username || '';
+            window.userProfile.promptSetlistfm = Boolean(data.profile.prompt_setlistfm);
+            updateSetlistBadges(window.userProfile.setlistfmUsername);
+            closeSetlistPromptModal();
+            startSyncPolling();
+          } else {
+            alert(data.error || 'Failed to update username.');
+          }
+        } catch (err) {
+          alert('Error: ' + err.message);
+        } finally {
+          if (submitBtn) submitBtn.disabled = false;
+        }
+      } else {
+        // Sync without linking
+        closeSetlistPromptModal();
+        if (dontAsk) {
+          fetch('/api/profile/update/', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+              prompt_setlistfm: false,
+              trigger_sync: true
+            })
+          }).then(res => res.json()).then(data => {
+            window.userProfile.promptSetlistfm = false;
+            startSyncPolling();
+          }).catch(() => {
+            triggerSync(true);
+          });
+        } else {
+          triggerSync(true);
+        }
+      }
+    }
+
+    let pollInterval = null;
+    async function triggerSync(force = false) {
+      // If user has not linked Setlist.fm and prompting is enabled, show the prompt modal
+      if (!force && !window.userProfile.setlistfmUsername && window.userProfile.promptSetlistfm) {
+        openSetlistPromptModal();
+        return;
+      }
+
+      const btn = document.getElementById('sync-btn');
+      const icon = document.getElementById('sync-btn-icon');
+      const text = document.getElementById('sync-btn-text');
+      const mBtn = document.getElementById('mobile-sync-btn');
+      const mIcon = document.getElementById('mobile-sync-btn-icon');
+      const mText = document.getElementById('mobile-sync-btn-text');
+
+      if (btn) btn.disabled = true;
+      if (icon) icon.classList.add('animate-spin');
+      if (text) text.innerText = 'Queuing...';
+      if (mBtn) mBtn.disabled = true;
+      if (mIcon) mIcon.classList.add('animate-spin');
+      if (mText) mText.innerText = 'Queuing sync...';
+
+      try {
+        const res = await fetch('/api/sync/', {
+          method: 'POST',
+          headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json'
+          }
+        });
+        if (res.ok) {
+          startSyncPolling();
+        } else {
+          if (btn) btn.disabled = false;
+          if (icon) icon.classList.remove('animate-spin');
+          if (text) text.innerText = 'Sync';
+          if (mBtn) mBtn.disabled = false;
+          if (mIcon) mIcon.classList.remove('animate-spin');
+          if (mText) mText.innerText = 'Sync';
+        }
+      } catch (e) {
+        console.error(e);
+        if (btn) btn.disabled = false;
+        if (icon) icon.classList.remove('animate-spin');
+        if (text) text.innerText = 'Sync';
+        if (mBtn) mBtn.disabled = false;
+        if (mIcon) mIcon.classList.remove('animate-spin');
+        if (mText) mText.innerText = 'Sync';
+      }
+    }
+
+    function startSyncPolling() {
+      const banner = document.getElementById('sync-banner');
+      const bannerText = document.getElementById('sync-banner-text');
+      const icon = document.getElementById('sync-btn-icon');
+      const text = document.getElementById('sync-btn-text');
+      const mIcon = document.getElementById('mobile-sync-btn-icon');
+      const mText = document.getElementById('mobile-sync-btn-text');
+      const mBtn = document.getElementById('mobile-sync-btn');
+
+      if (banner) banner.classList.remove('hidden');
+      if (icon) icon.classList.add('animate-spin');
+      if (text) text.innerText = 'Syncing...';
+      if (mIcon) mIcon.classList.add('animate-spin');
+      if (mText) mText.innerText = 'Syncing...';
+      if (mBtn) mBtn.disabled = true;
+
+      if (pollInterval) clearInterval(pollInterval);
+      pollInterval = setInterval(async () => {
+        try {
+          const res = await fetch('/api/sync/status/');
+          if (res.ok) {
+            const data = await res.json();
+            if (bannerText) bannerText.innerText = data.progress || 'Sync in progress...';
+            if (data.status === 'completed') {
+              clearInterval(pollInterval);
+              if (bannerText) bannerText.innerText = 'Sync complete! Reloading...';
+              setTimeout(() => { window.location.reload(); }, 1200);
+            } else if (data.status === 'error') {
+              clearInterval(pollInterval);
+              alert('Sync error: ' + data.progress);
+              if (banner) banner.classList.add('hidden');
+              if (icon) icon.classList.remove('animate-spin');
+              if (text) text.innerText = 'Sync';
+              if (mIcon) mIcon.classList.remove('animate-spin');
+              if (mText) mText.innerText = 'Sync';
+              if (mBtn) mBtn.disabled = false;
+            }
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }, 2000);
+    }
+
+    function closeUserMenu() {
+      const menu = document.getElementById('user-dropdown-menu');
+      const chevron = document.getElementById('user-menu-chevron');
+      const btn = document.getElementById('user-menu-btn');
+      if (menu) {
+        menu.classList.add('hidden');
+        if (chevron) chevron.classList.remove('rotate-180');
+        if (btn) btn.setAttribute('aria-expanded', 'false');
+      }
+    }
+
+    function toggleUserMenu() {
+      const menu = document.getElementById('user-dropdown-menu');
+      const chevron = document.getElementById('user-menu-chevron');
+      const btn = document.getElementById('user-menu-btn');
+      if (menu) {
+        const isHidden = menu.classList.contains('hidden');
+        if (isHidden) {
+          menu.classList.remove('hidden');
+          if (chevron) chevron.classList.add('rotate-180');
+          if (btn) btn.setAttribute('aria-expanded', 'true');
+        } else {
+          menu.classList.add('hidden');
+          if (chevron) chevron.classList.remove('rotate-180');
+          if (btn) btn.setAttribute('aria-expanded', 'false');
+        }
+      }
+    }
+
+    /* --- Ticketmaster Import Flow --- */
+    let tmParsedEvents = [];
+
+    function openTicketmasterModal() {
+      const modal = document.getElementById('ticketmaster-modal');
+      const inputStep = document.getElementById('tm-step-input');
+      const previewStep = document.getElementById('tm-step-preview');
+      const errorBox = document.getElementById('tm-paste-error');
+      if (modal) modal.classList.remove('hidden');
+      if (inputStep) inputStep.classList.remove('hidden');
+      if (previewStep) previewStep.classList.add('hidden');
+      if (errorBox) {
+        errorBox.classList.add('hidden');
+        errorBox.innerHTML = '';
+      }
+    }
+
+    function closeTicketmasterModal() {
+      const modal = document.getElementById('ticketmaster-modal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function backToTicketmasterPaste() {
+      const inputStep = document.getElementById('tm-step-input');
+      const previewStep = document.getElementById('tm-step-preview');
+      if (inputStep) inputStep.classList.remove('hidden');
+      if (previewStep) previewStep.classList.add('hidden');
+    }
+
+    async function parseTicketmasterPaste() {
+      const textarea = document.getElementById('tm-paste-text');
+      const errorBox = document.getElementById('tm-paste-error');
+      const parseBtn = document.getElementById('tm-parse-btn');
+      const rawText = textarea ? textarea.value.trim() : '';
+
+      if (!rawText) {
+        if (errorBox) {
+          errorBox.classList.remove('hidden');
+          errorBox.innerHTML = '<i class="fa-solid fa-circle-exclamation mr-1.5 text-rose-400"></i> Please paste your Ticketmaster past events list before parsing.';
+        }
+        return;
+      }
+
+      if (errorBox) {
+        errorBox.classList.add('hidden');
+        errorBox.innerHTML = '';
+      }
+
+      parseBtn.disabled = true;
+      parseBtn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> Parsing & Matching Setlists...';
+
+      try {
+        const res = await fetch('/api/ticketmaster/preview/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+          },
+          body: JSON.stringify({ raw_text: rawText })
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          tmParsedEvents = data.events || [];
+          renderTicketmasterPreview(data);
+          document.getElementById('tm-step-input').classList.add('hidden');
+          document.getElementById('tm-step-preview').classList.remove('hidden');
+        } else {
+          if (errorBox) {
+            errorBox.classList.remove('hidden');
+            errorBox.innerHTML = '<i class="fa-solid fa-circle-exclamation mr-1.5 text-rose-400"></i> ' + (data.error || 'Failed to parse events.');
+          }
+        }
+      } catch (err) {
+        if (errorBox) {
+          errorBox.classList.remove('hidden');
+          errorBox.innerHTML = '<i class="fa-solid fa-circle-exclamation mr-1.5 text-rose-400"></i> ' + err.message;
+        }
+      } finally {
+        parseBtn.disabled = false;
+        parseBtn.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i> Parse & Match Events';
+      }
+    }
+
+    function renderTicketmasterPreview(data) {
+      const summaryElem = document.getElementById('tm-preview-summary');
+      const listContainer = document.getElementById('tm-events-list');
+      const events = tmParsedEvents;
+
+      const dupCount = data.duplicates_count || 0;
+      const newCount = events.length - dupCount;
+
+      if (summaryElem) {
+        summaryElem.innerHTML = `Found <strong class="text-white">${events.length}</strong> event${events.length === 1 ? '' : 's'} (<span class="text-emerald-400">${newCount} new</span>, <span class="text-amber-400">${dupCount} existing duplicate${dupCount === 1 ? '' : 's'}</span>). Review and confirm before importing.`;
+      }
+
+      if (!listContainer) return;
+
+      if (events.length === 0) {
+        listContainer.innerHTML = `<div class="p-6 text-center text-slate-400 text-xs">No events parsed. Go back and check the pasted text.</div>`;
+        updateTmSelectedCountBadge();
+        return;
+      }
+
+      let html = '';
+      events.forEach((ev, idx) => {
+        const isDup = ev.is_duplicate;
+        const setlistMatch = ev.setlist_match;
+        const borderClass = isDup ? 'border-amber-500/40 bg-amber-950/10' : (setlistMatch ? 'border-emerald-500/40 bg-emerald-950/10' : 'border-slate-800 bg-slate-900/60');
+
+        let statusBadge = '';
+        if (isDup) {
+          statusBadge = `<span class="badge bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px]"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Already in Library</span>`;
+        } else if (setlistMatch) {
+          statusBadge = `<span class="badge bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px]"><i class="fa-solid fa-music mr-1"></i> Setlist Found (${setlistMatch.song_count} songs)</span>`;
+        } else {
+          statusBadge = `<span class="badge bg-slate-700/40 text-slate-300 border border-slate-600/30 text-[10px]"><i class="fa-solid fa-compact-disc mr-1"></i> Offline / Custom Show</span>`;
+        }
+
+        let setlistSelectHtml = '';
+        if (ev.available_setlists && ev.available_setlists.length > 0) {
+          const options = ev.available_setlists.map((sl, sIdx) => {
+            const isSelected = setlistMatch && setlistMatch.id === sl.id;
+            return `<option value="${sl.id}" ${isSelected ? 'selected' : ''}>${sl.artist} @ ${sl.location} (${sl.song_count} songs, score ${sl.score}%)</option>`;
+          }).join('');
+
+          setlistSelectHtml = `
+            <div class="mt-2 pt-2 border-t border-slate-800/80 flex flex-wrap items-center gap-2 text-xs">
+              <span class="text-slate-400 text-[11px] flex items-center gap-1"><i class="fa-brands fa-lastfm text-amber-400"></i> Setlist.fm Match:</span>
+              <select onchange="updateTmSetlistSelection(${idx}, this.value)" class="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-[11px] text-slate-200 focus:outline-none focus:border-indigo-500">
+                ${options}
+                <option value="">-- Do not link setlist (Log as offline show) --</option>
+              </select>
+              ${setlistMatch && setlistMatch.url ? `<a href="${setlistMatch.url}" target="_blank" class="text-emerald-400 hover:text-emerald-300 text-[11px] underline flex items-center gap-1" title="View on Setlist.fm"><i class="fa-solid fa-arrow-up-right-from-square"></i></a>` : ''}
+            </div>
+          `;
+        }
+
+        html += `
+          <div class="rounded-xl border ${borderClass} p-3.5 space-y-2 transition">
+            <div class="flex items-start justify-between gap-3">
+              <div class="flex items-start gap-3 min-w-0 flex-1">
+                <input type="checkbox" id="tm-check-${idx}" ${ev.selected ? 'checked' : ''} onchange="updateTmEventSelection(${idx}, this.checked)" class="mt-1 rounded border-slate-700 bg-slate-900 text-emerald-600 focus:ring-0 cursor-pointer">
+                <div class="min-w-0 flex-1">
+                  <div class="flex flex-wrap items-center gap-2 mb-1">
+                    <span class="text-xs font-mono font-semibold text-white px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700">${ev.display_date || ev.date}</span>
+                    <strong class="text-sm font-bold text-white truncate">${ev.artist}</strong>
+                    ${statusBadge}
+                  </div>
+                  <div class="text-xs text-slate-400 flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <span><i class="fa-solid fa-location-dot text-indigo-400 mr-1"></i> ${ev.venue}${ev.city ? ` (${ev.city}${ev.state ? `, ${ev.state}` : ''})` : ''}</span>
+                    ${ev.tour_notes ? `<span class="text-slate-400"><i class="fa-solid fa-tag text-purple-400 mr-1"></i> ${ev.tour_notes}</span>` : ''}
+                    ${ev.order_number ? `<span class="text-slate-500 font-mono text-[11px]"><i class="fa-solid fa-receipt text-slate-400 mr-1"></i> ${ev.order_number}</span>` : ''}
+                  </div>
+                  ${isDup ? `<p class="text-[11px] text-amber-400/90 mt-1 flex items-center gap-1"><i class="fa-solid fa-info-circle text-[10px]"></i> ${ev.duplicate_reason}</p>` : ''}
+                </div>
+              </div>
+            </div>
+            ${setlistSelectHtml}
+          </div>
+        `;
+      });
+
+      listContainer.innerHTML = html;
+      updateTmSelectedCountBadge();
+    }
+
+    function updateTmEventSelection(idx, isChecked) {
+      if (tmParsedEvents[idx]) {
+        tmParsedEvents[idx].selected = isChecked;
+      }
+      updateTmSelectedCountBadge();
+    }
+
+    function updateTmSetlistSelection(idx, selectedId) {
+      if (tmParsedEvents[idx]) {
+        if (!selectedId) {
+          tmParsedEvents[idx].setlist_match = null;
+        } else if (tmParsedEvents[idx].available_setlists) {
+          const matched = tmParsedEvents[idx].available_setlists.find(s => s.id === selectedId);
+          tmParsedEvents[idx].setlist_match = matched || null;
+        }
+        renderTicketmasterPreview({ duplicates_count: tmParsedEvents.filter(e => e.is_duplicate).length });
+      }
+    }
+
+    function toggleSelectAllTmEvents(selectNewOnly) {
+      tmParsedEvents.forEach(ev => {
+        if (selectNewOnly) {
+          ev.selected = !ev.is_duplicate;
+        } else {
+          ev.selected = false;
+        }
+      });
+      renderTicketmasterPreview({ duplicates_count: tmParsedEvents.filter(e => e.is_duplicate).length });
+    }
+
+    function updateTmSelectedCountBadge() {
+      const selected = tmParsedEvents.filter(e => e.selected).length;
+      const badge = document.getElementById('tm-selected-count-badge');
+      const confirmBtn = document.getElementById('tm-confirm-btn');
+      if (badge) {
+        badge.innerText = `${selected} selected`;
+      }
+      if (confirmBtn) {
+        confirmBtn.innerHTML = `<i class="fa-solid fa-file-import"></i> Confirm & Import Selected (${selected})`;
+        confirmBtn.disabled = (selected === 0);
+        if (selected === 0) {
+          confirmBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        } else {
+          confirmBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
+      }
+    }
+
+    async function submitTicketmasterImport() {
+      const selectedEvents = tmParsedEvents.filter(e => e.selected);
+      const confirmError = document.getElementById('tm-confirm-error');
+      const confirmBtn = document.getElementById('tm-confirm-btn');
+
+      if (selectedEvents.length === 0) {
+        if (confirmError) {
+          confirmError.classList.remove('hidden');
+          confirmError.innerHTML = '<i class="fa-solid fa-circle-exclamation mr-1.5 text-rose-400"></i> No events selected to import.';
+        }
+        return;
+      }
+
+      if (confirmError) {
+        confirmError.classList.add('hidden');
+        confirmError.innerHTML = '';
+      }
+
+      confirmBtn.disabled = true;
+      confirmBtn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> Importing...';
+
+      const payloadEvents = selectedEvents.map(ev => ({
+        date: ev.date,
+        artist: ev.artist,
+        venue: ev.venue,
+        city: ev.city,
+        state: ev.state,
+        country: ev.country || 'United States',
+        tour_notes: ev.tour_notes,
+        order_number: ev.order_number,
+        setlist_id: ev.setlist_match ? ev.setlist_match.id : ''
+      }));
+
+      try {
+        const res = await fetch('/api/ticketmaster/confirm/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+          },
+          body: JSON.stringify({ events: payloadEvents })
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          closeTicketmasterModal();
+          startSyncPolling();
+        } else {
+          if (confirmError) {
+            confirmError.classList.remove('hidden');
+            confirmError.innerHTML = '<i class="fa-solid fa-circle-exclamation mr-1.5 text-rose-400"></i> ' + (data.error || 'Import failed.');
+          }
+          confirmBtn.disabled = false;
+          confirmBtn.innerHTML = `<i class="fa-solid fa-file-import"></i> Confirm & Import Selected (${selectedEvents.length})`;
+        }
+      } catch (err) {
+        if (confirmError) {
+          confirmError.classList.remove('hidden');
+          confirmError.innerHTML = '<i class="fa-solid fa-circle-exclamation mr-1.5 text-rose-400"></i> ' + err.message;
+        }
+        confirmBtn.disabled = false;
+        confirmBtn.innerHTML = `<i class="fa-solid fa-file-import"></i> Confirm & Import Selected (${selectedEvents.length})`;
+      }
+    }
+
+    document.addEventListener('click', function(event) {
+      const container = document.getElementById('user-menu-container');
+      const menu = document.getElementById('user-dropdown-menu');
+      const chevron = document.getElementById('user-menu-chevron');
+      const btn = document.getElementById('user-menu-btn');
+      if (container && menu && !container.contains(event.target)) {
+        menu.classList.add('hidden');
+        if (chevron) chevron.classList.remove('rotate-180');
+        if (btn) btn.setAttribute('aria-expanded', 'false');
+      }
+    });
 
     document.addEventListener('keydown', function(event) {
       if (event.key === 'Escape') {
+        const menu = document.getElementById('user-dropdown-menu');
+        const chevron = document.getElementById('user-menu-chevron');
+        const btn = document.getElementById('user-menu-btn');
+        if (menu && !menu.classList.contains('hidden')) {
+          menu.classList.add('hidden');
+          if (chevron) chevron.classList.remove('rotate-180');
+          if (btn) btn.setAttribute('aria-expanded', 'false');
+        }
         closeMobileMoreMenu();
+      }
+    });
+
+    // Prevent iOS Safari pinch-to-zoom gestures
+    document.addEventListener('gesturestart', (e) => e.preventDefault(), { passive: false });
+    document.addEventListener('gesturechange', (e) => e.preventDefault(), { passive: false });
+    document.addEventListener('gestureend', (e) => e.preventDefault(), { passive: false });
+
+    // Prevent multi-touch pinch zooming except inside map container
+    document.addEventListener('touchstart', (e) => {
+      if (e.touches && e.touches.length > 1 && !e.target.closest('#venue-map')) {
+        e.preventDefault();
+      }
+    }, { passive: false });
+
+    // Prevent iOS Safari double-tap to zoom
+    let lastTouchEnd = 0;
+    document.addEventListener('touchend', (e) => {
+      const now = Date.now();
+      if (now - lastTouchEnd <= 300) {
+        if (!['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) {
+          e.preventDefault();
+          e.target.click();
+        }
+      }
+      lastTouchEnd = now;
+    }, { passive: false });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const initialStatus = '{{ profile.sync_status }}';
+      if (initialStatus === 'syncing') {
+        startSyncPolling();
       }
     });
   </script>
 </body>
+
 </html>
