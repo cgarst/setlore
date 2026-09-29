@@ -528,11 +528,6 @@
         </div>
       </div>
 
-      <!-- GitHub Repo Link -->
-      <a href="{{ repo_url|default:'https://github.com/cgarst/concert-trakr' }}" target="_blank" rel="noopener noreferrer" class="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/60 transition flex items-center justify-center" title="View Source on GitHub" aria-label="View Source on GitHub">
-        <i class="fa-brands fa-github text-base"></i>
-      </a>
-
       {% if not is_public_view %}
         <!-- Dashboard Owner Actions -->
         <button onclick="openAddConcertModal()" class="px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-xs font-bold text-white flex items-center gap-1.5 transition cursor-pointer shadow-md shadow-indigo-600/25">
@@ -3406,9 +3401,28 @@
       </div>
       {% endif %}
 
-    </div>
-
   </main>
+
+  <!-- Application Center Footer -->
+  <footer class="max-w-7xl mx-auto border-t border-slate-800/80 pt-8 pb-6 mt-12 text-center text-xs text-slate-500">
+    <div class="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6">
+      <div class="flex items-center gap-2">
+        <a href="{% if is_demo %}{{ home_url|default:'../index.html' }}{% else %}{% url 'home' %}{% endif %}" class="inline-flex items-center">
+          <img src="{% static 'img/setlore_icon_transparent.png' %}" alt="Setlore" class="w-5 h-5 rounded opacity-80 hover:opacity-100 transition">
+        </a>
+        <span>&copy; Setlore &bull; Open-source live concert intelligence.</span>
+      </div>
+      <div class="flex items-center gap-4">
+        <a href="{{ repo_url|default:'https://github.com/cgarst/concert-trakr' }}" target="_blank" rel="noopener noreferrer" class="hover:text-white transition inline-flex items-center gap-1.5 font-medium text-slate-400">
+          <i class="fa-brands fa-github text-sm"></i> GitHub
+        </a>
+        {% if not is_demo %}
+          <span class="text-slate-600">&bull;</span>
+          <a href="{% url 'privacy' %}" class="hover:text-slate-300 transition">Privacy Policy</a>
+        {% endif %}
+      </div>
+    </div>
+  </footer>
 
   <!-- Mobile Bottom Tab Navigation (iPhone App Navigator Style) -->
   <nav id="mobile-bottom-nav" class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-900/95 backdrop-blur-xl border-t border-slate-800/90 shadow-[0_-10px_25px_-5px_rgba(0,0,0,0.5)] px-3 pt-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom,0px))]">
