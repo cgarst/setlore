@@ -97,6 +97,12 @@
 
     <!-- Desktop/Tablet Controls -->
     <div class="hidden md:flex flex-wrap gap-2 items-center">
+      <!-- GitHub Repo Link -->
+      <a href="https://github.com/cgarst/concert-trakr" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-600 text-slate-300 hover:text-white transition flex items-center gap-1.5 text-xs font-semibold shadow-sm" title="View Source on GitHub" aria-label="View Source on GitHub">
+        <i class="fa-brands fa-github text-sm"></i>
+        <span>GitHub</span>
+      </a>
+
       {% if not is_public_view %}
         <!-- Dashboard Owner Actions -->
         <button onclick="openAddConcertModal()" class="px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-xs font-bold text-white flex items-center gap-1.5 transition cursor-pointer shadow-md shadow-indigo-600/25">
@@ -2149,6 +2155,24 @@
           </div>
         </div>
       {% endif %}
+
+      <!-- App Links & Info -->
+      <div class="pt-2 border-t border-slate-800 space-y-1.5">
+        <a href="https://github.com/cgarst/concert-trakr" target="_blank" rel="noopener noreferrer" class="flex items-center justify-between p-2.5 rounded-xl bg-slate-800/40 hover:bg-slate-800 text-xs text-slate-300 hover:text-white transition">
+          <div class="flex items-center gap-2.5">
+            <i class="fa-brands fa-github text-slate-400 w-4 text-center"></i>
+            <span>GitHub Repository</span>
+          </div>
+          <i class="fa-solid fa-arrow-up-right-from-square text-slate-500 text-[10px]"></i>
+        </a>
+        <a href="{% url 'privacy' %}" class="flex items-center justify-between p-2.5 rounded-xl bg-slate-800/40 hover:bg-slate-800 text-xs text-slate-300 hover:text-white transition">
+          <div class="flex items-center gap-2.5">
+            <i class="fa-solid fa-shield-halved text-indigo-400 w-4 text-center"></i>
+            <span>Privacy Policy</span>
+          </div>
+          <i class="fa-solid fa-chevron-right text-slate-500 text-[10px]"></i>
+        </a>
+      </div>
     </div>
   </div>
 
