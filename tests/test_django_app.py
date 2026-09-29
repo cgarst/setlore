@@ -196,7 +196,7 @@ class DjangoAppTests(TestCase):
         content = res.content.decode('utf-8')
         self.assertIn('profile-modal', content)
         self.assertIn('setlist-prompt-modal', content)
-        self.assertIn('Setlist.fm & Privacy Settings', content)
+        self.assertIn('Profile & Privacy Settings', content)
         self.assertIn("Don't ask me again", content)
 
     def test_user_profile_defaults_to_public(self):
