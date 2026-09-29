@@ -20,6 +20,17 @@
   <link rel="apple-touch-icon" sizes="180x180" href="{% static 'img/setlore_icon.png' %}">
   <link rel="manifest" href="{% static 'manifest.json' %}">
 
+  <script>
+    (function() {
+      try {
+        var savedTheme = localStorage.getItem('setlore_theme') || '{{ profile.theme|default:"Default"|escapejs }}';
+        if (savedTheme) {
+          document.documentElement.setAttribute('data-theme', savedTheme);
+        }
+      } catch (e) {}
+    })();
+  </script>
+
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Chart.js and Plotly -->
@@ -30,57 +41,407 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
+    /* ==========================================================================
+       GUITAR FINISH THEMES PALETTES (Homages to iconic guitar finishes)
+       ========================================================================== */
+    :root, [data-theme="Default"] {
+      --bg-body: #0f172a;
+      --bg-ambient-1: rgba(99, 102, 241, 0.08);
+      --bg-ambient-2: rgba(168, 85, 247, 0.05);
+      --bg-card: rgba(30, 41, 59, 0.7);
+      --bg-card-solid: #1e293b;
+      --bg-card-hover: #334155;
+      --bg-elevated: #0f172a;
+      --bg-modal: #0f172a;
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-prominent: #334155;
+      --text-primary: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --accent-primary: #6366f1;
+      --accent-secondary: #a855f7;
+      --accent-gradient: linear-gradient(135deg, #6366f1, #a855f7);
+      --accent-gradient-hover: linear-gradient(135deg, #4f46e5, #9333ea);
+      --accent-glow: rgba(99, 102, 241, 0.5);
+      --accent-primary-alpha: rgba(99, 102, 241, 0.2);
+      --accent-border-alpha: rgba(99, 102, 241, 0.4);
+      --accent-text: #a5b4fc;
+      --logo-filter: none;
+      --logo-overlay-bg: transparent;
+      --logo-tint-opacity: 0;
+      --logo-blend-mode: normal;
+    }
+
+    [data-theme="Blue Pearl"] {
+      --bg-body: #060d1f;
+      --bg-ambient-1: rgba(37, 99, 235, 0.16);
+      --bg-ambient-2: rgba(56, 189, 248, 0.1);
+      --bg-card: rgba(12, 25, 54, 0.75);
+      --bg-card-solid: #0d1e40;
+      --bg-card-hover: #173264;
+      --bg-elevated: #081229;
+      --bg-modal: #071026;
+      --border-subtle: rgba(56, 189, 248, 0.16);
+      --border-prominent: rgba(59, 130, 246, 0.38);
+      --text-primary: #f0f7ff;
+      --text-muted: #93a8c7;
+      --text-dim: #4d678e;
+      --accent-primary: #2563eb;
+      --accent-secondary: #38bdf8;
+      --accent-gradient: linear-gradient(135deg, #1d4ed8, #38bdf8);
+      --accent-gradient-hover: linear-gradient(135deg, #1e40af, #0284c7);
+      --accent-glow: rgba(56, 189, 248, 0.55);
+      --accent-primary-alpha: rgba(37, 99, 235, 0.25);
+      --accent-border-alpha: rgba(56, 189, 248, 0.45);
+      --accent-text: #93c5fd;
+      --logo-filter: hue-rotate(185deg) saturate(135%) brightness(1.05);
+      --logo-overlay-bg: linear-gradient(135deg, rgba(37, 99, 235, 0.35), rgba(56, 189, 248, 0.25));
+      --logo-tint-opacity: 0.8;
+      --logo-blend-mode: color-dodge;
+    }
+
+    [data-theme="Cerulean Paradise"] {
+      --bg-body: #03141a;
+      --bg-ambient-1: rgba(6, 182, 212, 0.16);
+      --bg-ambient-2: rgba(2, 132, 199, 0.11);
+      --bg-card: rgba(8, 38, 51, 0.78);
+      --bg-card-solid: #0b3142;
+      --bg-card-hover: #134e66;
+      --bg-elevated: #051c24;
+      --bg-modal: #04171f;
+      --border-subtle: rgba(6, 182, 212, 0.18);
+      --border-prominent: rgba(34, 211, 238, 0.4);
+      --text-primary: #ecfeff;
+      --text-muted: #86b5c4;
+      --text-dim: #416e7d;
+      --accent-primary: #06b6d4;
+      --accent-secondary: #0284c7;
+      --accent-gradient: linear-gradient(135deg, #06b6d4, #0284c7);
+      --accent-gradient-hover: linear-gradient(135deg, #0891b2, #0369a1);
+      --accent-glow: rgba(6, 182, 212, 0.55);
+      --accent-primary-alpha: rgba(6, 182, 212, 0.22);
+      --accent-border-alpha: rgba(34, 211, 238, 0.45);
+      --accent-text: #67e8f9;
+      --logo-filter: hue-rotate(160deg) saturate(155%) brightness(1.1);
+      --logo-overlay-bg: linear-gradient(135deg, rgba(6, 182, 212, 0.4), rgba(2, 132, 199, 0.3));
+      --logo-tint-opacity: 0.85;
+      --logo-blend-mode: color-dodge;
+    }
+
+    [data-theme="Dark Side"] {
+      --bg-body: #09090b;
+      --bg-ambient-1: rgba(225, 29, 72, 0.08);
+      --bg-ambient-2: rgba(39, 39, 42, 0.3);
+      --bg-card: rgba(22, 22, 27, 0.85);
+      --bg-card-solid: #18181f;
+      --bg-card-hover: #292934;
+      --bg-elevated: #0f0f13;
+      --bg-modal: #0c0c0f;
+      --border-subtle: rgba(255, 255, 255, 0.1);
+      --border-prominent: rgba(225, 29, 72, 0.35);
+      --text-primary: #f4f4f5;
+      --text-muted: #a1a1aa;
+      --text-dim: #52525b;
+      --accent-primary: #e11d48;
+      --accent-secondary: #475569;
+      --accent-gradient: linear-gradient(135deg, #e11d48, #475569);
+      --accent-gradient-hover: linear-gradient(135deg, #be123c, #334155);
+      --accent-glow: rgba(225, 29, 72, 0.5);
+      --accent-primary-alpha: rgba(225, 29, 72, 0.22);
+      --accent-border-alpha: rgba(225, 29, 72, 0.45);
+      --accent-text: #fda4af;
+      --logo-filter: grayscale(70%) brightness(0.95) contrast(1.15);
+      --logo-overlay-bg: linear-gradient(135deg, rgba(225, 29, 72, 0.35), rgba(40, 40, 50, 0.4));
+      --logo-tint-opacity: 0.7;
+      --logo-blend-mode: screen;
+    }
+
+    [data-theme="Ember Glow"] {
+      --bg-body: #120804;
+      --bg-ambient-1: rgba(249, 115, 22, 0.16);
+      --bg-ambient-2: rgba(239, 68, 68, 0.1);
+      --bg-card: rgba(36, 17, 10, 0.8);
+      --bg-card-solid: #26120b;
+      --bg-card-hover: #421e12;
+      --bg-elevated: #1a0b06;
+      --bg-modal: #150804;
+      --border-subtle: rgba(249, 115, 22, 0.18);
+      --border-prominent: rgba(251, 146, 60, 0.4);
+      --text-primary: #fff7ed;
+      --text-muted: #c59e86;
+      --text-dim: #735341;
+      --accent-primary: #f97316;
+      --accent-secondary: #ef4444;
+      --accent-gradient: linear-gradient(135deg, #f97316, #ef4444);
+      --accent-gradient-hover: linear-gradient(135deg, #ea580c, #dc2626);
+      --accent-glow: rgba(249, 115, 22, 0.55);
+      --accent-primary-alpha: rgba(249, 115, 22, 0.22);
+      --accent-border-alpha: rgba(251, 146, 60, 0.45);
+      --accent-text: #fdba74;
+      --logo-filter: hue-rotate(330deg) saturate(160%) brightness(1.1);
+      --logo-overlay-bg: linear-gradient(135deg, rgba(249, 115, 22, 0.45), rgba(239, 68, 68, 0.3));
+      --logo-tint-opacity: 0.85;
+      --logo-blend-mode: color-dodge;
+    }
+
+    [data-theme="Mystic Dream"] {
+      --bg-body: #0b0914;
+      --bg-ambient-1: rgba(147, 51, 234, 0.16);
+      --bg-ambient-2: rgba(16, 185, 129, 0.12);
+      --bg-card: rgba(24, 18, 36, 0.82);
+      --bg-card-solid: #1b132c;
+      --bg-card-hover: #31214c;
+      --bg-elevated: #110c1f;
+      --bg-modal: #0e091a;
+      --border-subtle: rgba(147, 51, 234, 0.18);
+      --border-prominent: rgba(16, 185, 129, 0.38);
+      --text-primary: #faf5ff;
+      --text-muted: #b4a5c5;
+      --text-dim: #615277;
+      --accent-primary: #9333ea;
+      --accent-secondary: #10b981;
+      --accent-gradient: linear-gradient(135deg, #9333ea, #10b981);
+      --accent-gradient-hover: linear-gradient(135deg, #7e22ce, #059669);
+      --accent-glow: rgba(147, 51, 234, 0.55);
+      --accent-primary-alpha: rgba(147, 51, 234, 0.22);
+      --accent-border-alpha: rgba(168, 85, 247, 0.45);
+      --accent-text: #d8b4fe;
+      --logo-filter: hue-rotate(245deg) saturate(145%) brightness(1.05);
+      --logo-overlay-bg: linear-gradient(135deg, rgba(147, 51, 234, 0.4), rgba(16, 185, 129, 0.3));
+      --logo-tint-opacity: 0.85;
+      --logo-blend-mode: screen;
+    }
+
+    [data-theme="Purple Nebula"] {
+      --bg-body: #0e0616;
+      --bg-ambient-1: rgba(192, 38, 211, 0.16);
+      --bg-ambient-2: rgba(124, 58, 237, 0.12);
+      --bg-card: rgba(30, 13, 44, 0.8);
+      --bg-card-solid: #210d32;
+      --bg-card-hover: #3a1656;
+      --bg-elevated: #150821;
+      --bg-modal: #11061b;
+      --border-subtle: rgba(192, 38, 211, 0.18);
+      --border-prominent: rgba(217, 70, 239, 0.4);
+      --text-primary: #fdf4ff;
+      --text-muted: #b997c4;
+      --text-dim: #674874;
+      --accent-primary: #c026d3;
+      --accent-secondary: #7c3aed;
+      --accent-gradient: linear-gradient(135deg, #c026d3, #7c3aed);
+      --accent-gradient-hover: linear-gradient(135deg, #a21caf, #6d28d9);
+      --accent-glow: rgba(192, 38, 211, 0.55);
+      --accent-primary-alpha: rgba(192, 38, 211, 0.22);
+      --accent-border-alpha: rgba(217, 70, 239, 0.45);
+      --accent-text: #f0abfc;
+      --logo-filter: hue-rotate(265deg) saturate(160%) brightness(1.1);
+      --logo-overlay-bg: linear-gradient(135deg, rgba(192, 38, 211, 0.45), rgba(124, 58, 237, 0.3));
+      --logo-tint-opacity: 0.85;
+      --logo-blend-mode: color-dodge;
+    }
+
+    [data-theme="Red Pearl Burst"] {
+      --bg-body: #130507;
+      --bg-ambient-1: rgba(225, 29, 72, 0.16);
+      --bg-ambient-2: rgba(153, 27, 27, 0.12);
+      --bg-card: rgba(38, 12, 18, 0.8);
+      --bg-card-solid: #280b12;
+      --bg-card-hover: #481421;
+      --bg-elevated: #1a060c;
+      --bg-modal: #150509;
+      --border-subtle: rgba(244, 63, 94, 0.18);
+      --border-prominent: rgba(251, 113, 133, 0.4);
+      --text-primary: #fff1f2;
+      --text-muted: #c4969f;
+      --text-dim: #72454e;
+      --accent-primary: #e11d48;
+      --accent-secondary: #991b1b;
+      --accent-gradient: linear-gradient(135deg, #e11d48, #991b1b);
+      --accent-gradient-hover: linear-gradient(135deg, #be123c, #7f1d1d);
+      --accent-glow: rgba(225, 29, 72, 0.55);
+      --accent-primary-alpha: rgba(225, 29, 72, 0.22);
+      --accent-border-alpha: rgba(251, 113, 133, 0.45);
+      --accent-text: #fda4af;
+      --logo-filter: hue-rotate(310deg) saturate(155%) brightness(1.08);
+      --logo-overlay-bg: linear-gradient(135deg, rgba(225, 29, 72, 0.45), rgba(153, 27, 27, 0.35));
+      --logo-tint-opacity: 0.85;
+      --logo-blend-mode: color-dodge;
+    }
+
+    /* Core Document & Typography */
     html, body {
-      background-color: #0f172a;
-      color: #f8fafc;
+      background-color: var(--bg-body) !important;
+      background-image: radial-gradient(circle at 50% 0%, var(--bg-ambient-1) 0%, transparent 60%), radial-gradient(circle at 85% 20%, var(--bg-ambient-2) 0%, transparent 45%);
+      background-attachment: fixed;
+      color: var(--text-primary) !important;
       font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
       touch-action: manipulation;
       -webkit-touch-callout: none;
       -webkit-text-size-adjust: 100%;
+      transition: background-color 0.25s ease, color 0.25s ease;
     }
     button, a, input, select, textarea {
       touch-action: manipulation;
     }
-    .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 1rem; }
-    .badge { display: inline-flex; align-items: center; padding: 0.2rem 0.6rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; }
+    .glass-card {
+      background: var(--bg-card) !important;
+      backdrop-filter: blur(14px);
+      border: 1px solid var(--border-subtle) !important;
+      border-radius: 1rem;
+      transition: background 0.25s ease, border-color 0.25s ease;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.2rem 0.6rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
     ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: #0f172a; }
-    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+    ::-webkit-scrollbar-track { background: var(--bg-body); }
+    ::-webkit-scrollbar-thumb { background: var(--bg-card-solid); border: 1px solid var(--border-subtle); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--bg-card-hover); }
+
+    /* Map & Venue Pin Styling */
     .custom-venue-pin {
       display: flex;
       align-items: center;
       justify-content: center;
-      background: linear-gradient(135deg, #6366f1, #a855f7);
-      color: #ffffff;
+      background: var(--accent-gradient) !important;
+      color: #ffffff !important;
       font-weight: 800;
       font-size: 11px;
       border-radius: 50%;
       border: 2px solid #ffffff;
-      box-shadow: 0 0 16px rgba(99, 102, 241, 0.7);
+      box-shadow: 0 0 16px var(--accent-glow) !important;
       cursor: pointer;
-      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
     }
     .custom-venue-pin:hover {
       transform: scale(1.3);
       z-index: 1000 !important;
     }
     .leaflet-popup-content-wrapper {
-      background: #1e293b !important;
-      color: #f8fafc !important;
-      border: 1px solid rgba(255, 255, 255, 0.15) !important;
+      background: var(--bg-elevated) !important;
+      color: var(--text-primary) !important;
+      border: 1px solid var(--border-subtle) !important;
       border-radius: 0.85rem !important;
       box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.6) !important;
     }
     .leaflet-popup-tip {
-      background: #1e293b !important;
+      background: var(--bg-elevated) !important;
     }
     .leaflet-container {
-      background: #0f172a !important;
+      background: var(--bg-body) !important;
     }
     #chart-top-artists .bars path,
     #chart-top-artists .point,
     #chart-top-artists .yaxislayer-above text {
       cursor: pointer !important;
+    }
+
+    /* Logo Wrapper & Tint Overlay */
+    .logo-wrapper {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      border-radius: 0.75rem;
+      overflow: hidden;
+    }
+    .logo-img {
+      filter: var(--logo-filter, none);
+      transition: filter 0.3s ease, transform 0.2s ease;
+    }
+    .logo-tint-overlay {
+      position: absolute;
+      inset: 0;
+      background: var(--logo-overlay-bg, transparent);
+      mix-blend-mode: var(--logo-blend-mode, normal);
+      opacity: var(--logo-tint-opacity, 0);
+      pointer-events: none;
+      border-radius: 0.75rem;
+      transition: opacity 0.3s ease, background 0.3s ease;
+    }
+
+    /* Dynamic UI overrides matching active guitar finish */
+    [data-theme] .bg-slate-900,
+    [data-theme] .bg-slate-900\/90,
+    [data-theme] .bg-slate-900\/95,
+    [data-theme] .bg-slate-950,
+    [data-theme] .bg-slate-950\/80,
+    [data-theme] .bg-slate-950\/90 {
+      background-color: var(--bg-elevated) !important;
+    }
+    [data-theme] .bg-slate-800,
+    [data-theme] .bg-slate-800\/60,
+    [data-theme] .bg-slate-800\/80,
+    [data-theme] .bg-slate-800\/90 {
+      background-color: var(--bg-card-solid) !important;
+    }
+    [data-theme] .hover\:bg-slate-800:hover,
+    [data-theme] .hover\:bg-slate-700:hover {
+      background-color: var(--bg-card-hover) !important;
+    }
+    [data-theme] .border-slate-800,
+    [data-theme] .border-slate-700,
+    [data-theme] .border-slate-700\/80,
+    [data-theme] .border-slate-700\/60 {
+      border-color: var(--border-subtle) !important;
+    }
+    [data-theme] .border-slate-600 {
+      border-color: var(--border-prominent) !important;
+    }
+    [data-theme] .text-slate-400 {
+      color: var(--text-muted) !important;
+    }
+    [data-theme] .text-slate-300 {
+      color: var(--text-primary) !important;
+    }
+    [data-theme] .text-slate-500 {
+      color: var(--text-dim) !important;
+    }
+    [data-theme] .bg-gradient-to-r.from-indigo-600.to-purple-600,
+    [data-theme] .from-indigo-600.to-purple-600 {
+      background-image: var(--accent-gradient) !important;
+    }
+    [data-theme] .bg-indigo-600 {
+      background-color: var(--accent-primary) !important;
+    }
+    [data-theme] .bg-indigo-600\/30,
+    [data-theme] .bg-indigo-500\/20,
+    [data-theme] .bg-indigo-500\/10 {
+      background-color: var(--accent-primary-alpha) !important;
+    }
+    [data-theme] .border-indigo-500\/40,
+    [data-theme] .border-indigo-500\/30,
+    [data-theme] .border-indigo-500\/50,
+    [data-theme] .border-indigo-500\/20 {
+      border-color: var(--accent-border-alpha) !important;
+    }
+    [data-theme] .text-indigo-400,
+    [data-theme] .text-indigo-300,
+    [data-theme] .text-indigo-200 {
+      color: var(--accent-text) !important;
+    }
+    [data-theme] .shadow-indigo-600\/25,
+    [data-theme] .shadow-indigo-500\/25,
+    [data-theme] .shadow-indigo-500\/10 {
+      box-shadow: 0 4px 14px var(--accent-glow) !important;
+    }
+    [data-theme] #mobile-bottom-nav {
+      background-color: var(--bg-elevated) !important;
+      border-color: var(--border-subtle) !important;
+    }
+    [data-theme] #mobile-more-content {
+      background-color: var(--bg-elevated) !important;
+      border-color: var(--border-subtle) !important;
+    }
+    [data-theme] #user-dropdown-menu,
+    [data-theme] #theme-dropdown-menu,
+    [data-theme] #mobile-theme-dropdown-menu {
+      background-color: var(--bg-elevated) !important;
+      border-color: var(--border-prominent) !important;
     }
   </style>
 </head>
@@ -108,14 +469,65 @@
 
   <!-- Header -->
   <header class="max-w-7xl mx-auto mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-    <div>
+    <div class="flex items-center justify-between w-full md:w-auto">
       <a href="{% if is_demo %}{{ home_url|default:'../index.html' }}{% else %}{% url 'home' %}{% endif %}" class="flex items-center text-left group focus:outline-none transition cursor-pointer" title="Setlore - Home">
-        <img src="{% static 'img/setlore_banner.png' %}" alt="Setlore" class="h-10 md:h-12 w-auto object-contain rounded-xl group-hover:scale-105 transition-all">
+        <div class="logo-wrapper">
+          <img src="{% static 'img/setlore_banner.png' %}" alt="Setlore" class="h-10 md:h-12 w-auto object-contain rounded-xl group-hover:scale-105 transition-all logo-img">
+          <div class="logo-tint-overlay"></div>
+        </div>
       </a>
+
+      <!-- Mobile Top Bar Quick Theme Selector & Actions -->
+      <div class="flex items-center gap-2 md:hidden">
+        <!-- Mobile Theme Dropdown -->
+        <div class="relative" id="mobile-theme-menu-container">
+          <button id="mobile-theme-menu-btn" onclick="toggleMobileThemeMenu()" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs text-slate-200 transition cursor-pointer" aria-label="Select guitar theme" title="Guitar Finish Theme">
+            <span class="theme-btn-swatch inline-block w-3 h-3 rounded-full border border-white/30" id="mobile-header-theme-swatch"></span>
+            <i class="fa-solid fa-palette text-[11px] text-slate-400"></i>
+          </button>
+          <div id="mobile-theme-dropdown-menu" class="hidden absolute right-0 mt-2 w-60 rounded-xl glass-card border border-slate-700/80 bg-slate-900/95 shadow-2xl py-2 z-50 backdrop-blur-xl">
+            <div class="px-3 py-1.5 border-b border-slate-800">
+              <p class="text-xs font-bold text-white flex items-center gap-1.5">
+                <i class="fa-solid fa-guitar text-amber-400"></i>
+                <span>Guitar Finish Themes</span>
+              </p>
+              <p class="text-[10px] text-slate-400">Homage finishes from iconic guitars</p>
+            </div>
+            <div class="py-1 max-h-64 overflow-y-auto space-y-0.5 px-1" id="mobile-theme-options-list"></div>
+          </div>
+        </div>
+
+        {% if not is_public_view %}
+          <button onclick="openAddConcertModal()" class="p-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xs font-bold shadow-md shadow-indigo-600/25" title="Add Concert">
+            <i class="fa-solid fa-plus"></i>
+          </button>
+        {% endif %}
+      </div>
     </div>
 
     <!-- Desktop/Tablet Controls -->
     <div class="hidden md:flex flex-wrap gap-2 items-center">
+      <!-- Theme Switcher Dropdown (Desktop) -->
+      <div class="relative" id="theme-menu-container">
+        <button id="theme-menu-btn" onclick="toggleThemeMenu()" class="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-600 text-xs text-slate-200 transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500/50" aria-label="Select guitar theme" title="Guitar Finish Theme">
+          <span class="theme-btn-swatch inline-block w-3.5 h-3.5 rounded-full border border-white/30 shadow-inner" id="header-theme-swatch"></span>
+          <span class="font-medium text-slate-200" id="header-theme-label">Default</span>
+          <i class="fa-solid fa-palette text-[11px] text-slate-400 ml-0.5"></i>
+          <i class="fa-solid fa-chevron-down text-[9px] text-slate-400 transition-transform duration-200" id="theme-menu-chevron"></i>
+        </button>
+
+        <div id="theme-dropdown-menu" class="hidden absolute right-0 mt-2 w-64 rounded-xl glass-card border border-slate-700/80 bg-slate-900/95 shadow-2xl py-2 z-50 backdrop-blur-xl">
+          <div class="px-3.5 py-1.5 border-b border-slate-800">
+            <p class="text-xs font-bold text-white flex items-center gap-1.5">
+              <i class="fa-solid fa-guitar text-amber-400"></i>
+              <span>Guitar Finish Themes</span>
+            </p>
+            <p class="text-[10px] text-slate-400">Homage finishes from iconic guitars</p>
+          </div>
+          <div class="py-1 max-h-72 overflow-y-auto space-y-0.5 px-1" id="theme-options-list"></div>
+        </div>
+      </div>
+
       <!-- GitHub Repo Link -->
       <a href="{{ repo_url|default:'https://github.com/cgarst/concert-trakr' }}" target="_blank" rel="noopener noreferrer" class="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/60 transition flex items-center justify-center" title="View Source on GitHub" aria-label="View Source on GitHub">
         <i class="fa-brands fa-github text-base"></i>
@@ -529,6 +941,25 @@
         <p class="text-[11px] text-slate-400">
           Update the login password for your Setlore account.
         </p>
+      </div>
+
+      <!-- Guitar Finish Theme Selector Section -->
+      <div class="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2.5">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <i class="fa-solid fa-guitar text-amber-400 text-xs w-4 text-center"></i>
+            <span class="text-xs font-semibold text-white">Guitar Finish Theme</span>
+          </div>
+          <span id="modal-active-theme-badge" class="badge bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[10px] font-mono">
+            Default
+          </span>
+        </div>
+        <p class="text-[11px] text-slate-400">
+          Select an homage finish inspired by iconic guitar finishes.
+        </p>
+        <div class="grid grid-cols-2 gap-2 pt-1" id="modal-theme-grid">
+          <!-- Populated by JavaScript with theme swatch cards -->
+        </div>
       </div>
 
       <form id="profile-form" onsubmit="saveProfileSettings(event)" class="space-y-4">
@@ -3196,6 +3627,21 @@
         </div>
       </div>
 
+      <!-- Guitar Finish Theme Selector (Mobile Sheet) -->
+      <div class="space-y-2 pt-2 border-t border-slate-800">
+        <div class="flex items-center justify-between">
+          <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+            <i class="fa-solid fa-guitar text-amber-400"></i> Guitar Finish Theme
+          </p>
+          <span id="mobile-sheet-active-theme-label" class="badge bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[10px] font-mono">
+            Default
+          </span>
+        </div>
+        <div class="grid grid-cols-2 gap-1.5" id="mobile-sheet-theme-grid">
+          <!-- Populated by JavaScript with theme chips -->
+        </div>
+      </div>
+
       <!-- Quick Actions (Sync, Import Tools or Public Options) -->
       <div class="space-y-2 pt-2 border-t border-slate-800">
         <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Quick Actions</p>
@@ -4455,6 +4901,418 @@
       if (topArtist) selectArtist(topArtist);
     });
 
+    /* ==========================================================================
+       GUITAR FINISH THEMES ENGINE (Homage themes with visualization syncing)
+       ========================================================================== */
+    const THEMES = [
+      {
+        id: 'Default',
+        name: 'Default',
+        subtitle: 'Setlore Original',
+        gradient: 'linear-gradient(135deg, #6366f1, #a855f7)',
+        bg: '#0f172a',
+        accent: '#6366f1',
+        secondary: '#a855f7',
+        colorway: ['#6366f1', '#a855f7', '#ec4899', '#10b981', '#f59e0b', '#3b82f6'],
+        timelineBar: '#6366f1',
+        timelineLine: '#ec4899',
+        topArtistsScale: 'Purples',
+        treemapScale: 'Sunsetdark',
+        sunburstScale: 'Magma',
+        eraBar: '#10b981',
+        eraLine: '#064e3b',
+        songAgeBar: '#ec4899',
+        gridColor: '#1e293b',
+        textColor: '#94a3b8'
+      },
+      {
+        id: 'Blue Pearl',
+        name: 'Blue Pearl',
+        subtitle: 'Sapphire Pearl Shimmer',
+        gradient: 'linear-gradient(135deg, #1d4ed8, #38bdf8)',
+        bg: '#060d1f',
+        accent: '#2563eb',
+        secondary: '#38bdf8',
+        colorway: ['#38bdf8', '#2563eb', '#60a5fa', '#0ea5e9', '#818cf8', '#2dd4bf'],
+        timelineBar: '#2563eb',
+        timelineLine: '#38bdf8',
+        topArtistsScale: 'Blues',
+        treemapScale: 'Blues',
+        sunburstScale: 'Blues',
+        eraBar: '#38bdf8',
+        eraLine: '#1d4ed8',
+        songAgeBar: '#60a5fa',
+        gridColor: '#142546',
+        textColor: '#93a8c7'
+      },
+      {
+        id: 'Cerulean Paradise',
+        name: 'Cerulean Paradise',
+        subtitle: 'Tropical Azure Flame',
+        gradient: 'linear-gradient(135deg, #06b6d4, #0284c7)',
+        bg: '#03141a',
+        accent: '#06b6d4',
+        secondary: '#0284c7',
+        colorway: ['#06b6d4', '#0284c7', '#14b8a6', '#22d3ee', '#38bdf8', '#10b981'],
+        timelineBar: '#06b6d4',
+        timelineLine: '#38bdf8',
+        topArtistsScale: 'Teal',
+        treemapScale: 'YlGnBu',
+        sunburstScale: 'Tealgrn',
+        eraBar: '#06b6d4',
+        eraLine: '#0e3a49',
+        songAgeBar: '#22d3ee',
+        gridColor: '#103b4b',
+        textColor: '#86b5c4'
+      },
+      {
+        id: 'Dark Side',
+        name: 'Dark Side',
+        subtitle: 'Stealth Matte & Titanium',
+        gradient: 'linear-gradient(135deg, #e11d48, #475569)',
+        bg: '#09090b',
+        accent: '#e11d48',
+        secondary: '#475569',
+        colorway: ['#e11d48', '#94a3b8', '#f43f5e', '#64748b', '#cbd5e1', '#be123c'],
+        timelineBar: '#e11d48',
+        timelineLine: '#94a3b8',
+        topArtistsScale: 'Reds',
+        treemapScale: 'Greys',
+        sunburstScale: 'Reds',
+        eraBar: '#e11d48',
+        eraLine: '#475569',
+        songAgeBar: '#f43f5e',
+        gridColor: '#24242c',
+        textColor: '#a1a1aa'
+      },
+      {
+        id: 'Ember Glow',
+        name: 'Ember Glow',
+        subtitle: 'Incandescent Magma Burst',
+        gradient: 'linear-gradient(135deg, #f97316, #ef4444)',
+        bg: '#120804',
+        accent: '#f97316',
+        secondary: '#ef4444',
+        colorway: ['#f97316', '#fbbf24', '#ef4444', '#f59e0b', '#ea580c', '#facc15'],
+        timelineBar: '#f97316',
+        timelineLine: '#fbbf24',
+        topArtistsScale: 'Oranges',
+        treemapScale: 'Hot',
+        sunburstScale: 'YlOrRd',
+        eraBar: '#f97316',
+        eraLine: '#7c2d12',
+        songAgeBar: '#fbbf24',
+        gridColor: '#31170d',
+        textColor: '#c59e86'
+      },
+      {
+        id: 'Mystic Dream',
+        name: 'Mystic Dream',
+        subtitle: 'Chameleon Purple & Emerald',
+        gradient: 'linear-gradient(135deg, #9333ea, #10b981)',
+        bg: '#0b0914',
+        accent: '#9333ea',
+        secondary: '#10b981',
+        colorway: ['#9333ea', '#10b981', '#c084fc', '#34d399', '#a855f7', '#059669'],
+        timelineBar: '#9333ea',
+        timelineLine: '#10b981',
+        topArtistsScale: 'Viridis',
+        treemapScale: 'Purp',
+        sunburstScale: 'Viridis',
+        eraBar: '#10b981',
+        eraLine: '#064e3b',
+        songAgeBar: '#c084fc',
+        gridColor: '#251c38',
+        textColor: '#b4a5c5'
+      },
+      {
+        id: 'Purple Nebula',
+        name: 'Purple Nebula',
+        subtitle: 'Galactic Violet & Magenta',
+        gradient: 'linear-gradient(135deg, #c026d3, #7c3aed)',
+        bg: '#0e0616',
+        accent: '#c026d3',
+        secondary: '#7c3aed',
+        colorway: ['#c026d3', '#7c3aed', '#d946ef', '#8b5cf6', '#e879f9', '#ec4899'],
+        timelineBar: '#c026d3',
+        timelineLine: '#e879f9',
+        topArtistsScale: 'Magenta',
+        treemapScale: 'Purples',
+        sunburstScale: 'Electric',
+        eraBar: '#c026d3',
+        eraLine: '#581c87',
+        songAgeBar: '#e879f9',
+        gridColor: '#2c1240',
+        textColor: '#b997c4'
+      },
+      {
+        id: 'Red Pearl Burst',
+        name: 'Red Pearl Burst',
+        subtitle: 'Crimson & Wine Pearl Burst',
+        gradient: 'linear-gradient(135deg, #e11d48, #991b1b)',
+        bg: '#130507',
+        accent: '#e11d48',
+        secondary: '#991b1b',
+        colorway: ['#e11d48', '#f43f5e', '#be123c', '#fb7185', '#991b1b', '#fda4af'],
+        timelineBar: '#e11d48',
+        timelineLine: '#fb7185',
+        topArtistsScale: 'Reds',
+        treemapScale: 'Burg',
+        sunburstScale: 'Reds',
+        eraBar: '#e11d48',
+        eraLine: '#881337',
+        songAgeBar: '#fb7185',
+        gridColor: '#360e18',
+        textColor: '#c4969f'
+      }
+    ];
+
+    function getCurrentTheme() {
+      return document.documentElement.getAttribute('data-theme') ||
+             localStorage.getItem('setlore_theme') ||
+             (window.userProfile && window.userProfile.theme) ||
+             'Default';
+    }
+
+    function setTheme(themeName, persistToServer = true) {
+      const themeObj = THEMES.find(t => t.id === themeName) || THEMES[0];
+      const validThemeId = themeObj.id;
+
+      document.documentElement.setAttribute('data-theme', validThemeId);
+      document.body.setAttribute('data-theme', validThemeId);
+      try {
+        localStorage.setItem('setlore_theme', validThemeId);
+      } catch (e) {}
+
+      const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+      if (metaThemeColor) {
+        metaThemeColor.setAttribute('content', themeObj.bg);
+      }
+
+      if (window.userProfile) {
+        window.userProfile.theme = validThemeId;
+      }
+
+      // Update Header Swatches & Labels
+      const headerSwatch = document.getElementById('header-theme-swatch');
+      const headerLabel = document.getElementById('header-theme-label');
+      const mobileHeaderSwatch = document.getElementById('mobile-header-theme-swatch');
+      const modalBadge = document.getElementById('modal-active-theme-badge');
+      const mobileSheetBadge = document.getElementById('mobile-sheet-active-theme-label');
+
+      if (headerSwatch) headerSwatch.style.background = themeObj.gradient;
+      if (headerLabel) headerLabel.innerText = themeObj.name;
+      if (mobileHeaderSwatch) mobileHeaderSwatch.style.background = themeObj.gradient;
+      if (modalBadge) modalBadge.innerText = themeObj.name;
+      if (mobileSheetBadge) mobileSheetBadge.innerText = themeObj.name;
+
+      renderThemeSelectors(validThemeId);
+      applyThemeToPlotlyCharts(validThemeId);
+
+      if (persistToServer && !window.isPublicView && window.userProfile && window.isOwner) {
+        fetch('/api/theme/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+          },
+          body: JSON.stringify({ theme: validThemeId })
+        }).catch(err => console.error('Theme sync error:', err));
+      }
+    }
+
+    function toggleThemeMenu() {
+      const menu = document.getElementById('theme-dropdown-menu');
+      const chevron = document.getElementById('theme-menu-chevron');
+      if (!menu) return;
+      const isHidden = menu.classList.contains('hidden');
+      closeAllHeaderMenus();
+      if (isHidden) {
+        menu.classList.remove('hidden');
+        if (chevron) chevron.classList.add('rotate-180');
+      }
+    }
+
+    function toggleMobileThemeMenu() {
+      const menu = document.getElementById('mobile-theme-dropdown-menu');
+      if (!menu) return;
+      menu.classList.toggle('hidden');
+    }
+
+    function closeAllHeaderMenus() {
+      const themeMenu = document.getElementById('theme-dropdown-menu');
+      const userMenu = document.getElementById('user-dropdown-menu');
+      const mobileThemeMenu = document.getElementById('mobile-theme-dropdown-menu');
+      const themeChevron = document.getElementById('theme-menu-chevron');
+      const userChevron = document.getElementById('user-menu-chevron');
+
+      if (themeMenu) themeMenu.classList.add('hidden');
+      if (userMenu) userMenu.classList.add('hidden');
+      if (mobileThemeMenu) mobileThemeMenu.classList.add('hidden');
+      if (themeChevron) themeChevron.classList.remove('rotate-180');
+      if (userChevron) userChevron.classList.remove('rotate-180');
+    }
+
+    function renderThemeSelectors(activeThemeId) {
+      // 1. Desktop Header Dropdown
+      const desktopContainer = document.getElementById('theme-options-list');
+      if (desktopContainer) {
+        desktopContainer.innerHTML = THEMES.map(t => {
+          const isActive = t.id === activeThemeId;
+          return `
+            <button type="button" onclick="setTheme('${t.id}'); closeAllHeaderMenus();" class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition text-left cursor-pointer ${isActive ? 'bg-indigo-600/25 text-white font-bold' : 'text-slate-300 hover:text-white hover:bg-slate-800/80'}">
+              <div class="flex items-center gap-2.5 min-w-0">
+                <span class="w-3.5 h-3.5 rounded-full shrink-0 shadow border border-white/30" style="background: ${t.gradient};"></span>
+                <div class="truncate">
+                  <p class="truncate leading-tight">${t.name}</p>
+                  <p class="text-[10px] text-slate-400 font-normal truncate">${t.subtitle}</p>
+                </div>
+              </div>
+              ${isActive ? '<i class="fa-solid fa-check text-indigo-400 text-xs shrink-0 ml-2"></i>' : ''}
+            </button>
+          `;
+        }).join('');
+      }
+
+      // 2. Mobile Top Bar Dropdown
+      const mobileContainer = document.getElementById('mobile-theme-options-list');
+      if (mobileContainer) {
+        mobileContainer.innerHTML = THEMES.map(t => {
+          const isActive = t.id === activeThemeId;
+          return `
+            <button type="button" onclick="setTheme('${t.id}'); closeAllHeaderMenus();" class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition text-left cursor-pointer ${isActive ? 'bg-indigo-600/25 text-white font-bold' : 'text-slate-300 hover:text-white hover:bg-slate-800/80'}">
+              <div class="flex items-center gap-2.5 min-w-0">
+                <span class="w-3.5 h-3.5 rounded-full shrink-0 shadow border border-white/30" style="background: ${t.gradient};"></span>
+                <div class="truncate">
+                  <p class="truncate leading-tight">${t.name}</p>
+                  <p class="text-[10px] text-slate-400 font-normal truncate">${t.subtitle}</p>
+                </div>
+              </div>
+              ${isActive ? '<i class="fa-solid fa-check text-indigo-400 text-xs shrink-0 ml-2"></i>' : ''}
+            </button>
+          `;
+        }).join('');
+      }
+
+      // 3. Settings Modal Grid
+      const modalContainer = document.getElementById('modal-theme-grid');
+      if (modalContainer) {
+        modalContainer.innerHTML = THEMES.map(t => {
+          const isActive = t.id === activeThemeId;
+          return `
+            <button type="button" onclick="setTheme('${t.id}');" class="flex items-center gap-2.5 p-2 rounded-xl border text-left transition cursor-pointer ${isActive ? 'border-indigo-500 bg-indigo-600/20 shadow-md shadow-indigo-500/20' : 'border-slate-800 bg-slate-900/80 hover:bg-slate-800/90 hover:border-slate-700'}">
+              <span class="w-6 h-6 rounded-lg shrink-0 shadow-inner border border-white/30" style="background: ${t.gradient};"></span>
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center justify-between">
+                  <p class="text-xs font-bold text-white truncate">${t.name}</p>
+                  ${isActive ? '<i class="fa-solid fa-circle-check text-indigo-400 text-xs"></i>' : ''}
+                </div>
+                <p class="text-[10px] text-slate-400 truncate">${t.subtitle}</p>
+              </div>
+            </button>
+          `;
+        }).join('');
+      }
+
+      // 4. Mobile More Sheet Grid
+      const sheetContainer = document.getElementById('mobile-sheet-theme-grid');
+      if (sheetContainer) {
+        sheetContainer.innerHTML = THEMES.map(t => {
+          const isActive = t.id === activeThemeId;
+          return `
+            <button type="button" onclick="setTheme('${t.id}'); closeMobileMoreMenu();" class="flex items-center gap-2 p-2 rounded-xl border text-left transition cursor-pointer ${isActive ? 'border-indigo-500 bg-indigo-600/20' : 'border-slate-800 bg-slate-900/80 hover:bg-slate-800'}">
+              <span class="w-4 h-4 rounded-full shrink-0 shadow border border-white/30" style="background: ${t.gradient};"></span>
+              <div class="min-w-0 flex-1">
+                <p class="text-[11px] font-bold text-white truncate">${t.name}</p>
+              </div>
+              ${isActive ? '<i class="fa-solid fa-check text-indigo-400 text-[10px]"></i>' : ''}
+            </button>
+          `;
+        }).join('');
+      }
+    }
+
+    function applyThemeToPlotlyCharts(themeName) {
+      const themeObj = THEMES.find(t => t.id === themeName) || THEMES[0];
+
+      // 1. Timeline Chart
+      const timelineEl = document.getElementById('chart-timeline');
+      if (timelineEl && timelineEl.data) {
+        Plotly.restyle(timelineEl, {
+          'marker.color': [themeObj.timelineBar],
+          'line.color': [themeObj.timelineLine]
+        }, [0, 1]).catch(() => {});
+        Plotly.relayout(timelineEl, {
+          'xaxis.gridcolor': themeObj.gridColor,
+          'yaxis.gridcolor': themeObj.gridColor,
+          'font.color': themeObj.textColor
+        }).catch(() => {});
+      }
+
+      // 2. Top Artists Chart
+      const topArtistsEl = document.getElementById('chart-top-artists');
+      if (topArtistsEl && topArtistsEl.data) {
+        Plotly.restyle(topArtistsEl, {
+          'marker.colorscale': themeObj.topArtistsScale
+        }, [0]).catch(() => {});
+        Plotly.relayout(topArtistsEl, {
+          'xaxis.gridcolor': themeObj.gridColor,
+          'yaxis.gridcolor': themeObj.gridColor,
+          'font.color': themeObj.textColor
+        }).catch(() => {});
+      }
+
+      // 3. Treemap Chart
+      const treemapEl = document.getElementById('chart-treemap');
+      if (treemapEl && treemapEl.data) {
+        Plotly.restyle(treemapEl, {
+          'marker.colorscale': themeObj.treemapScale,
+          'marker.line.color': themeObj.bg
+        }, [0]).catch(() => {});
+        Plotly.relayout(treemapEl, {
+          'font.color': themeObj.textColor
+        }).catch(() => {});
+      }
+
+      // 4. Sunburst Chart
+      const sunburstEl = document.getElementById('chart-sunburst');
+      if (sunburstEl && sunburstEl.data) {
+        Plotly.restyle(sunburstEl, {
+          'marker.colorscale': themeObj.sunburstScale
+        }, [0]).catch(() => {});
+        Plotly.relayout(sunburstEl, {
+          'font.color': themeObj.textColor
+        }).catch(() => {});
+      }
+
+      // 5. Era Chart
+      const eraEl = document.getElementById('chart-era');
+      if (eraEl && eraEl.data) {
+        Plotly.restyle(eraEl, {
+          'marker.color': [themeObj.eraBar],
+          'marker.line.color': [themeObj.eraLine]
+        }, [0]).catch(() => {});
+        Plotly.relayout(eraEl, {
+          'xaxis.gridcolor': themeObj.gridColor,
+          'yaxis.gridcolor': themeObj.gridColor,
+          'font.color': themeObj.textColor
+        }).catch(() => {});
+      }
+
+      // 6. Song Age Chart
+      const songAgeEl = document.getElementById('chart-song-age');
+      if (songAgeEl && songAgeEl.data) {
+        Plotly.restyle(songAgeEl, {
+          'marker.color': [themeObj.songAgeBar]
+        }, [0]).catch(() => {});
+        Plotly.relayout(songAgeEl, {
+          'xaxis.gridcolor': themeObj.gridColor,
+          'yaxis.gridcolor': themeObj.gridColor,
+          'font.color': themeObj.textColor
+        }).catch(() => {});
+      }
+    }
+
     // Chart Inits
     const timelineData = {{ plotly_timeline|safe }};
     const topArtistsData = {{ plotly_top_artists|safe }};
@@ -4463,12 +5321,15 @@
     const eraData = {{ plotly_era|safe }};
     const songAgeData = {{ plotly_song_age|safe }};
 
+    const initialThemeId = getCurrentTheme();
+    const activeThemeConfig = THEMES.find(t => t.id === initialThemeId) || THEMES[0];
+
     const layoutDefaults = {
       paper_bgcolor: 'rgba(0,0,0,0)',
       plot_bgcolor: 'rgba(0,0,0,0)',
-      font: { color: '#94a3b8', family: 'system-ui' },
+      font: { color: activeThemeConfig.textColor, family: 'system-ui' },
       margin: { t: 30, b: 40, l: 50, r: 20 },
-      colorway: ['#6366f1', '#a855f7', '#ec4899', '#10b981', '#f59e0b', '#3b82f6']
+      colorway: activeThemeConfig.colorway
     };
 
     const staticOverviewLayout = {
@@ -4490,9 +5351,10 @@
         xaxis: Object.assign({}, layoutDefaults.xaxis || {}, timelineData.layout.xaxis || {}, {
           fixedrange: true,
           tickangle: -45,
-          automargin: true
+          automargin: true,
+          gridcolor: activeThemeConfig.gridColor
         }),
-        yaxis: Object.assign({}, layoutDefaults.yaxis || {}, timelineData.layout.yaxis || {}, { fixedrange: true }),
+        yaxis: Object.assign({}, layoutDefaults.yaxis || {}, timelineData.layout.yaxis || {}, { fixedrange: true, gridcolor: activeThemeConfig.gridColor }),
         yaxis2: Object.assign({}, layoutDefaults.yaxis2 || {}, timelineData.layout.yaxis2 || {}, { fixedrange: true })
       }),
       { responsive: true, displayModeBar: false, scrollZoom: false, doubleClick: false }
@@ -4502,8 +5364,8 @@
       topArtistsData.data,
       Object.assign({}, layoutDefaults, topArtistsData.layout, {
         dragmode: false,
-        xaxis: Object.assign({}, layoutDefaults.xaxis || {}, topArtistsData.layout.xaxis || {}, { fixedrange: true }),
-        yaxis: Object.assign({}, layoutDefaults.yaxis || {}, topArtistsData.layout.yaxis || {}, { fixedrange: true })
+        xaxis: Object.assign({}, layoutDefaults.xaxis || {}, topArtistsData.layout.xaxis || {}, { fixedrange: true, gridcolor: activeThemeConfig.gridColor }),
+        yaxis: Object.assign({}, layoutDefaults.yaxis || {}, topArtistsData.layout.yaxis || {}, { fixedrange: true, gridcolor: activeThemeConfig.gridColor })
       }),
       { responsive: true, displayModeBar: false, scrollZoom: false, doubleClick: false }
     );
@@ -4528,8 +5390,8 @@
       eraData.data,
       Object.assign({}, layoutDefaults, eraData.layout, {
         dragmode: false,
-        xaxis: Object.assign({}, layoutDefaults.xaxis || {}, eraData.layout.xaxis || {}, { fixedrange: true }),
-        yaxis: Object.assign({}, layoutDefaults.yaxis || {}, eraData.layout.yaxis || {}, { fixedrange: true })
+        xaxis: Object.assign({}, layoutDefaults.xaxis || {}, eraData.layout.xaxis || {}, { fixedrange: true, gridcolor: activeThemeConfig.gridColor }),
+        yaxis: Object.assign({}, layoutDefaults.yaxis || {}, eraData.layout.yaxis || {}, { fixedrange: true, gridcolor: activeThemeConfig.gridColor })
       }),
       { responsive: true, displayModeBar: false, scrollZoom: false, doubleClick: false }
     );
@@ -4538,11 +5400,14 @@
       songAgeData.data,
       Object.assign({}, layoutDefaults, songAgeData.layout, {
         dragmode: false,
-        xaxis: Object.assign({}, layoutDefaults.xaxis || {}, songAgeData.layout.xaxis || {}, { fixedrange: true }),
-        yaxis: Object.assign({}, layoutDefaults.yaxis || {}, songAgeData.layout.yaxis || {}, { fixedrange: true })
+        xaxis: Object.assign({}, layoutDefaults.xaxis || {}, songAgeData.layout.xaxis || {}, { fixedrange: true, gridcolor: activeThemeConfig.gridColor }),
+        yaxis: Object.assign({}, layoutDefaults.yaxis || {}, songAgeData.layout.yaxis || {}, { fixedrange: true, gridcolor: activeThemeConfig.gridColor })
       }),
       { responsive: true, displayModeBar: false, scrollZoom: false, doubleClick: false }
     );
+
+    // Apply active theme colors right away
+    applyThemeToPlotlyCharts(initialThemeId);
 
     function resetTreemapZoom() {
       const el = document.getElementById('chart-treemap');
@@ -5494,6 +6359,7 @@
       toggleShareLinkDisplay(Boolean(window.userProfile.isPublic));
       updateGoogleAccountUI(window.userProfile.hasGoogleLinked, window.userProfile.googleEmail);
 
+      renderThemeSelectors(getCurrentTheme());
       if (alertBox) {
         alertBox.classList.add('hidden');
         alertBox.innerHTML = '';
@@ -6120,27 +6986,35 @@
     }
 
     document.addEventListener('click', function(event) {
-      const container = document.getElementById('user-menu-container');
-      const menu = document.getElementById('user-dropdown-menu');
-      const chevron = document.getElementById('user-menu-chevron');
-      const btn = document.getElementById('user-menu-btn');
-      if (container && menu && !container.contains(event.target)) {
-        menu.classList.add('hidden');
+      const userContainer = document.getElementById('user-menu-container');
+      const themeContainer = document.getElementById('theme-menu-container');
+      const mobileThemeContainer = document.getElementById('mobile-theme-menu-container');
+
+      if (userContainer && !userContainer.contains(event.target)) {
+        const menu = document.getElementById('user-dropdown-menu');
+        const chevron = document.getElementById('user-menu-chevron');
+        const btn = document.getElementById('user-menu-btn');
+        if (menu) menu.classList.add('hidden');
         if (chevron) chevron.classList.remove('rotate-180');
         if (btn) btn.setAttribute('aria-expanded', 'false');
+      }
+
+      if (themeContainer && !themeContainer.contains(event.target)) {
+        const themeMenu = document.getElementById('theme-dropdown-menu');
+        const themeChevron = document.getElementById('theme-menu-chevron');
+        if (themeMenu) themeMenu.classList.add('hidden');
+        if (themeChevron) themeChevron.classList.remove('rotate-180');
+      }
+
+      if (mobileThemeContainer && !mobileThemeContainer.contains(event.target)) {
+        const mobileThemeMenu = document.getElementById('mobile-theme-dropdown-menu');
+        if (mobileThemeMenu) mobileThemeMenu.classList.add('hidden');
       }
     });
 
     document.addEventListener('keydown', function(event) {
       if (event.key === 'Escape') {
-        const menu = document.getElementById('user-dropdown-menu');
-        const chevron = document.getElementById('user-menu-chevron');
-        const btn = document.getElementById('user-menu-btn');
-        if (menu && !menu.classList.contains('hidden')) {
-          menu.classList.add('hidden');
-          if (chevron) chevron.classList.remove('rotate-180');
-          if (btn) btn.setAttribute('aria-expanded', 'false');
-        }
+        closeAllHeaderMenus();
         closeMobileMoreMenu();
       }
     });
@@ -6852,6 +7726,10 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
+      const activeTheme = getCurrentTheme();
+      setTheme(activeTheme, false);
+      renderThemeSelectors(activeTheme);
+
       const initialStatus = '{{ profile.sync_status }}';
       if (initialStatus === 'syncing') {
         startSyncPolling();

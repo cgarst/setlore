@@ -256,6 +256,13 @@ def update_profile_view(request):
             profile.ignored_artists = ign_list
             update_fields.append('ignored_artists')
 
+        if 'theme' in data:
+            theme_val = str(data.get('theme', '')).strip()
+            valid_themes = [t[0] for t in UserProfile.THEME_CHOICES]
+            if theme_val in valid_themes:
+                profile.theme = theme_val
+                update_fields.append('theme')
+
         if update_fields:
             update_fields.append('updated_at')
             profile.save(update_fields=update_fields)
@@ -278,6 +285,7 @@ def update_profile_view(request):
                 "setlistfm_username": profile.setlistfm_username,
                 "prompt_setlistfm": profile.prompt_setlistfm,
                 "is_public": profile.is_public,
+                "theme": profile.theme,
                 "ignored_artists": profile.ignored_artists,
                 "has_custom_api_key": bool(profile.setlistfm_api_key),
                 "has_google_linked": bool(profile.google_id),
@@ -285,6 +293,26 @@ def update_profile_view(request):
             },
             "sync_queued": sync_queued
         })
+    except Exception as e:
+        return JsonResponse({"status": "error", "error": str(e)}, status=400)
+
+
+@require_POST
+def set_theme_view(request):
+    """Save the user's selected UI theme. If authenticated, persists to UserProfile."""
+    try:
+        if request.content_type == 'application/json':
+            data = json.loads(request.body.decode('utf-8'))
+        else:
+            data = request.POST
+        theme_val = str(data.get('theme', 'Default')).strip()
+        valid_themes = [t[0] for t in UserProfile.THEME_CHOICES]
+        if theme_val not in valid_themes:
+            theme_val = 'Default'
+        if request.user.is_authenticated and hasattr(request.user, 'profile'):
+            request.user.profile.theme = theme_val
+            request.user.profile.save(update_fields=['theme', 'updated_at'])
+        return JsonResponse({"status": "ok", "theme": theme_val})
     except Exception as e:
         return JsonResponse({"status": "error", "error": str(e)}, status=400)
 

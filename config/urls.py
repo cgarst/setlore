@@ -62,7 +62,7 @@ urlpatterns = [
     # Friends API
     path('api/friends/toggle/', core_views.toggle_friend_view, name='api_toggle_friend'),
     path('api/friends/list/', core_views.list_friends_view, name='api_list_friends'),
-
+    path('api/theme/', core_views.set_theme_view, name='api_set_theme'),
     path('api/profile/update/', core_views.update_profile_view, name='api_profile_update'),
     path('api/sync/', concerts_views.trigger_sync, name='api_sync'),
     path('api/sync/status/', concerts_views.sync_status, name='api_sync_status'),
