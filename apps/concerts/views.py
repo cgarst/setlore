@@ -1373,6 +1373,154 @@ def export_concerts_csv(request, username=None):
     return response
 
 
+@login_required
+@require_POST
+def save_setlist(request):
+    """
+    Saves or updates the setlist tracks for a specific artist at a specific concert.
+    Accepts JSON with:
+      - concert_id: int or string (e.g. 10 or 'concert_10')
+      - artist: artist name
+      - setlist_text: raw multiline text of songs
+    """
+    try:
+        if request.content_type == 'application/json':
+            try:
+                data = json.loads(request.body)
+            except Exception:
+                return JsonResponse({'error': 'Invalid JSON body'}, status=400)
+        else:
+            data = request.POST
+
+        raw_concert_id = str(data.get('concert_id', '')).strip()
+        if raw_concert_id.startswith('concert_'):
+            raw_concert_id = raw_concert_id.replace('concert_', '')
+
+        try:
+            concert_id = int(raw_concert_id)
+        except (ValueError, TypeError):
+            return JsonResponse({'error': 'Invalid concert ID'}, status=400)
+
+        artist_name = str(data.get('artist', '')).strip()
+        setlist_text = str(data.get('setlist_text', '')).strip()
+
+        if not artist_name:
+            return JsonResponse({'error': 'Artist name is required'}, status=400)
+        if not setlist_text:
+            return JsonResponse({'error': 'Please enter at least one song.'}, status=400)
+
+        concert = Concert.objects.filter(id=concert_id, user=request.user).first()
+        if not concert:
+            return JsonResponse({'error': 'Concert not found or access denied'}, status=404)
+
+        # Get or create Artist
+        artist_obj, _ = Artist.objects.get_or_create(
+            name=artist_name,
+            defaults={'clean_name': artist_name.lower().strip()}
+        )
+
+        # Get or create ConcertArtist
+        ca = ConcertArtist.objects.filter(concert=concert, artist__name__iexact=artist_name).first()
+        if not ca:
+            billing_order = concert.artists.count()
+            ca = ConcertArtist.objects.create(
+                concert=concert,
+                artist=artist_obj,
+                billing_order=billing_order,
+                has_setlist=False
+            )
+
+        # Parse setlist text
+        parsed_tracks = parse_setlist_text(setlist_text)
+        if not parsed_tracks:
+            return JsonResponse({'error': 'Could not parse any valid songs from input.'}, status=400)
+
+        with transaction.atomic():
+            # Clear existing songs for this ConcertArtist
+            ca.songs.all().delete()
+
+            total_tracks = len(parsed_tracks)
+            new_songs_to_enrich = []
+
+            for idx, t in enumerate(parsed_tracks):
+                track_num = idx + 1
+                pct = round((track_num / total_tracks) * 100) if total_tracks > 0 else 100
+
+                if track_num == 1:
+                    slot = "Opener"
+                    slot_category = "opener"
+                elif t["is_encore"]:
+                    if track_num == total_tracks:
+                        slot = "Show Closer"
+                    else:
+                        slot = f"Encore {t['encore_number']}" if t['encore_number'] else "Encore"
+                    slot_category = "encore"
+                elif track_num == total_tracks:
+                    slot = "Show Closer"
+                    slot_category = "closer"
+                elif pct <= 35:
+                    slot = "Early Set"
+                    slot_category = "early"
+                elif pct <= 70:
+                    slot = "Mid-Set"
+                    slot_category = "mid"
+                else:
+                    slot = "Late Set"
+                    slot_category = "late"
+
+                clean_title_key = t["title"].lower().strip()
+                song_obj, _ = Song.objects.get_or_create(
+                    artist=artist_obj,
+                    clean_title=clean_title_key,
+                    defaults={
+                        'title': t["title"],
+                        'is_cover': t["is_cover"],
+                        'original_artist': t["original_artist"] or None
+                    }
+                )
+
+                ConcertSong.objects.create(
+                    concert_artist=ca,
+                    song=song_obj,
+                    raw_song_name=t["title"],
+                    set_name=t["set_name"],
+                    is_encore=t["is_encore"],
+                    encore_number=t["encore_number"],
+                    track_num=track_num,
+                    total_tracks=total_tracks,
+                    pct_position=pct,
+                    slot=slot,
+                    slot_category=slot_category,
+                    is_cover=t["is_cover"],
+                    original_artist=t["original_artist"] or '',
+                    info=t["info"] or ''
+                )
+                new_songs_to_enrich.append((artist_obj.name, t["title"]))
+
+            ca.has_setlist = True
+            ca.save()
+
+        # Invalidate cached analytics bundle for this user
+        ApiCache.objects.filter(cache_key=f"user_dashboard_bundle_{request.user.id}").delete()
+
+        # Quick album enrichment for new tracks
+        if new_songs_to_enrich:
+            try:
+                enricher = AlbumEnricher()
+                enricher.load_cached_catalog([{"artist": a, "song": s} for a, s in new_songs_to_enrich])
+            except Exception:
+                pass
+
+        return JsonResponse({
+            'success': True,
+            'message': f"Successfully saved {total_tracks} songs for {artist_name}.",
+            'songs_count': total_tracks
+        })
+    except Exception as e:
+        return JsonResponse({'error': f"Failed to save setlist: {str(e)}"}, status=500)
+
+
+
 
 
 

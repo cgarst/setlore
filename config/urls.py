@@ -56,6 +56,7 @@ urlpatterns = [
     path('api/upload-csv/', concerts_views.upload_csv, name='api_upload_csv'),
     path('api/concerts/export/', concerts_views.export_concerts_csv, name='api_export_concerts_csv'),
     path('api/concerts/add/', concerts_views.add_concert, name='api_add_concert'),
+    path('api/concerts/save-setlist/', concerts_views.save_setlist, name='api_save_setlist'),
     path('api/concerts/toggle-attendance/', concerts_views.toggle_concert_attendance, name='api_toggle_concert_attendance'),
     path('api/autocomplete/', concerts_views.autocomplete_view, name='api_autocomplete'),
     path('api/ticketmaster/preview/', concerts_views.parse_ticketmaster_preview, name='api_ticketmaster_preview'),

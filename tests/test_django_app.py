@@ -1,4 +1,5 @@
 import os
+import json
 import django
 from django.test import TestCase, Client
 from django.contrib.auth.models import User
@@ -422,5 +423,69 @@ class DjangoAppTests(TestCase):
         redirect_res = self.client.get('/privacy', follow=True)
         self.assertEqual(redirect_res.status_code, 200)
         self.assertIn('Privacy Policy', redirect_res.content.decode('utf-8'))
+
+    def test_save_setlist_flow(self):
+        # 1. Create a concert with no songs
+        artist = Artist.objects.create(name='Phish', normalized_name='phish')
+        concert = Concert.objects.create(
+            user=self.user,
+            raw_date='07/15/2023',
+            year=2023,
+            primary_artist='Phish',
+            raw_artists='Phish'
+        )
+        ca = ConcertArtist.objects.create(concert=concert, artist=artist, has_setlist=False)
+
+        # Unauthenticated request rejected
+        unauth_res = self.client.post('/api/concerts/save-setlist/', data=json.dumps({
+            'concert_id': concert.id,
+            'artist': 'Phish',
+            'setlist_text': 'Free\nGhost\nEncore\nCharacter Zero'
+        }), content_type='application/json')
+        self.assertEqual(unauth_res.status_code, 302)
+
+        # Authenticated user saves setlist
+        self.client.force_login(self.user)
+        save_res = self.client.post('/api/concerts/save-setlist/', data=json.dumps({
+            'concert_id': concert.id,
+            'artist': 'Phish',
+            'setlist_text': 'Free\nGhost\nEncore\nCharacter Zero (Cover - Jimi Hendrix)'
+        }), content_type='application/json')
+        self.assertEqual(save_res.status_code, 200)
+        data = save_res.json()
+        self.assertTrue(data['success'])
+        self.assertEqual(data['songs_count'], 3)
+
+        # Check ConcertArtist and ConcertSong in DB
+        ca.refresh_from_db()
+        self.assertTrue(ca.has_setlist)
+        self.assertEqual(ca.songs.count(), 3)
+
+        songs = list(ca.songs.all().order_by('track_num'))
+        self.assertEqual(songs[0].raw_song_name, 'Free')
+        self.assertEqual(songs[0].slot, 'Opener')
+        self.assertEqual(songs[1].raw_song_name, 'Ghost')
+        self.assertEqual(songs[2].raw_song_name, 'Character Zero')
+        self.assertTrue(songs[2].is_encore)
+        self.assertEqual(songs[2].slot, 'Show Closer')
+        self.assertTrue(songs[2].is_cover)
+        self.assertEqual(songs[2].original_artist, 'Jimi Hendrix')
+
+        # Invalid concert ID
+        bad_res = self.client.post('/api/concerts/save-setlist/', data=json.dumps({
+            'concert_id': 999999,
+            'artist': 'Phish',
+            'setlist_text': 'Free'
+        }), content_type='application/json')
+        self.assertEqual(bad_res.status_code, 404)
+
+        # Empty setlist text
+        empty_res = self.client.post('/api/concerts/save-setlist/', data=json.dumps({
+            'concert_id': concert.id,
+            'artist': 'Phish',
+            'setlist_text': ''
+        }), content_type='application/json')
+        self.assertEqual(empty_res.status_code, 400)
+
 
 
