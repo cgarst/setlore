@@ -2988,12 +2988,20 @@
       yaxis2: { fixedrange: true }
     };
 
+    const isMobileViewport = window.innerWidth < 640;
     Plotly.newPlot(
       'chart-timeline',
       timelineData.data,
       Object.assign({}, layoutDefaults, timelineData.layout, {
         dragmode: false,
-        xaxis: Object.assign({}, layoutDefaults.xaxis || {}, timelineData.layout.xaxis || {}, { fixedrange: true }),
+        margin: isMobileViewport
+          ? { t: 30, b: 45, l: 35, r: 35 }
+          : (timelineData.layout.margin || { t: 35, b: 40, l: 50, r: 65 }),
+        xaxis: Object.assign({}, layoutDefaults.xaxis || {}, timelineData.layout.xaxis || {}, {
+          fixedrange: true,
+          tickangle: -45,
+          automargin: true
+        }),
         yaxis: Object.assign({}, layoutDefaults.yaxis || {}, timelineData.layout.yaxis || {}, { fixedrange: true }),
         yaxis2: Object.assign({}, layoutDefaults.yaxis2 || {}, timelineData.layout.yaxis2 || {}, { fixedrange: true })
       }),
