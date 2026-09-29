@@ -77,6 +77,11 @@
     .leaflet-container {
       background: #0f172a !important;
     }
+    #chart-top-artists .bars path,
+    #chart-top-artists .point,
+    #chart-top-artists .yaxislayer-above text {
+      cursor: pointer !important;
+    }
   </style>
 </head>
 <body class="min-h-screen p-4 md:p-8 pb-24 md:pb-8">
@@ -2318,6 +2323,12 @@
 
       if (matchedKey) {
         selectArtist(matchedKey, songName);
+        setTimeout(() => {
+          const display = document.getElementById('drilldown-display');
+          if (display) {
+            display.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 80);
       } else {
         const songFilterInput = document.getElementById('drilldown-song-filter');
         if (songFilterInput) {
@@ -2655,6 +2666,41 @@
             }
           } else if (cData && typeof cData === 'string' && cData.startsWith('http')) {
             window.open(cData, '_blank');
+          }
+        }
+      });
+    }
+
+    const topArtistsEl = document.getElementById('chart-top-artists');
+    if (topArtistsEl) {
+      topArtistsEl.on('plotly_click', function(data) {
+        if (data.points && data.points.length > 0) {
+          const pt = data.points[0];
+          const artistName = pt.y || pt.label || (pt.customdata ? (pt.customdata.artist || pt.customdata) : null);
+          if (artistName) {
+            jumpToSongInDrilldown(artistName, '');
+          }
+        }
+      });
+      topArtistsEl.addEventListener('click', function(e) {
+        const tick = e.target.closest('.ytick, .yaxislayer-above text, .hovertext, .point, text');
+        if (tick) {
+          const text = tick.textContent.trim();
+          if (text && !text.match(/^\d+$/) && text.length > 1) {
+            jumpToSongInDrilldown(text, '');
+          }
+        }
+      });
+    }
+
+    const sunburstEl = document.getElementById('chart-sunburst');
+    if (sunburstEl) {
+      sunburstEl.on('plotly_click', function(data) {
+        if (data.points && data.points.length > 0) {
+          const pt = data.points[0];
+          const artistName = pt.label || pt.id;
+          if (artistName && artistName !== 'All Artists' && !artistName.includes('(')) {
+            jumpToSongInDrilldown(artistName, '');
           }
         }
       });

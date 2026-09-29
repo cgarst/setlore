@@ -487,5 +487,45 @@ class DjangoAppTests(TestCase):
         }), content_type='application/json')
         self.assertEqual(empty_res.status_code, 400)
 
+    def test_dynamic_artist_casing_deduplication(self):
+        from src.analytics import ConcertAnalytics
+
+        csv_records = [
+            {"id": "c1", "primary_artist": "Tesseract", "artists": ["Tesseract"], "year": 2023, "venue": "Rams Head Live"},
+            {"id": "c2", "primary_artist": "Tesseract", "artists": ["Tesseract", "Intervals"], "year": 2025, "venue": "The Fillmore"},
+        ]
+        matched_setlists = [
+            {
+                "csv": csv_records[0],
+                "artist": "TesseracT",
+                "setlist": {
+                    "artist": {"name": "TesseracT"},
+                    "sets": {
+                        "set": [
+                            {"song": [{"name": "Concealing Fate"}, {"name": "Nocturne"}]}
+                        ]
+                    }
+                }
+            }
+        ]
+
+        analytics = ConcertAnalytics(matched_setlists=matched_setlists, all_csv_records=csv_records)
+        metrics = analytics.compute_all_metrics()
+
+        # Should only have 1 TesseracT in top_artists
+        tesseract_entries = [a for a in metrics["top_artists"] if "tesseract" in a["artist"].lower()]
+        self.assertEqual(len(tesseract_entries), 1)
+        self.assertEqual(tesseract_entries[0]["artist"], "TesseracT")
+        self.assertEqual(tesseract_entries[0]["concert_count"], 2)
+        self.assertEqual(tesseract_entries[0]["total_songs_heard"], 2)
+
+        # Concerts drilldown should also use canonical name
+        drilldown = analytics.compute_concert_drilldown()
+        for c in drilldown:
+            for art in c["artists"]:
+                if "tesseract" in art["artist"].lower():
+                    self.assertEqual(art["artist"], "TesseracT")
+
+
 
 

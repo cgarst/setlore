@@ -8,6 +8,31 @@ class ConcertAnalytics:
         self.all_csv_records = all_csv_records
         self.ignored_artists = [a.lower().strip() for a in (ignored_artists or IGNORED_ARTISTS)]
 
+        # Build canonical artist casing map (priority: official casing from setlists > CSV casing)
+        self.canonical_artist_map = {}
+        for pair in self.matched_setlists:
+            sl = pair.get("setlist")
+            if sl:
+                name = sl.get("artist", {}).get("name")
+                if name:
+                    self.canonical_artist_map[name.strip().lower()] = name.strip()
+
+        for rec in self.all_csv_records:
+            for art in rec.get("artists", []):
+                if art:
+                    key = art.strip().lower()
+                    if key not in self.canonical_artist_map:
+                        self.canonical_artist_map[key] = art.strip()
+            if rec.get("primary_artist"):
+                key = rec["primary_artist"].strip().lower()
+                if key not in self.canonical_artist_map:
+                    self.canonical_artist_map[key] = rec["primary_artist"].strip()
+
+    def _canonical_name(self, artist_name: str) -> str:
+        if not artist_name:
+            return ""
+        return self.canonical_artist_map.get(artist_name.strip().lower(), artist_name.strip())
+
     def _is_ignored(self, artist_name: str) -> bool:
         if not artist_name:
             return False
@@ -32,7 +57,8 @@ class ConcertAnalytics:
                 yearly_concerts[rec["year"]] += 1
             if rec.get("venue"):
                 venue_counter[rec["venue"]] += 1
-            for art in rec.get("artists", []):
+            for raw_art in rec.get("artists", []):
+                art = self._canonical_name(raw_art)
                 if not self._is_ignored(art):
                     artist_counter[art] += 1
                     all_artists_seen.add(art)
@@ -49,7 +75,8 @@ class ConcertAnalytics:
         for pair in sorted_pairs:
             csv_rec = pair["csv"]
             sl = pair["setlist"]
-            sl_artist = sl.get("artist", {}).get("name", csv_rec["primary_artist"])
+            raw_sl_artist = sl.get("artist", {}).get("name", csv_rec["primary_artist"])
+            sl_artist = self._canonical_name(raw_sl_artist)
             if self._is_ignored(sl_artist):
                 continue
 
@@ -343,11 +370,12 @@ class ConcertAnalytics:
             artists_data = []
             total_songs_in_event = 0
 
-            for art in artists:
-                artist_show_counter[art] += 1
-                artist_seen_nth = artist_show_counter[art]
+            for raw_art in artists:
+                can_art = self._canonical_name(raw_art)
+                artist_show_counter[can_art] += 1
+                artist_seen_nth = artist_show_counter[can_art]
 
-                sl = matched_map.get((c_id, art.strip().lower()))
+                sl = matched_map.get((c_id, can_art.strip().lower()))
                 grouped_sets = []
                 setlist_url = None
                 artist_songs_played = 0
@@ -378,12 +406,12 @@ class ConcertAnalytics:
                             if not s_name:
                                 continue
                             
-                            artist_song_counter[art][s_name] += 1
-                            song_heard_nth = artist_song_counter[art][s_name]
+                            artist_song_counter[can_art][s_name] += 1
+                            song_heard_nth = artist_song_counter[can_art][s_name]
                             pct_shows = round((song_heard_nth / artist_seen_nth) * 100)
                             
                             # Album and release year info
-                            k = f"{art}_{s_name}".lower()
+                            k = f"{can_art}_{s_name}".lower()
                             enrich_info = album_enrichments.get(k, {})
                             album = enrich_info.get("album", "Non-Album / Singles")
                             rel_year = enrich_info.get("release_year")
@@ -437,7 +465,7 @@ class ConcertAnalytics:
                             })
 
                 artists_data.append({
-                    "artist": art,
+                    "artist": can_art,
                     "artist_seen_nth": artist_seen_nth,
                     "has_setlist": bool(sl and grouped_sets),
                     "setlist_url": setlist_url,
