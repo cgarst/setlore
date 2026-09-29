@@ -3,9 +3,23 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Setlore - Live Concert & Setlist Analytics</title>
+
+  <!-- PWA & Apple iOS Configuration -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Setlore">
+  <meta name="application-name" content="Setlore">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="mobile-web-app-capable" content="yes">
   <link rel="icon" type="image/png" href="{% static 'img/setlore_icon.png' %}">
+  <link rel="apple-touch-icon" href="{% static 'img/setlore_icon.png' %}">
+  <link rel="apple-touch-icon" sizes="152x152" href="{% static 'img/setlore_icon.png' %}">
+  <link rel="apple-touch-icon" sizes="167x167" href="{% static 'img/setlore_icon.png' %}">
+  <link rel="apple-touch-icon" sizes="180x180" href="{% static 'img/setlore_icon.png' %}">
+  <link rel="manifest" href="{% static 'manifest.json' %}">
+
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Chart.js and Plotly -->
@@ -16,7 +30,17 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
-    body { background-color: #0f172a; color: #f8fafc; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; }
+    html, body {
+      background-color: #0f172a;
+      color: #f8fafc;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      touch-action: manipulation;
+      -webkit-touch-callout: none;
+      -webkit-text-size-adjust: 100%;
+    }
+    button, a, input, select, textarea {
+      touch-action: manipulation;
+    }
     .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 1rem; }
     .badge { display: inline-flex; align-items: center; padding: 0.2rem 0.6rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; }
     ::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -2972,6 +2996,31 @@
         closeMobileMoreMenu();
       }
     });
+
+    // Prevent iOS Safari pinch-to-zoom gestures
+    document.addEventListener('gesturestart', (e) => e.preventDefault(), { passive: false });
+    document.addEventListener('gesturechange', (e) => e.preventDefault(), { passive: false });
+    document.addEventListener('gestureend', (e) => e.preventDefault(), { passive: false });
+
+    // Prevent multi-touch pinch zooming except inside map container
+    document.addEventListener('touchstart', (e) => {
+      if (e.touches && e.touches.length > 1 && !e.target.closest('#venue-map')) {
+        e.preventDefault();
+      }
+    }, { passive: false });
+
+    // Prevent iOS Safari double-tap to zoom
+    let lastTouchEnd = 0;
+    document.addEventListener('touchend', (e) => {
+      const now = Date.now();
+      if (now - lastTouchEnd <= 300) {
+        if (!['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) {
+          e.preventDefault();
+          e.target.click();
+        }
+      }
+      lastTouchEnd = now;
+    }, { passive: false });
 
     document.addEventListener('DOMContentLoaded', () => {
       const initialStatus = '{{ profile.sync_status }}';

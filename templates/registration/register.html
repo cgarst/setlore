@@ -3,13 +3,37 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Register - Setlore</title>
+
+  <!-- PWA & Apple iOS Configuration -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Setlore">
+  <meta name="application-name" content="Setlore">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="mobile-web-app-capable" content="yes">
   <link rel="icon" type="image/png" href="{% static 'img/setlore_icon.png' %}">
+  <link rel="apple-touch-icon" href="{% static 'img/setlore_icon.png' %}">
+  <link rel="apple-touch-icon" sizes="152x152" href="{% static 'img/setlore_icon.png' %}">
+  <link rel="apple-touch-icon" sizes="167x167" href="{% static 'img/setlore_icon.png' %}">
+  <link rel="apple-touch-icon" sizes="180x180" href="{% static 'img/setlore_icon.png' %}">
+  <link rel="manifest" href="{% static 'manifest.json' %}">
+
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
-    body { background-color: #0f172a; color: #f8fafc; font-family: system-ui, -apple-system, sans-serif; }
+    body {
+      background-color: #0f172a;
+      color: #f8fafc;
+      font-family: system-ui, -apple-system, sans-serif;
+      touch-action: manipulation;
+      -webkit-touch-callout: none;
+      -webkit-text-size-adjust: 100%;
+    }
+    button, a, input, select, textarea {
+      touch-action: manipulation;
+    }
     .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 1rem; }
   </style>
 </head>
