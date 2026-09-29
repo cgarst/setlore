@@ -159,11 +159,6 @@
                 <span>Share Profile Link</span>
               </button>
 
-              <button type="button" onclick="openProfileModal(); closeUserMenu();" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-slate-200 hover:text-white hover:bg-amber-500/10 transition text-left cursor-pointer">
-                <i class="fa-solid fa-user-gear text-amber-400 w-4 text-center"></i>
-                <span>Profile & Privacy</span>
-              </button>
-
               <button type="button" onclick="openUploadModal(); closeUserMenu();" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-slate-200 hover:text-white hover:bg-indigo-600/20 transition text-left cursor-pointer">
                 <i class="fa-solid fa-file-csv text-cyan-400 w-4 text-center"></i>
                 <span>Import CSV</span>
@@ -176,10 +171,10 @@
             </div>
 
             <div class="border-t border-slate-800 py-1">
-              <a href="{% url 'password_change' %}" class="flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-slate-200 hover:text-white hover:bg-indigo-600/20 transition">
-                <i class="fa-solid fa-key text-indigo-400 w-4 text-center"></i>
-                <span>Change Password</span>
-              </a>
+              <button type="button" onclick="openProfileModal(); closeUserMenu();" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-slate-200 hover:text-white hover:bg-amber-500/10 transition text-left cursor-pointer">
+                <i class="fa-solid fa-user-gear text-amber-400 w-4 text-center"></i>
+                <span>Profile & Privacy</span>
+              </button>
 
               {% if request.user.is_staff %}
                 <a href="/admin/" target="_blank" class="flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-purple-300 hover:text-purple-200 hover:bg-purple-600/20 transition">
@@ -228,10 +223,10 @@
               </div>
 
               <div class="py-1">
-                <a href="{% url 'password_change' %}" class="flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-slate-200 hover:text-white hover:bg-indigo-600/20 transition">
-                  <i class="fa-solid fa-key text-indigo-400 w-4 text-center"></i>
-                  <span>Change Password</span>
-                </a>
+                <button type="button" onclick="openProfileModal(); closeUserMenu();" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-slate-200 hover:text-white hover:bg-amber-500/10 transition text-left cursor-pointer">
+                  <i class="fa-solid fa-user-gear text-amber-400 w-4 text-center"></i>
+                  <span>Profile & Privacy</span>
+                </button>
                 {% if request.user.is_staff %}
                   <a href="/admin/" target="_blank" class="flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-purple-300 hover:text-purple-200 hover:bg-purple-600/20 transition">
                     <i class="fa-solid fa-sliders text-purple-400 w-4 text-center"></i>
@@ -401,6 +396,23 @@
             <span>Connect Google Account</span>
           </a>
         </div>
+      </div>
+
+      <!-- Password & Security Section -->
+      <div class="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <i class="fa-solid fa-key text-indigo-400 text-xs w-4 text-center"></i>
+            <span class="text-xs font-semibold text-white">Password & Security</span>
+          </div>
+          <a href="{% url 'password_change' %}" class="py-1 px-2.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 text-indigo-300 hover:text-white text-xs font-medium transition flex items-center gap-1.5 shrink-0">
+            <i class="fa-solid fa-key text-[10px]"></i>
+            <span>Change Password</span>
+          </a>
+        </div>
+        <p class="text-[11px] text-slate-400">
+          Update the login password for your Setlore account.
+        </p>
       </div>
 
       <form id="profile-form" onsubmit="saveProfileSettings(event)" class="space-y-4">
@@ -1939,108 +1951,8 @@
         </button>
       </div>
 
-      <!-- Quick Actions (Sync, Setlist Settings & Imports or Public Options) -->
-      <div class="space-y-2">
-        <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Quick Actions</p>
-        
-        {% if not is_public_view %}
-          <!-- Mobile Sync Button -->
-          <button id="mobile-sync-btn" onclick="triggerSync()" class="w-full flex items-center justify-between p-3 rounded-2xl bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/40 text-indigo-200 transition cursor-pointer shadow-sm group">
-            <div class="flex items-center gap-3">
-              <div class="w-9 h-9 rounded-xl bg-indigo-500/25 flex items-center justify-center text-indigo-400">
-                <i id="mobile-sync-btn-icon" class="fa-solid fa-rotate text-sm"></i>
-              </div>
-              <div class="text-left">
-                <p class="text-xs font-bold text-white"><span id="mobile-sync-btn-text">Sync</span></p>
-                <p class="text-[11px] text-indigo-300/70">Fetch latest data & update profile</p>
-              </div>
-            </div>
-            <i class="fa-solid fa-chevron-right text-indigo-400/60 text-xs"></i>
-          </button>
-
-          <!-- Profile & Privacy Settings Button in Mobile Sheet -->
-          <button type="button" onclick="openProfileModal(); closeMobileMoreMenu();" class="w-full flex items-center justify-between p-3 rounded-2xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-200 transition cursor-pointer shadow-sm group">
-            <div class="flex items-center gap-3">
-              <div class="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400">
-                <i class="fa-solid fa-user-gear text-sm"></i>
-              </div>
-              <div class="text-left">
-                <p class="text-xs font-bold text-white">Profile & Privacy Settings</p>
-                <p class="text-[11px] text-amber-300/70">Configure Setlist.fm & public sharing</p>
-              </div>
-            </div>
-            <i class="fa-solid fa-chevron-right text-amber-400/60 text-xs"></i>
-          </button>
-
-          <!-- Import Tools Grid -->
-          <div class="grid grid-cols-2 gap-2">
-            <button type="button" onclick="openUploadModal(); closeMobileMoreMenu();" class="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 text-xs font-semibold text-slate-200 transition cursor-pointer">
-              <i class="fa-solid fa-file-csv text-cyan-400 text-sm"></i>
-              <span>Import CSV</span>
-            </button>
-            <button type="button" onclick="openTicketmasterModal(); closeMobileMoreMenu();" class="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 text-xs font-semibold text-slate-200 transition cursor-pointer">
-              <i class="fa-solid fa-ticket text-emerald-400 text-sm"></i>
-              <span>Import TM</span>
-            </button>
-          </div>
-        {% else %}
-          <!-- Public View Mobile Quick Actions -->
-          <button type="button" onclick="copyPublicShareUrl(); closeMobileMoreMenu();" class="w-full flex items-center justify-between p-3 rounded-2xl bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/40 text-indigo-200 transition cursor-pointer shadow-sm group">
-            <div class="flex items-center gap-3">
-              <div class="w-9 h-9 rounded-xl bg-indigo-500/25 flex items-center justify-center text-indigo-400">
-                <i class="fa-solid fa-share-nodes text-sm"></i>
-              </div>
-              <div class="text-left">
-                <p class="text-xs font-bold text-white">Share Public Profile</p>
-                <p class="text-[11px] text-indigo-300/70">Copy public link to clipboard</p>
-              </div>
-            </div>
-            <i class="fa-solid fa-chevron-right text-indigo-400/60 text-xs"></i>
-          </button>
-
-          {% if is_owner %}
-            <a href="{% url 'dashboard' %}" class="w-full flex items-center justify-between p-3 rounded-2xl bg-gradient-to-r from-indigo-600/30 to-purple-600/30 border border-indigo-500/40 text-white transition shadow-sm">
-              <div class="flex items-center gap-3">
-                <div class="w-9 h-9 rounded-xl bg-indigo-500/30 flex items-center justify-center text-indigo-300">
-                  <i class="fa-solid fa-arrow-left text-sm"></i>
-                </div>
-                <div class="text-left">
-                  <p class="text-xs font-bold text-white">Back to Dashboard</p>
-                  <p class="text-[11px] text-indigo-200/70">Return to full manager view</p>
-                </div>
-              </div>
-              <i class="fa-solid fa-chevron-right text-indigo-300 text-xs"></i>
-            </a>
-          {% elif request.user.is_authenticated %}
-            <a href="{% url 'dashboard' %}" class="w-full flex items-center justify-between p-3 rounded-2xl bg-gradient-to-r from-indigo-600/30 to-purple-600/30 border border-indigo-500/40 text-white transition shadow-sm">
-              <div class="flex items-center gap-3">
-                <div class="w-9 h-9 rounded-xl bg-indigo-500/30 flex items-center justify-center text-indigo-300">
-                  <i class="fa-solid fa-house text-sm"></i>
-                </div>
-                <div class="text-left">
-                  <p class="text-xs font-bold text-white">Go to My Dashboard</p>
-                  <p class="text-[11px] text-indigo-200/70">View and manage your own shows</p>
-                </div>
-              </div>
-              <i class="fa-solid fa-chevron-right text-indigo-300 text-xs"></i>
-            </a>
-          {% else %}
-            <div class="grid grid-cols-2 gap-2">
-              <a href="{% url 'login' %}?next={{ request.path }}" class="flex items-center justify-center gap-2 p-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 border border-slate-700 transition">
-                <i class="fa-solid fa-right-to-bracket text-indigo-400"></i>
-                <span>Sign In</span>
-              </a>
-              <a href="{% url 'register' %}" class="flex items-center justify-center gap-2 p-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-xs font-bold text-white shadow-md transition">
-                <i class="fa-solid fa-user-plus"></i>
-                <span>Create Account</span>
-              </a>
-            </div>
-          {% endif %}
-        {% endif %}
-      </div>
-
       <!-- Navigation Sections -->
-      <div class="space-y-2 pt-2 border-t border-slate-800">
+      <div class="space-y-2">
         <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Sections</p>
         
         <div class="space-y-2">
@@ -2121,19 +2033,105 @@
         </div>
       </div>
 
+      <!-- Quick Actions (Sync, Import Tools or Public Options) -->
+      <div class="space-y-2 pt-2 border-t border-slate-800">
+        <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Quick Actions</p>
+        
+        {% if not is_public_view %}
+          <!-- Mobile Sync Button -->
+          <button id="mobile-sync-btn" onclick="triggerSync()" class="w-full flex items-center justify-between p-3 rounded-2xl bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/40 text-indigo-200 transition cursor-pointer shadow-sm group">
+            <div class="flex items-center gap-3">
+              <div class="w-9 h-9 rounded-xl bg-indigo-500/25 flex items-center justify-center text-indigo-400">
+                <i id="mobile-sync-btn-icon" class="fa-solid fa-rotate text-sm"></i>
+              </div>
+              <div class="text-left">
+                <p class="text-xs font-bold text-white"><span id="mobile-sync-btn-text">Sync</span></p>
+                <p class="text-[11px] text-indigo-300/70">Fetch latest data & update profile</p>
+              </div>
+            </div>
+            <i class="fa-solid fa-chevron-right text-indigo-400/60 text-xs"></i>
+          </button>
+
+          <!-- Import Tools Grid -->
+          <div class="grid grid-cols-2 gap-2">
+            <button type="button" onclick="openUploadModal(); closeMobileMoreMenu();" class="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 text-xs font-semibold text-slate-200 transition cursor-pointer">
+              <i class="fa-solid fa-file-csv text-cyan-400 text-sm"></i>
+              <span>Import CSV</span>
+            </button>
+            <button type="button" onclick="openTicketmasterModal(); closeMobileMoreMenu();" class="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 text-xs font-semibold text-slate-200 transition cursor-pointer">
+              <i class="fa-solid fa-ticket text-emerald-400 text-sm"></i>
+              <span>Import TM</span>
+            </button>
+          </div>
+        {% else %}
+          <!-- Public View Mobile Quick Actions -->
+          <button type="button" onclick="copyPublicShareUrl(); closeMobileMoreMenu();" class="w-full flex items-center justify-between p-3 rounded-2xl bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/40 text-indigo-200 transition cursor-pointer shadow-sm group">
+            <div class="flex items-center gap-3">
+              <div class="w-9 h-9 rounded-xl bg-indigo-500/25 flex items-center justify-center text-indigo-400">
+                <i class="fa-solid fa-share-nodes text-sm"></i>
+              </div>
+              <div class="text-left">
+                <p class="text-xs font-bold text-white">Share Public Profile</p>
+                <p class="text-[11px] text-indigo-300/70">Copy public link to clipboard</p>
+              </div>
+            </div>
+            <i class="fa-solid fa-chevron-right text-indigo-400/60 text-xs"></i>
+          </button>
+
+          {% if is_owner %}
+            <a href="{% url 'dashboard' %}" class="w-full flex items-center justify-between p-3 rounded-2xl bg-gradient-to-r from-indigo-600/30 to-purple-600/30 border border-indigo-500/40 text-white transition shadow-sm">
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-indigo-500/30 flex items-center justify-center text-indigo-300">
+                  <i class="fa-solid fa-arrow-left text-sm"></i>
+                </div>
+                <div class="text-left">
+                  <p class="text-xs font-bold text-white">Back to Dashboard</p>
+                  <p class="text-[11px] text-indigo-200/70">Return to full manager view</p>
+                </div>
+              </div>
+              <i class="fa-solid fa-chevron-right text-indigo-300 text-xs"></i>
+            </a>
+          {% elif request.user.is_authenticated %}
+            <a href="{% url 'dashboard' %}" class="w-full flex items-center justify-between p-3 rounded-2xl bg-gradient-to-r from-indigo-600/30 to-purple-600/30 border border-indigo-500/40 text-white transition shadow-sm">
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-indigo-500/30 flex items-center justify-center text-indigo-300">
+                  <i class="fa-solid fa-house text-sm"></i>
+                </div>
+                <div class="text-left">
+                  <p class="text-xs font-bold text-white">Go to My Dashboard</p>
+                  <p class="text-[11px] text-indigo-200/70">View and manage your own shows</p>
+                </div>
+              </div>
+              <i class="fa-solid fa-chevron-right text-indigo-300 text-xs"></i>
+            </a>
+          {% else %}
+            <div class="grid grid-cols-2 gap-2">
+              <a href="{% url 'login' %}?next={{ request.path }}" class="flex items-center justify-center gap-2 p-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 border border-slate-700 transition">
+                <i class="fa-solid fa-right-to-bracket text-indigo-400"></i>
+                <span>Sign In</span>
+              </a>
+              <a href="{% url 'register' %}" class="flex items-center justify-center gap-2 p-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-xs font-bold text-white shadow-md transition">
+                <i class="fa-solid fa-user-plus"></i>
+                <span>Create Account</span>
+              </a>
+            </div>
+          {% endif %}
+        {% endif %}
+      </div>
+
       <!-- Account Settings & Logout (Only if logged in) -->
       {% if request.user.is_authenticated %}
         <div class="pt-2 border-t border-slate-800 space-y-2">
           <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Account ({{ request.user.username }})</p>
 
           <div class="space-y-1.5">
-            <a href="{% url 'password_change' %}" class="flex items-center justify-between p-2.5 rounded-xl bg-slate-800/50 hover:bg-slate-800 text-xs text-slate-300 hover:text-white transition">
+            <button type="button" onclick="openProfileModal(); closeMobileMoreMenu();" class="w-full flex items-center justify-between p-2.5 rounded-xl bg-slate-800/50 hover:bg-slate-800 text-xs text-slate-300 hover:text-white transition cursor-pointer text-left">
               <div class="flex items-center gap-2.5">
-                <i class="fa-solid fa-key text-indigo-400 w-4 text-center"></i>
-                <span>Change Password</span>
+                <i class="fa-solid fa-user-gear text-amber-400 w-4 text-center"></i>
+                <span>Profile & Privacy</span>
               </div>
               <i class="fa-solid fa-chevron-right text-slate-500 text-[10px]"></i>
-            </a>
+            </button>
 
             {% if request.user.is_staff %}
               <a href="/admin/" target="_blank" class="flex items-center justify-between p-2.5 rounded-xl bg-purple-950/30 hover:bg-purple-900/40 border border-purple-500/30 text-xs text-purple-200 transition">
