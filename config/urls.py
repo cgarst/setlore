@@ -42,6 +42,7 @@ urlpatterns = [
     path('albums/', concerts_views.dashboard_view, {'tab_name': 'advanced'}, name='dashboard_albums'),
     path('setlists/', concerts_views.dashboard_view, {'tab_name': 'setlists'}, name='dashboard_setlists'),
     path('freshness/', concerts_views.dashboard_view, {'tab_name': 'setlists'}, name='dashboard_freshness'),
+    path('friends/', concerts_views.dashboard_view, {'tab_name': 'friends'}, name='dashboard_friends'),
     path('gap/', concerts_views.dashboard_view, {'tab_name': 'gap'}, name='dashboard_gap'),
     path('audit/', concerts_views.dashboard_view, {'tab_name': 'gap'}, name='dashboard_audit'),
 

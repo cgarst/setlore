@@ -8,11 +8,13 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponseBadRequest, HttpResponse
 from django.views.decorators.http import require_POST
 from django.db import transaction
+from django.db.models import Count
 
 import os
 from django.contrib.auth.models import User
 from apps.catalog.models import ApiCache, Artist, Venue, Song
 from apps.concerts.models import Concert, ConcertArtist, ConcertSong
+from apps.core.models import Friendship
 from apps.concerts.utils import parse_setlist_text, resolve_venue_coordinates, build_manual_setlist_for_concert_artist, save_setlist_for_concert_artist
 from src.reporter import generate_plotly_charts
 from src.analytics import ConcertAnalytics
@@ -42,8 +44,11 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
         'freshness': 'setlists',
         'gap': 'gap',
         'audit': 'gap',
+        'friends': 'friends',
     }
     initial_tab = alias_map.get(str(tab_name).lower().strip('/'), 'overview')
+    if is_public_view and initial_tab == 'friends':
+        initial_tab = 'overview'
     profile = target_user.profile
 
     cache_entry = ApiCache.objects.filter(cache_key=f"user_dashboard_bundle_{target_user.id}").first()
@@ -215,6 +220,141 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
         stats_copy["concerts_drilldown"] = [dict(c, is_attended_by_viewer=True) for c in drilldown_list]
         stats = stats_copy
 
+    is_friend = False
+    friends_list = []
+    friend_suggestions = []
+
+    if request.user.is_authenticated:
+        if is_public_view and not is_owner:
+            is_friend = Friendship.objects.filter(user=request.user, friend=target_user).exists()
+        elif not is_public_view:
+            viewer_concerts = list(
+                Concert.objects.filter(user=request.user)
+                .select_related('venue')
+                .prefetch_related('artists__artist')
+            )
+            a_date_artist_map = {}
+            a_sl_ids = {}
+
+            for ac in viewer_concerts:
+                d_keys = set()
+                if ac.date:
+                    d_keys.add(ac.date.strftime("%Y-%m-%d"))
+                    d_keys.add(ac.date.strftime("%m-%d-%Y"))
+                    d_keys.add(ac.date.strftime("%m/%d/%Y"))
+                    d_keys.add(ac.date.strftime("%d-%m-%Y"))
+                if ac.raw_date:
+                    raw_s = ac.raw_date.strip()
+                    d_keys.add(raw_s)
+                    d_keys.add(raw_s.replace('-', '/'))
+                    d_keys.add(raw_s.replace('/', '-'))
+
+                a_art_names = {normalize_artist_name(ca.artist.name) or ca.artist.name.lower().strip() for ca in ac.artists.all()}
+                if ac.primary_artist:
+                    a_art_names.add(normalize_artist_name(ac.primary_artist) or ac.primary_artist.lower().strip())
+
+                for d_k in d_keys:
+                    for a_name in a_art_names:
+                        if a_name:
+                            a_date_artist_map[(d_k, a_name)] = ac
+
+                for ca in ac.artists.all():
+                    if ca.setlistfm_id:
+                        a_sl_ids[ca.setlistfm_id] = ac
+
+            def find_co_attended(target_u):
+                friend_concerts = list(
+                    Concert.objects.filter(user=target_u)
+                    .select_related('venue')
+                    .prefetch_related('artists__artist')
+                    .order_by('-date', '-year', '-id')
+                )
+                co_list = []
+                seen_ac_ids = set()
+
+                for fc in friend_concerts:
+                    f_d_keys = set()
+                    if fc.date:
+                        f_d_keys.add(fc.date.strftime("%Y-%m-%d"))
+                        f_d_keys.add(fc.date.strftime("%m-%d-%Y"))
+                        f_d_keys.add(fc.date.strftime("%m/%d/%Y"))
+                        f_d_keys.add(fc.date.strftime("%d-%m-%Y"))
+                    if fc.raw_date:
+                        raw_s = fc.raw_date.strip()
+                        f_d_keys.add(raw_s)
+                        f_d_keys.add(raw_s.replace('-', '/'))
+                        f_d_keys.add(raw_s.replace('/', '-'))
+
+                    f_art_names = {normalize_artist_name(ca.artist.name) or ca.artist.name.lower().strip() for ca in fc.artists.all()}
+                    if fc.primary_artist:
+                        f_art_names.add(normalize_artist_name(fc.primary_artist) or fc.primary_artist.lower().strip())
+
+                    matched_ac = None
+                    for ca in fc.artists.all():
+                        if ca.setlistfm_id and ca.setlistfm_id in a_sl_ids:
+                            matched_ac = a_sl_ids[ca.setlistfm_id]
+                            break
+
+                    if not matched_ac:
+                        for d_k in f_d_keys:
+                            for a_name in f_art_names:
+                                if (d_k, a_name) in a_date_artist_map:
+                                    matched_ac = a_date_artist_map[(d_k, a_name)]
+                                    break
+                            if matched_ac:
+                                break
+
+                    if matched_ac and matched_ac.id not in seen_ac_ids:
+                        seen_ac_ids.add(matched_ac.id)
+                        venue_name = fc.venue.name if fc.venue else (matched_ac.venue.name if matched_ac.venue else '')
+                        venue_city = fc.venue.city if fc.venue and fc.venue.city else (matched_ac.venue.city if matched_ac.venue and matched_ac.venue.city else '')
+                        display_date = fc.raw_date or (fc.date.strftime('%m/%d/%Y') if fc.date else '')
+                        primary_art = fc.primary_artist or (matched_ac.primary_artist if matched_ac else '')
+                        co_list.append({
+                            'date': display_date,
+                            'artist': primary_art,
+                            'venue': venue_name,
+                            'city': venue_city,
+                        })
+                return co_list
+
+            friend_ids = list(Friendship.objects.filter(user=request.user).values_list('friend_id', flat=True))
+            friends_qs = User.objects.filter(id__in=friend_ids).select_related('profile').order_by('username')
+            for f in friends_qs:
+                c_count = Concert.objects.filter(user=f).count()
+                top_art = Concert.objects.filter(user=f).values('primary_artist').annotate(shows=Count('id')).order_by('-shows').first()
+                co_shows = find_co_attended(f)
+                friends_list.append({
+                    'id': f.id,
+                    'username': f.username,
+                    'is_public': f.profile.is_public,
+                    'setlistfm_username': f.profile.setlistfm_username,
+                    'concert_count': c_count,
+                    'top_artist': top_art['primary_artist'] if top_art else None,
+                    'top_artist_shows': top_art['shows'] if top_art else 0,
+                    'is_friend': True,
+                    'co_attended_count': len(co_shows),
+                    'co_attended_concerts': co_shows,
+                })
+
+            sugg_qs = User.objects.exclude(id=request.user.id).exclude(id__in=friend_ids).select_related('profile').order_by('username')[:30]
+            for s in sugg_qs:
+                c_count = Concert.objects.filter(user=s).count()
+                top_art = Concert.objects.filter(user=s).values('primary_artist').annotate(shows=Count('id')).order_by('-shows').first()
+                co_shows = find_co_attended(s)
+                friend_suggestions.append({
+                    'id': s.id,
+                    'username': s.username,
+                    'is_public': s.profile.is_public,
+                    'setlistfm_username': s.profile.setlistfm_username,
+                    'concert_count': c_count,
+                    'top_artist': top_art['primary_artist'] if top_art else None,
+                    'top_artist_shows': top_art['shows'] if top_art else 0,
+                    'is_friend': False,
+                    'co_attended_count': len(co_shows),
+                    'co_attended_concerts': co_shows,
+                })
+
     return {
         'initial_tab': initial_tab,
         'profile_user': target_user,
@@ -228,6 +368,9 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
         'all_artists': list(Artist.objects.order_by('name').values_list('name', flat=True).distinct()),
         'is_public_view': is_public_view,
         'is_owner': is_owner,
+        'is_friend': is_friend,
+        'friends_list': friends_list,
+        'friend_suggestions': friend_suggestions,
         'is_profile_private': not profile.is_public,
         'share_url': share_url,
         'tab_url_base': tab_url_base,
@@ -252,13 +395,23 @@ def public_profile_view(request, username, tab_name='overview'):
 
     is_owner = request.user.is_authenticated and (request.user.id == target_user.id)
     is_staff = request.user.is_authenticated and request.user.is_staff
+    is_friend = False
+    if request.user.is_authenticated:
+        is_friend = Friendship.objects.filter(
+            user=target_user, friend=request.user
+        ).exists() or Friendship.objects.filter(
+            user=request.user, friend=target_user
+        ).exists()
 
-    if not target_user.profile.is_public and not is_owner and not is_staff:
+    if not target_user.profile.is_public and not is_owner and not is_staff and not is_friend:
         return render(request, 'public_profile_message.html', {
             'title': 'Private Profile',
             'message_type': 'private',
             'target_user': target_user,
         }, status=403)
+
+    if tab_name == 'friends':
+        tab_name = 'overview'
 
     context = get_dashboard_context(request, target_user, tab_name=tab_name, is_public_view=True)
     return render(request, 'dashboard.html', context)
