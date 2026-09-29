@@ -25,6 +25,6 @@ admin.site.register(User, UserAdmin)
 
 @admin.register(UserProfile)
 class UserProfileAdmin(admin.ModelAdmin):
-    list_display = ['user', 'setlistfm_username', 'sync_status', 'last_synced_at']
+    list_display = ['user', 'setlistfm_username', 'prompt_setlistfm', 'sync_status', 'last_synced_at']
     search_fields = ['user__username', 'setlistfm_username']
-    list_filter = ['sync_status']
+    list_filter = ['prompt_setlistfm', 'sync_status']

@@ -117,18 +117,29 @@
               <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white text-sm shadow-sm flex-shrink-0">
                 <i class="fa-solid fa-user"></i>
               </div>
-              <div class="min-w-0">
+              <div class="min-w-0 flex-1">
                 <p class="text-xs font-semibold text-white truncate">{{ request.user.username }}</p>
-                {% if profile.setlistfm_username %}
-                  <p class="text-[11px] text-slate-400 truncate flex items-center gap-1">
-                    <i class="fa-brands fa-lastfm text-amber-400 text-[10px]"></i> @{{ profile.setlistfm_username }}
-                  </p>
-                {% endif %}
+                <div id="desktop-setlist-badge">
+                  {% if profile.setlistfm_username %}
+                    <p class="text-[11px] text-slate-400 truncate flex items-center gap-1">
+                      <i class="fa-brands fa-lastfm text-amber-400 text-[10px]"></i> @<span class="user-setlist-name">{{ profile.setlistfm_username }}</span>
+                    </p>
+                  {% else %}
+                    <p class="text-[11px] text-amber-400/90 truncate flex items-center gap-1 cursor-pointer hover:underline" onclick="openProfileModal(); closeUserMenu();">
+                      <i class="fa-brands fa-lastfm text-[10px]"></i> Link Setlist.fm
+                    </p>
+                  {% endif %}
+                </div>
               </div>
             </div>
           </div>
 
           <div class="py-1">
+            <button type="button" onclick="openProfileModal(); closeUserMenu();" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-slate-200 hover:text-white hover:bg-amber-500/10 transition text-left cursor-pointer">
+              <i class="fa-solid fa-user-gear text-amber-400 w-4 text-center"></i>
+              <span>Setlist.fm Settings</span>
+            </button>
+
             <button type="button" onclick="openUploadModal(); closeUserMenu();" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-slate-200 hover:text-white hover:bg-indigo-600/20 transition text-left cursor-pointer">
               <i class="fa-solid fa-file-csv text-cyan-400 w-4 text-center"></i>
               <span>Import CSV</span>
@@ -180,6 +191,137 @@
       </div>
     </div>
     <span class="text-[11px] font-mono text-slate-400">Polling status...</span>
+  </div>
+
+  <!-- Profile & Setlist.fm Settings Modal -->
+  <div id="profile-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="max-w-md w-full glass-card p-6 shadow-2xl space-y-4 border border-slate-700 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400">
+            <i class="fa-solid fa-user-gear text-sm"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-white">Setlist.fm Settings</h3>
+            <p class="text-[11px] text-slate-400">Manage account & sync preferences</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeProfileModal()" class="text-slate-400 hover:text-white p-1 cursor-pointer">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div id="profile-modal-alert" class="hidden p-3 rounded-xl text-xs"></div>
+
+      <form id="profile-form" onsubmit="saveProfileSettings(event)" class="space-y-4">
+        {% csrf_token %}
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center gap-1.5">
+            <i class="fa-brands fa-lastfm text-amber-400"></i> Setlist.fm Username
+          </label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500 text-xs font-mono">@</span>
+            <input type="text" id="profile-setlist-username" name="setlistfm_username" value="{{ profile.setlistfm_username|default:'' }}"
+              placeholder="e.g. your_username"
+              class="w-full pl-7 pr-3 py-2 text-xs rounded-xl bg-slate-900/90 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500">
+          </div>
+          <p class="text-[11px] text-slate-400 mt-1.5 leading-relaxed">
+            Your public Setlist.fm account. Setlore automatically uses a global integration key to pull your attended shows and songs.
+          </p>
+        </div>
+
+        <div class="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2">
+          <label class="flex items-start gap-2.5 cursor-pointer">
+            <input type="checkbox" id="profile-prompt-sync" name="prompt_setlistfm" {% if profile.prompt_setlistfm %}checked{% endif %}
+              class="mt-0.5 rounded bg-slate-800 border-slate-700 text-indigo-600 focus:ring-0 focus:ring-offset-0">
+            <div>
+              <span class="text-xs font-medium text-slate-200 block">Prompt for username on sync</span>
+              <span class="text-[11px] text-slate-400 block mt-0.5">When enabled, syncing without a linked username will prompt you to connect your account.</span>
+            </div>
+          </label>
+        </div>
+
+        <!-- Optional Advanced API Key Override Accordion -->
+        <div class="border border-slate-800/80 rounded-xl overflow-hidden bg-slate-900/40">
+          <button type="button" onclick="toggleAdvancedProfileSettings()" class="w-full flex items-center justify-between px-3.5 py-2.5 text-xs font-semibold text-slate-400 hover:text-slate-200 transition cursor-pointer">
+            <span class="flex items-center gap-1.5"><i class="fa-solid fa-key text-xs"></i> Advanced: Custom API Key</span>
+            <i id="advanced-profile-chevron" class="fa-solid fa-chevron-down text-[10px] transition-transform"></i>
+          </button>
+          <div id="advanced-profile-content" class="hidden px-3.5 pb-3.5 pt-1 space-y-2 border-t border-slate-800/60">
+            <label class="block text-[11px] text-slate-400">
+              Setlist.fm Personal API Key (Optional override):
+            </label>
+            <input type="password" id="profile-setlist-apikey" name="setlistfm_api_key" value="{{ profile.setlistfm_api_key|default:'' }}"
+              placeholder="Leave blank to use default global key"
+              class="w-full px-3 py-1.5 text-xs rounded-lg bg-slate-950 border border-slate-700 text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500">
+            <p class="text-[10px] text-slate-500">Only needed if you prefer using your personal key instead of the server key.</p>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+          <button type="button" onclick="closeProfileModal()" class="px-3.5 py-2 rounded-xl bg-slate-800 text-xs font-semibold text-slate-300 hover:bg-slate-700 transition cursor-pointer">Cancel</button>
+          <button type="submit" id="profile-save-btn" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-bold text-white transition cursor-pointer shadow-md shadow-indigo-600/30">Save</button>
+          <button type="button" id="profile-save-sync-btn" onclick="saveProfileSettings(event, true)" class="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-indigo-600 hover:from-amber-500 hover:to-indigo-500 text-xs font-bold text-white transition cursor-pointer shadow-md">Save & Sync</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Sync Prompt Modal for Unlinked Users -->
+  <div id="setlist-prompt-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="max-w-md w-full glass-card p-6 shadow-2xl space-y-4 border border-amber-500/40">
+      <div class="flex items-start justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 text-lg shrink-0">
+            <i class="fa-brands fa-lastfm"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-white">Connect Setlist.fm</h3>
+            <p class="text-xs text-slate-400">Sync attended concerts & tracklists</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeSetlistPromptModal()" class="text-slate-400 hover:text-white p-1 cursor-pointer">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <p class="text-xs text-slate-300 leading-relaxed">
+        To discover song analytics, match setlists, and audit missing tracks, enter your public <strong class="text-amber-300">Setlist.fm</strong> username.
+      </p>
+
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Setlist.fm Username</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500 text-xs font-mono">@</span>
+            <input type="text" id="sync-prompt-username" placeholder="e.g. setlist_user"
+              class="w-full pl-7 pr-3 py-2 text-xs rounded-xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+              onkeydown="if(event.key==='Enter'){event.preventDefault(); submitSyncPrompt(true);}">
+          </div>
+        </div>
+
+        <div class="p-3 rounded-xl bg-slate-900/60 border border-slate-800/80">
+          <label class="flex items-center gap-2.5 cursor-pointer">
+            <input type="checkbox" id="sync-prompt-dont-ask"
+              class="rounded bg-slate-800 border-slate-700 text-indigo-600 focus:ring-0 focus:ring-offset-0">
+            <span class="text-xs text-slate-300 font-medium">Don't ask me again</span>
+          </label>
+          <p class="text-[11px] text-slate-500 ml-6 mt-0.5">You can still configure your username anytime from your Profile menu.</p>
+        </div>
+      </div>
+
+      <div class="flex flex-col sm:flex-row items-center justify-end gap-2 pt-2 border-t border-slate-800">
+        <button type="button" onclick="closeSetlistPromptModal()" class="w-full sm:w-auto px-3.5 py-2 rounded-xl bg-slate-800 text-xs font-semibold text-slate-300 hover:bg-slate-700 transition cursor-pointer">
+          Cancel
+        </button>
+        <button type="button" onclick="submitSyncPrompt(false)" class="w-full sm:w-auto px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300 hover:text-white transition cursor-pointer">
+          Sync Without Linking
+        </button>
+        <button type="button" onclick="submitSyncPrompt(true)" id="sync-prompt-submit-btn" class="w-full sm:w-auto px-4 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-indigo-600 hover:from-amber-500 hover:to-indigo-500 text-xs font-bold text-white transition cursor-pointer shadow-md shadow-indigo-600/30">
+          Save & Sync
+        </button>
+      </div>
+    </div>
   </div>
 
   <!-- Upload Modal -->
@@ -1436,19 +1578,23 @@
 
       <!-- User Profile Header -->
       <div class="flex items-center justify-between pb-3 border-b border-slate-800">
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-3 min-w-0">
           <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white text-base shadow-sm shrink-0">
             <i class="fa-solid fa-user"></i>
           </div>
-          <div class="min-w-0">
+          <div class="min-w-0 flex-1">
             <p class="text-sm font-bold text-white truncate">{{ request.user.username }}</p>
-            {% if profile.setlistfm_username %}
-              <p class="text-[11px] text-amber-300 truncate flex items-center gap-1">
-                <i class="fa-brands fa-lastfm text-[10px]"></i> @{{ profile.setlistfm_username }}
-              </p>
-            {% else %}
-              <p class="text-[11px] text-slate-400">Personal Setlore Account</p>
-            {% endif %}
+            <div id="mobile-setlist-badge">
+              {% if profile.setlistfm_username %}
+                <p class="text-[11px] text-amber-300 truncate flex items-center gap-1">
+                  <i class="fa-brands fa-lastfm text-[10px]"></i> @<span class="user-setlist-name">{{ profile.setlistfm_username }}</span>
+                </p>
+              {% else %}
+                <p class="text-[11px] text-amber-400/90 flex items-center gap-1 cursor-pointer hover:underline" onclick="openProfileModal(); closeMobileMoreMenu();">
+                  <i class="fa-brands fa-lastfm text-[10px]"></i> Link Setlist.fm account
+                </p>
+              {% endif %}
+            </div>
           </div>
         </div>
         <button onclick="closeMobileMoreMenu()" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center transition cursor-pointer" aria-label="Close menu">
@@ -1456,7 +1602,7 @@
         </button>
       </div>
 
-      <!-- Quick Actions (Sync & Imports) -->
+      <!-- Quick Actions (Sync, Setlist Settings & Imports) -->
       <div class="space-y-2">
         <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Quick Actions</p>
         
@@ -1472,6 +1618,20 @@
             </div>
           </div>
           <i class="fa-solid fa-chevron-right text-indigo-400/60 text-xs"></i>
+        </button>
+
+        <!-- Setlist.fm Settings Button in Mobile Sheet -->
+        <button type="button" onclick="openProfileModal(); closeMobileMoreMenu();" class="w-full flex items-center justify-between p-3 rounded-2xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-200 transition cursor-pointer shadow-sm group">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400">
+              <i class="fa-solid fa-user-gear text-sm"></i>
+            </div>
+            <div class="text-left">
+              <p class="text-xs font-bold text-white">Setlist.fm Settings</p>
+              <p class="text-[11px] text-amber-300/70">Configure username & sync preferences</p>
+            </div>
+          </div>
+          <i class="fa-solid fa-chevron-right text-amber-400/60 text-xs"></i>
         </button>
 
         <!-- Import Tools Grid -->
@@ -2573,8 +2733,253 @@
       }
     }
 
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    window.userProfile = {
+      username: "{{ request.user.username|escapejs }}",
+      setlistfmUsername: "{{ profile.setlistfm_username|default:''|escapejs }}",
+      promptSetlistfm: {{ profile.prompt_setlistfm|yesno:"true,false" }},
+      hasApiKey: {{ profile.setlistfm_api_key|yesno:"true,false" }}
+    };
+
+    function updateSetlistBadges(username) {
+      const desktopBadge = document.getElementById('desktop-setlist-badge');
+      const mobileBadge = document.getElementById('mobile-setlist-badge');
+      
+      if (username) {
+        if (desktopBadge) {
+          desktopBadge.innerHTML = `<p class="text-[11px] text-slate-400 truncate flex items-center gap-1"><i class="fa-brands fa-lastfm text-amber-400 text-[10px]"></i> @<span class="user-setlist-name">${escapeHtml(username)}</span></p>`;
+        }
+        if (mobileBadge) {
+          mobileBadge.innerHTML = `<p class="text-[11px] text-amber-300 truncate flex items-center gap-1"><i class="fa-brands fa-lastfm text-[10px]"></i> @<span class="user-setlist-name">${escapeHtml(username)}</span></p>`;
+        }
+      } else {
+        if (desktopBadge) {
+          desktopBadge.innerHTML = `<p class="text-[11px] text-amber-400/90 truncate flex items-center gap-1 cursor-pointer hover:underline" onclick="openProfileModal(); closeUserMenu();"><i class="fa-brands fa-lastfm text-[10px]"></i> Link Setlist.fm</p>`;
+        }
+        if (mobileBadge) {
+          mobileBadge.innerHTML = `<p class="text-[11px] text-amber-400/90 flex items-center gap-1 cursor-pointer hover:underline" onclick="openProfileModal(); closeMobileMoreMenu();"><i class="fa-brands fa-lastfm text-[10px]"></i> Link Setlist.fm account</p>`;
+        }
+      }
+    }
+
+    function openProfileModal() {
+      const modal = document.getElementById('profile-modal');
+      const userInp = document.getElementById('profile-setlist-username');
+      const promptChk = document.getElementById('profile-prompt-sync');
+      const alertBox = document.getElementById('profile-modal-alert');
+
+      if (userInp) userInp.value = window.userProfile.setlistfmUsername || '';
+      if (promptChk) promptChk.checked = Boolean(window.userProfile.promptSetlistfm);
+      if (alertBox) {
+        alertBox.classList.add('hidden');
+        alertBox.innerHTML = '';
+      }
+      if (modal) modal.classList.remove('hidden');
+    }
+
+    function closeProfileModal() {
+      const modal = document.getElementById('profile-modal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function toggleAdvancedProfileSettings() {
+      const content = document.getElementById('advanced-profile-content');
+      const chevron = document.getElementById('advanced-profile-chevron');
+      if (content) {
+        content.classList.toggle('hidden');
+        if (chevron) {
+          chevron.classList.toggle('rotate-180');
+        }
+      }
+    }
+
+    async function saveProfileSettings(e, andSync = false) {
+      if (e && e.preventDefault) e.preventDefault();
+      const userInp = document.getElementById('profile-setlist-username');
+      const apiKeyInp = document.getElementById('profile-setlist-apikey');
+      const promptChk = document.getElementById('profile-prompt-sync');
+      const alertBox = document.getElementById('profile-modal-alert');
+      const saveBtn = document.getElementById('profile-save-btn');
+      const saveSyncBtn = document.getElementById('profile-save-sync-btn');
+
+      const setlistUsername = userInp ? userInp.value.trim().replace(/^@/, '') : '';
+      const setlistApiKey = apiKeyInp ? apiKeyInp.value.trim() : '';
+      const promptSetlistfm = promptChk ? promptChk.checked : true;
+
+      if (saveBtn) saveBtn.disabled = true;
+      if (saveSyncBtn) saveSyncBtn.disabled = true;
+      if (alertBox) {
+        alertBox.classList.remove('hidden', 'bg-emerald-950/60', 'text-emerald-200', 'border-emerald-500/40', 'bg-rose-950/60', 'text-rose-200', 'border-rose-500/40');
+        alertBox.classList.add('bg-slate-900', 'text-slate-300', 'border', 'border-slate-700');
+        alertBox.innerHTML = '<i class="fa-solid fa-circle-notch animate-spin mr-1.5 text-amber-400"></i> Saving settings...';
+      }
+
+      try {
+        const payload = {
+          setlistfm_username: setlistUsername,
+          setlistfm_api_key: setlistApiKey,
+          prompt_setlistfm: promptSetlistfm,
+          trigger_sync: andSync
+        };
+
+        const res = await fetch('/api/profile/update/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (res.ok && data.status === 'ok') {
+          window.userProfile.setlistfmUsername = data.profile.setlistfm_username || '';
+          window.userProfile.promptSetlistfm = Boolean(data.profile.prompt_setlistfm);
+          updateSetlistBadges(window.userProfile.setlistfmUsername);
+
+          if (alertBox) {
+            alertBox.classList.remove('bg-slate-900', 'text-slate-300', 'border-slate-700');
+            alertBox.classList.add('bg-emerald-950/60', 'text-emerald-200', 'border', 'border-emerald-500/40');
+            alertBox.innerHTML = '<i class="fa-solid fa-circle-check mr-1.5 text-emerald-400"></i> ' + (andSync ? 'Settings saved! Starting sync...' : 'Settings updated successfully.');
+          }
+
+          if (andSync) {
+            setTimeout(() => {
+              closeProfileModal();
+              startSyncPolling();
+            }, 600);
+          } else {
+            setTimeout(() => {
+              closeProfileModal();
+            }, 1000);
+          }
+        } else {
+          if (alertBox) {
+            alertBox.classList.remove('bg-slate-900', 'text-slate-300', 'border-slate-700');
+            alertBox.classList.add('bg-rose-950/60', 'text-rose-200', 'border', 'border-rose-500/40');
+            alertBox.innerHTML = '<i class="fa-solid fa-circle-exclamation mr-1.5 text-rose-400"></i> ' + (data.error || 'Failed to update profile.');
+          }
+        }
+      } catch (err) {
+        if (alertBox) {
+          alertBox.classList.remove('bg-slate-900', 'text-slate-300', 'border-slate-700');
+          alertBox.classList.add('bg-rose-950/60', 'text-rose-200', 'border', 'border-rose-500/40');
+          alertBox.innerHTML = '<i class="fa-solid fa-circle-exclamation mr-1.5 text-rose-400"></i> ' + err.message;
+        }
+      } finally {
+        if (saveBtn) saveBtn.disabled = false;
+        if (saveSyncBtn) saveSyncBtn.disabled = false;
+      }
+    }
+
+    function openSetlistPromptModal() {
+      const modal = document.getElementById('setlist-prompt-modal');
+      const userInp = document.getElementById('sync-prompt-username');
+      const dontAskChk = document.getElementById('sync-prompt-dont-ask');
+
+      if (userInp) {
+        userInp.value = '';
+        setTimeout(() => userInp.focus(), 100);
+      }
+      if (dontAskChk) dontAskChk.checked = false;
+      if (modal) modal.classList.remove('hidden');
+    }
+
+    function closeSetlistPromptModal() {
+      const modal = document.getElementById('setlist-prompt-modal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    async function submitSyncPrompt(saveUsername) {
+      const userInp = document.getElementById('sync-prompt-username');
+      const dontAskChk = document.getElementById('sync-prompt-dont-ask');
+      const submitBtn = document.getElementById('sync-prompt-submit-btn');
+
+      const username = userInp ? userInp.value.trim().replace(/^@/, '') : '';
+      const dontAsk = dontAskChk ? dontAskChk.checked : false;
+
+      if (saveUsername) {
+        if (!username) {
+          if (userInp) {
+            userInp.focus();
+            userInp.classList.add('border-rose-500');
+            setTimeout(() => userInp.classList.remove('border-rose-500'), 1500);
+          }
+          return;
+        }
+
+        if (submitBtn) submitBtn.disabled = true;
+        try {
+          const res = await fetch('/api/profile/update/', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+              setlistfm_username: username,
+              prompt_setlistfm: !dontAsk,
+              trigger_sync: true
+            })
+          });
+          const data = await res.json();
+          if (res.ok && data.status === 'ok') {
+            window.userProfile.setlistfmUsername = data.profile.setlistfm_username || '';
+            window.userProfile.promptSetlistfm = Boolean(data.profile.prompt_setlistfm);
+            updateSetlistBadges(window.userProfile.setlistfmUsername);
+            closeSetlistPromptModal();
+            startSyncPolling();
+          } else {
+            alert(data.error || 'Failed to update username.');
+          }
+        } catch (err) {
+          alert('Error: ' + err.message);
+        } finally {
+          if (submitBtn) submitBtn.disabled = false;
+        }
+      } else {
+        // Sync without linking
+        closeSetlistPromptModal();
+        if (dontAsk) {
+          fetch('/api/profile/update/', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+              prompt_setlistfm: false,
+              trigger_sync: true
+            })
+          }).then(res => res.json()).then(data => {
+            window.userProfile.promptSetlistfm = false;
+            startSyncPolling();
+          }).catch(() => {
+            triggerSync(true);
+          });
+        } else {
+          triggerSync(true);
+        }
+      }
+    }
+
     let pollInterval = null;
-    async function triggerSync() {
+    async function triggerSync(force = false) {
+      // If user has not linked Setlist.fm and prompting is enabled, show the prompt modal
+      if (!force && !window.userProfile.setlistfmUsername && window.userProfile.promptSetlistfm) {
+        openSetlistPromptModal();
+        return;
+      }
+
       const btn = document.getElementById('sync-btn');
       const icon = document.getElementById('sync-btn-icon');
       const text = document.getElementById('sync-btn-text');

@@ -94,15 +94,16 @@ def dashboard_view(request, tab_name='overview'):
                         })
 
         # Check if user has attended setlists in disk cache to auto-reconcile without network calls
-        setlist_username = profile.setlistfm_username or user.username
-        user_cache_file = USER_CACHE_DIR / f"{setlist_username}_attended.json"
+        setlist_username = (profile.setlistfm_username or "").strip()
         user_attended = []
-        if user_cache_file.exists():
-            try:
-                with open(user_cache_file, "r", encoding="utf-8") as f:
-                    user_attended = json.load(f)
-            except Exception as e:
-                print(f"Error loading user attended cache: {e}")
+        if setlist_username:
+            user_cache_file = USER_CACHE_DIR / f"{setlist_username}_attended.json"
+            if user_cache_file.exists():
+                try:
+                    with open(user_cache_file, "r", encoding="utf-8") as f:
+                        user_attended = json.load(f)
+                except Exception as e:
+                    print(f"Error loading user attended cache: {e}")
 
         if user_attended:
             gap_results = reconcile_history(csv_records, user_attended, client=None, ignored_artists=profile.ignored_artists)

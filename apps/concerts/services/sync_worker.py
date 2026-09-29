@@ -71,16 +71,22 @@ class SyncWorker:
             profile.sync_status = 'syncing'
             profile.save(update_fields=['sync_status'])
 
-            setlist_username = profile.setlistfm_username or user.username
+            setlist_username = (profile.setlistfm_username or "").strip()
             api_key = profile.setlistfm_api_key or SETLISTFM_API_KEY
-            if not api_key:
-                raise ValueError("No Setlist.fm API key configured. Please set in .env or your profile.")
+            client = None
+            if api_key:
+                try:
+                    client = SetlistFMClient(api_key=api_key)
+                except Exception as e:
+                    logger.warning("Could not initialize SetlistFMClient: %s", e)
 
-            update_progress(f"Connecting to Setlist.fm for @{setlist_username}...")
-            client = SetlistFMClient(api_key=api_key)
-            user_attended = client.get_user_attended(setlist_username, use_cache=True)
-
-            update_progress(f"Retrieved {len(user_attended)} attended setlists. Reconciling with concert history...")
+            user_attended = []
+            if setlist_username and client:
+                update_progress(f"Connecting to Setlist.fm for @{setlist_username}...")
+                user_attended = client.get_user_attended(setlist_username, use_cache=True)
+                update_progress(f"Retrieved {len(user_attended)} attended setlists. Reconciling with concert history...")
+            else:
+                update_progress("Reconciling concerts and metadata...")
 
             # Build CSV-like records from DB Concerts
             db_concerts = Concert.objects.filter(user=user).select_related('venue').prefetch_related('artists__artist', 'artists__songs')

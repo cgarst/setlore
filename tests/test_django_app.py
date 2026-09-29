@@ -171,5 +171,30 @@ class DjangoAppTests(TestCase):
         self.assertTrue(top_artists_chart['layout']['xaxis']['fixedrange'])
         self.assertTrue(top_artists_chart['layout']['yaxis']['fixedrange'])
 
+    def test_update_profile_endpoint(self):
+        import json
+        self.client.force_login(self.user)
+        # 1. Update setlistfm username
+        res = self.client.post('/api/profile/update/', data=json.dumps({
+            'setlistfm_username': '@rushfan42',
+            'prompt_setlistfm': False
+        }), content_type='application/json')
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data['status'], 'ok')
+        self.assertEqual(data['profile']['setlistfm_username'], 'rushfan42')
+        self.assertFalse(data['profile']['prompt_setlistfm'])
 
+        self.user.profile.refresh_from_db()
+        self.assertEqual(self.user.profile.setlistfm_username, 'rushfan42')
+        self.assertFalse(self.user.profile.prompt_setlistfm)
 
+    def test_dashboard_renders_profile_settings_modal(self):
+        self.client.force_login(self.user)
+        res = self.client.get('/')
+        self.assertEqual(res.status_code, 200)
+        content = res.content.decode('utf-8')
+        self.assertIn('profile-modal', content)
+        self.assertIn('setlist-prompt-modal', content)
+        self.assertIn('Setlist.fm Settings', content)
+        self.assertIn("Don't ask me again", content)
