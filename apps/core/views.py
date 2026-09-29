@@ -16,6 +16,9 @@ from apps.concerts.services.sync_worker import sync_worker
 def health_check(request):
     return JsonResponse({"status": "ok"})
 
+def privacy_view(request):
+    return render(request, 'privacy.html')
+
 def register_view(request):
     if request.user.is_authenticated:
         return redirect('dashboard')

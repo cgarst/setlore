@@ -401,4 +401,26 @@ class DjangoAppTests(TestCase):
         }), content_type='application/json')
         self.assertEqual(priv_toggle_res.status_code, 403)
 
+    def test_privacy_policy_view(self):
+        # Anonymous user access
+        res = self.client.get('/privacy/')
+        self.assertEqual(res.status_code, 200)
+        content = res.content.decode('utf-8')
+        self.assertIn('Privacy Policy', content)
+        self.assertIn('Google API Services', content)
+        self.assertIn('Setlore', content)
+        self.assertIn('Sign In', content)
+
+        # Authenticated user access
+        self.client.force_login(self.user)
+        auth_res = self.client.get('/privacy/')
+        self.assertEqual(auth_res.status_code, 200)
+        auth_content = auth_res.content.decode('utf-8')
+        self.assertIn('Back to Dashboard', auth_content)
+
+        # Redirect check for /privacy (without trailing slash)
+        redirect_res = self.client.get('/privacy', follow=True)
+        self.assertEqual(redirect_res.status_code, 200)
+        self.assertIn('Privacy Policy', redirect_res.content.decode('utf-8'))
+
 

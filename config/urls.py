@@ -7,6 +7,7 @@ from apps.concerts import views as concerts_views
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('health/', core_views.health_check, name='health_check'),
+    path('privacy/', core_views.privacy_view, name='privacy'),
 
     # Authentication
     path('accounts/login/', auth_views.LoginView.as_view(template_name='registration/login.html'), name='login'),

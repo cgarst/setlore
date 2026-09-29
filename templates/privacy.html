@@ -1,0 +1,210 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Privacy Policy - Setlore</title>
+
+  <!-- PWA & Apple iOS Configuration -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Setlore">
+  <meta name="application-name" content="Setlore">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="icon" type="image/png" href="{% static 'img/setlore_icon.png' %}">
+  <link rel="apple-touch-icon" href="{% static 'img/setlore_icon.png' %}">
+  <link rel="apple-touch-icon" sizes="152x152" href="{% static 'img/setlore_icon.png' %}">
+  <link rel="apple-touch-icon" sizes="167x167" href="{% static 'img/setlore_icon.png' %}">
+  <link rel="apple-touch-icon" sizes="180x180" href="{% static 'img/setlore_icon.png' %}">
+  <link rel="manifest" href="{% static 'manifest.json' %}">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body {
+      background-color: #0f172a;
+      color: #f8fafc;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      touch-action: manipulation;
+      -webkit-touch-callout: none;
+      -webkit-text-size-adjust: 100%;
+    }
+    button, a, input, select, textarea {
+      touch-action: manipulation;
+    }
+    .glass-card {
+      background: rgba(30, 41, 59, 0.7);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 1rem;
+    }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+  </style>
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between selection:bg-indigo-500 selection:text-white">
+
+  <!-- Navigation Header -->
+  <header class="border-b border-slate-800 bg-slate-900/60 backdrop-blur-md sticky top-0 z-30">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+      <a href="{% if user.is_authenticated %}{% url 'dashboard' %}{% else %}{% url 'login' %}{% endif %}" class="flex items-center gap-3 group">
+        <img src="{% static 'img/setlore_icon.png' %}" alt="Setlore" class="w-8 h-8 rounded-lg shadow-md group-hover:scale-105 transition transform">
+        <span class="font-extrabold text-lg tracking-tight bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">Setlore</span>
+      </a>
+      <div class="flex items-center gap-3 text-sm">
+        {% if user.is_authenticated %}
+          <a href="{% url 'dashboard' %}" class="px-3.5 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 font-semibold transition flex items-center gap-2">
+            <i class="fa-solid fa-arrow-left text-xs"></i> Back to Dashboard
+          </a>
+        {% else %}
+          <a href="{% url 'login' %}" class="text-slate-400 hover:text-white transition font-medium">Sign In</a>
+          <a href="{% url 'register' %}" class="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold shadow-md shadow-indigo-500/20 transition">Register</a>
+        {% endif %}
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-4xl mx-auto px-4 sm:px-6 py-10 flex-grow w-full">
+    <div class="glass-card p-6 sm:p-10 shadow-2xl space-y-8">
+      
+      <!-- Title Section -->
+      <div class="border-b border-slate-800 pb-6">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-xs font-semibold mb-3">
+          <i class="fa-solid fa-shield-halved"></i> Privacy & Transparency
+        </div>
+        <h1 class="text-3xl sm:text-4xl font-black text-white tracking-tight">Privacy Policy</h1>
+        <p class="text-sm text-slate-400 mt-2">Last Updated: September 29, 2026</p>
+      </div>
+
+      <!-- Introduction -->
+      <section class="space-y-3">
+        <h2 class="text-xl font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-circle-info text-indigo-400 text-sm"></i> 1. Overview
+        </h2>
+        <p class="text-slate-300 text-sm leading-relaxed">
+          Welcome to <strong class="text-white">Setlore</strong> ("we", "our", or "us"). We are dedicated to providing music and live concert enthusiasts with tools to track, analyze, and celebrate their live concert history and setlist experiences. We respect your privacy and are committed to protecting the information you share with us.
+        </p>
+        <p class="text-slate-300 text-sm leading-relaxed">
+          This Privacy Policy explains what information we collect, how we use it, how we safeguard it, and the controls you have over your data when using the Setlore application.
+        </p>
+      </section>
+
+      <!-- Information We Collect -->
+      <section class="space-y-4">
+        <h2 class="text-xl font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-database text-indigo-400 text-sm"></i> 2. Information We Collect
+        </h2>
+        
+        <div class="space-y-3 pl-2 border-l-2 border-slate-800">
+          <div>
+            <h3 class="font-semibold text-slate-200 text-sm">A. Account Information</h3>
+            <p class="text-slate-400 text-xs mt-1 leading-relaxed">
+              When creating an account, we collect your chosen username and securely hashed password. Providing an email address is optional and is used for account identification and authentication integrations.
+            </p>
+          </div>
+
+          <div>
+            <h3 class="font-semibold text-slate-200 text-sm">B. Concert & Setlist Data</h3>
+            <p class="text-slate-400 text-xs mt-1 leading-relaxed">
+              We store the concert attendance logs you provide, including dates, venues, artists, setlists, songs heard, notes, and uploaded CSV or ticket confirmation text.
+            </p>
+          </div>
+
+          <div>
+            <h3 class="font-semibold text-slate-200 text-sm">C. Third-Party Integrations & Google OAuth</h3>
+            <p class="text-slate-400 text-xs mt-1 leading-relaxed">
+              If you link your Google account or sign in with Google, we receive basic authentication profile information (your Google subject identifier, email address, and name). We do not request or access private Google Drive, Gmail, or any unrelated Google services.
+            </p>
+            <p class="text-slate-400 text-xs mt-1 leading-relaxed">
+              If you provide your Setlist.fm username or API key, we fetch public concert records and setlist information from the Setlist.fm API on your behalf.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- How We Use Information -->
+      <section class="space-y-3">
+        <h2 class="text-xl font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-gear text-indigo-400 text-sm"></i> 3. How We Use Your Information
+        </h2>
+        <p class="text-slate-300 text-sm leading-relaxed">
+          We use the information we collect solely to provide and improve the Setlore service, specifically to:
+        </p>
+        <ul class="list-disc list-inside space-y-1.5 text-xs text-slate-300 pl-2">
+          <li>Authenticate and manage your user account.</li>
+          <li>Aggregate and visualize your concert history, artist drilldowns, song gap analysis, and musician tracking.</li>
+          <li>Enrich concert entries using open music databases like MusicBrainz and Setlist.fm.</li>
+          <li>Allow you to share your public concert profile with friends if you choose to enable public visibility.</li>
+        </ul>
+      </section>
+
+      <!-- Third-Party APIs and Google Limited Use -->
+      <section class="space-y-3">
+        <h2 class="text-xl font-bold text-white flex items-center gap-2">
+          <i class="fa-brands fa-google text-indigo-400 text-sm"></i> 4. Google API Services & Limited Use
+        </h2>
+        <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-800 text-xs text-slate-300 space-y-2">
+          <p>
+            Setlore's use and transfer to any other app of information received from Google APIs will adhere to the 
+            <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener noreferrer" class="text-indigo-400 hover:text-indigo-300 underline font-semibold">Google API Services User Data Policy</a>, including the Limited Use requirements.
+          </p>
+          <p>
+            We only access standard Google authentication scopes (<code class="text-indigo-300 bg-slate-800 px-1.5 py-0.5 rounded">openid</code>, <code class="text-indigo-300 bg-slate-800 px-1.5 py-0.5 rounded">email</code>, <code class="text-indigo-300 bg-slate-800 px-1.5 py-0.5 rounded">profile</code>) to securely verify your identity.
+          </p>
+        </div>
+      </section>
+
+      <!-- Data Sharing and Privacy Controls -->
+      <section class="space-y-3">
+        <h2 class="text-xl font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-user-lock text-indigo-400 text-sm"></i> 5. Data Sharing & Your Controls
+        </h2>
+        <p class="text-slate-300 text-sm leading-relaxed">
+          <strong class="text-white">We never sell, rent, or trade your personal information.</strong> We do not share your private data with third-party advertisers.
+        </p>
+        <div class="space-y-2 text-xs text-slate-300">
+          <p><strong class="text-slate-200">Profile Privacy:</strong> You control whether your concert timeline is public or private. You can toggle this anytime in your Profile Settings.</p>
+          <p><strong class="text-slate-200">Disconnecting Accounts:</strong> You can disconnect your Google account or remove your Setlist.fm credentials at any time in Profile Settings.</p>
+          <p><strong class="text-slate-200">Account & Data Deletion:</strong> You can edit or delete concert records, songs, and profile details directly within the app.</p>
+        </div>
+      </section>
+
+      <!-- Security & Cookies -->
+      <section class="space-y-3">
+        <h2 class="text-xl font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-cookie-bite text-indigo-400 text-sm"></i> 6. Cookies & Security
+        </h2>
+        <p class="text-slate-300 text-sm leading-relaxed">
+          We use strictly necessary first-party cookies to manage secure session state and prevent Cross-Site Request Forgery (CSRF). We do not use third-party tracking cookies or advertising pixels. Passwords and sensitive tokens are encrypted and hashed with industry-standard algorithms.
+        </p>
+      </section>
+
+      <!-- Contact -->
+      <section class="space-y-3 border-t border-slate-800 pt-6">
+        <h2 class="text-xl font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-envelope text-indigo-400 text-sm"></i> 7. Contact Us
+        </h2>
+        <p class="text-slate-300 text-sm leading-relaxed">
+          If you have any questions, concerns, or requests regarding this Privacy Policy or your data, please contact the Setlore administrator or open an issue in the project repository.
+        </p>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-slate-900 bg-slate-950 py-6 text-center text-xs text-slate-500 space-y-2">
+    <div class="flex items-center justify-center gap-4">
+      <a href="{% url 'privacy' %}" class="text-slate-400 hover:text-white transition">Privacy Policy</a>
+      <span>&bull;</span>
+      <a href="{% if user.is_authenticated %}{% url 'dashboard' %}{% else %}{% url 'login' %}{% endif %}" class="text-slate-400 hover:text-white transition">Home</a>
+    </div>
+    <p>&copy; 2026 Setlore. All rights reserved.</p>
+  </footer>
+
+</body>
+</html>
