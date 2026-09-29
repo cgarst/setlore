@@ -1,7 +1,8 @@
 {
   "name": "Setlore",
   "short_name": "Setlore",
-  "start_url": "/",
+  "start_url": "/dashboard/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#0f172a",
