@@ -60,17 +60,64 @@ def parse_csv_rows(reader, ignored_list: Optional[List[str]] = None) -> List[Dic
         ignored_list = IGNORED_ARTISTS
 
     records = []
-    header = next(reader, None)
+    first_row = next(reader, None)
+    if first_row is None:
+        return []
+
+    header_indices = {}
+    is_header = False
+    for idx, col in enumerate(first_row):
+        col_clean = (col or "").strip().lower()
+        if any(k in col_clean for k in ['date', 'artist', 'band', 'venue', 'setlist', 'song', 'track', 'note', 'seen', 'tour']):
+            is_header = True
+            if 'date' in col_clean and 'date' not in header_indices:
+                header_indices['date'] = idx
+            elif any(k in col_clean for k in ['artist', 'band', 'performer']) and 'artists' not in header_indices:
+                header_indices['artists'] = idx
+            elif any(k in col_clean for k in ['venue', 'location']) and 'venue' not in header_indices:
+                header_indices['venue'] = idx
+            elif any(k in col_clean for k in ['setlist', 'song', 'track']) and 'setlist' not in header_indices:
+                header_indices['setlist'] = idx
+            elif any(k in col_clean for k in ['note', 'tour', 'comment']) and 'notes' not in header_indices:
+                header_indices['notes'] = idx
+            elif any(k in col_clean for k in ['seen', 'attended']) and 'seen_before' not in header_indices:
+                header_indices['seen_before'] = idx
+
+    rows_to_process = []
+    if is_header:
+        for r in reader:
+            rows_to_process.append(r)
+    else:
+        rows_to_process.append(first_row)
+        for r in reader:
+            rows_to_process.append(r)
+
     row_id = 0
-    for row in reader:
+    for row in rows_to_process:
         if not row or not any(row):
             continue
         row_id += 1
-        date_raw = row[0].strip() if len(row) > 0 else ""
-        artists_raw = row[1].strip() if len(row) > 1 else ""
-        venue_raw = row[2].strip() if len(row) > 2 else ""
-        artist_count_raw = row[3].strip() if len(row) > 3 else ""
-        seen_before_raw = row[4].strip() if len(row) > 4 else ""
+
+        def get_col(field, default_idx):
+            idx = header_indices.get(field, default_idx)
+            if idx is not None and idx < len(row):
+                return row[idx].strip()
+            return ""
+
+        date_raw = get_col('date', 0)
+        artists_raw = get_col('artists', 1)
+        venue_raw = get_col('venue', 2)
+
+        # Setlist column detection
+        setlist_raw = ""
+        if 'setlist' in header_indices:
+            setlist_raw = get_col('setlist', None)
+        elif len(row) == 4:
+            # Standard 4-column export format: Date, Artist(s), Venue, Setlist
+            setlist_raw = row[3].strip()
+
+        seen_before_raw = get_col('seen_before', 4 if len(row) > 4 else None)
+        notes_raw = get_col('notes', None)
 
         if not date_raw and not artists_raw and not venue_raw:
             continue
@@ -96,7 +143,9 @@ def parse_csv_rows(reader, ignored_list: Optional[List[str]] = None) -> List[Dic
             "primary_artist": artists[0] if artists else artists_raw,
             "venue": venue_raw,
             "artist_count": len(artists),
-            "seen_before": seen_before_raw
+            "seen_before": seen_before_raw,
+            "notes": notes_raw,
+            "setlist": setlist_raw
         })
     return records
 

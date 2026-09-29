@@ -2783,14 +2783,29 @@
         }
       }
 
-      function renderItems(items, query) {
-        if (!items || items.length === 0) {
+      function renderItems(rawItems, query) {
+        if (!rawItems || rawItems.length === 0) {
           if (query) {
             dropdown.innerHTML = `<div class="px-3 py-2 text-[11px] text-slate-500 italic">No matches in catalog</div>`;
             dropdown.classList.remove('hidden');
           } else {
             dropdown.classList.add('hidden');
           }
+          return;
+        }
+
+        const seenKeys = new Set();
+        const items = [];
+        for (const it of rawItems) {
+          const key = (it.name || '').trim().toLowerCase() + '|' + (it.city || '').trim().toLowerCase() + '|' + (it.state || '').trim().toLowerCase();
+          if (!seenKeys.has(key)) {
+            seenKeys.add(key);
+            items.push(it);
+          }
+        }
+
+        if (items.length === 0) {
+          dropdown.classList.add('hidden');
           return;
         }
 

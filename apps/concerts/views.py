@@ -13,7 +13,7 @@ import os
 from django.contrib.auth.models import User
 from apps.catalog.models import ApiCache, Artist, Venue, Song
 from apps.concerts.models import Concert, ConcertArtist, ConcertSong
-from apps.concerts.utils import parse_setlist_text, resolve_venue_coordinates, build_manual_setlist_for_concert_artist
+from apps.concerts.utils import parse_setlist_text, resolve_venue_coordinates, build_manual_setlist_for_concert_artist, save_setlist_for_concert_artist
 from src.reporter import generate_plotly_charts
 from src.analytics import ConcertAnalytics
 from src.csv_parser import parse_csv_rows, normalize_artist_name
@@ -295,6 +295,8 @@ def upload_csv(request):
         if not csv_records:
             return JsonResponse({"error": "No valid concert rows found in CSV"}, status=400)
 
+        all_songs_to_enrich = []
+
         with transaction.atomic():
             Concert.objects.filter(user=request.user, source='csv').delete()
             for rec in csv_records:
@@ -320,18 +322,71 @@ def upload_csv(request):
                     primary_artist=rec.get("primary_artist", ""),
                     raw_artists=rec.get("raw_artists", ""),
                     seen_before=rec.get("seen_before", ""),
-                    notes="",
+                    notes=rec.get("notes", ""),
                     source='csv',
                     is_custom_offline=False
                 )
 
+                ca_map = {}
                 for idx, art_name in enumerate(rec.get("artists", [])):
                     can_art = normalize_artist_name(art_name) or art_name
                     art_obj, _ = Artist.objects.get_or_create(name=can_art, defaults={'normalized_name': can_art.lower()})
-                    ConcertArtist.objects.create(concert=concert, artist=art_obj, billing_order=idx)
+                    ca = ConcertArtist.objects.create(
+                        concert=concert,
+                        artist=art_obj,
+                        billing_order=idx,
+                        has_setlist=False
+                    )
+                    ca_map[can_art.lower()] = (ca, art_obj)
+
+                # Parse and save setlist if present in the CSV row
+                raw_setlist = rec.get("setlist", "").strip()
+                if raw_setlist and ca_map:
+                    artist_segments = {}
+                    if ' | ' in raw_setlist:
+                        parts = raw_setlist.split(' | ')
+                        for p in parts:
+                            p_clean = p.strip()
+                            matched_art = None
+                            for art_low in ca_map.keys():
+                                if p_clean.lower().startswith(art_low + ':') or p_clean.lower().startswith(art_low + ' :'):
+                                    matched_art = art_low
+                                    content_str = p_clean[len(art_low):].lstrip(': ').strip()
+                                    artist_segments[matched_art] = content_str
+                                    break
+                            if not matched_art and parts:
+                                first_art_low = list(ca_map.keys())[0]
+                                if first_art_low not in artist_segments:
+                                    artist_segments[first_art_low] = p_clean
+                    else:
+                        matched_art = None
+                        for art_low in ca_map.keys():
+                            if raw_setlist.lower().startswith(art_low + ':') or raw_setlist.lower().startswith(art_low + ' :'):
+                                matched_art = art_low
+                                content_str = raw_setlist[len(art_low):].lstrip(': ').strip()
+                                artist_segments[matched_art] = content_str
+                                break
+                        if not matched_art:
+                            first_art_low = list(ca_map.keys())[0]
+                            artist_segments[first_art_low] = raw_setlist
+
+                    for art_low, sl_text in artist_segments.items():
+                        if art_low in ca_map and sl_text:
+                            ca, art_obj = ca_map[art_low]
+                            parsed_tracks = parse_setlist_text(sl_text)
+                            if parsed_tracks:
+                                enriched = save_setlist_for_concert_artist(ca, art_obj, parsed_tracks)
+                                all_songs_to_enrich.extend(enriched)
 
         # Clear any stale dashboard bundle for this user
         ApiCache.objects.filter(cache_key=f"user_dashboard_bundle_{request.user.id}").delete()
+
+        if all_songs_to_enrich:
+            try:
+                enricher = AlbumEnricher()
+                enricher.load_cached_catalog([{"artist": a, "song": s} for a, s in all_songs_to_enrich])
+            except Exception:
+                pass
 
         # Trigger background sync automatically
         sync_worker.enqueue_sync(request.user.id)
@@ -475,62 +530,8 @@ def add_concert(request):
             new_songs_to_enrich = []
             if setlist_text:
                 parsed_tracks = parse_setlist_text(setlist_text)
-                total_tracks = len(parsed_tracks)
-
-                for idx, t in enumerate(parsed_tracks):
-                    track_num = idx + 1
-                    pct = round((track_num / total_tracks) * 100) if total_tracks > 0 else 100
-
-                    if track_num == 1:
-                        slot = "Opener"
-                        slot_category = "opener"
-                    elif t["is_encore"]:
-                        if track_num == total_tracks:
-                            slot = "Show Closer"
-                        else:
-                            slot = f"Encore {t['encore_number']}" if t['encore_number'] else "Encore"
-                        slot_category = "encore"
-                    elif track_num == total_tracks:
-                        slot = "Show Closer"
-                        slot_category = "closer"
-                    elif pct <= 35:
-                        slot = "Early Set"
-                        slot_category = "early"
-                    elif pct <= 70:
-                        slot = "Mid-Set"
-                        slot_category = "mid"
-                    else:
-                        slot = "Late Set"
-                        slot_category = "late"
-
-                    clean_title_key = t["title"].lower().strip()
-                    song_obj, _ = Song.objects.get_or_create(
-                        artist=primary_art_obj,
-                        clean_title=clean_title_key,
-                        defaults={
-                            'title': t["title"],
-                            'is_cover': t["is_cover"],
-                            'original_artist': t["original_artist"] or None
-                        }
-                    )
-
-                    ConcertSong.objects.create(
-                        concert_artist=ca_primary,
-                        song=song_obj,
-                        raw_song_name=t["title"],
-                        set_name=t["set_name"],
-                        is_encore=t["is_encore"],
-                        encore_number=t["encore_number"],
-                        track_num=track_num,
-                        total_tracks=total_tracks,
-                        pct_position=pct,
-                        slot=slot,
-                        slot_category=slot_category,
-                        is_cover=t["is_cover"],
-                        original_artist=t["original_artist"] or '',
-                        info=t["info"] or ''
-                    )
-                    new_songs_to_enrich.append((primary_art_obj.name, t["title"]))
+                if parsed_tracks:
+                    new_songs_to_enrich = save_setlist_for_concert_artist(ca_primary, primary_art_obj, parsed_tracks)
 
         # Optional quick album and musician enrichment for new artists/songs
         if new_songs_to_enrich:
@@ -950,92 +951,207 @@ def autocomplete_view(request):
     results = []
 
     if field_type == 'venue':
+        seen_keys = set()
         if q:
             user_venue_ids = Concert.objects.filter(user=user, venue__isnull=False).values_list('venue_id', flat=True).distinct()
-            user_venues = list(Venue.objects.filter(id__in=user_venue_ids, name__icontains=q).values('name', 'city', 'state')[:10])
+            user_venues = list(Venue.objects.filter(id__in=user_venue_ids, name__icontains=q).values('name', 'city', 'state'))
             for v in user_venues:
-                v['is_recent'] = True
-            
-            seen_names = {v['name'].lower() for v in user_venues}
-            other_venues = list(Venue.objects.filter(name__icontains=q).exclude(name__in=[v['name'] for v in user_venues]).values('name', 'city', 'state')[:15])
-            for v in other_venues:
-                v['is_recent'] = False
-                
-            results = user_venues + other_venues
-        else:
-            recent_user_concerts = Concert.objects.filter(user=user, venue__isnull=False).select_related('venue').order_by('-date', '-id')[:60]
-            seen = set()
-            for c in recent_user_concerts:
-                if c.venue and c.venue.name and c.venue.name.lower() not in seen:
-                    seen.add(c.venue.name.lower())
+                name = (v.get('name') or '').strip()
+                city = (v.get('city') or '').strip()
+                state = (v.get('state') or '').strip()
+                if not name:
+                    continue
+                key = (name.lower(), city.lower(), state.lower())
+                if key not in seen_keys:
+                    seen_keys.add(key)
                     results.append({
-                        'name': c.venue.name,
-                        'city': c.venue.city or '',
-                        'state': c.venue.state or '',
+                        'name': name,
+                        'city': city,
+                        'state': state,
                         'is_recent': True
                     })
-                if len(results) >= 12:
+                if len(results) >= 10:
                     break
+
+            other_venues = list(Venue.objects.filter(name__icontains=q).values('name', 'city', 'state'))
+            for v in other_venues:
+                name = (v.get('name') or '').strip()
+                city = (v.get('city') or '').strip()
+                state = (v.get('state') or '').strip()
+                if not name:
+                    continue
+                key = (name.lower(), city.lower(), state.lower())
+                if key not in seen_keys:
+                    seen_keys.add(key)
+                    results.append({
+                        'name': name,
+                        'city': city,
+                        'state': state,
+                        'is_recent': False
+                    })
+                if len(results) >= 20:
+                    break
+        else:
+            recent_user_concerts = Concert.objects.filter(user=user, venue__isnull=False).select_related('venue').order_by('-date', '-id')[:100]
+            for c in recent_user_concerts:
+                if c.venue and c.venue.name:
+                    name = c.venue.name.strip()
+                    city = (c.venue.city or '').strip()
+                    state = (c.venue.state or '').strip()
+                    key = (name.lower(), city.lower(), state.lower())
+                    if key not in seen_keys:
+                        seen_keys.add(key)
+                        results.append({
+                            'name': name,
+                            'city': city,
+                            'state': state,
+                            'is_recent': True
+                        })
+                    if len(results) >= 12:
+                        break
             if not results:
-                venues = Venue.objects.all().order_by('name').values('name', 'city', 'state')[:12]
-                results = list(venues)
+                venues = Venue.objects.all().order_by('name').values('name', 'city', 'state')[:50]
+                for v in venues:
+                    name = (v.get('name') or '').strip()
+                    city = (v.get('city') or '').strip()
+                    state = (v.get('state') or '').strip()
+                    key = (name.lower(), city.lower(), state.lower())
+                    if key not in seen_keys:
+                        seen_keys.add(key)
+                        results.append({
+                            'name': name,
+                            'city': city,
+                            'state': state,
+                            'is_recent': False
+                        })
+                    if len(results) >= 12:
+                        break
 
     elif field_type == 'artist':
+        seen_artists = set()
         if q:
-            user_artists = list(ConcertArtist.objects.filter(concert__user=user, artist__name__icontains=q).values_list('artist__name', flat=True).distinct()[:10])
-            user_artist_results = [{'name': name, 'is_recent': True} for name in user_artists]
-            seen_artists = {name.lower() for name in user_artists}
-            
-            other_artists = list(Artist.objects.filter(name__icontains=q).exclude(name__in=user_artists).values_list('name', flat=True)[:15])
-            other_artist_results = [{'name': name, 'is_recent': False} for name in other_artists if name.lower() not in seen_artists]
-            
-            results = user_artist_results + other_artist_results
-        else:
-            recent_artists = ConcertArtist.objects.filter(concert__user=user).select_related('artist').order_by('-concert__date', '-concert__id')[:60]
-            seen = set()
-            for ca in recent_artists:
-                if ca.artist and ca.artist.name and ca.artist.name.lower() not in seen:
-                    seen.add(ca.artist.name.lower())
-                    results.append({'name': ca.artist.name, 'is_recent': True})
-                if len(results) >= 12:
+            user_artists = list(ConcertArtist.objects.filter(concert__user=user, artist__name__icontains=q).values_list('artist__name', flat=True))
+            for name in user_artists:
+                clean_name = (name or '').strip()
+                if not clean_name:
+                    continue
+                norm = clean_name.lower()
+                if norm not in seen_artists:
+                    seen_artists.add(norm)
+                    results.append({'name': clean_name, 'is_recent': True})
+                if len(results) >= 10:
                     break
+
+            other_artists = list(Artist.objects.filter(name__icontains=q).values_list('name', flat=True))
+            for name in other_artists:
+                clean_name = (name or '').strip()
+                if not clean_name:
+                    continue
+                norm = clean_name.lower()
+                if norm not in seen_artists:
+                    seen_artists.add(norm)
+                    results.append({'name': clean_name, 'is_recent': False})
+                if len(results) >= 20:
+                    break
+        else:
+            recent_artists = ConcertArtist.objects.filter(concert__user=user).select_related('artist').order_by('-concert__date', '-concert__id')[:100]
+            for ca in recent_artists:
+                if ca.artist and ca.artist.name:
+                    clean_name = ca.artist.name.strip()
+                    norm = clean_name.lower()
+                    if norm not in seen_artists:
+                        seen_artists.add(norm)
+                        results.append({'name': clean_name, 'is_recent': True})
+                    if len(results) >= 12:
+                        break
             if not results:
-                artists = Artist.objects.all().order_by('name').values_list('name', flat=True)[:12]
-                results = [{'name': a} for a in artists]
+                artists = Artist.objects.all().order_by('name').values_list('name', flat=True)[:50]
+                for name in artists:
+                    clean_name = (name or '').strip()
+                    if not clean_name:
+                        continue
+                    norm = clean_name.lower()
+                    if norm not in seen_artists:
+                        seen_artists.add(norm)
+                        results.append({'name': clean_name, 'is_recent': False})
+                    if len(results) >= 12:
+                        break
 
     elif field_type == 'city':
+        seen_cities = set()
         if q:
-            cities = Venue.objects.filter(city__icontains=q).exclude(city='').values_list('city', flat=True).distinct().order_by('city')[:15]
-            results = [{'name': c} for c in cities]
-        else:
-            recent_user_concerts = Concert.objects.filter(user=user, venue__isnull=False).select_related('venue').order_by('-date', '-id')[:60]
-            seen = set()
-            for c in recent_user_concerts:
-                if c.venue and c.venue.city and c.venue.city.lower() not in seen:
-                    seen.add(c.venue.city.lower())
-                    results.append({'name': c.venue.city, 'is_recent': True})
-                if len(results) >= 10:
+            cities = Venue.objects.filter(city__icontains=q).exclude(city='').values_list('city', flat=True).order_by('city')
+            for c in cities:
+                clean_c = (c or '').strip()
+                if not clean_c:
+                    continue
+                norm = clean_c.lower()
+                if norm not in seen_cities:
+                    seen_cities.add(norm)
+                    results.append({'name': clean_c})
+                if len(results) >= 15:
                     break
+        else:
+            recent_user_concerts = Concert.objects.filter(user=user, venue__isnull=False).select_related('venue').order_by('-date', '-id')[:100]
+            for c in recent_user_concerts:
+                if c.venue and c.venue.city:
+                    clean_c = c.venue.city.strip()
+                    norm = clean_c.lower()
+                    if norm not in seen_cities:
+                        seen_cities.add(norm)
+                        results.append({'name': clean_c, 'is_recent': True})
+                    if len(results) >= 10:
+                        break
             if not results:
-                cities = Venue.objects.exclude(city='').values_list('city', flat=True).distinct().order_by('city')[:10]
-                results = [{'name': c} for c in cities]
+                cities = Venue.objects.exclude(city='').values_list('city', flat=True).order_by('city')
+                for c in cities:
+                    clean_c = (c or '').strip()
+                    if not clean_c:
+                        continue
+                    norm = clean_c.lower()
+                    if norm not in seen_cities:
+                        seen_cities.add(norm)
+                        results.append({'name': clean_c})
+                    if len(results) >= 10:
+                        break
 
     elif field_type == 'state':
+        seen_states = set()
         if q:
-            states = Venue.objects.filter(state__icontains=q).exclude(state='').values_list('state', flat=True).distinct().order_by('state')[:15]
-            results = [{'name': s} for s in states]
-        else:
-            recent_user_concerts = Concert.objects.filter(user=user, venue__isnull=False).select_related('venue').order_by('-date', '-id')[:60]
-            seen = set()
-            for c in recent_user_concerts:
-                if c.venue and c.venue.state and c.venue.state.lower() not in seen:
-                    seen.add(c.venue.state.lower())
-                    results.append({'name': c.venue.state, 'is_recent': True})
-                if len(results) >= 10:
+            states = Venue.objects.filter(state__icontains=q).exclude(state='').values_list('state', flat=True).order_by('state')
+            for s in states:
+                clean_s = (s or '').strip()
+                if not clean_s:
+                    continue
+                norm = clean_s.lower()
+                if norm not in seen_states:
+                    seen_states.add(norm)
+                    results.append({'name': clean_s})
+                if len(results) >= 15:
                     break
+        else:
+            recent_user_concerts = Concert.objects.filter(user=user, venue__isnull=False).select_related('venue').order_by('-date', '-id')[:100]
+            for c in recent_user_concerts:
+                if c.venue and c.venue.state:
+                    clean_s = c.venue.state.strip()
+                    norm = clean_s.lower()
+                    if norm not in seen_states:
+                        seen_states.add(norm)
+                        results.append({'name': clean_s, 'is_recent': True})
+                    if len(results) >= 10:
+                        break
             if not results:
-                states = Venue.objects.exclude(state='').values_list('state', flat=True).distinct().order_by('state')[:10]
-                results = [{'name': s} for s in states]
+                states = Venue.objects.exclude(state='').values_list('state', flat=True).order_by('state')
+                for s in states:
+                    clean_s = (s or '').strip()
+                    if not clean_s:
+                        continue
+                    norm = clean_s.lower()
+                    if norm not in seen_states:
+                        seen_states.add(norm)
+                        results.append({'name': clean_s})
+                    if len(results) >= 10:
+                        break
 
     return JsonResponse({'results': results})
 
@@ -1357,17 +1473,40 @@ def export_concerts_csv(request, username=None):
         artists_list = c.get('artists', [])
         for a in artists_list:
             art_name = a.get('artist', '')
-            songs = []
-            for sg in a.get('grouped_sets', []):
+            set_parts = []
+            grouped_sets = a.get('grouped_sets', [])
+            for sg in grouped_sets:
+                set_label = sg.get('set_label', '')
+                is_encore = sg.get('is_encore', False)
+                songs_in_sg = []
                 for track in sg.get('songs', []):
                     s_name = track.get('song', '').strip()
                     if s_name:
-                        songs.append(s_name)
-            if songs:
+                        if track.get('is_cover') and track.get('cover_original'):
+                            s_name = f"{s_name} ({track.get('cover_original')} cover)"
+                        elif track.get('is_cover'):
+                            s_name = f"{s_name} (Cover)"
+                        if track.get('info'):
+                            s_name = f"{s_name} ({track.get('info')})"
+                        songs_in_sg.append(s_name)
+
+                if songs_in_sg:
+                    if is_encore:
+                        prefix = f"{set_label}: " if set_label else "Encore: "
+                    elif set_label and set_label not in ("Main Set", "Set 1"):
+                        prefix = f"{set_label}: "
+                    elif len(grouped_sets) > 1 and set_label == "Set 1":
+                        prefix = "Set 1: "
+                    else:
+                        prefix = ""
+                    set_parts.append(f"{prefix}{', '.join(songs_in_sg)}")
+
+            if set_parts:
+                art_setlist_str = ", ".join(set_parts)
                 if len(artists_list) > 1:
-                    artist_setlists.append(f"{art_name}: {', '.join(songs)}")
+                    artist_setlists.append(f"{art_name}: {art_setlist_str}")
                 else:
-                    artist_setlists.append(", ".join(songs))
+                    artist_setlists.append(art_setlist_str)
 
         setlist_str = " | ".join(artist_setlists) if artist_setlists else ""
         writer.writerow([date_str, artists_str, venue_str, setlist_str])
@@ -1418,7 +1557,7 @@ def save_setlist(request):
         # Get or create Artist
         artist_obj, _ = Artist.objects.get_or_create(
             name=artist_name,
-            defaults={'clean_name': artist_name.lower().strip()}
+            defaults={'normalized_name': artist_name.lower().strip()}
         )
 
         # Get or create ConcertArtist
@@ -1438,69 +1577,9 @@ def save_setlist(request):
             return JsonResponse({'error': 'Could not parse any valid songs from input.'}, status=400)
 
         with transaction.atomic():
-            # Clear existing songs for this ConcertArtist
-            ca.songs.all().delete()
+            new_songs_to_enrich = save_setlist_for_concert_artist(ca, artist_obj, parsed_tracks)
 
-            total_tracks = len(parsed_tracks)
-            new_songs_to_enrich = []
-
-            for idx, t in enumerate(parsed_tracks):
-                track_num = idx + 1
-                pct = round((track_num / total_tracks) * 100) if total_tracks > 0 else 100
-
-                if track_num == 1:
-                    slot = "Opener"
-                    slot_category = "opener"
-                elif t["is_encore"]:
-                    if track_num == total_tracks:
-                        slot = "Show Closer"
-                    else:
-                        slot = f"Encore {t['encore_number']}" if t['encore_number'] else "Encore"
-                    slot_category = "encore"
-                elif track_num == total_tracks:
-                    slot = "Show Closer"
-                    slot_category = "closer"
-                elif pct <= 35:
-                    slot = "Early Set"
-                    slot_category = "early"
-                elif pct <= 70:
-                    slot = "Mid-Set"
-                    slot_category = "mid"
-                else:
-                    slot = "Late Set"
-                    slot_category = "late"
-
-                clean_title_key = t["title"].lower().strip()
-                song_obj, _ = Song.objects.get_or_create(
-                    artist=artist_obj,
-                    clean_title=clean_title_key,
-                    defaults={
-                        'title': t["title"],
-                        'is_cover': t["is_cover"],
-                        'original_artist': t["original_artist"] or None
-                    }
-                )
-
-                ConcertSong.objects.create(
-                    concert_artist=ca,
-                    song=song_obj,
-                    raw_song_name=t["title"],
-                    set_name=t["set_name"],
-                    is_encore=t["is_encore"],
-                    encore_number=t["encore_number"],
-                    track_num=track_num,
-                    total_tracks=total_tracks,
-                    pct_position=pct,
-                    slot=slot,
-                    slot_category=slot_category,
-                    is_cover=t["is_cover"],
-                    original_artist=t["original_artist"] or '',
-                    info=t["info"] or ''
-                )
-                new_songs_to_enrich.append((artist_obj.name, t["title"]))
-
-            ca.has_setlist = True
-            ca.save()
+        total_tracks = len(parsed_tracks)
 
         # Invalidate cached analytics bundle for this user
         ApiCache.objects.filter(cache_key=f"user_dashboard_bundle_{request.user.id}").delete()
