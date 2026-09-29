@@ -1184,6 +1184,7 @@
   </div>
 
   <!-- Onboarding Wizard Modal -->
+  {% if not is_public_view and user.is_authenticated and is_owner %}
   <div id="onboarding-modal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto hidden">
     <div class="relative w-full max-w-xl glass-card p-5 sm:p-7 shadow-2xl border border-indigo-500/30 rounded-2xl max-h-[92vh] my-auto flex flex-col overflow-hidden bg-slate-900/95">
       
@@ -1457,6 +1458,7 @@
 
     </div>
   </div>
+  {% endif %}
 
   <div class="max-w-7xl mx-auto mb-6 flex flex-wrap gap-2 items-center justify-between">
     <div class="flex flex-wrap gap-2 items-center">
@@ -6773,7 +6775,7 @@
         startSyncPolling();
       }
 
-      {% if should_show_onboarding %}
+      {% if should_show_onboarding and not is_public_view and user.is_authenticated and is_owner %}
         openOnboardingModal();
       {% endif %}
     });
