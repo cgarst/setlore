@@ -119,3 +119,9 @@ SETLISTFM_USER = os.getenv("SETLISTFM_USER") or os.getenv("setlistfm_user", "").
 CARTO_API_KEY = os.getenv("carto_api_key", "cb1_2exf_1_3b2a43a7cdd980ffef0b756c").strip()
 CONTACT_EMAIL = os.getenv("CONTACT_EMAIL", "admin@localhost").strip()
 DEFAULT_CSV_PATH = Path(os.getenv("DEFAULT_CSV_PATH", BASE_DIR / "Concerts - Attended.csv"))
+
+# Google OAuth Settings (via environment variables)
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "").strip()
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "").strip()
+GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI", "").strip()
+

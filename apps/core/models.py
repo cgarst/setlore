@@ -11,6 +11,8 @@ class UserProfile(models.Model):
     is_public = models.BooleanField(default=True, help_text="Allow public access to view this user profile")
     ignored_artists = models.JSONField(default=list, blank=True, help_text="List of artist names to exclude from analytics")
     default_location = models.CharField(max_length=255, blank=True, default='Washington, DC', help_text="Default city/region for venue fallbacks")
+    google_id = models.CharField(max_length=255, blank=True, null=True, unique=True, default=None, help_text="Google OAuth unique subject identifier")
+    google_email = models.EmailField(blank=True, default='', help_text="Google OAuth verified email address")
     last_synced_at = models.DateTimeField(null=True, blank=True)
     sync_status = models.CharField(max_length=50, default='idle', choices=[
         ('idle', 'Idle'),

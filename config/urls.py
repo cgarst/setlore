@@ -20,6 +20,11 @@ urlpatterns = [
         template_name='registration/password_change_done.html',
     ), name='password_change_done'),
 
+    # Google OAuth
+    path('accounts/google/login/', core_views.google_login_view, name='google_login'),
+    path('accounts/google/callback/', core_views.google_callback_view, name='google_callback'),
+    path('accounts/google/disconnect/', core_views.google_disconnect_view, name='google_disconnect'),
+
     # Concert Dashboard & API
     path('', concerts_views.dashboard_view, name='dashboard'),
     path('overview/', concerts_views.dashboard_view, {'tab_name': 'overview'}, name='dashboard_overview'),
