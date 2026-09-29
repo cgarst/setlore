@@ -78,7 +78,7 @@ class FreezeDemoCommandTests(TestCase):
         # Should NOT link to login, register, open setlore, or have leaderboard
         self.assertNotIn('Sign In', landing_html)
         self.assertNotIn('Start Tracking Shows', landing_html)
-        self.assertNotIn('Open Your Setlore', landing_html)
+        self.assertNotIn('Open Setlore', landing_html)
         self.assertNotIn("This Server's Community Leaderboard", landing_html)
 
         # Static assets must use relative paths

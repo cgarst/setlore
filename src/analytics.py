@@ -13,21 +13,33 @@ class ConcertAnalytics:
         self.canonical_artist_map = {}
         for pair in self.matched_setlists:
             sl = pair.get("setlist")
-            if sl:
-                name = sl.get("artist", {}).get("name")
-                if name:
-                    self.canonical_artist_map[name.strip().lower()] = name.strip()
+            if isinstance(sl, dict):
+                name = sl.get("artist", {}).get("name") if isinstance(sl.get("artist"), dict) else sl.get("artist")
+                if name and isinstance(name, str) and name.strip():
+                    self._register_canonical(name.strip())
+            if pair.get("artist") and isinstance(pair.get("artist"), str) and pair.get("artist").strip():
+                self._register_canonical(pair["artist"].strip())
 
         for rec in self.all_csv_records:
             for art in rec.get("artists", []):
-                if art:
-                    key = art.strip().lower()
-                    if key not in self.canonical_artist_map:
-                        self.canonical_artist_map[key] = art.strip()
-            if rec.get("primary_artist"):
-                key = rec["primary_artist"].strip().lower()
-                if key not in self.canonical_artist_map:
-                    self.canonical_artist_map[key] = rec["primary_artist"].strip()
+                if art and isinstance(art, str) and art.strip():
+                    self._register_canonical(art.strip())
+            if rec.get("primary_artist") and isinstance(rec.get("primary_artist"), str) and rec["primary_artist"].strip():
+                self._register_canonical(rec["primary_artist"].strip())
+
+    def _register_canonical(self, name: str):
+        key = name.strip().lower()
+        if not key:
+            return
+        if key not in self.canonical_artist_map:
+            self.canonical_artist_map[key] = name.strip()
+        else:
+            existing = self.canonical_artist_map[key]
+            # Prefer title/mixed case over ALL UPPERCASE or ALL lowercase
+            if (existing.isupper() or existing.islower()) and (not name.isupper() and not name.islower()):
+                self.canonical_artist_map[key] = name.strip()
+            elif existing.isupper() and not name.isupper():
+                self.canonical_artist_map[key] = name.strip()
 
     def _canonical_name(self, artist_name: str) -> str:
         if not artist_name:
@@ -273,6 +285,7 @@ class ConcertAnalytics:
         # Prepare structured artist drill-down data sorted by highest songs heard
         artist_drilldown = {}
         for artist, songs_dict in artist_song_map.items():
+            can_artist = self._canonical_name(artist)
             sorted_songs = []
             for song_name, play_count in songs_dict.most_common():
                 occs = artist_song_occurrences[artist][song_name]
@@ -282,25 +295,31 @@ class ConcertAnalytics:
                     "first_heard": occs[0]["date"] if occs else "-",
                     "occurrences": occs
                 })
-            artist_drilldown[artist] = {
-                "artist": artist,
-                "total_plays": sum(songs_dict.values()),
-                "unique_songs": len(songs_dict),
-                "songs": sorted_songs
-            }
+            if can_artist not in artist_drilldown:
+                artist_drilldown[can_artist] = {
+                    "artist": can_artist,
+                    "total_plays": sum(songs_dict.values()),
+                    "unique_songs": len(songs_dict),
+                    "songs": sorted_songs
+                }
+            else:
+                artist_drilldown[can_artist]["total_plays"] += sum(songs_dict.values())
+                artist_drilldown[can_artist]["songs"].extend(sorted_songs)
+                artist_drilldown[can_artist]["unique_songs"] = len(artist_drilldown[can_artist]["songs"])
 
         # Ensure all seen artists are included in artist_drilldown even if no setlists are matched yet
         for artist, concert_count in artist_counter.items():
-            if artist not in artist_drilldown:
-                artist_drilldown[artist] = {
-                    "artist": artist,
+            can_artist = self._canonical_name(artist)
+            if can_artist not in artist_drilldown:
+                artist_drilldown[can_artist] = {
+                    "artist": can_artist,
                     "concert_count": concert_count,
                     "total_plays": 0,
                     "unique_songs": 0,
                     "songs": []
                 }
             else:
-                artist_drilldown[artist]["concert_count"] = concert_count
+                artist_drilldown[can_artist]["concert_count"] = concert_count
 
         # Sort artist_drilldown by highest total plays heard, then unique songs, then concert count
         artist_drilldown = dict(

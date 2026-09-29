@@ -28,6 +28,21 @@ from src.musician_tracker import analyze_musicians_live, consolidate_musician_ba
 from src.config import SETLISTFM_API_KEY, CARTO_API_KEY, USER_CACHE_DIR
 from .services.sync_worker import sync_worker
 
+def get_or_create_artist(name: str):
+    can_name = (normalize_artist_name(name) if normalize_artist_name else "") or (name or "").strip()
+    if not can_name:
+        return None, False
+    art = Artist.objects.filter(normalized_name=can_name.lower()).first()
+    if art:
+        if (art.name.isupper() or art.name.islower()) and (not can_name.isupper() and not can_name.islower()):
+            art.name = can_name
+            art.save(update_fields=['name'])
+        elif art.name.isupper() and not can_name.isupper():
+            art.name = can_name
+            art.save(update_fields=['name'])
+        return art, False
+    return Artist.objects.create(name=can_name, normalized_name=can_name.lower()), True
+
 def get_dashboard_context(request, target_user, tab_name='overview', is_public_view=False):
     alias_map = {
         '': 'overview',
@@ -495,7 +510,7 @@ def upload_csv(request):
                 ca_map = {}
                 for idx, art_name in enumerate(rec.get("artists", [])):
                     can_art = normalize_artist_name(art_name) or art_name
-                    art_obj, _ = Artist.objects.get_or_create(name=can_art, defaults={'normalized_name': can_art.lower()})
+                    art_obj, _ = get_or_create_artist(can_art)
                     ca = ConcertArtist.objects.create(
                         concert=concert,
                         artist=art_obj,
@@ -635,10 +650,7 @@ def add_concert(request):
 
             # Artist resolution
             can_primary = normalize_artist_name(primary_artist_raw) or primary_artist_raw
-            primary_art_obj, _ = Artist.objects.get_or_create(
-                name=can_primary,
-                defaults={'normalized_name': can_primary.lower()}
-            )
+            primary_art_obj, _ = get_or_create_artist(can_primary)
 
             # Supporting artists
             artists_list = [can_primary]
@@ -649,10 +661,7 @@ def add_concert(request):
                     p_clean = p.strip()
                     if p_clean:
                         can_supp = normalize_artist_name(p_clean) or p_clean
-                        supp_obj, _ = Artist.objects.get_or_create(
-                            name=can_supp,
-                            defaults={'normalized_name': can_supp.lower()}
-                        )
+                        supp_obj, _ = get_or_create_artist(can_supp)
                         artists_list.append(can_supp)
                         supporting_objs.append(supp_obj)
 
@@ -945,10 +954,7 @@ def confirm_ticketmaster_import(request):
 
                 # Resolve Artist
                 can_primary = normalize_artist_name(artist_raw) or artist_raw
-                primary_art_obj, _ = Artist.objects.get_or_create(
-                    name=can_primary,
-                    defaults={'normalized_name': can_primary.lower()}
-                )
+                primary_art_obj, _ = get_or_create_artist(can_primary)
 
                 # Fetch setlist if setlist_id is provided
                 sl_data = None
@@ -1584,10 +1590,7 @@ def toggle_concert_attendance(request):
                             )
                 elif target_concert.primary_artist:
                     can_primary = normalize_artist_name(target_concert.primary_artist) or target_concert.primary_artist
-                    art_obj, _ = Artist.objects.get_or_create(
-                        name=can_primary,
-                        defaults={'normalized_name': can_primary.lower()}
-                    )
+                    art_obj, _ = get_or_create_artist(can_primary)
                     ConcertArtist.objects.create(
                         concert=new_concert,
                         artist=art_obj,
@@ -1706,10 +1709,7 @@ def edit_concert(request):
 
             # Artist resolution
             can_primary = normalize_artist_name(primary_artist_raw) or primary_artist_raw
-            primary_art_obj, _ = Artist.objects.get_or_create(
-                name=can_primary,
-                defaults={'normalized_name': can_primary.lower()}
-            )
+            primary_art_obj, _ = get_or_create_artist(can_primary)
 
             artists_list = [can_primary]
             supporting_objs = []
@@ -1719,10 +1719,7 @@ def edit_concert(request):
                     p_clean = p.strip()
                     if p_clean:
                         can_supp = normalize_artist_name(p_clean) or p_clean
-                        supp_obj, _ = Artist.objects.get_or_create(
-                            name=can_supp,
-                            defaults={'normalized_name': can_supp.lower()}
-                        )
+                        supp_obj, _ = get_or_create_artist(can_supp)
                         artists_list.append(can_supp)
                         supporting_objs.append(supp_obj)
 
@@ -2016,10 +2013,7 @@ def save_setlist(request):
             return JsonResponse({'error': 'Concert not found or access denied'}, status=404)
 
         # Get or create Artist
-        artist_obj, _ = Artist.objects.get_or_create(
-            name=artist_name,
-            defaults={'normalized_name': artist_name.lower().strip()}
-        )
+        artist_obj, _ = get_or_create_artist(artist_name)
 
         # Get or create ConcertArtist
         ca = ConcertArtist.objects.filter(concert=concert, artist__name__iexact=artist_name).first()

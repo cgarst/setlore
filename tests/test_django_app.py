@@ -526,6 +526,41 @@ class DjangoAppTests(TestCase):
                 if "tesseract" in art["artist"].lower():
                     self.assertEqual(art["artist"], "TesseracT")
 
+    def test_jolly_artist_drilldown_case_insensitivity(self):
+        from src.analytics import ConcertAnalytics
+
+        csv_records = [
+            {"id": "c1", "primary_artist": "JOLLY", "artists": ["JOLLY"], "year": 2014, "venue": "Arlenes Grocery"},
+            {"id": "c2", "primary_artist": "Jolly", "artists": ["Jolly"], "year": 2018, "venue": "Gramercy Theatre"},
+        ]
+        matched_setlists = [
+            {
+                "csv": csv_records[0],
+                "artist": "JOLLY",
+                "setlist": {
+                    "artist": {"name": "Jolly"},
+                    "sets": {
+                        "set": [
+                            {"song": [{"name": "Joy"}, {"name": "Firewell"}]}
+                        ]
+                    }
+                }
+            }
+        ]
+
+        analytics = ConcertAnalytics(matched_setlists=matched_setlists, all_csv_records=csv_records)
+        metrics = analytics.compute_all_metrics()
+
+        # In artist_drilldown, JOLLY and Jolly must be merged under a single key 'Jolly'
+        jolly_keys = [k for k in metrics["artist_drilldown"].keys() if k.lower() == "jolly"]
+        self.assertEqual(len(jolly_keys), 1)
+        self.assertEqual(jolly_keys[0], "Jolly")
+        jolly_data = metrics["artist_drilldown"]["Jolly"]
+        self.assertEqual(jolly_data["artist"], "Jolly")
+        self.assertEqual(jolly_data["concert_count"], 2)
+        self.assertEqual(jolly_data["total_plays"], 2)
+        self.assertEqual(jolly_data["unique_songs"], 2)
+
 
 
 
