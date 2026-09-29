@@ -3,14 +3,16 @@ import secrets
 from django.conf import settings
 from django.shortcuts import render, redirect
 from django.contrib.auth import login
+from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.http import JsonResponse, HttpResponseRedirect
 from django.contrib import messages
 from django.urls import reverse
 from .forms import CaseInsensitiveUserCreationForm
-from .models import UserProfile
+from .models import UserProfile, SiteSetting, Friendship
 from . import oauth
+from apps.concerts.models import Concert
 from apps.concerts.services.sync_worker import sync_worker
 
 def health_check(request):
@@ -22,22 +24,28 @@ def privacy_view(request):
 def register_view(request):
     if request.user.is_authenticated:
         return redirect('dashboard')
+
+    registration_enabled = SiteSetting.is_registration_enabled()
+    if not registration_enabled:
+        if request.method == 'POST':
+            messages.error(request, "New user registration is currently disabled by an administrator.")
+        return render(request, 'registration/register.html', {
+            'registration_enabled': False,
+            'form': None,
+            'google_oauth_enabled': oauth.is_google_oauth_configured(),
+        })
+
     if request.method == 'POST':
         form = CaseInsensitiveUserCreationForm(request.POST)
         if form.is_valid():
             user = form.save()
-            setlist_user = request.POST.get('setlistfm_username', '').strip()
-            if setlist_user.startswith('@'):
-                setlist_user = setlist_user[1:].strip()
-            if setlist_user:
-                profile = user.profile
-                profile.setlistfm_username = setlist_user
-                profile.save()
             login(request, user, backend='apps.core.backends.CaseInsensitiveModelBackend')
             return redirect('dashboard')
     else:
         form = CaseInsensitiveUserCreationForm()
+
     return render(request, 'registration/register.html', {
+        'registration_enabled': True,
         'form': form,
         'google_oauth_enabled': oauth.is_google_oauth_configured(),
     })
@@ -119,6 +127,9 @@ def google_callback_view(request):
         next_url = request.session.pop('google_oauth_next', None) or 'dashboard'
         return redirect(next_url)
 
+    except PermissionError as pe:
+        messages.error(request, str(pe))
+        return redirect('login')
     except Exception as e:
         messages.error(request, f"Failed to complete Google Sign-In: {str(e)}")
         return redirect('dashboard' if request.user.is_authenticated else 'login')
@@ -158,7 +169,6 @@ def update_profile_view(request):
         if 'email' in data:
             new_email = str(data.get('email', '')).strip().lower()
             if new_email and new_email != request.user.email.lower():
-                from django.contrib.auth.models import User
                 if User.objects.filter(email__iexact=new_email).exclude(pk=request.user.pk).exists():
                     return JsonResponse({"status": "error", "error": "This email address is already associated with another account."}, status=400)
             if new_email != request.user.email:
@@ -227,3 +237,168 @@ def update_profile_view(request):
         return JsonResponse({"status": "error", "error": str(e)}, status=400)
 
 
+# ---------------------------------------------------------
+# Admin Impersonation Views
+# ---------------------------------------------------------
+
+@login_required
+@require_POST
+def impersonate_user_view(request):
+    """Allows staff/admins to impersonate another user account."""
+    is_admin = request.user.is_staff or request.user.is_superuser or bool(request.session.get('impersonator_id'))
+    if not is_admin:
+        messages.error(request, "Permission denied. Only administrators can impersonate users.")
+        return redirect('dashboard')
+
+    user_id = request.POST.get('user_id')
+    username = request.POST.get('username')
+
+    target_user = None
+    if user_id:
+        target_user = User.objects.filter(id=user_id).first()
+    elif username:
+        target_user = User.objects.filter(username__iexact=username.strip()).first()
+
+    if not target_user:
+        messages.error(request, "Target user not found.")
+        return redirect('dashboard')
+
+    if target_user.id == request.user.id:
+        messages.info(request, "You are already signed in as this user.")
+        return redirect('dashboard')
+
+    # Save initial admin identity in session
+    impersonator_id = request.session.get('impersonator_id') or request.user.id
+
+    login(request, target_user, backend='apps.core.backends.CaseInsensitiveModelBackend')
+    request.session['impersonator_id'] = impersonator_id
+
+    messages.warning(request, f"Now impersonating @{target_user.username}. You can exit impersonation anytime.")
+    return redirect('dashboard')
+
+
+@login_required
+@require_POST
+def stop_impersonating_view(request):
+    """Exits impersonation and restores the original administrator account."""
+    impersonator_id = request.session.pop('impersonator_id', None)
+    if not impersonator_id:
+        messages.info(request, "You are not currently impersonating any user.")
+        return redirect('dashboard')
+
+    admin_user = User.objects.filter(id=impersonator_id).first()
+    if not admin_user:
+        messages.error(request, "Original admin user could not be found.")
+        return redirect('login')
+
+    login(request, admin_user, backend='apps.core.backends.CaseInsensitiveModelBackend')
+    messages.success(request, f"Exited impersonation. Logged back in as admin @{admin_user.username}.")
+    return redirect('dashboard')
+
+
+@login_required
+@require_POST
+def toggle_registration_view(request):
+    """Allows staff to toggle registration enabled/disabled."""
+    if not request.user.is_staff and not request.user.is_superuser:
+        return JsonResponse({"status": "error", "error": "Permission denied."}, status=403)
+
+    setting = SiteSetting.get_settings()
+    if request.content_type == 'application/json':
+        try:
+            data = json.loads(request.body.decode('utf-8'))
+            if 'enabled' in data:
+                setting.registration_enabled = bool(data['enabled'])
+            else:
+                setting.registration_enabled = not setting.registration_enabled
+        except Exception:
+            setting.registration_enabled = not setting.registration_enabled
+    else:
+        setting.registration_enabled = not setting.registration_enabled
+
+    setting.save()
+    return JsonResponse({
+        "status": "ok",
+        "registration_enabled": setting.registration_enabled,
+        "message": f"Registration is now {'enabled' if setting.registration_enabled else 'disabled'}."
+    })
+
+
+# ---------------------------------------------------------
+# Friends / Community Views
+# ---------------------------------------------------------
+
+@login_required
+@require_POST
+def toggle_friend_view(request):
+    """Adds or removes a user from friends list."""
+    try:
+        if request.content_type == 'application/json':
+            data = json.loads(request.body.decode('utf-8'))
+        else:
+            data = request.POST
+
+        friend_id = data.get('friend_id')
+        friend_username = data.get('username')
+
+        target_user = None
+        if friend_id:
+            target_user = User.objects.filter(id=friend_id).first()
+        elif friend_username:
+            target_user = User.objects.filter(username__iexact=str(friend_username).lstrip('@').strip()).first()
+
+        if not target_user:
+            return JsonResponse({"status": "error", "error": "User not found."}, status=404)
+
+        if target_user.id == request.user.id:
+            return JsonResponse({"status": "error", "error": "You cannot add yourself as a friend."}, status=400)
+
+        existing = Friendship.objects.filter(user=request.user, friend=target_user).first()
+        if existing:
+            existing.delete()
+            is_friend = False
+            msg = f"Removed @{target_user.username} from friends."
+        else:
+            Friendship.objects.create(user=request.user, friend=target_user)
+            is_friend = True
+            msg = f"Added @{target_user.username} as friend!"
+
+        friends_count = Friendship.objects.filter(user=request.user).count()
+        return JsonResponse({
+            "status": "ok",
+            "is_friend": is_friend,
+            "friend_id": target_user.id,
+            "friend_username": target_user.username,
+            "friends_count": friends_count,
+            "message": msg
+        })
+    except Exception as e:
+        return JsonResponse({"status": "error", "error": str(e)}, status=400)
+
+
+@login_required
+def list_friends_view(request):
+    """Returns the authenticated user's friends and community suggestions."""
+    friend_ids = list(Friendship.objects.filter(user=request.user).values_list('friend_id', flat=True))
+    friends = list(User.objects.filter(id__in=friend_ids).order_by('username').values('id', 'username', 'email'))
+    for f in friends:
+        f['concert_count'] = Concert.objects.filter(user_id=f['id']).count()
+        f['is_friend'] = True
+
+    # User suggestions (public users or existing users)
+    other_users = list(
+        User.objects.exclude(id=request.user.id)
+        .exclude(id__in=friend_ids)
+        .order_by('username')
+        .values('id', 'username')
+    )
+    for u in other_users:
+        u['concert_count'] = Concert.objects.filter(user_id=u['id']).count()
+        u['is_friend'] = False
+
+    return JsonResponse({
+        "status": "ok",
+        "friends": friends,
+        "suggestions": other_users[:20],
+        "total_friends": len(friends),
+    })

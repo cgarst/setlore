@@ -147,7 +147,11 @@ def authenticate_or_register_google_user(sub, email, name=None):
             existing_email_user.save(update_fields=['email'])
         return existing_email_user, False, 'mapped_by_email'
 
-    # 3. Create brand new user
+    # 3. Create brand new user (if registration is enabled)
+    from .models import SiteSetting
+    if not SiteSetting.is_registration_enabled():
+        raise PermissionError("New user registration is currently disabled.")
+
     username = generate_unique_username(email, name)
     user = User.objects.create_user(username=username, email=email)
     user.set_unusable_password()

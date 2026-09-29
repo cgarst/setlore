@@ -64,7 +64,8 @@ class CaseInsensitiveAuthTests(TestCase):
         # Ensure user object in DB has exact casing 'Zathu'
         zathu_user = User.objects.get(username__iexact='zathu')
         self.assertEqual(zathu_user.username, 'Zathu')
-        self.assertEqual(zathu_user.profile.setlistfm_username, 'Zathu')
+        # Setlist.fm username is not captured at registration time (captured in onboarding wizard)
+        self.assertEqual(zathu_user.profile.setlistfm_username, '')
 
         # Log out and log back in with all lowercase 'zathu'
         self.client.logout()

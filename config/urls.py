@@ -50,6 +50,15 @@ urlpatterns = [
     path('@<str:username>/', concerts_views.public_profile_view, name='public_profile_at'),
     path('@<str:username>/<str:tab_name>/', concerts_views.public_profile_view, name='public_profile_at_tab'),
 
+    # Admin Impersonation & Controls
+    path('accounts/impersonate/', core_views.impersonate_user_view, name='impersonate_user'),
+    path('accounts/stop-impersonating/', core_views.stop_impersonating_view, name='stop_impersonating'),
+    path('api/admin/toggle-registration/', core_views.toggle_registration_view, name='api_toggle_registration'),
+
+    # Friends API
+    path('api/friends/toggle/', core_views.toggle_friend_view, name='api_toggle_friend'),
+    path('api/friends/list/', core_views.list_friends_view, name='api_list_friends'),
+
     path('api/profile/update/', core_views.update_profile_view, name='api_profile_update'),
     path('api/sync/', concerts_views.trigger_sync, name='api_sync'),
     path('api/sync/status/', concerts_views.sync_status, name='api_sync_status'),
@@ -62,4 +71,5 @@ urlpatterns = [
     path('api/ticketmaster/preview/', concerts_views.parse_ticketmaster_preview, name='api_ticketmaster_preview'),
     path('api/ticketmaster/confirm/', concerts_views.confirm_ticketmaster_import, name='api_ticketmaster_confirm'),
 ]
+
 

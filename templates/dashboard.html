@@ -86,6 +86,26 @@
 </head>
 <body class="min-h-screen p-4 md:p-8 pb-24 md:pb-8">
 
+  {% if is_impersonating %}
+    <div class="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-amber-600 via-amber-500 to-amber-600 text-amber-950 px-4 py-2 text-xs font-bold shadow-2xl flex items-center justify-between border-b border-amber-400">
+      <div class="flex items-center gap-2.5">
+        <i class="fa-solid fa-user-secret text-base text-amber-950 animate-pulse"></i>
+        <span>
+          Currently Impersonating: <span class="bg-black/25 text-white px-2 py-0.5 rounded font-black tracking-wide">@{{ request.user.username }}</span>
+          {% if impersonator %}<span class="hidden sm:inline font-semibold text-amber-950 ml-1">(Admin: @{{ impersonator.username }})</span>{% endif %}
+        </span>
+      </div>
+      <form method="post" action="{% url 'stop_impersonating' %}" class="inline m-0">
+        {% csrf_token %}
+        <button type="submit" class="px-3 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-amber-300 font-bold text-xs transition flex items-center gap-1.5 cursor-pointer shadow">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i>
+          <span>Exit Impersonation</span>
+        </button>
+      </form>
+    </div>
+    <div class="h-8"></div>
+  {% endif %}
+
   <!-- Header -->
   <header class="max-w-7xl mx-auto mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
     <div>
@@ -186,6 +206,21 @@
                 <span>Profile & Privacy</span>
               </button>
 
+              {% if is_impersonating %}
+                <form method="post" action="{% url 'stop_impersonating' %}" class="block m-0">
+                  {% csrf_token %}
+                  <button type="submit" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-amber-300 hover:text-amber-200 hover:bg-amber-600/20 transition text-left cursor-pointer">
+                    <i class="fa-solid fa-user-xmark text-amber-400 w-4 text-center"></i>
+                    <span>Exit Impersonation</span>
+                  </button>
+                </form>
+              {% elif request.user.is_staff %}
+                <button type="button" onclick="openImpersonateModal(); closeUserMenu();" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-purple-300 hover:text-purple-200 hover:bg-purple-600/20 transition text-left cursor-pointer">
+                  <i class="fa-solid fa-user-secret text-purple-400 w-4 text-center"></i>
+                  <span>Impersonate User</span>
+                </button>
+              {% endif %}
+
               {% if request.user.is_staff %}
                 <a href="/admin/" target="_blank" class="flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-purple-300 hover:text-purple-200 hover:bg-purple-600/20 transition">
                   <i class="fa-solid fa-sliders text-purple-400 w-4 text-center"></i>
@@ -237,6 +272,22 @@
                   <i class="fa-solid fa-user-gear text-amber-400 w-4 text-center"></i>
                   <span>Profile & Privacy</span>
                 </button>
+
+                {% if is_impersonating %}
+                  <form method="post" action="{% url 'stop_impersonating' %}" class="block m-0">
+                    {% csrf_token %}
+                    <button type="submit" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-amber-300 hover:text-amber-200 hover:bg-amber-600/20 transition text-left cursor-pointer">
+                      <i class="fa-solid fa-user-xmark text-amber-400 w-4 text-center"></i>
+                      <span>Exit Impersonation</span>
+                    </button>
+                  </form>
+                {% elif request.user.is_staff %}
+                  <button type="button" onclick="openImpersonateModal(); closeUserMenu();" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-purple-300 hover:text-purple-200 hover:bg-purple-600/20 transition text-left cursor-pointer">
+                    <i class="fa-solid fa-user-secret text-purple-400 w-4 text-center"></i>
+                    <span>Impersonate User</span>
+                  </button>
+                {% endif %}
+
                 {% if request.user.is_staff %}
                   <a href="/admin/" target="_blank" class="flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-purple-300 hover:text-purple-200 hover:bg-purple-600/20 transition">
                     <i class="fa-solid fa-sliders text-purple-400 w-4 text-center"></i>
@@ -851,7 +902,289 @@
     </div>
   </div>
 
-  <!-- Header Stats Bar -->
+  <!-- Impersonate User Modal -->
+  <div id="impersonate-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 hidden">
+    <div class="max-w-md w-full glass-card p-5 sm:p-6 shadow-2xl border border-slate-700/80 rounded-2xl max-h-[90vh] flex flex-col overflow-hidden">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3 shrink-0">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-purple-400">
+            <i class="fa-solid fa-user-secret text-base"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-white">Impersonate User</h3>
+            <p class="text-[11px] text-slate-400">Switch into another user's session</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeImpersonateModal()" class="text-slate-400 hover:text-white p-1 cursor-pointer" aria-label="Close modal">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div class="shrink-0 space-y-2 py-3">
+        <div class="relative">
+          <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500 text-xs">
+            <i class="fa-solid fa-magnifying-glass"></i>
+          </span>
+          <input type="text" id="impersonate-search" placeholder="Filter user by username or email..." oninput="filterImpersonateUsers()"
+            class="w-full pl-8 pr-3 py-2 text-xs rounded-xl bg-slate-900/90 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500">
+        </div>
+      </div>
+
+      <div id="impersonate-user-list" class="overflow-y-auto space-y-1.5 flex-1 pr-1 custom-scrollbar max-h-64">
+        {% for u in all_users_for_impersonate %}
+          <div class="impersonate-user-item p-2.5 rounded-xl bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800 flex items-center justify-between transition gap-2" data-username="{{ u.username|lower }}" data-email="{{ u.email|lower }}">
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-1.5">
+                <span class="text-xs font-semibold text-white truncate">@{{ u.username }}</span>
+                {% if u.is_staff %}
+                  <span class="px-1.5 py-0.2 rounded text-[10px] bg-purple-500/20 text-purple-300 border border-purple-500/30">Admin</span>
+                {% endif %}
+              </div>
+              {% if u.email %}
+                <p class="text-[11px] text-slate-400 truncate">{{ u.email }}</p>
+              {% endif %}
+            </div>
+            <form method="post" action="{% url 'impersonate_user' %}" class="shrink-0 m-0">
+              {% csrf_token %}
+              <input type="hidden" name="user_id" value="{{ u.id }}">
+              <button type="submit" class="px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-semibold text-xs transition flex items-center gap-1 shadow-sm cursor-pointer">
+                <i class="fa-solid fa-right-to-bracket text-[10px]"></i>
+                <span>Impersonate</span>
+              </button>
+            </form>
+          </div>
+        {% empty %}
+          <p class="text-xs text-slate-500 text-center py-6">No other users found.</p>
+        {% endfor %}
+      </div>
+
+      <div class="shrink-0 pt-3 border-t border-slate-800 flex justify-end mt-2">
+        <button type="button" onclick="closeImpersonateModal()" class="px-4 py-2 rounded-xl bg-slate-800 text-xs font-semibold text-slate-300 hover:bg-slate-700 transition cursor-pointer">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Onboarding Wizard Modal -->
+  <div id="onboarding-modal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto hidden">
+    <div class="relative w-full max-w-xl glass-card p-5 sm:p-7 shadow-2xl border border-indigo-500/30 rounded-2xl max-h-[92vh] my-auto flex flex-col overflow-hidden bg-slate-900/95">
+      
+      <!-- Wizard Header & Progress Bar -->
+      <div class="shrink-0 border-b border-slate-800 pb-4">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-2.5">
+            <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-md shadow-indigo-500/30">
+              <i class="fa-solid fa-wand-magic-sparkles text-sm"></i>
+            </div>
+            <div>
+              <h3 class="text-base sm:text-lg font-bold text-white tracking-tight">Welcome to Setlore!</h3>
+              <p class="text-xs text-slate-400">Quick onboarding guide &bull; Step <span id="onboarding-step-num">1</span> of 4</p>
+            </div>
+          </div>
+          <button type="button" onclick="closeOnboardingModal()" class="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition cursor-pointer" title="Close guide">
+            <i class="fa-solid fa-xmark text-lg"></i>
+          </button>
+        </div>
+
+        <!-- Step Indicator Pills -->
+        <div class="grid grid-cols-4 gap-1.5 text-center">
+          <button type="button" onclick="goToOnboardingStep(1)" id="step-pill-1" class="py-1.5 px-1 rounded-lg text-[11px] font-semibold transition flex items-center justify-center gap-1 bg-indigo-600 text-white cursor-pointer">
+            <span class="w-4 h-4 rounded-full bg-white/20 text-[10px] flex items-center justify-center">1</span>
+            <span class="hidden sm:inline">Setlist.fm</span>
+          </button>
+          <button type="button" onclick="goToOnboardingStep(2)" id="step-pill-2" class="py-1.5 px-1 rounded-lg text-[11px] font-semibold transition flex items-center justify-center gap-1 bg-slate-800 text-slate-400 hover:text-slate-200 cursor-pointer">
+            <span class="w-4 h-4 rounded-full bg-slate-700 text-[10px] flex items-center justify-center">2</span>
+            <span class="hidden sm:inline">Import CSV</span>
+          </button>
+          <button type="button" onclick="goToOnboardingStep(3)" id="step-pill-3" class="py-1.5 px-1 rounded-lg text-[11px] font-semibold transition flex items-center justify-center gap-1 bg-slate-800 text-slate-400 hover:text-slate-200 cursor-pointer">
+            <span class="w-4 h-4 rounded-full bg-slate-700 text-[10px] flex items-center justify-center">3</span>
+            <span class="hidden sm:inline">Ticketmaster</span>
+          </button>
+          <button type="button" onclick="goToOnboardingStep(4)" id="step-pill-4" class="py-1.5 px-1 rounded-lg text-[11px] font-semibold transition flex items-center justify-center gap-1 bg-slate-800 text-slate-400 hover:text-slate-200 cursor-pointer">
+            <span class="w-4 h-4 rounded-full bg-slate-700 text-[10px] flex items-center justify-center">4</span>
+            <span class="hidden sm:inline">Friends</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Step Content Area (Scrollable) -->
+      <div class="overflow-y-auto overflow-x-hidden flex-1 py-4 space-y-4 custom-scrollbar">
+        
+        <!-- STEP 1: Setlist.fm -->
+        <div id="onboarding-step-1" class="space-y-4">
+          <div class="p-3.5 rounded-xl bg-indigo-950/40 border border-indigo-500/30 flex items-start gap-3">
+            <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0 mt-0.5">
+              <i class="fa-brands fa-lastfm text-base"></i>
+            </div>
+            <div>
+              <h4 class="text-xs font-bold text-white">Link Setlist.fm (Optional)</h4>
+              <p class="text-[11px] text-slate-300 mt-0.5 leading-relaxed">
+                Connect your Setlist.fm username to automatically sync all your past attended concerts, songs heard, and gap statistics.
+              </p>
+            </div>
+          </div>
+
+          <div class="space-y-3">
+            <div>
+              <label for="onboarding-setlistfm-username" class="block text-xs font-semibold text-slate-300 mb-1">
+                Setlist.fm Username
+              </label>
+              <div class="relative">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500 text-xs">
+                  <i class="fa-solid fa-at"></i>
+                </span>
+                <input type="text" id="onboarding-setlistfm-username" placeholder="e.g. Zathu" value="{{ profile.setlistfm_username|default:'' }}"
+                  class="w-full pl-8 pr-3 py-2.5 text-xs rounded-xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2 pt-1">
+              <input type="checkbox" id="onboarding-auto-sync" checked class="rounded border-slate-700 text-indigo-600 focus:ring-indigo-500 bg-slate-900 h-4 w-4">
+              <label for="onboarding-auto-sync" class="text-xs text-slate-300 cursor-pointer">
+                Automatically start syncing concert history after saving
+              </label>
+            </div>
+
+            <div id="onboarding-step1-alert" class="hidden p-3 rounded-xl text-xs"></div>
+          </div>
+        </div>
+
+        <!-- STEP 2: Import from CSV -->
+        <div id="onboarding-step-2" class="hidden space-y-4">
+          <div class="p-3.5 rounded-xl bg-cyan-950/40 border border-cyan-500/30 flex items-start gap-3">
+            <div class="w-8 h-8 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center shrink-0 mt-0.5">
+              <i class="fa-solid fa-file-csv text-base"></i>
+            </div>
+            <div>
+              <h4 class="text-xs font-bold text-white">Import from Spreadsheet / CSV (Optional)</h4>
+              <p class="text-[11px] text-slate-300 mt-0.5 leading-relaxed">
+                Have a spreadsheet of your concert log? Upload your CSV file here. Expected columns: <code class="text-cyan-300 bg-slate-800 px-1 py-0.5 rounded">Date</code>, <code class="text-cyan-300 bg-slate-800 px-1 py-0.5 rounded">Artist(s)</code>, <code class="text-cyan-300 bg-slate-800 px-1 py-0.5 rounded">Venue</code>, and optional <code class="text-cyan-300 bg-slate-800 px-1 py-0.5 rounded">Setlist</code>.
+              </p>
+            </div>
+          </div>
+
+          <div class="space-y-3">
+            <div id="onboarding-csv-dropzone" class="border-2 border-dashed border-slate-700 hover:border-cyan-500/60 rounded-xl p-6 text-center transition cursor-pointer bg-slate-900/50" onclick="document.getElementById('onboarding-csv-file').click()">
+              <input type="file" id="onboarding-csv-file" accept=".csv" class="hidden" onchange="handleOnboardingCSVSelect(event)">
+              <div class="w-10 h-10 rounded-full bg-cyan-500/10 text-cyan-400 flex items-center justify-center mx-auto mb-2">
+                <i class="fa-solid fa-cloud-arrow-up text-lg"></i>
+              </div>
+              <p id="onboarding-csv-filename" class="text-xs font-semibold text-slate-200">Click or drag & drop CSV file here</p>
+              <p class="text-[11px] text-slate-500 mt-1">Supports UTF-8 CSV exports</p>
+            </div>
+
+            <button type="button" id="onboarding-csv-upload-btn" onclick="submitOnboardingCSV()" disabled class="w-full py-2.5 px-4 rounded-xl bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-xs transition shadow-md shadow-cyan-600/20 flex items-center justify-center gap-2">
+              <i class="fa-solid fa-upload"></i>
+              <span>Upload and Import CSV</span>
+            </button>
+
+            <div id="onboarding-step2-alert" class="hidden p-3 rounded-xl text-xs"></div>
+          </div>
+        </div>
+
+        <!-- STEP 3: Import from Ticketmaster -->
+        <div id="onboarding-step-3" class="hidden space-y-4">
+          <div class="p-3.5 rounded-xl bg-emerald-950/40 border border-emerald-500/30 flex items-start gap-3">
+            <div class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 mt-0.5">
+              <i class="fa-solid fa-ticket text-base"></i>
+            </div>
+            <div>
+              <h4 class="text-xs font-bold text-white">Import from Ticketmaster (Optional)</h4>
+              <p class="text-[11px] text-slate-300 mt-0.5 leading-relaxed">
+                Copy and paste the text from your Ticketmaster order emails or purchase confirmation pages.
+              </p>
+            </div>
+          </div>
+
+          <div class="space-y-3">
+            <div>
+              <label for="onboarding-tm-text" class="block text-xs font-semibold text-slate-300 mb-1">
+                Paste Ticketmaster Order / Email Text
+              </label>
+              <textarea id="onboarding-tm-text" rows="4" placeholder="Paste Ticketmaster email or receipt content here..."
+                class="w-full p-3 text-xs rounded-xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500 font-mono focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"></textarea>
+            </div>
+
+            <button type="button" id="onboarding-tm-parse-btn" onclick="parseOnboardingTicketmaster()" class="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2 cursor-pointer">
+              <i class="fa-solid fa-wand-magic-sparkles"></i>
+              <span>Parse & Import Ticketmaster Shows</span>
+            </button>
+
+            <div id="onboarding-step3-alert" class="hidden p-3 rounded-xl text-xs"></div>
+          </div>
+        </div>
+
+        <!-- STEP 4: Connect with Friends & Community -->
+        <div id="onboarding-step-4" class="hidden space-y-4">
+          <div class="p-3.5 rounded-xl bg-purple-950/40 border border-purple-500/30 flex items-start gap-3">
+            <div class="w-8 h-8 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center shrink-0 mt-0.5">
+              <i class="fa-solid fa-user-group text-base"></i>
+            </div>
+            <div>
+              <h4 class="text-xs font-bold text-white">Connect with Friends (Optional)</h4>
+              <p class="text-[11px] text-slate-300 mt-0.5 leading-relaxed">
+                Add friends on Setlore to compare concert logs, share setlists, and see which shows you attended together.
+              </p>
+            </div>
+          </div>
+
+          <!-- Share Your Profile Link Card -->
+          <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                <i class="fa-solid fa-share-nodes text-indigo-400"></i> Your Public Profile Link
+              </span>
+              <span class="text-[10px] text-emerald-400 font-medium">Ready to share</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <input type="text" id="onboarding-share-url-input" readonly value="{{ share_url }}"
+                class="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-indigo-300 font-mono select-all">
+              <button type="button" onclick="copyOnboardingShareUrl()" id="onboarding-copy-link-btn"
+                class="px-3 py-1.5 rounded-lg bg-indigo-600/30 hover:bg-indigo-600/50 border border-indigo-500/40 text-xs font-semibold text-indigo-200 transition flex items-center gap-1.5 cursor-pointer">
+                <i class="fa-solid fa-copy"></i>
+                <span>Copy</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Community / Friends List -->
+          <div class="space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold text-slate-300">Discover Friends on Setlore</span>
+              <span id="onboarding-friends-count-badge" class="text-[10px] text-slate-400">Loading...</span>
+            </div>
+
+            <div id="onboarding-friends-container" class="max-h-48 overflow-y-auto space-y-1.5 pr-1 custom-scrollbar">
+              <div class="text-center py-4 text-xs text-slate-500">
+                <i class="fa-solid fa-spinner animate-spin mr-1"></i> Loading users...
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Wizard Footer Controls -->
+      <div class="shrink-0 flex items-center justify-between border-t border-slate-800 pt-3 mt-2">
+        <button type="button" id="onboarding-back-btn" onclick="onboardingPrevStep()" class="hidden px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300 transition cursor-pointer flex items-center gap-1.5">
+          <i class="fa-solid fa-chevron-left text-[10px]"></i>
+          <span>Back</span>
+        </button>
+
+        <div class="flex items-center gap-2 ml-auto">
+          <button type="button" id="onboarding-skip-btn" onclick="onboardingSkipStep()" class="px-3.5 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition cursor-pointer">
+            Skip Step
+          </button>
+          
+          <button type="button" id="onboarding-next-btn" onclick="onboardingNextStep()" class="px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-xs font-bold text-white shadow-md shadow-indigo-600/30 transition flex items-center gap-1.5 cursor-pointer">
+            <span>Save & Next</span>
+            <i class="fa-solid fa-chevron-right text-[10px]"></i>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
   <div class="max-w-7xl mx-auto mb-6 flex flex-wrap gap-2 items-center justify-between">
     <div class="flex flex-wrap gap-2 items-center">
       <span class="badge bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
@@ -2206,6 +2539,27 @@
               </div>
               <i class="fa-solid fa-chevron-right text-slate-500 text-[10px]"></i>
             </button>
+
+            {% if is_impersonating %}
+              <form method="post" action="{% url 'stop_impersonating' %}" class="block m-0">
+                {% csrf_token %}
+                <button type="submit" class="w-full flex items-center justify-between p-2.5 rounded-xl bg-amber-950/40 hover:bg-amber-900/50 border border-amber-500/30 text-xs text-amber-200 transition cursor-pointer text-left">
+                  <div class="flex items-center gap-2.5">
+                    <i class="fa-solid fa-user-xmark text-amber-400 w-4 text-center"></i>
+                    <span>Exit Impersonation</span>
+                  </div>
+                  <i class="fa-solid fa-arrow-right-from-bracket text-amber-400 text-[10px]"></i>
+                </button>
+              </form>
+            {% elif request.user.is_staff %}
+              <button type="button" onclick="openImpersonateModal(); closeMobileMoreMenu();" class="w-full flex items-center justify-between p-2.5 rounded-xl bg-purple-950/30 hover:bg-purple-900/40 border border-purple-500/30 text-xs text-purple-200 transition cursor-pointer text-left">
+                <div class="flex items-center gap-2.5">
+                  <i class="fa-solid fa-user-secret text-purple-400 w-4 text-center"></i>
+                  <span>Impersonate User</span>
+                </div>
+                <i class="fa-solid fa-chevron-right text-purple-400/70 text-[10px]"></i>
+              </button>
+            {% endif %}
 
             {% if request.user.is_staff %}
               <a href="/admin/" target="_blank" class="flex items-center justify-between p-2.5 rounded-xl bg-purple-950/30 hover:bg-purple-900/40 border border-purple-500/30 text-xs text-purple-200 transition">
@@ -4452,11 +4806,475 @@
       }
     }
 
+    /* -------------------------------------------------- */
+    /* Impersonation Modal Logic                          */
+    /* -------------------------------------------------- */
+    function openImpersonateModal() {
+      const modal = document.getElementById('impersonate-modal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        const searchInput = document.getElementById('impersonate-search');
+        if (searchInput) {
+          searchInput.value = '';
+          filterImpersonateUsers();
+          setTimeout(() => searchInput.focus(), 50);
+        }
+      }
+    }
+
+    function closeImpersonateModal() {
+      const modal = document.getElementById('impersonate-modal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function filterImpersonateUsers() {
+      const input = document.getElementById('impersonate-search');
+      if (!input) return;
+      const query = input.value.trim().toLowerCase();
+      const items = document.querySelectorAll('.impersonate-user-item');
+      items.forEach(item => {
+        const username = item.getAttribute('data-username') || '';
+        const email = item.getAttribute('data-email') || '';
+        if (!query || username.includes(query) || email.includes(query)) {
+          item.classList.remove('hidden');
+        } else {
+          item.classList.add('hidden');
+        }
+      });
+    }
+
+    /* -------------------------------------------------- */
+    /* Onboarding Wizard Logic                            */
+    /* -------------------------------------------------- */
+    let currentOnboardingStep = 1;
+    let onboardingConcertsAdded = 0;
+    let onboardingSyncTriggered = false;
+
+    function openOnboardingModal() {
+      const modal = document.getElementById('onboarding-modal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        goToOnboardingStep(1);
+      }
+    }
+
+    function closeOnboardingModal() {
+      const modal = document.getElementById('onboarding-modal');
+      if (modal) modal.classList.add('hidden');
+      if (onboardingConcertsAdded > 0 || onboardingSyncTriggered) {
+        window.location.reload();
+      }
+    }
+
+    function goToOnboardingStep(step) {
+      if (step < 1) step = 1;
+      if (step > 4) step = 4;
+      currentOnboardingStep = step;
+
+      const stepNumEl = document.getElementById('onboarding-step-num');
+      if (stepNumEl) stepNumEl.innerText = step;
+
+      for (let i = 1; i <= 4; i++) {
+        const pane = document.getElementById(`onboarding-step-${i}`);
+        const pill = document.getElementById(`step-pill-${i}`);
+        if (pane) {
+          if (i === step) pane.classList.remove('hidden');
+          else pane.classList.add('hidden');
+        }
+        if (pill) {
+          if (i === step) {
+            pill.className = 'py-1.5 px-1 rounded-lg text-[11px] font-semibold transition flex items-center justify-center gap-1 bg-indigo-600 text-white cursor-pointer';
+            pill.querySelector('span:first-child').className = 'w-4 h-4 rounded-full bg-white/20 text-[10px] flex items-center justify-center font-bold';
+          } else if (i < step) {
+            pill.className = 'py-1.5 px-1 rounded-lg text-[11px] font-semibold transition flex items-center justify-center gap-1 bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 cursor-pointer';
+            pill.querySelector('span:first-child').className = 'w-4 h-4 rounded-full bg-emerald-500/30 text-[10px] flex items-center justify-center font-bold';
+          } else {
+            pill.className = 'py-1.5 px-1 rounded-lg text-[11px] font-semibold transition flex items-center justify-center gap-1 bg-slate-800 text-slate-400 hover:text-slate-200 cursor-pointer';
+            pill.querySelector('span:first-child').className = 'w-4 h-4 rounded-full bg-slate-700 text-[10px] flex items-center justify-center';
+          }
+        }
+      }
+
+      const backBtn = document.getElementById('onboarding-back-btn');
+      const skipBtn = document.getElementById('onboarding-skip-btn');
+      const nextBtn = document.getElementById('onboarding-next-btn');
+
+      if (backBtn) {
+        if (step === 1) backBtn.classList.add('hidden');
+        else backBtn.classList.remove('hidden');
+      }
+
+      if (skipBtn) {
+        if (step === 4) skipBtn.classList.add('hidden');
+        else {
+          skipBtn.classList.remove('hidden');
+          skipBtn.innerText = 'Skip Step';
+        }
+      }
+
+      if (nextBtn) {
+        if (step === 1) {
+          nextBtn.innerHTML = '<span>Save & Next</span><i class="fa-solid fa-chevron-right text-[10px]"></i>';
+        } else if (step === 2) {
+          nextBtn.innerHTML = '<span>Next Step</span><i class="fa-solid fa-chevron-right text-[10px]"></i>';
+        } else if (step === 3) {
+          nextBtn.innerHTML = '<span>Next Step</span><i class="fa-solid fa-chevron-right text-[10px]"></i>';
+        } else if (step === 4) {
+          nextBtn.innerHTML = '<i class="fa-solid fa-circle-check text-xs mr-1"></i><span>Finish & View Dashboard</span>';
+        }
+      }
+
+      if (step === 4) {
+        loadOnboardingFriends();
+      }
+    }
+
+    function onboardingPrevStep() {
+      if (currentOnboardingStep > 1) {
+        goToOnboardingStep(currentOnboardingStep - 1);
+      }
+    }
+
+    function onboardingSkipStep() {
+      if (currentOnboardingStep < 4) {
+        goToOnboardingStep(currentOnboardingStep + 1);
+      } else {
+        closeOnboardingModal();
+      }
+    }
+
+    async function onboardingNextStep() {
+      if (currentOnboardingStep === 1) {
+        await saveOnboardingStep1();
+      } else if (currentOnboardingStep === 2) {
+        goToOnboardingStep(3);
+      } else if (currentOnboardingStep === 3) {
+        goToOnboardingStep(4);
+      } else if (currentOnboardingStep === 4) {
+        closeOnboardingModal();
+      }
+    }
+
+    async function saveOnboardingStep1() {
+      const input = document.getElementById('onboarding-setlistfm-username');
+      const autoSync = document.getElementById('onboarding-auto-sync');
+      const alertBox = document.getElementById('onboarding-step1-alert');
+      const nextBtn = document.getElementById('onboarding-next-btn');
+
+      const username = input ? input.value.trim() : '';
+      const shouldSync = autoSync ? autoSync.checked : false;
+
+      if (!username) {
+        // If empty, user chose not to set it now
+        goToOnboardingStep(2);
+        return;
+      }
+
+      const originalNextHtml = nextBtn.innerHTML;
+      nextBtn.disabled = true;
+      nextBtn.innerHTML = '<i class="fa-solid fa-spinner animate-spin text-xs"></i> Saving...';
+
+      try {
+        const res = await fetch('/api/profile/update/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+          },
+          body: JSON.stringify({
+            setlistfm_username: username,
+            trigger_sync: shouldSync
+          })
+        });
+        const data = await res.json();
+        if (res.ok && data.status === 'ok') {
+          if (shouldSync) onboardingSyncTriggered = true;
+          goToOnboardingStep(2);
+        } else {
+          if (alertBox) {
+            alertBox.className = 'p-3 rounded-xl text-xs bg-rose-500/20 border border-rose-500/30 text-rose-300';
+            alertBox.innerText = data.error || 'Failed to save Setlist.fm username.';
+            alertBox.classList.remove('hidden');
+          }
+        }
+      } catch (err) {
+        if (alertBox) {
+          alertBox.className = 'p-3 rounded-xl text-xs bg-rose-500/20 border border-rose-500/30 text-rose-300';
+          alertBox.innerText = 'Network error while saving settings.';
+          alertBox.classList.remove('hidden');
+        }
+      } finally {
+        nextBtn.disabled = false;
+        nextBtn.innerHTML = originalNextHtml;
+      }
+    }
+
+    function handleOnboardingCSVSelect(event) {
+      const file = event.target.files[0];
+      const filenameEl = document.getElementById('onboarding-csv-filename');
+      const uploadBtn = document.getElementById('onboarding-csv-upload-btn');
+      if (file) {
+        if (filenameEl) filenameEl.innerText = file.name;
+        if (uploadBtn) uploadBtn.disabled = false;
+      }
+    }
+
+    async function submitOnboardingCSV() {
+      const fileInput = document.getElementById('onboarding-csv-file');
+      const uploadBtn = document.getElementById('onboarding-csv-upload-btn');
+      const alertBox = document.getElementById('onboarding-step2-alert');
+
+      if (!fileInput || !fileInput.files || !fileInput.files[0]) return;
+
+      const file = fileInput.files[0];
+      const formData = new FormData();
+      formData.append('csv_file', file);
+
+      const originalBtnHtml = uploadBtn.innerHTML;
+      uploadBtn.disabled = true;
+      uploadBtn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> Uploading & parsing...';
+
+      try {
+        const res = await fetch('/api/upload-csv/', {
+          method: 'POST',
+          headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+          },
+          body: formData
+        });
+        const data = await res.json();
+        if (res.ok) {
+          onboardingConcertsAdded += (data.count || 1);
+          if (alertBox) {
+            alertBox.className = 'p-3 rounded-xl text-xs bg-emerald-500/20 border border-emerald-500/30 text-emerald-300';
+            alertBox.innerHTML = `<i class="fa-solid fa-circle-check mr-1.5"></i> Successfully imported ${data.count || ''} concert(s)!`;
+            alertBox.classList.remove('hidden');
+          }
+          uploadBtn.innerHTML = '<i class="fa-solid fa-check"></i> Imported!';
+          uploadBtn.classList.remove('bg-cyan-600', 'hover:bg-cyan-500');
+          uploadBtn.classList.add('bg-emerald-600');
+          setTimeout(() => {
+            goToOnboardingStep(3);
+          }, 1000);
+        } else {
+          uploadBtn.disabled = false;
+          uploadBtn.innerHTML = originalBtnHtml;
+          if (alertBox) {
+            alertBox.className = 'p-3 rounded-xl text-xs bg-rose-500/20 border border-rose-500/30 text-rose-300';
+            alertBox.innerText = data.error || 'Failed to parse CSV file.';
+            alertBox.classList.remove('hidden');
+          }
+        }
+      } catch (err) {
+        uploadBtn.disabled = false;
+        uploadBtn.innerHTML = originalBtnHtml;
+        if (alertBox) {
+          alertBox.className = 'p-3 rounded-xl text-xs bg-rose-500/20 border border-rose-500/30 text-rose-300';
+          alertBox.innerText = 'Network error while uploading CSV.';
+          alertBox.classList.remove('hidden');
+        }
+      }
+    }
+
+    async function parseOnboardingTicketmaster() {
+      const textarea = document.getElementById('onboarding-tm-text');
+      const parseBtn = document.getElementById('onboarding-tm-parse-btn');
+      const alertBox = document.getElementById('onboarding-step3-alert');
+
+      const text = textarea ? textarea.value.trim() : '';
+      if (!text) {
+        if (alertBox) {
+          alertBox.className = 'p-3 rounded-xl text-xs bg-rose-500/20 border border-rose-500/30 text-rose-300';
+          alertBox.innerText = 'Please paste Ticketmaster order or email text first.';
+          alertBox.classList.remove('hidden');
+        }
+        return;
+      }
+
+      const originalBtnHtml = parseBtn.innerHTML;
+      parseBtn.disabled = true;
+      parseBtn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> Parsing Ticketmaster events...';
+
+      try {
+        const previewRes = await fetch('/api/ticketmaster/preview/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+          },
+          body: JSON.stringify({ raw_text: text })
+        });
+        const previewData = await previewRes.json();
+        if (!previewRes.ok || !previewData.events || previewData.events.length === 0) {
+          parseBtn.disabled = false;
+          parseBtn.innerHTML = originalBtnHtml;
+          if (alertBox) {
+            alertBox.className = 'p-3 rounded-xl text-xs bg-amber-500/20 border border-amber-500/30 text-amber-300';
+            alertBox.innerText = previewData.error || 'No valid concert events found in the pasted text.';
+            alertBox.classList.remove('hidden');
+          }
+          return;
+        }
+
+        // Auto-confirm parsed events
+        const payloadEvents = previewData.events.map(ev => ({
+          date: ev.date,
+          artists: ev.artists || [ev.primary_artist],
+          venue: ev.venue,
+          city: ev.city,
+          state: ev.state,
+          country: ev.country || 'United States',
+          tour_notes: ev.tour_notes,
+          order_number: ev.order_number,
+          setlist_id: ev.setlist_match ? ev.setlist_match.id : ''
+        }));
+
+        const confirmRes = await fetch('/api/ticketmaster/confirm/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+          },
+          body: JSON.stringify({ events: payloadEvents })
+        });
+        const confirmData = await confirmRes.json();
+
+        if (confirmRes.ok) {
+          onboardingConcertsAdded += (payloadEvents.length || 1);
+          if (alertBox) {
+            alertBox.className = 'p-3 rounded-xl text-xs bg-emerald-500/20 border border-emerald-500/30 text-emerald-300';
+            alertBox.innerHTML = `<i class="fa-solid fa-circle-check mr-1.5"></i> Successfully imported ${payloadEvents.length} show(s) from Ticketmaster!`;
+            alertBox.classList.remove('hidden');
+          }
+          parseBtn.innerHTML = '<i class="fa-solid fa-check"></i> Shows Imported!';
+          parseBtn.classList.remove('bg-emerald-600', 'hover:bg-emerald-500');
+          parseBtn.classList.add('bg-indigo-600');
+          setTimeout(() => {
+            goToOnboardingStep(4);
+          }, 1000);
+        } else {
+          parseBtn.disabled = false;
+          parseBtn.innerHTML = originalBtnHtml;
+          if (alertBox) {
+            alertBox.className = 'p-3 rounded-xl text-xs bg-rose-500/20 border border-rose-500/30 text-rose-300';
+            alertBox.innerText = confirmData.error || 'Failed to save Ticketmaster concerts.';
+            alertBox.classList.remove('hidden');
+          }
+        }
+      } catch (err) {
+        parseBtn.disabled = false;
+        parseBtn.innerHTML = originalBtnHtml;
+        if (alertBox) {
+          alertBox.className = 'p-3 rounded-xl text-xs bg-rose-500/20 border border-rose-500/30 text-rose-300';
+          alertBox.innerText = 'Network error during Ticketmaster import.';
+          alertBox.classList.remove('hidden');
+        }
+      }
+    }
+
+    async function loadOnboardingFriends() {
+      const container = document.getElementById('onboarding-friends-container');
+      const badge = document.getElementById('onboarding-friends-count-badge');
+      if (!container) return;
+
+      try {
+        const res = await fetch('/api/friends/list/');
+        const data = await res.json();
+        if (res.ok && data.status === 'ok') {
+          if (badge) badge.innerText = `${data.total_friends} friended`;
+          
+          const allUsers = [...(data.friends || []), ...(data.suggestions || [])];
+          if (allUsers.length === 0) {
+            container.innerHTML = '<p class="text-xs text-slate-500 text-center py-4">No other community members found yet. Share your profile link to invite friends!</p>';
+            return;
+          }
+
+          let html = '';
+          allUsers.forEach(u => {
+            const isFriend = u.is_friend;
+            html += `
+              <div class="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center justify-between gap-2">
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center gap-1.5">
+                    <span class="text-xs font-semibold text-white truncate">@${u.username}</span>
+                    ${u.concert_count ? `<span class="text-[10px] text-indigo-400 bg-indigo-500/15 px-1.5 py-0.2 rounded font-mono">${u.concert_count} shows</span>` : ''}
+                  </div>
+                </div>
+                <button type="button" onclick="toggleOnboardingFriend(${u.id}, this)"
+                  class="px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1 ${isFriend ? 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-300' : 'bg-indigo-600/30 hover:bg-indigo-600/50 border border-indigo-500/40 text-indigo-200'}">
+                  <i class="fa-solid ${isFriend ? 'fa-check' : 'fa-user-plus'} text-[10px]"></i>
+                  <span>${isFriend ? 'Friended' : 'Add Friend'}</span>
+                </button>
+              </div>
+            `;
+          });
+          container.innerHTML = html;
+        }
+      } catch (e) {
+        console.error(e);
+        if (container) container.innerHTML = '<p class="text-xs text-slate-500 text-center py-4">Could not load friends list.</p>';
+      }
+    }
+
+    async function toggleOnboardingFriend(friendId, btn) {
+      if (!btn) return;
+      btn.disabled = true;
+      try {
+        const res = await fetch('/api/friends/toggle/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+          },
+          body: JSON.stringify({ friend_id: friendId })
+        });
+        const data = await res.json();
+        if (res.ok && data.status === 'ok') {
+          if (data.is_friend) {
+            btn.className = 'px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1 bg-emerald-500/20 border border-emerald-500/30 text-emerald-300';
+            btn.innerHTML = '<i class="fa-solid fa-check text-[10px]"></i><span>Friended</span>';
+          } else {
+            btn.className = 'px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1 bg-indigo-600/30 hover:bg-indigo-600/50 border border-indigo-500/40 text-indigo-200';
+            btn.innerHTML = '<i class="fa-solid fa-user-plus text-[10px]"></i><span>Add Friend</span>';
+          }
+          const badge = document.getElementById('onboarding-friends-count-badge');
+          if (badge && data.friends_count !== undefined) {
+            badge.innerText = `${data.friends_count} friended`;
+          }
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    function copyOnboardingShareUrl() {
+      const input = document.getElementById('onboarding-share-url-input');
+      const btn = document.getElementById('onboarding-copy-link-btn');
+      if (!input) return;
+      navigator.clipboard.writeText(input.value).then(() => {
+        if (btn) {
+          const original = btn.innerHTML;
+          btn.innerHTML = '<i class="fa-solid fa-check text-emerald-400"></i><span class="text-emerald-300">Copied!</span>';
+          setTimeout(() => {
+            btn.innerHTML = original;
+          }, 2000);
+        }
+      }).catch(err => {
+        console.error('Failed to copy', err);
+      });
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
       const initialStatus = '{{ profile.sync_status }}';
       if (initialStatus === 'syncing') {
         startSyncPolling();
       }
+
+      {% if should_show_onboarding %}
+        openOnboardingModal();
+      {% endif %}
     });
   </script>
 </body>

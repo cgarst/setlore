@@ -96,8 +96,12 @@
 
     <div class="text-center pt-2 border-t border-slate-800 text-xs text-slate-400 space-y-2">
       <div>
-        Don't have an account? 
-        <a href="{% url 'register' %}" class="text-indigo-400 hover:text-indigo-300 font-semibold underline">Register here</a>
+        {% if registration_enabled %}
+          Don't have an account? 
+          <a href="{% url 'register' %}" class="text-indigo-400 hover:text-indigo-300 font-semibold underline">Register here</a>
+        {% else %}
+          <span class="text-slate-500">Registration is currently closed</span>
+        {% endif %}
       </div>
       <div class="flex items-center justify-center gap-3 text-[11px] text-slate-500">
         <a href="{% url 'privacy' %}" class="hover:text-slate-300 transition">Privacy Policy</a>

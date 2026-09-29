@@ -27,6 +27,46 @@ class UserProfile(models.Model):
     def __str__(self):
         return f"Profile for {self.user.username} (@{self.setlistfm_username or 'no-setlistfm'})"
 
+class SiteSetting(models.Model):
+    registration_enabled = models.BooleanField(
+        default=True,
+        help_text="Enable or disable new user registration across the platform."
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Site Setting"
+        verbose_name_plural = "Site Settings"
+
+    def __str__(self):
+        return f"Site Settings (Registration: {'Enabled' if self.registration_enabled else 'Disabled'})"
+
+    @classmethod
+    def get_settings(cls):
+        obj, _ = cls.objects.get_or_create(id=1, defaults={'registration_enabled': True})
+        return obj
+
+    @classmethod
+    def is_registration_enabled(cls):
+        try:
+            return cls.get_settings().registration_enabled
+        except Exception:
+            return True
+
+
+class Friendship(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='friendships')
+    friend = models.ForeignKey(User, on_delete=models.CASCADE, related_name='friended_by')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'friend')
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.user.username} -> {self.friend.username}"
+
+
 @receiver(post_save, sender=User)
 def create_or_save_user_profile(sender, instance, created, **kwargs):
     if created:
@@ -34,3 +74,4 @@ def create_or_save_user_profile(sender, instance, created, **kwargs):
     else:
         if hasattr(instance, 'profile'):
             instance.profile.save()
+

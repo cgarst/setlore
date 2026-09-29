@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User
-from .models import UserProfile
+from .models import UserProfile, SiteSetting, Friendship
 
 class UserProfileInline(admin.StackedInline):
     model = UserProfile
@@ -28,3 +28,21 @@ class UserProfileAdmin(admin.ModelAdmin):
     list_display = ['user', 'setlistfm_username', 'prompt_setlistfm', 'sync_status', 'last_synced_at']
     search_fields = ['user__username', 'setlistfm_username']
     list_filter = ['prompt_setlistfm', 'sync_status']
+
+@admin.register(SiteSetting)
+class SiteSettingAdmin(admin.ModelAdmin):
+    list_display = ['__str__', 'registration_enabled', 'updated_at']
+    list_editable = ['registration_enabled']
+
+    def has_add_permission(self, request):
+        return not SiteSetting.objects.exists()
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+@admin.register(Friendship)
+class FriendshipAdmin(admin.ModelAdmin):
+    list_display = ['user', 'friend', 'created_at']
+    search_fields = ['user__username', 'friend__username']
+    list_filter = ['created_at']
+
