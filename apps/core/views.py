@@ -56,17 +56,8 @@ def home_view(request):
             'top_artist_shows': top_artist_record['shows'] if top_artist_record else 0,
         })
 
-    total_public_concerts = Concert.objects.filter(user__profile__is_public=True).count()
-    total_artists = Artist.objects.count()
-    total_venues = Venue.objects.count()
-    total_songs = Song.objects.count()
-
     context = {
         'top_users': top_users,
-        'total_public_concerts': total_public_concerts,
-        'total_artists': total_artists,
-        'total_venues': total_venues,
-        'total_songs': total_songs,
         'google_oauth_enabled': oauth.is_google_oauth_configured(),
     }
     return render(request, 'home.html', context)

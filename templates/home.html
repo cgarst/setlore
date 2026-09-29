@@ -186,29 +186,6 @@
         </span>
       </div>
 
-      <!-- Global Instance Stats Banner (if data exists) -->
-      {% if total_public_concerts > 0 or total_artists > 0 %}
-        <div class="pt-6">
-          <div class="glass-card p-4 rounded-2xl max-w-2xl mx-auto grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
-            <div>
-              <p class="text-xl sm:text-2xl font-black text-indigo-300">{{ total_public_concerts }}</p>
-              <p class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mt-0.5">Public Shows</p>
-            </div>
-            <div>
-              <p class="text-xl sm:text-2xl font-black text-purple-300">{{ total_artists }}</p>
-              <p class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mt-0.5">Artists</p>
-            </div>
-            <div>
-              <p class="text-xl sm:text-2xl font-black text-emerald-300">{{ total_venues }}</p>
-              <p class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mt-0.5">Venues</p>
-            </div>
-            <div>
-              <p class="text-xl sm:text-2xl font-black text-pink-300">{{ total_songs }}</p>
-              <p class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mt-0.5">Live Songs</p>
-            </div>
-          </div>
-        </div>
-      {% endif %}
     </section>
 
     <!-- 2. CORE FEATURES GRID -->
