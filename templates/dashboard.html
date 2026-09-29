@@ -3177,7 +3177,39 @@
       }
     }
 
+    function deselectArtist() {
+      currentArtistName = null;
+      document.querySelectorAll('.artist-btn').forEach(btn => {
+        btn.className = 'artist-btn px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-indigo-600/30 text-slate-200 hover:text-indigo-200 border border-slate-700 hover:border-indigo-500/50 text-xs font-medium transition flex items-center gap-2';
+      });
+
+      const titleEl = document.getElementById('active-artist-title');
+      if (titleEl) titleEl.innerText = 'Select an Artist Above';
+
+      const badgesEl = document.getElementById('active-artist-badges');
+      if (badgesEl) badgesEl.innerHTML = '';
+
+      const albumSelect = document.getElementById('drilldown-album-filter');
+      if (albumSelect) albumSelect.innerHTML = '<option value="ALL">All Albums</option>';
+
+      const songFilterInput = document.getElementById('drilldown-song-filter');
+      const songClearBtn = document.getElementById('drilldown-song-clear');
+      if (songFilterInput) {
+        songFilterInput.value = '';
+        if (songClearBtn) songClearBtn.classList.add('hidden');
+      }
+
+      const container = document.getElementById('drilldown-songs-container');
+      if (container) {
+        container.innerHTML = '<p class="text-sm text-slate-500 italic py-8 text-center">Click any artist above to load their full live catalog and occurrences.</p>';
+      }
+    }
+
     function selectArtist(artistName, songName = '') {
+      if (currentArtistName === artistName && !songName) {
+        deselectArtist();
+        return;
+      }
       currentArtistName = artistName;
       const data = drilldownData[artistName];
       if (!data) return;
