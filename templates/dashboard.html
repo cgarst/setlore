@@ -65,8 +65,8 @@
       </button>
     </div>
 
-    <!-- User Profile & Action Controls -->
-    <div class="flex flex-wrap gap-2 items-center">
+    <!-- User Profile & Action Controls (Desktop/Tablet) -->
+    <div class="hidden md:flex flex-wrap gap-2 items-center">
       <button onclick="openAddConcertModal()" class="px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-xs font-bold text-white flex items-center gap-1.5 transition cursor-pointer shadow-md shadow-indigo-600/25">
         <i class="fa-solid fa-plus text-xs"></i> Add Concert
       </button>
@@ -1355,8 +1355,8 @@
   </main>
 
   <!-- Mobile Bottom Tab Navigation (iPhone App Navigator Style) -->
-  <nav id="mobile-bottom-nav" class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-900/95 backdrop-blur-xl border-t border-slate-800/90 shadow-[0_-10px_25px_-5px_rgba(0,0,0,0.5)] px-2 pt-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom,0px))]">
-    <div class="grid grid-cols-5 items-center justify-around max-w-lg mx-auto">
+  <nav id="mobile-bottom-nav" class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-900/95 backdrop-blur-xl border-t border-slate-800/90 shadow-[0_-10px_25px_-5px_rgba(0,0,0,0.5)] px-3 pt-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom,0px))]">
+    <div class="grid grid-cols-5 items-center justify-between max-w-md mx-auto">
       <!-- 1. Overview -->
       <button onclick="switchTab('overview')" id="mobile-tab-overview-btn" class="mobile-nav-tab flex flex-col items-center justify-center py-1 px-1 rounded-xl text-indigo-400 font-bold transition-all group scale-105" title="Overview">
         <div class="w-8 h-7 flex items-center justify-center rounded-lg transition">
@@ -1373,7 +1373,15 @@
         <span class="text-[10px] tracking-tight truncate mt-0.5">Concerts</span>
       </button>
 
-      <!-- 3. Artists & Songs -->
+      <!-- 3. Add Concert (Center Raised Action Button) -->
+      <button onclick="openAddConcertModal()" id="mobile-tab-add-btn" class="flex flex-col items-center justify-center -mt-4 group cursor-pointer" title="Add Concert">
+        <div class="w-11 h-11 rounded-full bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/40 border-2 border-slate-900 group-active:scale-90 group-hover:scale-105 transition-all">
+          <i class="fa-solid fa-plus text-base font-bold"></i>
+        </div>
+        <span class="text-[10px] text-slate-300 font-semibold tracking-tight mt-0.5">Add</span>
+      </button>
+
+      <!-- 4. Artists & Songs -->
       <button onclick="switchTab('drilldown')" id="mobile-tab-drilldown-btn" class="mobile-nav-tab flex flex-col items-center justify-center py-1 px-1 rounded-xl text-slate-400 hover:text-slate-200 font-medium transition-all group" title="Artists & Songs">
         <div class="w-8 h-7 flex items-center justify-center rounded-lg transition">
           <i class="fa-solid fa-magnifying-glass-chart text-lg transition-transform group-active:scale-90"></i>
@@ -1381,16 +1389,8 @@
         <span class="text-[10px] tracking-tight truncate mt-0.5">Artists</span>
       </button>
 
-      <!-- 4. Venue Map -->
-      <button onclick="switchTab('map')" id="mobile-tab-map-btn" class="mobile-nav-tab flex flex-col items-center justify-center py-1 px-1 rounded-xl text-slate-400 hover:text-slate-200 font-medium transition-all group" title="Venue Map">
-        <div class="w-8 h-7 flex items-center justify-center rounded-lg transition">
-          <i class="fa-solid fa-map-location-dot text-lg transition-transform group-active:scale-90"></i>
-        </div>
-        <span class="text-[10px] tracking-tight truncate mt-0.5">Venues</span>
-      </button>
-
-      <!-- 5. More (Second-level items) -->
-      <button onclick="toggleMobileMoreMenu()" id="mobile-tab-more-btn" class="mobile-nav-tab relative flex flex-col items-center justify-center py-1 px-1 rounded-xl text-slate-400 hover:text-slate-200 font-medium transition-all group" title="More sections">
+      <!-- 5. More & Profile Menu -->
+      <button onclick="toggleMobileMoreMenu()" id="mobile-tab-more-btn" class="mobile-nav-tab relative flex flex-col items-center justify-center py-1 px-1 rounded-xl text-slate-400 hover:text-slate-200 font-medium transition-all group cursor-pointer" title="More sections & profile">
         <div class="w-8 h-7 flex items-center justify-center rounded-lg transition relative">
           <i id="mobile-more-icon" class="fa-solid fa-ellipsis text-lg transition-transform group-active:scale-90"></i>
           {% if gap.csv_missing_or_partial|length > 0 %}
@@ -1406,89 +1406,182 @@
     </div>
   </nav>
 
-  <!-- Mobile "More" Second-Level Navigation Sheet / Modal -->
+  <!-- Mobile "More" Second-Level Navigation & Profile Sheet / Modal -->
   <div id="mobile-more-sheet" class="hidden fixed inset-0 z-50 md:hidden flex flex-col justify-end">
     <!-- Backdrop -->
     <div id="mobile-more-backdrop" onclick="closeMobileMoreMenu()" class="fixed inset-0 bg-black/70 backdrop-blur-sm transition-opacity opacity-0"></div>
 
     <!-- Sheet Content -->
-    <div id="mobile-more-content" class="relative z-10 bg-slate-900 border-t border-slate-700/80 rounded-t-3xl p-5 shadow-2xl transform translate-y-full transition-transform duration-300 ease-out max-h-[85vh] overflow-y-auto pb-[max(1.5rem,env(safe-area-inset-bottom,0px))]">
+    <div id="mobile-more-content" class="relative z-10 bg-slate-900 border-t border-slate-700/80 rounded-t-3xl p-5 shadow-2xl transform translate-y-full transition-transform duration-300 ease-out max-h-[88vh] overflow-y-auto pb-[max(1.5rem,env(safe-area-inset-bottom,0px))] space-y-4">
       <!-- iOS Drag Handle -->
-      <div class="w-12 h-1.5 bg-slate-700 rounded-full mx-auto mb-4 cursor-pointer" onclick="closeMobileMoreMenu()"></div>
+      <div class="w-12 h-1.5 bg-slate-700 rounded-full mx-auto cursor-pointer" onclick="closeMobileMoreMenu()"></div>
 
-      <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-800">
-        <div>
-          <h3 class="text-base font-bold text-white flex items-center gap-2">
-            <i class="fa-solid fa-layer-group text-indigo-400"></i> More Sections
-          </h3>
-          <p class="text-xs text-slate-400">Second-level analytics & audit tools</p>
+      <!-- User Profile Header -->
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white text-base shadow-sm shrink-0">
+            <i class="fa-solid fa-user"></i>
+          </div>
+          <div class="min-w-0">
+            <p class="text-sm font-bold text-white truncate">{{ request.user.username }}</p>
+            {% if profile.setlistfm_username %}
+              <p class="text-[11px] text-amber-300 truncate flex items-center gap-1">
+                <i class="fa-brands fa-lastfm text-[10px]"></i> @{{ profile.setlistfm_username }}
+              </p>
+            {% else %}
+              <p class="text-[11px] text-slate-400">Personal Setlore Account</p>
+            {% endif %}
+          </div>
         </div>
         <button onclick="closeMobileMoreMenu()" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center transition cursor-pointer" aria-label="Close menu">
           <i class="fa-solid fa-xmark text-sm"></i>
         </button>
       </div>
 
-      <div class="space-y-2.5">
-        <!-- Musicians -->
-        <button onclick="switchTab('musicians'); closeMobileMoreMenu();" id="mobile-sheet-tab-musicians-btn" class="w-full flex items-center justify-between p-3 rounded-2xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600 transition text-left group cursor-pointer">
-          <div class="flex items-center gap-3.5">
-            <div class="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 group-hover:scale-105 transition shrink-0">
-              <i class="fa-solid fa-users-viewfinder text-lg"></i>
+      <!-- Quick Actions (Sync & Imports) -->
+      <div class="space-y-2">
+        <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Quick Actions</p>
+        
+        <!-- Mobile Sync Button -->
+        <button id="mobile-sync-btn" onclick="triggerSync()" class="w-full flex items-center justify-between p-3 rounded-2xl bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/40 text-indigo-200 transition cursor-pointer shadow-sm group">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-indigo-500/25 flex items-center justify-center text-indigo-400">
+              <i id="mobile-sync-btn-icon" class="fa-solid fa-rotate text-sm"></i>
             </div>
-            <div>
-              <p class="text-sm font-semibold text-white group-hover:text-amber-300 transition">Musicians</p>
-              <p class="text-xs text-slate-400">Band lineups & live musician tracking</p>
-            </div>
-          </div>
-          <i class="fa-solid fa-chevron-right text-slate-500 text-xs"></i>
-        </button>
-
-        <!-- Albums & Eras -->
-        <button onclick="switchTab('advanced'); closeMobileMoreMenu();" id="mobile-sheet-tab-advanced-btn" class="w-full flex items-center justify-between p-3 rounded-2xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600 transition text-left group cursor-pointer">
-          <div class="flex items-center gap-3.5">
-            <div class="w-10 h-10 rounded-xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 group-hover:scale-105 transition shrink-0">
-              <i class="fa-solid fa-wand-magic-sparkles text-lg"></i>
-            </div>
-            <div>
-              <p class="text-sm font-semibold text-white group-hover:text-cyan-300 transition">Albums & Eras</p>
-              <p class="text-xs text-slate-400">Album coverage, era charts & song age</p>
+            <div class="text-left">
+              <p class="text-xs font-bold text-white"><span id="mobile-sync-btn-text">Sync with Setlist.fm</span></p>
+              <p class="text-[11px] text-indigo-300/70">Fetch latest shows & update profile data</p>
             </div>
           </div>
-          <i class="fa-solid fa-chevron-right text-slate-500 text-xs"></i>
+          <i class="fa-solid fa-chevron-right text-indigo-400/60 text-xs"></i>
         </button>
 
-        <!-- Freshness -->
-        <button onclick="switchTab('setlists'); closeMobileMoreMenu();" id="mobile-sheet-tab-setlists-btn" class="w-full flex items-center justify-between p-3 rounded-2xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600 transition text-left group cursor-pointer">
-          <div class="flex items-center gap-3.5">
-            <div class="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 group-hover:scale-105 transition shrink-0">
-              <i class="fa-solid fa-leaf text-lg"></i>
-            </div>
-            <div>
-              <p class="text-sm font-semibold text-white group-hover:text-emerald-300 transition">Freshness</p>
-              <p class="text-xs text-slate-400">Setlist cache freshness & sync state</p>
-            </div>
-          </div>
-          <i class="fa-solid fa-chevron-right text-slate-500 text-xs"></i>
-        </button>
+        <!-- Import Tools Grid -->
+        <div class="grid grid-cols-2 gap-2">
+          <button type="button" onclick="openUploadModal(); closeMobileMoreMenu();" class="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 text-xs font-semibold text-slate-200 transition cursor-pointer">
+            <i class="fa-solid fa-file-csv text-cyan-400 text-sm"></i>
+            <span>Import CSV</span>
+          </button>
+          <button type="button" onclick="openTicketmasterModal(); closeMobileMoreMenu();" class="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 text-xs font-semibold text-slate-200 transition cursor-pointer">
+            <i class="fa-solid fa-ticket text-emerald-400 text-sm"></i>
+            <span>Import TM</span>
+          </button>
+        </div>
+      </div>
 
-        <!-- Setlist Audit -->
-        <button onclick="switchTab('gap'); closeMobileMoreMenu();" id="mobile-sheet-tab-gap-btn" class="w-full flex items-center justify-between p-3 rounded-2xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600 transition text-left group cursor-pointer">
-          <div class="flex items-center gap-3.5">
-            <div class="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 group-hover:scale-105 transition shrink-0">
-              <i class="fa-solid fa-clipboard-check text-lg"></i>
-            </div>
-            <div>
-              <div class="flex items-center gap-2">
-                <p class="text-sm font-semibold text-white group-hover:text-amber-300 transition">Setlist Audit</p>
-                {% if gap.csv_missing_or_partial|length > 0 %}
-                  <span class="bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold border border-amber-500/30">{{ gap.csv_missing_or_partial|length }}</span>
-                {% endif %}
+      <!-- Navigation Sections -->
+      <div class="space-y-2 pt-2 border-t border-slate-800">
+        <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Sections</p>
+        
+        <div class="space-y-2">
+          <!-- Venue Map -->
+          <button onclick="switchTab('map'); closeMobileMoreMenu();" id="mobile-sheet-tab-map-btn" class="w-full flex items-center justify-between p-2.5 rounded-xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600 transition text-left group cursor-pointer">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 group-hover:scale-105 transition shrink-0">
+                <i class="fa-solid fa-map-location-dot text-sm"></i>
               </div>
-              <p class="text-xs text-slate-400">Missing tracks & setlist discrepancy audit</p>
+              <div>
+                <p class="text-xs font-semibold text-white group-hover:text-emerald-300 transition">Venue Map</p>
+                <p class="text-[11px] text-slate-400">Interactive concert venues & geolocation</p>
+              </div>
             </div>
-          </div>
-          <i class="fa-solid fa-chevron-right text-slate-500 text-xs"></i>
-        </button>
+            <i class="fa-solid fa-chevron-right text-slate-500 text-xs"></i>
+          </button>
+
+          <!-- Musicians -->
+          <button onclick="switchTab('musicians'); closeMobileMoreMenu();" id="mobile-sheet-tab-musicians-btn" class="w-full flex items-center justify-between p-2.5 rounded-xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600 transition text-left group cursor-pointer">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 group-hover:scale-105 transition shrink-0">
+                <i class="fa-solid fa-users-viewfinder text-sm"></i>
+              </div>
+              <div>
+                <p class="text-xs font-semibold text-white group-hover:text-amber-300 transition">Musicians</p>
+                <p class="text-[11px] text-slate-400">Band lineups & live musician tracking</p>
+              </div>
+            </div>
+            <i class="fa-solid fa-chevron-right text-slate-500 text-xs"></i>
+          </button>
+
+          <!-- Albums & Eras -->
+          <button onclick="switchTab('advanced'); closeMobileMoreMenu();" id="mobile-sheet-tab-advanced-btn" class="w-full flex items-center justify-between p-2.5 rounded-xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600 transition text-left group cursor-pointer">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-lg bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 group-hover:scale-105 transition shrink-0">
+                <i class="fa-solid fa-wand-magic-sparkles text-sm"></i>
+              </div>
+              <div>
+                <p class="text-xs font-semibold text-white group-hover:text-cyan-300 transition">Albums & Eras</p>
+                <p class="text-[11px] text-slate-400">Album coverage, era charts & song age</p>
+              </div>
+            </div>
+            <i class="fa-solid fa-chevron-right text-slate-500 text-xs"></i>
+          </button>
+
+          <!-- Freshness -->
+          <button onclick="switchTab('setlists'); closeMobileMoreMenu();" id="mobile-sheet-tab-setlists-btn" class="w-full flex items-center justify-between p-2.5 rounded-xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600 transition text-left group cursor-pointer">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 group-hover:scale-105 transition shrink-0">
+                <i class="fa-solid fa-leaf text-sm"></i>
+              </div>
+              <div>
+                <p class="text-xs font-semibold text-white group-hover:text-emerald-300 transition">Freshness</p>
+                <p class="text-[11px] text-slate-400">Setlist cache freshness & sync state</p>
+              </div>
+            </div>
+            <i class="fa-solid fa-chevron-right text-slate-500 text-xs"></i>
+          </button>
+
+          <!-- Setlist Audit -->
+          <button onclick="switchTab('gap'); closeMobileMoreMenu();" id="mobile-sheet-tab-gap-btn" class="w-full flex items-center justify-between p-2.5 rounded-xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600 transition text-left group cursor-pointer">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 group-hover:scale-105 transition shrink-0">
+                <i class="fa-solid fa-clipboard-check text-sm"></i>
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <p class="text-xs font-semibold text-white group-hover:text-amber-300 transition">Setlist Audit</p>
+                  {% if gap.csv_missing_or_partial|length > 0 %}
+                    <span class="bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold border border-amber-500/30">{{ gap.csv_missing_or_partial|length }}</span>
+                  {% endif %}
+                </div>
+                <p class="text-[11px] text-slate-400">Missing tracks & setlist discrepancy audit</p>
+              </div>
+            </div>
+            <i class="fa-solid fa-chevron-right text-slate-500 text-xs"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Account Settings & Logout -->
+      <div class="pt-2 border-t border-slate-800 space-y-2">
+        <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Account</p>
+
+        <div class="space-y-1.5">
+          <a href="{% url 'password_change' %}" class="flex items-center justify-between p-2.5 rounded-xl bg-slate-800/50 hover:bg-slate-800 text-xs text-slate-300 hover:text-white transition">
+            <div class="flex items-center gap-2.5">
+              <i class="fa-solid fa-key text-indigo-400 w-4 text-center"></i>
+              <span>Change Password</span>
+            </div>
+            <i class="fa-solid fa-chevron-right text-slate-500 text-[10px]"></i>
+          </a>
+
+          {% if request.user.is_staff %}
+            <a href="/admin/" target="_blank" class="flex items-center justify-between p-2.5 rounded-xl bg-purple-950/30 hover:bg-purple-900/40 border border-purple-500/30 text-xs text-purple-200 transition">
+              <div class="flex items-center gap-2.5">
+                <i class="fa-solid fa-sliders text-purple-400 w-4 text-center"></i>
+                <span>Admin Portal</span>
+              </div>
+              <i class="fa-solid fa-arrow-up-right-from-square text-purple-400/70 text-[10px]"></i>
+            </a>
+          {% endif %}
+
+          <form method="post" action="{% url 'logout' %}" class="block m-0 pt-1">
+            {% csrf_token %}
+            <button type="submit" class="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-xs font-semibold text-rose-400 border border-rose-500/20 transition cursor-pointer">
+              <i class="fa-solid fa-arrow-right-from-bracket"></i>
+              <span>Log Out</span>
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   </div>
@@ -1548,7 +1641,7 @@
       }
 
       // Sync Mobile Bottom Tab Navigator & More Sheet
-      const primaryTabs = ['overview', 'concerts', 'drilldown', 'map'];
+      const primaryTabs = ['overview', 'concerts', 'drilldown'];
       primaryTabs.forEach(t => {
         const mBtn = document.getElementById('mobile-tab-' + t + '-btn');
         if (mBtn) {
@@ -1560,7 +1653,7 @@
         }
       });
 
-      const secondaryTabs = ['musicians', 'advanced', 'setlists', 'gap'];
+      const secondaryTabs = ['map', 'musicians', 'advanced', 'setlists', 'gap'];
       const isSecondary = secondaryTabs.includes(tabId);
       const moreBtn = document.getElementById('mobile-tab-more-btn');
       const moreDot = document.getElementById('mobile-more-active-dot');
@@ -1578,9 +1671,9 @@
         const sheetBtn = document.getElementById('mobile-sheet-tab-' + st + '-btn');
         if (sheetBtn) {
           if (st === tabId) {
-            sheetBtn.className = 'w-full flex items-center justify-between p-3 rounded-2xl bg-indigo-600/20 border border-indigo-500/50 shadow-md shadow-indigo-500/10 transition text-left group cursor-pointer';
+            sheetBtn.className = 'w-full flex items-center justify-between p-2.5 rounded-xl bg-indigo-600/20 border border-indigo-500/50 shadow-md shadow-indigo-500/10 transition text-left group cursor-pointer';
           } else {
-            sheetBtn.className = 'w-full flex items-center justify-between p-3 rounded-2xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600 transition text-left group cursor-pointer';
+            sheetBtn.className = 'w-full flex items-center justify-between p-2.5 rounded-xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600 transition text-left group cursor-pointer';
           }
         }
       });
@@ -2430,9 +2523,16 @@
       const btn = document.getElementById('sync-btn');
       const icon = document.getElementById('sync-btn-icon');
       const text = document.getElementById('sync-btn-text');
-      btn.disabled = true;
-      icon.classList.add('animate-spin');
-      text.innerText = 'Queuing...';
+      const mBtn = document.getElementById('mobile-sync-btn');
+      const mIcon = document.getElementById('mobile-sync-btn-icon');
+      const mText = document.getElementById('mobile-sync-btn-text');
+
+      if (btn) btn.disabled = true;
+      if (icon) icon.classList.add('animate-spin');
+      if (text) text.innerText = 'Queuing...';
+      if (mBtn) mBtn.disabled = true;
+      if (mIcon) mIcon.classList.add('animate-spin');
+      if (mText) mText.innerText = 'Queuing sync...';
 
       try {
         const res = await fetch('/api/sync/', {
@@ -2444,9 +2544,22 @@
         });
         if (res.ok) {
           startSyncPolling();
+        } else {
+          if (btn) btn.disabled = false;
+          if (icon) icon.classList.remove('animate-spin');
+          if (text) text.innerText = 'Sync';
+          if (mBtn) mBtn.disabled = false;
+          if (mIcon) mIcon.classList.remove('animate-spin');
+          if (mText) mText.innerText = 'Sync with Setlist.fm';
         }
       } catch (e) {
         console.error(e);
+        if (btn) btn.disabled = false;
+        if (icon) icon.classList.remove('animate-spin');
+        if (text) text.innerText = 'Sync';
+        if (mBtn) mBtn.disabled = false;
+        if (mIcon) mIcon.classList.remove('animate-spin');
+        if (mText) mText.innerText = 'Sync with Setlist.fm';
       }
     }
 
@@ -2455,9 +2568,16 @@
       const bannerText = document.getElementById('sync-banner-text');
       const icon = document.getElementById('sync-btn-icon');
       const text = document.getElementById('sync-btn-text');
+      const mIcon = document.getElementById('mobile-sync-btn-icon');
+      const mText = document.getElementById('mobile-sync-btn-text');
+      const mBtn = document.getElementById('mobile-sync-btn');
+
       if (banner) banner.classList.remove('hidden');
       if (icon) icon.classList.add('animate-spin');
       if (text) text.innerText = 'Syncing...';
+      if (mIcon) mIcon.classList.add('animate-spin');
+      if (mText) mText.innerText = 'Syncing with Setlist.fm...';
+      if (mBtn) mBtn.disabled = true;
 
       if (pollInterval) clearInterval(pollInterval);
       pollInterval = setInterval(async () => {
@@ -2476,6 +2596,9 @@
               if (banner) banner.classList.add('hidden');
               if (icon) icon.classList.remove('animate-spin');
               if (text) text.innerText = 'Sync';
+              if (mIcon) mIcon.classList.remove('animate-spin');
+              if (mText) mText.innerText = 'Sync with Setlist.fm';
+              if (mBtn) mBtn.disabled = false;
             }
           }
         } catch (e) {
