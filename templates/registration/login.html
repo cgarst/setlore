@@ -40,7 +40,9 @@
 <body class="min-h-screen flex items-center justify-center p-4">
   <div class="max-w-md w-full glass-card p-8 shadow-2xl space-y-6">
     <div class="text-center space-y-2">
-      <img src="{% static 'img/setlore_banner.png' %}" alt="Setlore" class="h-14 mx-auto w-auto object-contain mb-1">
+      <a href="{% url 'home' %}" class="inline-block transition hover:scale-105" title="Setlore - Home">
+        <img src="{% static 'img/setlore_banner.png' %}" alt="Setlore" class="h-14 mx-auto w-auto object-contain mb-1">
+      </a>
       <p class="text-xs text-slate-400">Sign in to access your concert history and setlists</p>
     </div>
 

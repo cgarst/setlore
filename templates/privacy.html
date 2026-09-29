@@ -50,7 +50,7 @@
   <!-- Navigation Header -->
   <header class="border-b border-slate-800 bg-slate-900/60 backdrop-blur-md sticky top-0 z-30">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
-      <a href="{% if user.is_authenticated %}{% url 'dashboard' %}{% else %}{% url 'login' %}{% endif %}" class="flex items-center gap-3 group">
+      <a href="{% url 'home' %}" class="flex items-center gap-3 group" title="Setlore - Home">
         <img src="{% static 'img/setlore_icon.png' %}" alt="Setlore" class="w-8 h-8 rounded-lg shadow-md group-hover:scale-105 transition transform">
         <span class="font-extrabold text-lg tracking-tight bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">Setlore</span>
       </a>

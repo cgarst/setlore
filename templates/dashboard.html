@@ -109,15 +109,9 @@
   <!-- Header -->
   <header class="max-w-7xl mx-auto mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
     <div>
-      {% if is_public_view and not request.user.is_authenticated %}
-        <a href="{% url 'public_profile' username=profile_user.username %}" class="flex items-center text-left group focus:outline-none transition cursor-pointer" title="Setlore">
-          <img src="{% static 'img/setlore_banner.png' %}" alt="Setlore" class="h-10 md:h-12 w-auto object-contain rounded-xl group-hover:scale-105 transition-all">
-        </a>
-      {% else %}
-        <a href="{% url 'dashboard' %}" class="flex items-center text-left group focus:outline-none transition cursor-pointer" title="Setlore - Dashboard">
-          <img src="{% static 'img/setlore_banner.png' %}" alt="Setlore" class="h-10 md:h-12 w-auto object-contain rounded-xl group-hover:scale-105 transition-all">
-        </a>
-      {% endif %}
+      <a href="{% url 'home' %}" class="flex items-center text-left group focus:outline-none transition cursor-pointer" title="Setlore - Home">
+        <img src="{% static 'img/setlore_banner.png' %}" alt="Setlore" class="h-10 md:h-12 w-auto object-contain rounded-xl group-hover:scale-105 transition-all">
+      </a>
     </div>
 
     <!-- Desktop/Tablet Controls -->
@@ -2604,6 +2598,7 @@
 
   <!-- Plotly Data & Interactive Logic -->
   <script>
+    window.tabUrlBase = "{{ tab_url_base|default:''|escapejs }}";
     const drilldownData = {{ artist_drilldown_json|safe }};
     const venueMapData = {{ venue_map_json|safe }};
     let venueMap = null;
@@ -2696,7 +2691,7 @@
 
       if (updateUrl) {
         const baseUrl = window.tabUrlBase || '';
-        const targetPath = baseUrl ? (tabId === 'overview' ? `${baseUrl}/` : `${baseUrl}/${tabId}/`) : (tabId === 'overview' ? '/' : `/${tabId}/`);
+        const targetPath = baseUrl ? (tabId === 'overview' ? `${baseUrl}/` : `${baseUrl}/${tabId}/`) : (tabId === 'overview' ? '/overview/' : `/${tabId}/`);
         if (window.location.pathname !== targetPath || window.location.hash) {
           history.pushState({ tabId: tabId }, '', targetPath);
         }
@@ -2768,9 +2763,10 @@
     // URL path & legacy hash deep linking support on page load and back/forward navigation
     window.addEventListener('DOMContentLoaded', () => {
       const hash = window.location.hash.replace('#', '').trim();
+      const baseUrl = window.tabUrlBase || '';
       if (hash) {
         const resolvedTab = normalizeTab(hash);
-        const targetPath = (resolvedTab === 'overview') ? '/' : `/${resolvedTab}/`;
+        const targetPath = baseUrl ? (resolvedTab === 'overview' ? `${baseUrl}/` : `${baseUrl}/${resolvedTab}/`) : (resolvedTab === 'overview' ? '/overview/' : `/${resolvedTab}/`);
         history.replaceState({ tabId: resolvedTab }, '', targetPath);
         switchTab(resolvedTab, false);
       } else {
@@ -2792,9 +2788,10 @@
 
     window.addEventListener('hashchange', () => {
       const hash = window.location.hash.replace('#', '').trim();
+      const baseUrl = window.tabUrlBase || '';
       if (hash) {
         const resolvedTab = normalizeTab(hash);
-        const targetPath = (resolvedTab === 'overview') ? '/' : `/${resolvedTab}/`;
+        const targetPath = baseUrl ? (resolvedTab === 'overview' ? `${baseUrl}/` : `${baseUrl}/${resolvedTab}/`) : (resolvedTab === 'overview' ? '/overview/' : `/${resolvedTab}/`);
         history.replaceState({ tabId: resolvedTab }, '', targetPath);
         switchTab(resolvedTab, false);
       }

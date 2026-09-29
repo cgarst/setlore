@@ -1,0 +1,626 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Setlore - Self-Hosted Live Concert & Setlist Analytics</title>
+
+  <!-- PWA & Apple iOS Configuration -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Setlore">
+  <meta name="application-name" content="Setlore">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="icon" type="image/png" href="{% static 'img/setlore_icon.png' %}">
+  <link rel="apple-touch-icon" href="{% static 'img/setlore_icon.png' %}">
+  <link rel="manifest" href="{% static 'manifest.json' %}">
+
+  <!-- Tailwind CSS & FontAwesome -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    html, body {
+      background-color: #090d16;
+      color: #f8fafc;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      touch-action: manipulation;
+      -webkit-font-smoothing: antialiased;
+    }
+    .glass-card {
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .glass-card-interactive {
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .glass-card-interactive:hover {
+      border-color: rgba(99, 102, 241, 0.4);
+      transform: translateY(-2px);
+      box-shadow: 0 16px 30px -10px rgba(99, 102, 241, 0.15);
+    }
+    .gradient-text {
+      background: linear-gradient(135deg, #818cf8 0%, #c084fc 50%, #f472b6 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .gradient-text-subtle {
+      background: linear-gradient(135deg, #f8fafc 0%, #cbd5e1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .code-badge {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #090d16; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+  </style>
+</head>
+<body class="min-h-screen selection:bg-indigo-500 selection:text-white flex flex-col justify-between">
+
+  <!-- Floating Background Ambient Light -->
+  <div class="fixed inset-0 pointer-events-none overflow-hidden -z-10">
+    <div class="absolute -top-40 left-1/2 -translate-x-1/2 w-[700px] h-[500px] bg-indigo-600/15 rounded-full blur-3xl"></div>
+    <div class="absolute top-[35%] -left-32 w-[500px] h-[500px] bg-purple-600/10 rounded-full blur-3xl"></div>
+    <div class="absolute top-[65%] -right-32 w-[500px] h-[500px] bg-pink-600/10 rounded-full blur-3xl"></div>
+  </div>
+
+  <!-- Navigation Bar -->
+  <header class="sticky top-0 z-40 border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <!-- Logo -->
+      <a href="{% url 'home' %}" class="flex items-center gap-3 group focus:outline-none" title="Setlore Home">
+        <img src="{% static 'img/setlore_banner.png' %}" alt="Setlore" class="h-9 md:h-10 w-auto object-contain transition-transform group-hover:scale-105">
+      </a>
+
+      <!-- Desktop Navigation Links -->
+      <nav class="hidden md:flex items-center gap-6 text-xs font-semibold text-slate-300">
+        <a href="#features" class="hover:text-white transition">Features</a>
+        <a href="#sync-import" class="hover:text-white transition">Sync & Import</a>
+        <a href="#top-users" class="hover:text-white transition">Top Users</a>
+        <a href="#tech-stack" class="hover:text-white transition">Tech Stack</a>
+        <a href="#self-hosting" class="hover:text-white transition">Self-Hosting</a>
+        <a href="https://github.com/cgarst/concert-trakr" target="_blank" rel="noopener noreferrer" class="hover:text-white transition flex items-center gap-1 text-slate-400 hover:text-slate-200">
+          <i class="fa-brands fa-github text-sm"></i> GitHub
+        </a>
+      </nav>
+
+      <!-- User Auth Actions -->
+      <div class="flex items-center gap-2.5">
+        {% if request.user.is_authenticated %}
+          <a href="{% url 'dashboard' %}" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs shadow-md shadow-indigo-500/25 transition flex items-center gap-1.5">
+            <i class="fa-solid fa-chart-pie text-xs"></i>
+            <span>Dashboard</span>
+          </a>
+          <a href="{% url 'public_profile' username=request.user.username %}" class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 hover:text-white transition" title="View your public profile">
+            <i class="fa-solid fa-user text-indigo-400 text-xs"></i>
+            <span>@{{ request.user.username }}</span>
+          </a>
+        {% else %}
+          <a href="{% url 'login' %}" class="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 hover:text-white transition">
+            Sign In
+          </a>
+          {% if registration_enabled %}
+            <a href="{% url 'register' %}" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs shadow-md shadow-indigo-500/25 transition">
+              Get Started
+            </a>
+          {% endif %}
+        {% endif %}
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Landing Content -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-16 space-y-20 md:space-y-28">
+
+    <!-- 1. HERO SECTION -->
+    <section class="text-center space-y-6 max-w-4xl mx-auto pt-4">
+      <!-- Tagline Pill -->
+      <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 text-xs font-semibold shadow-inner">
+        <i class="fa-solid fa-compact-disc animate-spin" style="animation-duration: 8s;"></i>
+        <span>100% Open Source & Self-Hosted Concert Intelligence</span>
+      </div>
+
+      <!-- Main Headline -->
+      <h1 class="text-3xl sm:text-5xl md:text-6xl font-black tracking-tight leading-tight md:leading-tight">
+        Your Live Music History,<br>
+        <span class="gradient-text">Decoded & Preserved.</span>
+      </h1>
+
+      <!-- Subtitle -->
+      <p class="text-sm sm:text-base md:text-lg text-slate-300 leading-relaxed max-w-2xl mx-auto font-normal">
+        Track every gig you’ve ever attended with rich discography insights, musician lineup tenures, setlist freshness audits, and interactive venue maps. Built for music obsessives who value data ownership and privacy.
+      </p>
+
+      <!-- Hero Action Buttons -->
+      <div class="flex flex-wrap items-center justify-center gap-3 pt-2">
+        {% if request.user.is_authenticated %}
+          <a href="{% url 'dashboard' %}" class="px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-sm shadow-xl shadow-indigo-500/30 transition transform hover:-translate-y-0.5 flex items-center gap-2">
+            <i class="fa-solid fa-chart-pie"></i>
+            <span>Open Your Dashboard</span>
+          </a>
+          <a href="{% url 'public_profile' username=request.user.username %}" class="px-5 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 hover:text-white font-semibold text-sm transition flex items-center gap-2">
+            <i class="fa-solid fa-globe text-indigo-400"></i>
+            <span>View Public Profile</span>
+          </a>
+        {% else %}
+          {% if registration_enabled %}
+            <a href="{% url 'register' %}" class="px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-sm shadow-xl shadow-indigo-500/30 transition transform hover:-translate-y-0.5 flex items-center gap-2">
+              <i class="fa-solid fa-ticket"></i>
+              <span>Start Tracking Shows</span>
+            </a>
+          {% endif %}
+          <a href="{% url 'login' %}" class="px-5 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 hover:text-white font-semibold text-sm transition flex items-center gap-2">
+            <i class="fa-solid fa-right-to-bracket text-indigo-400"></i>
+            <span>Sign In</span>
+          </a>
+          <a href="#top-users" class="px-5 py-3 rounded-xl bg-indigo-950/40 hover:bg-indigo-900/40 border border-indigo-500/30 text-indigo-200 hover:text-white font-semibold text-sm transition flex items-center gap-2">
+            <i class="fa-solid fa-users"></i>
+            <span>Explore Community</span>
+          </a>
+        {% endif %}
+      </div>
+
+      <!-- Feature Badges Row -->
+      <div class="flex flex-wrap items-center justify-center gap-2 pt-4 text-xs text-slate-400 font-medium">
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-900/80 border border-slate-800">
+          <i class="fa-brands fa-docker text-sky-400"></i> Easy Docker Self-Host
+        </span>
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-900/80 border border-slate-800">
+          <i class="fa-solid fa-lock text-emerald-400"></i> 100% Private & No Ads
+        </span>
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-900/80 border border-slate-800">
+          <i class="fa-solid fa-arrows-rotate text-purple-400"></i> 2-Way Setlist.fm Sync
+        </span>
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-900/80 border border-slate-800">
+          <i class="fa-solid fa-file-csv text-amber-400"></i> Free CSV & JSON Export
+        </span>
+      </div>
+
+      <!-- Global Instance Stats Banner (if data exists) -->
+      {% if total_public_concerts > 0 or total_artists > 0 %}
+        <div class="pt-6">
+          <div class="glass-card p-4 rounded-2xl max-w-2xl mx-auto grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+            <div>
+              <p class="text-xl sm:text-2xl font-black text-indigo-300">{{ total_public_concerts }}</p>
+              <p class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mt-0.5">Public Shows</p>
+            </div>
+            <div>
+              <p class="text-xl sm:text-2xl font-black text-purple-300">{{ total_artists }}</p>
+              <p class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mt-0.5">Artists</p>
+            </div>
+            <div>
+              <p class="text-xl sm:text-2xl font-black text-emerald-300">{{ total_venues }}</p>
+              <p class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mt-0.5">Venues</p>
+            </div>
+            <div>
+              <p class="text-xl sm:text-2xl font-black text-pink-300">{{ total_songs }}</p>
+              <p class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mt-0.5">Live Songs</p>
+            </div>
+          </div>
+        </div>
+      {% endif %}
+    </section>
+
+    <!-- 2. CORE FEATURES GRID -->
+    <section id="features" class="space-y-8">
+      <div class="text-center space-y-2 max-w-2xl mx-auto">
+        <h2 class="text-xs font-bold uppercase tracking-widest text-indigo-400">Analytics & Deep Lore</h2>
+        <p class="text-2xl sm:text-3xl font-extrabold text-white">Everything You Need to Understand Your Live Concerts</p>
+        <p class="text-xs sm:text-sm text-slate-400">Beyond simple check-ins. Setlore dives into lineups, discographies, eras, and geographic road trips.</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Feature 1: Musician Lineup Tracker -->
+        <div class="glass-card-interactive p-6 rounded-2xl space-y-3">
+          <div class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 text-amber-400 flex items-center justify-center text-lg">
+            <i class="fa-solid fa-users-viewfinder"></i>
+          </div>
+          <h3 class="text-base font-bold text-white">Musician Lineup & Tenure Tracking</h3>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            Know who was actually on stage. Setlore calculates historical band rosters by concert date, tracking individual drummers, guitarists, and vocalists across all their side projects and supergroups.
+          </p>
+          <div class="pt-2 flex flex-wrap gap-1.5 text-[11px] text-slate-400 font-mono">
+            <span class="bg-slate-900 px-2 py-0.5 rounded border border-slate-800">Tenure Date Windows</span>
+            <span class="bg-slate-900 px-2 py-0.5 rounded border border-slate-800">Supergroup Cross-Referencing</span>
+          </div>
+        </div>
+
+        <!-- Feature 2: MusicBrainz Discography Enrichment -->
+        <div class="glass-card-interactive p-6 rounded-2xl space-y-3">
+          <div class="w-10 h-10 rounded-xl bg-purple-500/20 border border-purple-500/30 text-purple-400 flex items-center justify-center text-lg">
+            <i class="fa-solid fa-compact-disc"></i>
+          </div>
+          <h3 class="text-base font-bold text-white">MusicBrainz Discography & Eras</h3>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            Every song heard live is enriched via MusicBrainz to map studio albums, original release years, and cover flags. Visualized in interactive treemaps, album breakdown matrices, and era timelines.
+          </p>
+          <div class="pt-2 flex flex-wrap gap-1.5 text-[11px] text-slate-400 font-mono">
+            <span class="bg-slate-900 px-2 py-0.5 rounded border border-slate-800">Album Era Treemaps</span>
+            <span class="bg-slate-900 px-2 py-0.5 rounded border border-slate-800">Cover Song Detection</span>
+          </div>
+        </div>
+
+        <!-- Feature 3: Interactive Venue & City Mapping -->
+        <div class="glass-card-interactive p-6 rounded-2xl space-y-3">
+          <div class="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 flex items-center justify-center text-lg">
+            <i class="fa-solid fa-map-location-dot"></i>
+          </div>
+          <h3 class="text-base font-bold text-white">Interactive Dark-Mode Venue Maps</h3>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            Geocoded venue coordinates powered by Leaflet and Carto dark tiles. Filter your concert travels by artist or era, inspect pin clusters, and revisit your live music road trips across the globe.
+          </p>
+          <div class="pt-2 flex flex-wrap gap-1.5 text-[11px] text-slate-400 font-mono">
+            <span class="bg-slate-900 px-2 py-0.5 rounded border border-slate-800">Automatic Geocoding</span>
+            <span class="bg-slate-900 px-2 py-0.5 rounded border border-slate-800">Artist Filter Overlays</span>
+          </div>
+        </div>
+
+        <!-- Feature 4: Setlist Audit & Gap Reconciliation -->
+        <div class="glass-card-interactive p-6 rounded-2xl space-y-3">
+          <div class="w-10 h-10 rounded-xl bg-pink-500/20 border border-pink-500/30 text-pink-400 flex items-center justify-center text-lg">
+            <i class="fa-solid fa-clipboard-check"></i>
+          </div>
+          <h3 class="text-base font-bold text-white">Setlist Reconciliation & Audit</h3>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            Fuzzy matching automatically flags shows missing from Setlist.fm, catches unlinked attended marks, and highlights gaps in your live concert history so your records stay immaculate.
+          </p>
+          <div class="pt-2 flex flex-wrap gap-1.5 text-[11px] text-slate-400 font-mono">
+            <span class="bg-slate-900 px-2 py-0.5 rounded border border-slate-800">RapidFuzz Matching</span>
+            <span class="bg-slate-900 px-2 py-0.5 rounded border border-slate-800">Missing Show Flags</span>
+          </div>
+        </div>
+
+        <!-- Feature 5: Song Freshness & Rarities -->
+        <div class="glass-card-interactive p-6 rounded-2xl space-y-3">
+          <div class="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 flex items-center justify-center text-lg">
+            <i class="fa-solid fa-leaf"></i>
+          </div>
+          <h3 class="text-base font-bold text-white">Song Freshness & Debut Tracker</h3>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            Discover tracks you haven’t heard in years, songs heard for the very first time on a tour, and personal rarest gems across all your favorite artists with deep setlist analytics.
+          </p>
+          <div class="pt-2 flex flex-wrap gap-1.5 text-[11px] text-slate-400 font-mono">
+            <span class="bg-slate-900 px-2 py-0.5 rounded border border-slate-800">Debut Badges</span>
+            <span class="bg-slate-900 px-2 py-0.5 rounded border border-slate-800">Live Frequency Tables</span>
+          </div>
+        </div>
+
+        <!-- Feature 6: Social & Public Profiles -->
+        <div class="glass-card-interactive p-6 rounded-2xl space-y-3">
+          <div class="w-10 h-10 rounded-xl bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 flex items-center justify-center text-lg">
+            <i class="fa-solid fa-share-nodes"></i>
+          </div>
+          <h3 class="text-base font-bold text-white">Public Profiles & Friend Overlaps</h3>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            Share your concert profile with a clean vanity link (<code class="text-indigo-300">/u/@username</code>). Compare attendance overlap with friends to immediately see every show you’ve attended together.
+          </p>
+          <div class="pt-2 flex flex-wrap gap-1.5 text-[11px] text-slate-400 font-mono">
+            <span class="bg-slate-900 px-2 py-0.5 rounded border border-slate-800">Social Show Overlap</span>
+            <span class="bg-slate-900 px-2 py-0.5 rounded border border-slate-800">Granular Privacy Control</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. INGESTION, SYNC & EXPORTABILITY -->
+    <section id="sync-import" class="space-y-8">
+      <div class="glass-card p-6 sm:p-10 rounded-3xl border border-indigo-500/30 bg-gradient-to-br from-slate-900/95 via-indigo-950/30 to-slate-900/95 shadow-2xl">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+          
+          <div class="space-y-4">
+            <span class="badge bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 text-[11px] font-mono">
+              <i class="fa-solid fa-plug mr-1.5"></i> Multi-Source Ingestion & Zero Lock-In
+            </span>
+            <h2 class="text-2xl sm:text-3xl font-extrabold text-white">Effortless Ingestion, Instant Syncing & Portable Exports</h2>
+            <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+              Your live music history shouldn’t be locked in a silo or manual chore. Setlore connects to your favorite services and gives you full control over how you import, sync, and export your archives.
+            </p>
+
+            <ul class="space-y-3 pt-2 text-xs text-slate-300">
+              <li class="flex items-start gap-3">
+                <div class="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 mt-0.5">
+                  <i class="fa-solid fa-rotate text-xs"></i>
+                </div>
+                <div>
+                  <strong class="text-white font-semibold">Two-Way Setlist.fm Syncing:</strong>
+                  <span>Automatic background worker syncs your attended concerts and matches setlists with rate-limited resilience.</span>
+                </div>
+              </li>
+
+              <li class="flex items-start gap-3">
+                <div class="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 mt-0.5">
+                  <i class="fa-solid fa-ticket text-xs"></i>
+                </div>
+                <div>
+                  <strong class="text-white font-semibold">Ticketmaster Parser:</strong>
+                  <span>Paste confirmation emails or ticket exports to automatically parse dates, venues, support acts, and link setlists.</span>
+                </div>
+              </li>
+
+              <li class="flex items-start gap-3">
+                <div class="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 mt-0.5">
+                  <i class="fa-solid fa-file-csv text-xs"></i>
+                </div>
+                <div>
+                  <strong class="text-white font-semibold">Spreadsheet & CSV Import:</strong>
+                  <span>Drop your existing spreadsheet (<code class="text-indigo-300">Date, Band, Venue, City, Notes</code>) and normalize automatically.</span>
+                </div>
+              </li>
+
+              <li class="flex items-start gap-3">
+                <div class="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center shrink-0 mt-0.5">
+                  <i class="fa-solid fa-file-export text-xs"></i>
+                </div>
+                <div>
+                  <strong class="text-white font-semibold">1-Click Full CSV Export:</strong>
+                  <span>Download your complete concert history, setlists, and venue metadata anytime. Public profiles also feature export endpoints (<code class="text-indigo-300">/u/username/export/</code>).</span>
+                </div>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Quick Interactive Ingestion Code / Workflow Card -->
+          <div class="glass-card p-5 rounded-2xl border border-slate-700/80 bg-slate-950/80 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div class="flex items-center gap-2">
+                <div class="w-3 h-3 rounded-full bg-rose-500"></div>
+                <div class="w-3 h-3 rounded-full bg-amber-500"></div>
+                <div class="w-3 h-3 rounded-full bg-emerald-500"></div>
+                <span class="text-[11px] font-mono text-slate-400 ml-2">supported-import-formats.csv</span>
+              </div>
+              <span class="text-[10px] text-indigo-400 font-mono font-semibold">Live Parser</span>
+            </div>
+
+            <div class="space-y-2 text-xs font-mono">
+              <div class="p-2.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 overflow-x-auto">
+                <p class="text-slate-500"># Direct CSV format</p>
+                <p><span class="text-purple-400">Date</span>, <span class="text-purple-400">Band</span>, <span class="text-purple-400">Venue</span>, <span class="text-purple-400">City / State</span>, <span class="text-purple-400">Notes</span></p>
+                <p class="text-emerald-400">10/22/2024, Dream Theater, The Anthem, Washington DC, 40th Anniversary Tour</p>
+              </div>
+
+              <div class="p-2.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300">
+                <p class="text-slate-500"># Fast Manual Ingest Modal</p>
+                <p class="text-indigo-300">+ Add Concert &rarr; Autocomplete Venue &rarr; Paste Setlist</p>
+              </div>
+
+              <div class="p-2.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300">
+                <p class="text-slate-500"># Export Any Time</p>
+                <p class="text-amber-300">GET /api/concerts/export/ &rarr; concerts_archive.csv</p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. TOP USERS LEADERBOARD -->
+    <section id="top-users" class="space-y-8">
+      <div class="text-center space-y-2 max-w-2xl mx-auto">
+        <h2 class="text-xs font-bold uppercase tracking-widest text-indigo-400">Community Leaderboard</h2>
+        <p class="text-2xl sm:text-3xl font-extrabold text-white">Top Live Music Enthusiasts</p>
+        <p class="text-xs sm:text-sm text-slate-400">Ranked by total verified live concerts attended. Explore their public setlists and artist catalogs.</p>
+      </div>
+
+      {% if top_users %}
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {% for u in top_users %}
+            <a href="{% url 'public_profile' username=u.username %}" class="glass-card-interactive p-5 rounded-2xl flex flex-col justify-between space-y-4 group cursor-pointer block">
+              
+              <div class="flex items-start justify-between gap-3">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-xl {% if u.rank == 1 %}bg-amber-500/25 text-amber-300 border border-amber-500/40{% elif u.rank == 2 %}bg-slate-400/25 text-slate-200 border border-slate-400/40{% elif u.rank == 3 %}bg-amber-700/25 text-amber-400 border border-amber-700/40{% else %}bg-indigo-600/20 text-indigo-300 border border-indigo-500/30{% endif %} flex items-center justify-center font-black text-sm shadow-sm">
+                    #{{ u.rank }}
+                  </div>
+                  <div class="min-w-0">
+                    <p class="text-sm font-bold text-white group-hover:text-indigo-300 transition truncate flex items-center gap-1.5">
+                      <span>{{ u.username }}</span>
+                      <i class="fa-solid fa-arrow-up-right-from-square text-[10px] opacity-0 group-hover:opacity-100 transition text-indigo-400"></i>
+                    </p>
+                    {% if u.setlistfm_username %}
+                      <p class="text-[11px] text-slate-400 truncate flex items-center gap-1">
+                        <i class="fa-brands fa-lastfm text-amber-400 text-[10px]"></i> @{{ u.setlistfm_username }}
+                      </p>
+                    {% elif u.location %}
+                      <p class="text-[11px] text-slate-400 truncate flex items-center gap-1">
+                        <i class="fa-solid fa-location-dot text-rose-400 text-[10px]"></i> {{ u.location }}
+                      </p>
+                    {% endif %}
+                  </div>
+                </div>
+
+                <span class="badge bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 font-mono font-bold text-xs shrink-0">
+                  {{ u.concert_count }} {% if u.concert_count == 1 %}Show{% else %}Shows{% endif %}
+                </span>
+              </div>
+
+              <div class="border-t border-slate-800/80 pt-3 flex items-center justify-between text-[11px] text-slate-400">
+                <div class="truncate">
+                  {% if u.top_artist %}
+                    <span class="text-slate-500">Top:</span> <strong class="text-slate-200 font-semibold truncate">{{ u.top_artist }}</strong> <span class="text-indigo-400 font-mono">({{ u.top_artist_shows }})</span>
+                  {% else %}
+                    <span class="text-slate-500">Active Profile</span>
+                  {% endif %}
+                </div>
+                <span class="text-indigo-400 group-hover:translate-x-0.5 transition font-semibold">View &rarr;</span>
+              </div>
+
+            </a>
+          {% endfor %}
+        </div>
+      {% else %}
+        <!-- Empty State / Invitation -->
+        <div class="glass-card p-8 rounded-2xl text-center max-w-lg mx-auto space-y-4 border border-indigo-500/30">
+          <div class="w-12 h-12 rounded-2xl bg-indigo-600/20 border border-indigo-500/30 text-indigo-400 flex items-center justify-center text-xl mx-auto">
+            <i class="fa-solid fa-trophy"></i>
+          </div>
+          <h3 class="text-base font-bold text-white">Be the First on the Leaderboard</h3>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            No public profiles with logged concerts yet on this instance. Register your account, import your shows, and claim the #1 spot!
+          </p>
+          {% if registration_enabled and not request.user.is_authenticated %}
+            <a href="{% url 'register' %}" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition shadow-md shadow-indigo-600/30">
+              <i class="fa-solid fa-user-plus"></i> Create Account
+            </a>
+          {% endif %}
+        </div>
+      {% endif %}
+    </section>
+
+    <!-- 5. TECH STACK & ARCHITECTURE -->
+    <section id="tech-stack" class="space-y-8">
+      <div class="text-center space-y-2 max-w-2xl mx-auto">
+        <h2 class="text-xs font-bold uppercase tracking-widest text-indigo-400">Engineering & Performance</h2>
+        <p class="text-2xl sm:text-3xl font-extrabold text-white">Modern, Pragmatic Tech Stack</p>
+        <p class="text-xs sm:text-sm text-slate-400">Engineered for lightweight self-hosting, responsive analytics, and uncompromising reliability.</p>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Tech 1 -->
+        <div class="glass-card p-6 rounded-2xl space-y-2.5">
+          <div class="flex items-center gap-2.5 text-indigo-400 text-sm font-bold">
+            <i class="fa-brands fa-python text-lg"></i>
+            <span>Python 3.12+ & Django 5</span>
+          </div>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            Robust MVC web framework with typed database models, case-insensitive authentication backends, and full Django Admin portal for catalog curation.
+          </p>
+        </div>
+
+        <!-- Tech 2 -->
+        <div class="glass-card p-6 rounded-2xl space-y-2.5">
+          <div class="flex items-center gap-2.5 text-emerald-400 text-sm font-bold">
+            <i class="fa-solid fa-database text-lg"></i>
+            <span>SQLite & Write-Ahead Logging</span>
+          </div>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            Single portable <code class="text-emerald-300 font-mono">db.sqlite3</code> file mounted on host storage. High-concurrency WAL mode with automatic API caching tables.
+          </p>
+        </div>
+
+        <!-- Tech 3 -->
+        <div class="glass-card p-6 rounded-2xl space-y-2.5">
+          <div class="flex items-center gap-2.5 text-purple-400 text-sm font-bold">
+            <i class="fa-solid fa-chart-line text-lg"></i>
+            <span>Plotly.js & Leaflet Cartography</span>
+          </div>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            Interactive, hardware-accelerated vector charts (yearly attendance timelines, discography sunbursts, treemaps) and customized Carto dark tile venue maps.
+          </p>
+        </div>
+
+        <!-- Tech 4 -->
+        <div class="glass-card p-6 rounded-2xl space-y-2.5">
+          <div class="flex items-center gap-2.5 text-cyan-400 text-sm font-bold">
+            <i class="fa-solid fa-network-wired text-lg"></i>
+            <span>Setlist.fm & MusicBrainz APIs</span>
+          </div>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            Automated rate-limited background ingestion pipelines with persistent caching to prevent IP throttling and ensure seamless syncs.
+          </p>
+        </div>
+
+        <!-- Tech 5 -->
+        <div class="glass-card p-6 rounded-2xl space-y-2.5">
+          <div class="flex items-center gap-2.5 text-pink-400 text-sm font-bold">
+            <i class="fa-solid fa-bolt text-lg"></i>
+            <span>RapidFuzz String Distance</span>
+          </div>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            C++ accelerated Levenshtein string reconciliation to accurately pair handwritten notes and CSV artist names with canonical global setlists.
+          </p>
+        </div>
+
+        <!-- Tech 6 -->
+        <div class="glass-card p-6 rounded-2xl space-y-2.5">
+          <div class="flex items-center gap-2.5 text-amber-400 text-sm font-bold">
+            <i class="fa-brands fa-docker text-lg"></i>
+            <span>Docker & UV Package Manager</span>
+          </div>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            Ultra-fast virtual environment resolution via Astral’s <code class="text-amber-300 font-mono">uv</code> and streamlined single-container Docker Compose deployment.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. SELF-HOSTING QUICKSTART -->
+    <section id="self-hosting" class="space-y-8">
+      <div class="glass-card p-6 sm:p-10 rounded-3xl border border-indigo-500/30 bg-slate-900/90 shadow-2xl">
+        <div class="max-w-3xl mx-auto text-center space-y-4 mb-6">
+          <span class="badge bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 text-xs font-mono">
+            <i class="fa-brands fa-docker mr-1.5"></i> Docker Quickstart
+          </span>
+          <h2 class="text-2xl sm:text-3xl font-extrabold text-white">Self-Host in 60 Seconds</h2>
+          <p class="text-xs sm:text-sm text-slate-300">
+            Run your own private instance of Setlore on a home server, Raspberry Pi, or cloud VPS.
+          </p>
+        </div>
+
+        <div class="max-w-2xl mx-auto space-y-3 font-mono text-xs">
+          <div class="p-4 rounded-xl bg-slate-950 border border-slate-800 text-slate-200 relative group overflow-x-auto">
+            <p class="text-slate-500"># 1. Clone repository & configure environment</p>
+            <p><span class="text-indigo-400">git clone</span> https://github.com/cgarst/concert-trakr.git</p>
+            <p><span class="text-indigo-400">cd</span> concert-trakr</p>
+            <p><span class="text-indigo-400">cp</span> .env.example .env</p>
+            <p class="text-slate-500 mt-2"># 2. Launch container with Docker Compose</p>
+            <p><span class="text-emerald-400">docker compose up -d</span></p>
+            <p class="text-slate-500 mt-2"># 3. Visit http://localhost:8000</p>
+          </div>
+
+          <div class="flex flex-wrap items-center justify-between gap-3 pt-2 text-xs text-slate-400">
+            <span class="flex items-center gap-1.5">
+              <i class="fa-solid fa-shield-halved text-emerald-400"></i> MIT Licensed
+            </span>
+            <a href="https://github.com/cgarst/concert-trakr" target="_blank" rel="noopener noreferrer" class="text-indigo-400 hover:text-indigo-300 font-semibold underline flex items-center gap-1">
+              Read Full Documentation on GitHub &rarr;
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-slate-800/80 bg-slate-950/90 py-8 px-4 sm:px-6 lg:px-8 mt-16">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-400">
+      
+      <div class="flex items-center gap-3">
+        <a href="{% url 'home' %}">
+          <img src="{% static 'img/setlore_icon.png' %}" alt="Setlore" class="w-7 h-7 rounded-lg">
+        </a>
+        <span>&copy; Setlore &bull; Open-source live concert intelligence.</span>
+      </div>
+
+      <div class="flex items-center gap-6">
+        <a href="{% url 'home' %}" class="hover:text-white transition">Home</a>
+        {% if request.user.is_authenticated %}
+          <a href="{% url 'dashboard' %}" class="hover:text-white transition">Dashboard</a>
+        {% else %}
+          <a href="{% url 'login' %}" class="hover:text-white transition">Sign In</a>
+          {% if registration_enabled %}
+            <a href="{% url 'register' %}" class="hover:text-white transition">Register</a>
+          {% endif %}
+        {% endif %}
+        <a href="{% url 'privacy' %}" class="hover:text-white transition">Privacy Policy</a>
+        <a href="https://github.com/cgarst/concert-trakr" target="_blank" rel="noopener noreferrer" class="hover:text-white transition flex items-center gap-1">
+          <i class="fa-brands fa-github"></i> GitHub
+        </a>
+      </div>
+
+    </div>
+  </footer>
+
+</body>
+</html>

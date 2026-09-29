@@ -26,8 +26,11 @@ urlpatterns = [
     path('accounts/google/callback/', core_views.google_callback_view, name='google_callback'),
     path('accounts/google/disconnect/', core_views.google_disconnect_view, name='google_disconnect'),
 
+    # Homepage
+    path('', core_views.home_view, name='home'),
+
     # Concert Dashboard & API
-    path('', concerts_views.dashboard_view, name='dashboard'),
+    path('dashboard/', concerts_views.dashboard_view, name='dashboard'),
     path('overview/', concerts_views.dashboard_view, {'tab_name': 'overview'}, name='dashboard_overview'),
     path('concerts/', concerts_views.dashboard_view, {'tab_name': 'concerts'}, name='dashboard_concerts'),
     path('drilldown/', concerts_views.dashboard_view, {'tab_name': 'drilldown'}, name='dashboard_drilldown'),

@@ -9,9 +9,11 @@ from django.views.decorators.http import require_POST
 from django.http import JsonResponse, HttpResponseRedirect
 from django.contrib import messages
 from django.urls import reverse
+from django.db.models import Count
 from .forms import CaseInsensitiveUserCreationForm
 from .models import UserProfile, SiteSetting, Friendship
 from . import oauth
+from apps.catalog.models import Artist, Venue, Song
 from apps.concerts.models import Concert
 from apps.concerts.services.sync_worker import sync_worker
 
@@ -20,6 +22,54 @@ def health_check(request):
 
 def privacy_view(request):
     return render(request, 'privacy.html')
+
+def home_view(request):
+    """
+    Public landing page showcasing Setlore features, self-hosted open-source ethos,
+    top users by concert count with public profiles, exportability, and tech stack.
+    """
+    top_users_qs = (
+        User.objects.filter(profile__is_public=True, is_active=True)
+        .annotate(concert_count=Count('concerts', distinct=True))
+        .filter(concert_count__gt=0)
+        .select_related('profile')
+        .order_by('-concert_count', 'username')[:12]
+    )
+
+    top_users = []
+    for rank, u in enumerate(top_users_qs, start=1):
+        top_artist_record = (
+            Concert.objects.filter(user=u)
+            .values('primary_artist')
+            .annotate(shows=Count('id'))
+            .order_by('-shows', 'primary_artist')
+            .first()
+        )
+        top_users.append({
+            'rank': rank,
+            'user': u,
+            'username': u.username,
+            'setlistfm_username': u.profile.setlistfm_username,
+            'location': u.profile.default_location,
+            'concert_count': u.concert_count,
+            'top_artist': top_artist_record['primary_artist'] if top_artist_record else None,
+            'top_artist_shows': top_artist_record['shows'] if top_artist_record else 0,
+        })
+
+    total_public_concerts = Concert.objects.filter(user__profile__is_public=True).count()
+    total_artists = Artist.objects.count()
+    total_venues = Venue.objects.count()
+    total_songs = Song.objects.count()
+
+    context = {
+        'top_users': top_users,
+        'total_public_concerts': total_public_concerts,
+        'total_artists': total_artists,
+        'total_venues': total_venues,
+        'total_songs': total_songs,
+        'google_oauth_enabled': oauth.is_google_oauth_configured(),
+    }
+    return render(request, 'home.html', context)
 
 def register_view(request):
     if request.user.is_authenticated:
