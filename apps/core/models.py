@@ -8,6 +8,7 @@ class UserProfile(models.Model):
     setlistfm_username = models.CharField(max_length=150, blank=True, default='')
     setlistfm_api_key = models.CharField(max_length=255, blank=True, default='', help_text="Optional personal API key (overrides global env key)")
     prompt_setlistfm = models.BooleanField(default=True, help_text="Prompt for Setlist.fm username during sync if not configured")
+    is_public = models.BooleanField(default=True, help_text="Allow public access to view this user profile")
     ignored_artists = models.JSONField(default=list, blank=True, help_text="List of artist names to exclude from analytics")
     default_location = models.CharField(max_length=255, blank=True, default='Washington, DC', help_text="Default city/region for venue fallbacks")
     last_synced_at = models.DateTimeField(null=True, blank=True)

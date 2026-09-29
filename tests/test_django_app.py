@@ -196,5 +196,121 @@ class DjangoAppTests(TestCase):
         content = res.content.decode('utf-8')
         self.assertIn('profile-modal', content)
         self.assertIn('setlist-prompt-modal', content)
-        self.assertIn('Setlist.fm Settings', content)
+        self.assertIn('Setlist.fm & Privacy Settings', content)
         self.assertIn("Don't ask me again", content)
+
+    def test_user_profile_defaults_to_public(self):
+        self.assertTrue(self.user.profile.is_public)
+
+    def test_update_profile_privacy_setting(self):
+        import json
+        self.client.force_login(self.user)
+        # Make profile private
+        res = self.client.post('/api/profile/update/', data=json.dumps({
+            'is_public': False
+        }), content_type='application/json')
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertFalse(data['profile']['is_public'])
+        self.user.profile.refresh_from_db()
+        self.assertFalse(self.user.profile.is_public)
+
+        # Make profile public again
+        res2 = self.client.post('/api/profile/update/', data=json.dumps({
+            'is_public': True
+        }), content_type='application/json')
+        self.assertEqual(res2.status_code, 200)
+        self.assertTrue(res2.json()['profile']['is_public'])
+        self.user.profile.refresh_from_db()
+        self.assertTrue(self.user.profile.is_public)
+
+    def test_public_profile_anonymous_access_when_public(self):
+        venue = Venue.objects.create(name='The Fillmore', city='Silver Spring', state='MD')
+        artist = Artist.objects.create(name='Haken', normalized_name='haken')
+        concert = Concert.objects.create(
+            user=self.user,
+            raw_date='05/12/2023',
+            year=2023,
+            venue=venue,
+            primary_artist='Haken',
+            raw_artists='Haken'
+        )
+        ConcertArtist.objects.create(concert=concert, artist=artist)
+
+        # Anonymous request to /u/<username>/
+        res = self.client.get(f'/u/{self.user.username}/')
+        self.assertEqual(res.status_code, 200)
+        content = res.content.decode('utf-8')
+        self.assertIn('Public View (Read-Only)', content)
+        self.assertIn('Haken', content)
+        self.assertIn('Sign In', content)
+        self.assertIn('Create Free Account', content)
+        # Add concert buttons should not be present for anonymous viewers
+        self.assertNotIn('id="mobile-tab-add-btn"', content)
+        self.assertNotIn('<i class="fa-solid fa-plus text-xs"></i> Add Concert', content)
+
+    def test_public_profile_anonymous_access_when_private(self):
+        self.user.profile.is_public = False
+        self.user.profile.save()
+
+        res = self.client.get(f'/u/{self.user.username}/')
+        self.assertEqual(res.status_code, 403)
+        content = res.content.decode('utf-8')
+        self.assertIn('This Profile is Private', content)
+        self.assertIn('Log In', content)
+        self.assertIn('Create Account', content)
+
+    def test_public_profile_logged_in_other_user_access(self):
+        other_user = User.objects.create_user(username='otheruser', password='password123')
+        self.client.force_login(other_user)
+
+        # 1. When target profile is public
+        res = self.client.get(f'/u/{self.user.username}/')
+        self.assertEqual(res.status_code, 200)
+        content = res.content.decode('utf-8')
+        self.assertIn('Public View (Read-Only)', content)
+        self.assertIn('My Dashboard', content)
+        self.assertIn('otheruser', content)
+
+        # 2. When target profile is private
+        self.user.profile.is_public = False
+        self.user.profile.save()
+
+        res_priv = self.client.get(f'/u/{self.user.username}/')
+        self.assertEqual(res_priv.status_code, 403)
+        priv_content = res_priv.content.decode('utf-8')
+        self.assertIn('This Profile is Private', priv_content)
+        self.assertIn('Go to My Dashboard', priv_content)
+        self.assertIn('otheruser', priv_content)
+
+    def test_public_profile_owner_access(self):
+        self.client.force_login(self.user)
+
+        # Owner viewing own public profile preview
+        res = self.client.get(f'/u/{self.user.username}/')
+        self.assertEqual(res.status_code, 200)
+        content = res.content.decode('utf-8')
+        self.assertIn('Your Public Profile Preview', content)
+        self.assertIn('Edit Dashboard', content)
+
+        # Owner viewing own profile even when set to private
+        self.user.profile.is_public = False
+        self.user.profile.save()
+
+        res_priv = self.client.get(f'/u/{self.user.username}/')
+        self.assertEqual(res_priv.status_code, 200)
+
+    def test_public_profile_not_found(self):
+        res = self.client.get('/u/nonexistent_user_999/')
+        self.assertEqual(res.status_code, 404)
+        content = res.content.decode('utf-8')
+        self.assertIn('User Not Found', content)
+
+    def test_public_profile_tab_urls(self):
+        tabs = ['overview', 'concerts', 'drilldown', 'musicians', 'map', 'advanced', 'setlists', 'gap']
+        for t in tabs:
+            res = self.client.get(f'/u/{self.user.username}/{t}/')
+            self.assertEqual(res.status_code, 200)
+            self.assertEqual(res.context['initial_tab'], t)
+            self.assertTrue(res.context['is_public_view'])
+

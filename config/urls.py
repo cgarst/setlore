@@ -36,6 +36,12 @@ urlpatterns = [
     path('gap/', concerts_views.dashboard_view, {'tab_name': 'gap'}, name='dashboard_gap'),
     path('audit/', concerts_views.dashboard_view, {'tab_name': 'gap'}, name='dashboard_audit'),
 
+    # Public Profile
+    path('u/<str:username>/', concerts_views.public_profile_view, name='public_profile'),
+    path('u/<str:username>/<str:tab_name>/', concerts_views.public_profile_view, name='public_profile_tab'),
+    path('@<str:username>/', concerts_views.public_profile_view, name='public_profile_at'),
+    path('@<str:username>/<str:tab_name>/', concerts_views.public_profile_view, name='public_profile_at_tab'),
+
     path('api/profile/update/', core_views.update_profile_view, name='api_profile_update'),
     path('api/sync/', concerts_views.trigger_sync, name='api_sync'),
     path('api/sync/status/', concerts_views.sync_status, name='api_sync_status'),

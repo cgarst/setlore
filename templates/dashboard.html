@@ -82,102 +82,262 @@
 <body class="min-h-screen p-4 md:p-8 pb-24 md:pb-8">
 
   <!-- Header -->
-  <header class="max-w-7xl mx-auto mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+  <header class="max-w-7xl mx-auto mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
     <div>
-      <button onclick="switchTab('overview')" class="flex items-center text-left group focus:outline-none transition cursor-pointer" title="Setlore - Overview">
-        <img src="{% static 'img/setlore_banner.png' %}" alt="Setlore" class="h-10 md:h-12 w-auto object-contain rounded-xl group-hover:scale-105 transition-all">
-      </button>
+      {% if is_public_view and not request.user.is_authenticated %}
+        <a href="{% url 'public_profile' username=profile_user.username %}" class="flex items-center text-left group focus:outline-none transition cursor-pointer" title="Setlore">
+          <img src="{% static 'img/setlore_banner.png' %}" alt="Setlore" class="h-10 md:h-12 w-auto object-contain rounded-xl group-hover:scale-105 transition-all">
+        </a>
+      {% else %}
+        <a href="{% url 'dashboard' %}" class="flex items-center text-left group focus:outline-none transition cursor-pointer" title="Setlore - Dashboard">
+          <img src="{% static 'img/setlore_banner.png' %}" alt="Setlore" class="h-10 md:h-12 w-auto object-contain rounded-xl group-hover:scale-105 transition-all">
+        </a>
+      {% endif %}
     </div>
 
-    <!-- User Profile & Action Controls (Desktop/Tablet) -->
+    <!-- Desktop/Tablet Controls -->
     <div class="hidden md:flex flex-wrap gap-2 items-center">
-      <button onclick="openAddConcertModal()" class="px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-xs font-bold text-white flex items-center gap-1.5 transition cursor-pointer shadow-md shadow-indigo-600/25">
-        <i class="fa-solid fa-plus text-xs"></i> Add Concert
-      </button>
-
-      <button id="sync-btn" onclick="triggerSync()" class="px-3 py-1.5 rounded-xl bg-indigo-600/30 hover:bg-indigo-600/50 border border-indigo-500/40 text-xs font-semibold text-indigo-200 flex items-center gap-1.5 transition cursor-pointer">
-        <i id="sync-btn-icon" class="fa-solid fa-rotate text-indigo-400"></i>
-        <span id="sync-btn-text">Sync</span>
-      </button>
-
-      <!-- User Profile Dropdown Menu -->
-      <div class="relative" id="user-menu-container">
-        <button id="user-menu-btn" onclick="toggleUserMenu()" class="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-600 text-xs text-slate-200 transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500/50" aria-label="User account menu" aria-haspopup="true" aria-expanded="false" title="Account settings">
-          <div class="w-6 h-6 rounded-lg bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xs shadow-sm">
-            <i class="fa-solid fa-user"></i>
-          </div>
-          <span class="font-medium text-slate-200">{{ request.user.username }}</span>
-          <i class="fa-solid fa-chevron-down text-[10px] text-slate-400 transition-transform duration-200" id="user-menu-chevron"></i>
+      {% if not is_public_view %}
+        <!-- Dashboard Owner Actions -->
+        <button onclick="openAddConcertModal()" class="px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-xs font-bold text-white flex items-center gap-1.5 transition cursor-pointer shadow-md shadow-indigo-600/25">
+          <i class="fa-solid fa-plus text-xs"></i> Add Concert
         </button>
 
-        <!-- Dropdown Menu -->
-        <div id="user-dropdown-menu" class="hidden absolute right-0 mt-2 w-56 rounded-xl glass-card border border-slate-700/80 bg-slate-900/95 shadow-2xl py-1.5 z-50 backdrop-blur-xl">
-          <div class="px-3.5 py-2.5 border-b border-slate-800">
-            <div class="flex items-center gap-2.5">
-              <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white text-sm shadow-sm flex-shrink-0">
-                <i class="fa-solid fa-user"></i>
-              </div>
-              <div class="min-w-0 flex-1">
-                <p class="text-xs font-semibold text-white truncate">{{ request.user.username }}</p>
-                <div id="desktop-setlist-badge">
-                  {% if profile.setlistfm_username %}
-                    <p class="text-[11px] text-slate-400 truncate flex items-center gap-1">
-                      <i class="fa-brands fa-lastfm text-amber-400 text-[10px]"></i> @<span class="user-setlist-name">{{ profile.setlistfm_username }}</span>
-                    </p>
-                  {% else %}
-                    <p class="text-[11px] text-amber-400/90 truncate flex items-center gap-1 cursor-pointer hover:underline" onclick="openProfileModal(); closeUserMenu();">
-                      <i class="fa-brands fa-lastfm text-[10px]"></i> Link Setlist.fm
-                    </p>
-                  {% endif %}
+        <button id="sync-btn" onclick="triggerSync()" class="px-3 py-1.5 rounded-xl bg-indigo-600/30 hover:bg-indigo-600/50 border border-indigo-500/40 text-xs font-semibold text-indigo-200 flex items-center gap-1.5 transition cursor-pointer">
+          <i id="sync-btn-icon" class="fa-solid fa-rotate text-indigo-400"></i>
+          <span id="sync-btn-text">Sync</span>
+        </button>
+
+        <!-- User Profile Dropdown Menu -->
+        <div class="relative" id="user-menu-container">
+          <button id="user-menu-btn" onclick="toggleUserMenu()" class="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-600 text-xs text-slate-200 transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500/50" aria-label="User account menu" aria-haspopup="true" aria-expanded="false" title="Account settings">
+            <div class="w-6 h-6 rounded-lg bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xs shadow-sm">
+              <i class="fa-solid fa-user"></i>
+            </div>
+            <span class="font-medium text-slate-200">{{ request.user.username }}</span>
+            <i class="fa-solid fa-chevron-down text-[10px] text-slate-400 transition-transform duration-200" id="user-menu-chevron"></i>
+          </button>
+
+          <!-- Dropdown Menu -->
+          <div id="user-dropdown-menu" class="hidden absolute right-0 mt-2 w-56 rounded-xl glass-card border border-slate-700/80 bg-slate-900/95 shadow-2xl py-1.5 z-50 backdrop-blur-xl">
+            <div class="px-3.5 py-2.5 border-b border-slate-800">
+              <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white text-sm shadow-sm flex-shrink-0">
+                  <i class="fa-solid fa-user"></i>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="text-xs font-semibold text-white truncate">{{ request.user.username }}</p>
+                  <div id="desktop-setlist-badge">
+                    {% if profile.setlistfm_username %}
+                      <p class="text-[11px] text-slate-400 truncate flex items-center gap-1">
+                        <i class="fa-brands fa-lastfm text-amber-400 text-[10px]"></i> @<span class="user-setlist-name">{{ profile.setlistfm_username }}</span>
+                      </p>
+                    {% else %}
+                      <p class="text-[11px] text-amber-400/90 truncate flex items-center gap-1 cursor-pointer hover:underline" onclick="openProfileModal(); closeUserMenu();">
+                        <i class="fa-brands fa-lastfm text-[10px]"></i> Link Setlist.fm
+                      </p>
+                    {% endif %}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          <div class="py-1">
-            <button type="button" onclick="openProfileModal(); closeUserMenu();" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-slate-200 hover:text-white hover:bg-amber-500/10 transition text-left cursor-pointer">
-              <i class="fa-solid fa-user-gear text-amber-400 w-4 text-center"></i>
-              <span>Setlist.fm Settings</span>
-            </button>
-
-            <button type="button" onclick="openUploadModal(); closeUserMenu();" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-slate-200 hover:text-white hover:bg-indigo-600/20 transition text-left cursor-pointer">
-              <i class="fa-solid fa-file-csv text-cyan-400 w-4 text-center"></i>
-              <span>Import CSV</span>
-            </button>
-
-            <button type="button" onclick="openTicketmasterModal(); closeUserMenu();" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-slate-200 hover:text-white hover:bg-indigo-600/20 transition text-left cursor-pointer">
-              <i class="fa-solid fa-ticket text-emerald-400 w-4 text-center"></i>
-              <span>Import Ticketmaster</span>
-            </button>
-          </div>
-
-          <div class="border-t border-slate-800 py-1">
-            <a href="{% url 'password_change' %}" class="flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-slate-200 hover:text-white hover:bg-indigo-600/20 transition">
-              <i class="fa-solid fa-key text-indigo-400 w-4 text-center"></i>
-              <span>Change Password</span>
-            </a>
-
-            {% if request.user.is_staff %}
-              <a href="/admin/" target="_blank" class="flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-purple-300 hover:text-purple-200 hover:bg-purple-600/20 transition">
-                <i class="fa-solid fa-sliders text-purple-400 w-4 text-center"></i>
-                <span>Admin Portal</span>
+            <div class="py-1">
+              <a href="{% url 'public_profile' username=request.user.username %}" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-slate-200 hover:text-white hover:bg-indigo-600/20 transition text-left">
+                <i class="fa-solid fa-globe text-indigo-400 w-4 text-center"></i>
+                <span>View Public Profile</span>
               </a>
-            {% endif %}
-          </div>
 
-          <div class="border-t border-slate-800 pt-1">
-            <form method="post" action="{% url 'logout' %}" class="block m-0">
-              {% csrf_token %}
-              <button type="submit" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition text-left cursor-pointer">
-                <i class="fa-solid fa-arrow-right-from-bracket text-rose-400 w-4 text-center"></i>
-                <span>Log Out</span>
+              <button type="button" onclick="copyPublicShareUrl(); closeUserMenu();" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-slate-200 hover:text-white hover:bg-indigo-600/20 transition text-left cursor-pointer">
+                <i class="fa-solid fa-share-nodes text-emerald-400 w-4 text-center"></i>
+                <span>Share Profile Link</span>
               </button>
-            </form>
+
+              <button type="button" onclick="openProfileModal(); closeUserMenu();" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-slate-200 hover:text-white hover:bg-amber-500/10 transition text-left cursor-pointer">
+                <i class="fa-solid fa-user-gear text-amber-400 w-4 text-center"></i>
+                <span>Profile & Privacy</span>
+              </button>
+
+              <button type="button" onclick="openUploadModal(); closeUserMenu();" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-slate-200 hover:text-white hover:bg-indigo-600/20 transition text-left cursor-pointer">
+                <i class="fa-solid fa-file-csv text-cyan-400 w-4 text-center"></i>
+                <span>Import CSV</span>
+              </button>
+
+              <button type="button" onclick="openTicketmasterModal(); closeUserMenu();" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-slate-200 hover:text-white hover:bg-indigo-600/20 transition text-left cursor-pointer">
+                <i class="fa-solid fa-ticket text-emerald-400 w-4 text-center"></i>
+                <span>Import Ticketmaster</span>
+              </button>
+            </div>
+
+            <div class="border-t border-slate-800 py-1">
+              <a href="{% url 'password_change' %}" class="flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-slate-200 hover:text-white hover:bg-indigo-600/20 transition">
+                <i class="fa-solid fa-key text-indigo-400 w-4 text-center"></i>
+                <span>Change Password</span>
+              </a>
+
+              {% if request.user.is_staff %}
+                <a href="/admin/" target="_blank" class="flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-purple-300 hover:text-purple-200 hover:bg-purple-600/20 transition">
+                  <i class="fa-solid fa-sliders text-purple-400 w-4 text-center"></i>
+                  <span>Admin Portal</span>
+                </a>
+              {% endif %}
+            </div>
+
+            <div class="border-t border-slate-800 pt-1">
+              <form method="post" action="{% url 'logout' %}" class="block m-0">
+                {% csrf_token %}
+                <button type="submit" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition text-left cursor-pointer">
+                  <i class="fa-solid fa-arrow-right-from-bracket text-rose-400 w-4 text-center"></i>
+                  <span>Log Out</span>
+                </button>
+              </form>
+            </div>
           </div>
         </div>
-      </div>
+      {% else %}
+        <!-- Public Profile View Desktop Header -->
+        <button onclick="copyPublicShareUrl()" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 flex items-center gap-1.5 transition cursor-pointer">
+          <i class="fa-solid fa-share-nodes text-indigo-400"></i>
+          <span>Share Profile</span>
+        </button>
+
+        {% if request.user.is_authenticated %}
+          {% if is_owner %}
+            <a href="{% url 'dashboard' %}" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-xs font-bold text-white flex items-center gap-1.5 shadow-md shadow-indigo-600/25 transition">
+              <i class="fa-solid fa-sliders"></i>
+              <span>Edit Dashboard</span>
+            </a>
+          {% else %}
+            <a href="{% url 'dashboard' %}" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-xs font-bold text-white flex items-center gap-1.5 shadow-md shadow-indigo-600/25 transition">
+              <i class="fa-solid fa-house"></i>
+              <span>My Dashboard</span>
+            </a>
+          {% endif %}
+
+          <!-- User Profile Dropdown Menu for Logged-in viewer -->
+          <div class="relative" id="user-menu-container">
+            <button id="user-menu-btn" onclick="toggleUserMenu()" class="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-600 text-xs text-slate-200 transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500/50" aria-label="User account menu" aria-haspopup="true" aria-expanded="false" title="Account settings">
+              <div class="w-6 h-6 rounded-lg bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xs shadow-sm">
+                <i class="fa-solid fa-user"></i>
+              </div>
+              <span class="font-medium text-slate-200">{{ request.user.username }}</span>
+              <i class="fa-solid fa-chevron-down text-[10px] text-slate-400 transition-transform duration-200" id="user-menu-chevron"></i>
+            </button>
+
+            <!-- Dropdown Menu -->
+            <div id="user-dropdown-menu" class="hidden absolute right-0 mt-2 w-56 rounded-xl glass-card border border-slate-700/80 bg-slate-900/95 shadow-2xl py-1.5 z-50 backdrop-blur-xl">
+              <div class="px-3.5 py-2.5 border-b border-slate-800">
+                <div class="flex items-center gap-2.5">
+                  <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white text-sm shadow-sm flex-shrink-0">
+                    <i class="fa-solid fa-user"></i>
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <p class="text-xs font-semibold text-white truncate">{{ request.user.username }}</p>
+                    <p class="text-[11px] text-slate-400 truncate">Logged In</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="py-1">
+                <a href="{% url 'dashboard' %}" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-slate-200 hover:text-white hover:bg-indigo-600/20 transition text-left">
+                  <i class="fa-solid fa-house text-indigo-400 w-4 text-center"></i>
+                  <span>Go to My Dashboard</span>
+                </a>
+              </div>
+
+              <div class="border-t border-slate-800 py-1">
+                <a href="{% url 'password_change' %}" class="flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-slate-200 hover:text-white hover:bg-indigo-600/20 transition">
+                  <i class="fa-solid fa-key text-indigo-400 w-4 text-center"></i>
+                  <span>Change Password</span>
+                </a>
+                {% if request.user.is_staff %}
+                  <a href="/admin/" target="_blank" class="flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-purple-300 hover:text-purple-200 hover:bg-purple-600/20 transition">
+                    <i class="fa-solid fa-sliders text-purple-400 w-4 text-center"></i>
+                    <span>Admin Portal</span>
+                  </a>
+                {% endif %}
+              </div>
+
+              <div class="border-t border-slate-800 pt-1">
+                <form method="post" action="{% url 'logout' %}" class="block m-0">
+                  {% csrf_token %}
+                  <button type="submit" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition text-left cursor-pointer">
+                    <i class="fa-solid fa-arrow-right-from-bracket text-rose-400 w-4 text-center"></i>
+                    <span>Log Out</span>
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        {% else %}
+          <a href="{% url 'login' %}?next={{ request.path }}" class="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 transition">
+            <i class="fa-solid fa-right-to-bracket text-indigo-400 mr-1"></i> Sign In
+          </a>
+          <a href="{% url 'register' %}" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-xs font-bold text-white shadow-md shadow-indigo-600/30 transition">
+            <i class="fa-solid fa-user-plus mr-1"></i> Create Account
+          </a>
+        {% endif %}
+      {% endif %}
     </div>
   </header>
+
+  <!-- Public Profile Info Banner (shown only on public views) -->
+  {% if is_public_view %}
+    <div class="max-w-7xl mx-auto mb-6 p-4 rounded-2xl glass-card border border-indigo-500/40 bg-gradient-to-r from-slate-900 via-indigo-950/40 to-slate-900 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div class="flex items-center gap-3.5">
+        <div class="w-11 h-11 rounded-xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-white text-lg shadow-lg shadow-indigo-500/25 shrink-0">
+          <i class="fa-solid fa-user-astronaut"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <h1 class="text-sm md:text-base font-bold text-white flex items-center gap-1.5">
+              <span>{{ profile_user.username }}'s Concert Collection</span>
+            </h1>
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">
+              Public View (Read-Only)
+            </span>
+            {% if is_owner %}
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                Your Public Profile Preview
+              </span>
+            {% endif %}
+          </div>
+          <p class="text-xs text-slate-400 mt-0.5">
+            {% if profile.setlistfm_username %}
+              Setlist.fm: <span class="text-amber-400 font-medium">@{{ profile.setlistfm_username }}</span> •
+            {% endif %}
+            {{ stats.total_concerts|default:0 }} shows • {{ stats.unique_artists_count|default:0 }} artists • {{ stats.total_songs|default:0 }} songs played
+          </p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 w-full md:w-auto justify-end flex-wrap">
+        <button onclick="copyPublicShareUrl()" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 flex items-center gap-1.5 transition cursor-pointer" title="Copy shareable link">
+          <i class="fa-solid fa-share-nodes text-indigo-400"></i>
+          <span id="banner-share-btn-text">Share Link</span>
+        </button>
+
+        {% if is_owner %}
+          <a href="{% url 'dashboard' %}" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-xs font-bold text-white flex items-center gap-1.5 shadow-md shadow-indigo-600/30 transition">
+            <i class="fa-solid fa-sliders"></i>
+            <span>Edit Dashboard</span>
+          </a>
+        {% elif request.user.is_authenticated %}
+          <a href="{% url 'dashboard' %}" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-xs font-bold text-white flex items-center gap-1.5 shadow-md shadow-indigo-600/30 transition">
+            <i class="fa-solid fa-house"></i>
+            <span>My Dashboard</span>
+          </a>
+        {% else %}
+          <a href="{% url 'login' %}?next={{ request.path }}" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 transition">
+            <i class="fa-solid fa-right-to-bracket text-indigo-400 mr-1"></i> Sign In
+          </a>
+          <a href="{% url 'register' %}" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-xs font-bold text-white shadow-md shadow-indigo-600/30 transition">
+            <i class="fa-solid fa-user-plus mr-1"></i> Create Free Account
+          </a>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
 
   <!-- Live Sync Banner -->
   <div id="sync-banner" class="max-w-7xl mx-auto mb-6 p-4 rounded-xl glass-card border border-indigo-500/40 bg-indigo-950/40 flex items-center justify-between gap-4 {% if profile.sync_status != 'syncing' %}hidden{% endif %}">
@@ -193,7 +353,7 @@
     <span class="text-[11px] font-mono text-slate-400">Polling status...</span>
   </div>
 
-  <!-- Profile & Setlist.fm Settings Modal -->
+  <!-- Profile & Privacy Settings Modal -->
   <div id="profile-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
     <div class="max-w-md w-full glass-card p-6 shadow-2xl space-y-4 border border-slate-700 max-h-[90vh] overflow-y-auto">
       <div class="flex items-center justify-between border-b border-slate-800 pb-3">
@@ -202,8 +362,8 @@
             <i class="fa-solid fa-user-gear text-sm"></i>
           </div>
           <div>
-            <h3 class="text-base font-bold text-white">Setlist.fm Settings</h3>
-            <p class="text-[11px] text-slate-400">Manage account & sync preferences</p>
+            <h3 class="text-base font-bold text-white">Setlist.fm & Privacy Settings</h3>
+            <p class="text-[11px] text-slate-400">Manage Setlist.fm account, privacy & sync preferences</p>
           </div>
         </div>
         <button type="button" onclick="closeProfileModal()" class="text-slate-400 hover:text-white p-1 cursor-pointer">
@@ -228,6 +388,37 @@
           <p class="text-[11px] text-slate-400 mt-1.5 leading-relaxed">
             Your public Setlist.fm account. Setlore automatically uses a global integration key to pull your attended shows and songs.
           </p>
+        </div>
+
+        <!-- Profile Privacy Setting -->
+        <div class="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 space-y-3">
+          <div>
+            <label class="flex items-start gap-2.5 cursor-pointer">
+              <input type="checkbox" id="profile-is-public" name="is_public" {% if profile.is_public %}checked{% endif %}
+                onchange="toggleShareLinkDisplay(this.checked)"
+                class="mt-0.5 rounded bg-slate-800 border-slate-700 text-indigo-600 focus:ring-0 focus:ring-offset-0">
+              <div>
+                <span class="text-xs font-semibold text-white flex items-center gap-1.5">
+                  <i class="fa-solid fa-globe text-indigo-400"></i> Public Profile (Default)
+                </span>
+                <span class="text-[11px] text-slate-400 block mt-0.5 leading-relaxed">
+                  Allow anyone with your link to view your concert history and analytics in read-only mode. Uncheck to make your profile private.
+                </span>
+              </div>
+            </label>
+          </div>
+
+          <div id="profile-share-link-box" class="pt-2 border-t border-slate-800/80 {% if not profile.is_public %}hidden{% endif %}">
+            <label class="block text-[11px] font-semibold text-slate-400 mb-1">Your Public Share Link</label>
+            <div class="flex items-center gap-1.5">
+              <input type="text" id="profile-share-link-input" readonly value="{{ share_url }}"
+                class="w-full px-2.5 py-1.5 text-[11px] rounded-lg bg-slate-950 border border-slate-700 text-indigo-300 font-mono select-all">
+              <button type="button" onclick="copyShareLinkFromModal()" class="px-2.5 py-1.5 rounded-lg bg-indigo-600/30 hover:bg-indigo-600/50 border border-indigo-500/40 text-xs font-semibold text-indigo-200 shrink-0 transition flex items-center gap-1 cursor-pointer">
+                <i class="fa-solid fa-copy text-xs"></i>
+                <span id="modal-copy-link-text">Copy</span>
+              </button>
+            </div>
+          </div>
         </div>
 
         <div class="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2">
@@ -764,9 +955,11 @@
                 <i class="fa-solid fa-xmark"></i>
               </button>
             </div>
+            {% if not is_public_view or is_owner %}
             <button onclick="openAddConcertModal()" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold text-white flex items-center gap-1.5 transition shadow-sm cursor-pointer">
               <i class="fa-solid fa-plus text-xs"></i> Add Concert
             </button>
+            {% endif %}
             <button onclick="toggleAllConcertCards()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-indigo-300 border border-slate-700 hover:border-indigo-500/50 transition">
               Expand / Collapse All
             </button>
@@ -1379,10 +1572,14 @@
           <div class="p-8 text-center text-slate-400 bg-slate-800/40 rounded-xl space-y-3">
             <i class="fa-solid fa-cloud-arrow-down text-indigo-400 text-3xl mb-2 block"></i>
             <p class="text-base font-semibold text-white">Setlist.fm Sync Has Not Run Yet</p>
+            {% if not is_public_view or is_owner %}
             <p class="text-xs text-slate-400 max-w-md mx-auto">Click the button below to query your Setlist.fm profile (@{{ username }}) and identify untagged shows or missing setlists.</p>
             <button onclick="triggerSync()" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-lg shadow-indigo-600/30 transition">
               <i class="fa-solid fa-arrows-rotate mr-2"></i>Run Initial Sync Now
             </button>
+            {% else %}
+            <p class="text-xs text-slate-400 max-w-md mx-auto">This user has not synced their Setlist.fm attendance history yet.</p>
+            {% endif %}
           </div>
         {% elif gap.csv_missing_or_partial|length == 0 %}
           <div class="p-8 text-center text-slate-400 bg-slate-800/40 rounded-xl">
@@ -1534,13 +1731,36 @@
         <span class="text-[10px] tracking-tight truncate mt-0.5">Concerts</span>
       </button>
 
-      <!-- 3. Add Concert (Center Raised Action Button) -->
-      <button onclick="openAddConcertModal()" id="mobile-tab-add-btn" class="flex flex-col items-center justify-center -mt-4 group cursor-pointer" title="Add Concert">
-        <div class="w-11 h-11 rounded-full bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/40 border-2 border-slate-900 group-active:scale-90 group-hover:scale-105 transition-all">
-          <i class="fa-solid fa-plus text-base font-bold"></i>
-        </div>
-        <span class="text-[10px] text-slate-300 font-semibold tracking-tight mt-0.5">Add</span>
-      </button>
+      <!-- 3. Action / Center Button -->
+      {% if not is_public_view %}
+        <button onclick="openAddConcertModal()" id="mobile-tab-add-btn" class="flex flex-col items-center justify-center -mt-4 group cursor-pointer" title="Add Concert">
+          <div class="w-11 h-11 rounded-full bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/40 border-2 border-slate-900 group-active:scale-90 group-hover:scale-105 transition-all">
+            <i class="fa-solid fa-plus text-base font-bold"></i>
+          </div>
+          <span class="text-[10px] text-slate-300 font-semibold tracking-tight mt-0.5">Add</span>
+        </button>
+      {% elif is_owner %}
+        <a href="{% url 'dashboard' %}" id="mobile-tab-edit-btn" class="flex flex-col items-center justify-center -mt-4 group cursor-pointer" title="Edit Dashboard">
+          <div class="w-11 h-11 rounded-full bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/40 border-2 border-slate-900 group-active:scale-90 group-hover:scale-105 transition-all">
+            <i class="fa-solid fa-sliders text-base font-bold"></i>
+          </div>
+          <span class="text-[10px] text-slate-300 font-semibold tracking-tight mt-0.5">Edit</span>
+        </a>
+      {% elif request.user.is_authenticated %}
+        <a href="{% url 'dashboard' %}" id="mobile-tab-home-btn" class="flex flex-col items-center justify-center -mt-4 group cursor-pointer" title="My Dashboard">
+          <div class="w-11 h-11 rounded-full bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/40 border-2 border-slate-900 group-active:scale-90 group-hover:scale-105 transition-all">
+            <i class="fa-solid fa-house text-base font-bold"></i>
+          </div>
+          <span class="text-[10px] text-slate-300 font-semibold tracking-tight mt-0.5">Mine</span>
+        </a>
+      {% else %}
+        <a href="{% url 'register' %}" id="mobile-tab-join-btn" class="flex flex-col items-center justify-center -mt-4 group cursor-pointer" title="Create Account">
+          <div class="w-11 h-11 rounded-full bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/40 border-2 border-slate-900 group-active:scale-90 group-hover:scale-105 transition-all">
+            <i class="fa-solid fa-user-plus text-sm font-bold"></i>
+          </div>
+          <span class="text-[10px] text-slate-300 font-semibold tracking-tight mt-0.5">Join</span>
+        </a>
+      {% endif %}
 
       <!-- 4. Artists & Songs -->
       <button onclick="switchTab('drilldown')" id="mobile-tab-drilldown-btn" class="mobile-nav-tab flex flex-col items-center justify-center py-1 px-1 rounded-xl text-slate-400 hover:text-slate-200 font-medium transition-all group" title="Artists & Songs">
@@ -1578,18 +1798,25 @@
             <i class="fa-solid fa-user"></i>
           </div>
           <div class="min-w-0 flex-1">
-            <p class="text-sm font-bold text-white truncate">{{ request.user.username }}</p>
-            <div id="mobile-setlist-badge">
-              {% if profile.setlistfm_username %}
-                <p class="text-[11px] text-amber-300 truncate flex items-center gap-1">
-                  <i class="fa-brands fa-lastfm text-[10px]"></i> @<span class="user-setlist-name">{{ profile.setlistfm_username }}</span>
-                </p>
-              {% else %}
-                <p class="text-[11px] text-amber-400/90 flex items-center gap-1 cursor-pointer hover:underline" onclick="openProfileModal(); closeMobileMoreMenu();">
-                  <i class="fa-brands fa-lastfm text-[10px]"></i> Link Setlist.fm account
-                </p>
-              {% endif %}
-            </div>
+            {% if is_public_view %}
+              <p class="text-sm font-bold text-white truncate">@{{ profile_user.username }}</p>
+              <p class="text-[11px] text-indigo-300 truncate flex items-center gap-1">
+                <i class="fa-solid fa-globe text-[10px]"></i> Public Profile View
+              </p>
+            {% else %}
+              <p class="text-sm font-bold text-white truncate">{{ request.user.username }}</p>
+              <div id="mobile-setlist-badge">
+                {% if profile.setlistfm_username %}
+                  <p class="text-[11px] text-amber-300 truncate flex items-center gap-1">
+                    <i class="fa-brands fa-lastfm text-[10px]"></i> @<span class="user-setlist-name">{{ profile.setlistfm_username }}</span>
+                  </p>
+                {% else %}
+                  <p class="text-[11px] text-amber-400/90 flex items-center gap-1 cursor-pointer hover:underline" onclick="openProfileModal(); closeMobileMoreMenu();">
+                    <i class="fa-brands fa-lastfm text-[10px]"></i> Link Setlist.fm account
+                  </p>
+                {% endif %}
+              </div>
+            {% endif %}
           </div>
         </div>
         <button onclick="closeMobileMoreMenu()" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center transition cursor-pointer" aria-label="Close menu">
@@ -1597,49 +1824,104 @@
         </button>
       </div>
 
-      <!-- Quick Actions (Sync, Setlist Settings & Imports) -->
+      <!-- Quick Actions (Sync, Setlist Settings & Imports or Public Options) -->
       <div class="space-y-2">
         <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Quick Actions</p>
         
-        <!-- Mobile Sync Button -->
-        <button id="mobile-sync-btn" onclick="triggerSync()" class="w-full flex items-center justify-between p-3 rounded-2xl bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/40 text-indigo-200 transition cursor-pointer shadow-sm group">
-          <div class="flex items-center gap-3">
-            <div class="w-9 h-9 rounded-xl bg-indigo-500/25 flex items-center justify-center text-indigo-400">
-              <i id="mobile-sync-btn-icon" class="fa-solid fa-rotate text-sm"></i>
+        {% if not is_public_view %}
+          <!-- Mobile Sync Button -->
+          <button id="mobile-sync-btn" onclick="triggerSync()" class="w-full flex items-center justify-between p-3 rounded-2xl bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/40 text-indigo-200 transition cursor-pointer shadow-sm group">
+            <div class="flex items-center gap-3">
+              <div class="w-9 h-9 rounded-xl bg-indigo-500/25 flex items-center justify-center text-indigo-400">
+                <i id="mobile-sync-btn-icon" class="fa-solid fa-rotate text-sm"></i>
+              </div>
+              <div class="text-left">
+                <p class="text-xs font-bold text-white"><span id="mobile-sync-btn-text">Sync</span></p>
+                <p class="text-[11px] text-indigo-300/70">Fetch latest data & update profile</p>
+              </div>
             </div>
-            <div class="text-left">
-              <p class="text-xs font-bold text-white"><span id="mobile-sync-btn-text">Sync</span></p>
-              <p class="text-[11px] text-indigo-300/70">Fetch latest data & update profile</p>
-            </div>
-          </div>
-          <i class="fa-solid fa-chevron-right text-indigo-400/60 text-xs"></i>
-        </button>
-
-        <!-- Setlist.fm Settings Button in Mobile Sheet -->
-        <button type="button" onclick="openProfileModal(); closeMobileMoreMenu();" class="w-full flex items-center justify-between p-3 rounded-2xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-200 transition cursor-pointer shadow-sm group">
-          <div class="flex items-center gap-3">
-            <div class="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400">
-              <i class="fa-solid fa-user-gear text-sm"></i>
-            </div>
-            <div class="text-left">
-              <p class="text-xs font-bold text-white">Setlist.fm Settings</p>
-              <p class="text-[11px] text-amber-300/70">Configure username & sync preferences</p>
-            </div>
-          </div>
-          <i class="fa-solid fa-chevron-right text-amber-400/60 text-xs"></i>
-        </button>
-
-        <!-- Import Tools Grid -->
-        <div class="grid grid-cols-2 gap-2">
-          <button type="button" onclick="openUploadModal(); closeMobileMoreMenu();" class="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 text-xs font-semibold text-slate-200 transition cursor-pointer">
-            <i class="fa-solid fa-file-csv text-cyan-400 text-sm"></i>
-            <span>Import CSV</span>
+            <i class="fa-solid fa-chevron-right text-indigo-400/60 text-xs"></i>
           </button>
-          <button type="button" onclick="openTicketmasterModal(); closeMobileMoreMenu();" class="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 text-xs font-semibold text-slate-200 transition cursor-pointer">
-            <i class="fa-solid fa-ticket text-emerald-400 text-sm"></i>
-            <span>Import TM</span>
+
+          <!-- Profile & Privacy Settings Button in Mobile Sheet -->
+          <button type="button" onclick="openProfileModal(); closeMobileMoreMenu();" class="w-full flex items-center justify-between p-3 rounded-2xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-200 transition cursor-pointer shadow-sm group">
+            <div class="flex items-center gap-3">
+              <div class="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                <i class="fa-solid fa-user-gear text-sm"></i>
+              </div>
+              <div class="text-left">
+                <p class="text-xs font-bold text-white">Profile & Privacy Settings</p>
+                <p class="text-[11px] text-amber-300/70">Configure Setlist.fm & public sharing</p>
+              </div>
+            </div>
+            <i class="fa-solid fa-chevron-right text-amber-400/60 text-xs"></i>
           </button>
-        </div>
+
+          <!-- Import Tools Grid -->
+          <div class="grid grid-cols-2 gap-2">
+            <button type="button" onclick="openUploadModal(); closeMobileMoreMenu();" class="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 text-xs font-semibold text-slate-200 transition cursor-pointer">
+              <i class="fa-solid fa-file-csv text-cyan-400 text-sm"></i>
+              <span>Import CSV</span>
+            </button>
+            <button type="button" onclick="openTicketmasterModal(); closeMobileMoreMenu();" class="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 text-xs font-semibold text-slate-200 transition cursor-pointer">
+              <i class="fa-solid fa-ticket text-emerald-400 text-sm"></i>
+              <span>Import TM</span>
+            </button>
+          </div>
+        {% else %}
+          <!-- Public View Mobile Quick Actions -->
+          <button type="button" onclick="copyPublicShareUrl(); closeMobileMoreMenu();" class="w-full flex items-center justify-between p-3 rounded-2xl bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/40 text-indigo-200 transition cursor-pointer shadow-sm group">
+            <div class="flex items-center gap-3">
+              <div class="w-9 h-9 rounded-xl bg-indigo-500/25 flex items-center justify-center text-indigo-400">
+                <i class="fa-solid fa-share-nodes text-sm"></i>
+              </div>
+              <div class="text-left">
+                <p class="text-xs font-bold text-white">Share Public Profile</p>
+                <p class="text-[11px] text-indigo-300/70">Copy public link to clipboard</p>
+              </div>
+            </div>
+            <i class="fa-solid fa-chevron-right text-indigo-400/60 text-xs"></i>
+          </button>
+
+          {% if is_owner %}
+            <a href="{% url 'dashboard' %}" class="w-full flex items-center justify-between p-3 rounded-2xl bg-gradient-to-r from-indigo-600/30 to-purple-600/30 border border-indigo-500/40 text-white transition shadow-sm">
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-indigo-500/30 flex items-center justify-center text-indigo-300">
+                  <i class="fa-solid fa-sliders text-sm"></i>
+                </div>
+                <div class="text-left">
+                  <p class="text-xs font-bold text-white">Edit My Dashboard</p>
+                  <p class="text-[11px] text-indigo-200/70">Return to full manager view</p>
+                </div>
+              </div>
+              <i class="fa-solid fa-chevron-right text-indigo-300 text-xs"></i>
+            </a>
+          {% elif request.user.is_authenticated %}
+            <a href="{% url 'dashboard' %}" class="w-full flex items-center justify-between p-3 rounded-2xl bg-gradient-to-r from-indigo-600/30 to-purple-600/30 border border-indigo-500/40 text-white transition shadow-sm">
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-indigo-500/30 flex items-center justify-center text-indigo-300">
+                  <i class="fa-solid fa-house text-sm"></i>
+                </div>
+                <div class="text-left">
+                  <p class="text-xs font-bold text-white">Go to My Dashboard</p>
+                  <p class="text-[11px] text-indigo-200/70">View and manage your own shows</p>
+                </div>
+              </div>
+              <i class="fa-solid fa-chevron-right text-indigo-300 text-xs"></i>
+            </a>
+          {% else %}
+            <div class="grid grid-cols-2 gap-2">
+              <a href="{% url 'login' %}?next={{ request.path }}" class="flex items-center justify-center gap-2 p-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 border border-slate-700 transition">
+                <i class="fa-solid fa-right-to-bracket text-indigo-400"></i>
+                <span>Sign In</span>
+              </a>
+              <a href="{% url 'register' %}" class="flex items-center justify-center gap-2 p-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-xs font-bold text-white shadow-md transition">
+                <i class="fa-solid fa-user-plus"></i>
+                <span>Create Account</span>
+              </a>
+            </div>
+          {% endif %}
+        {% endif %}
       </div>
 
       <!-- Navigation Sections -->
@@ -1724,38 +2006,40 @@
         </div>
       </div>
 
-      <!-- Account Settings & Logout -->
-      <div class="pt-2 border-t border-slate-800 space-y-2">
-        <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Account</p>
+      <!-- Account Settings & Logout (Only if logged in) -->
+      {% if request.user.is_authenticated %}
+        <div class="pt-2 border-t border-slate-800 space-y-2">
+          <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Account ({{ request.user.username }})</p>
 
-        <div class="space-y-1.5">
-          <a href="{% url 'password_change' %}" class="flex items-center justify-between p-2.5 rounded-xl bg-slate-800/50 hover:bg-slate-800 text-xs text-slate-300 hover:text-white transition">
-            <div class="flex items-center gap-2.5">
-              <i class="fa-solid fa-key text-indigo-400 w-4 text-center"></i>
-              <span>Change Password</span>
-            </div>
-            <i class="fa-solid fa-chevron-right text-slate-500 text-[10px]"></i>
-          </a>
-
-          {% if request.user.is_staff %}
-            <a href="/admin/" target="_blank" class="flex items-center justify-between p-2.5 rounded-xl bg-purple-950/30 hover:bg-purple-900/40 border border-purple-500/30 text-xs text-purple-200 transition">
+          <div class="space-y-1.5">
+            <a href="{% url 'password_change' %}" class="flex items-center justify-between p-2.5 rounded-xl bg-slate-800/50 hover:bg-slate-800 text-xs text-slate-300 hover:text-white transition">
               <div class="flex items-center gap-2.5">
-                <i class="fa-solid fa-sliders text-purple-400 w-4 text-center"></i>
-                <span>Admin Portal</span>
+                <i class="fa-solid fa-key text-indigo-400 w-4 text-center"></i>
+                <span>Change Password</span>
               </div>
-              <i class="fa-solid fa-arrow-up-right-from-square text-purple-400/70 text-[10px]"></i>
+              <i class="fa-solid fa-chevron-right text-slate-500 text-[10px]"></i>
             </a>
-          {% endif %}
 
-          <form method="post" action="{% url 'logout' %}" class="block m-0 pt-1">
-            {% csrf_token %}
-            <button type="submit" class="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-xs font-semibold text-rose-400 border border-rose-500/20 transition cursor-pointer">
-              <i class="fa-solid fa-arrow-right-from-bracket"></i>
-              <span>Log Out</span>
-            </button>
-          </form>
+            {% if request.user.is_staff %}
+              <a href="/admin/" target="_blank" class="flex items-center justify-between p-2.5 rounded-xl bg-purple-950/30 hover:bg-purple-900/40 border border-purple-500/30 text-xs text-purple-200 transition">
+                <div class="flex items-center gap-2.5">
+                  <i class="fa-solid fa-sliders text-purple-400 w-4 text-center"></i>
+                  <span>Admin Portal</span>
+                </div>
+                <i class="fa-solid fa-arrow-up-right-from-square text-purple-400/70 text-[10px]"></i>
+              </a>
+            {% endif %}
+
+            <form method="post" action="{% url 'logout' %}" class="block m-0 pt-1">
+              {% csrf_token %}
+              <button type="submit" class="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-xs font-semibold text-rose-400 border border-rose-500/20 transition cursor-pointer">
+                <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                <span>Log Out</span>
+              </button>
+            </form>
+          </div>
         </div>
-      </div>
+      {% endif %}
     </div>
   </div>
 
@@ -1852,7 +2136,8 @@
       });
 
       if (updateUrl) {
-        const targetPath = (tabId === 'overview') ? '/' : `/${tabId}/`;
+        const baseUrl = window.tabUrlBase || '';
+        const targetPath = baseUrl ? (tabId === 'overview' ? `${baseUrl}/` : `${baseUrl}/${tabId}/`) : (tabId === 'overview' ? '/' : `/${tabId}/`);
         if (window.location.pathname !== targetPath || window.location.hash) {
           history.pushState({ tabId: tabId }, '', targetPath);
         }
@@ -2910,12 +3195,74 @@
         .replace(/'/g, '&#039;');
     }
 
+    window.isPublicView = {{ is_public_view|yesno:"true,false" }};
+    window.isOwner = {{ is_owner|yesno:"true,false" }};
+    window.tabUrlBase = "{{ tab_url_base|escapejs }}";
+    window.shareUrl = "{{ share_url|escapejs }}";
     window.userProfile = {
-      username: "{{ request.user.username|escapejs }}",
+      username: "{{ profile_user.username|escapejs }}",
       setlistfmUsername: "{{ profile.setlistfm_username|default:''|escapejs }}",
       promptSetlistfm: {{ profile.prompt_setlistfm|yesno:"true,false" }},
+      isPublic: {{ profile.is_public|yesno:"true,false" }},
       hasApiKey: {{ profile.setlistfm_api_key|yesno:"true,false" }}
     };
+
+    function toggleShareLinkDisplay(isPublic) {
+      const box = document.getElementById('profile-share-link-box');
+      if (box) {
+        if (isPublic) {
+          box.classList.remove('hidden');
+        } else {
+          box.classList.add('hidden');
+        }
+      }
+    }
+
+    function copyShareLinkFromModal() {
+      const input = document.getElementById('profile-share-link-input');
+      const btnText = document.getElementById('modal-copy-link-text');
+      if (input) {
+        input.select();
+        input.setSelectionRange(0, 99999);
+        navigator.clipboard.writeText(input.value).then(() => {
+          if (btnText) {
+            btnText.innerText = 'Copied!';
+            setTimeout(() => { btnText.innerText = 'Copy'; }, 2000);
+          }
+        }).catch(() => {
+          document.execCommand('copy');
+          if (btnText) {
+            btnText.innerText = 'Copied!';
+            setTimeout(() => { btnText.innerText = 'Copy'; }, 2000);
+          }
+        });
+      }
+    }
+
+    function copyPublicShareUrl() {
+      const url = window.shareUrl || window.location.href;
+      const copyButtons = [
+        document.getElementById('copy-share-btn-text'),
+        document.getElementById('banner-share-btn-text')
+      ];
+      navigator.clipboard.writeText(url).then(() => {
+        copyButtons.forEach(btn => {
+          if (btn) {
+            const orig = btn.innerText;
+            btn.innerText = 'Copied Link!';
+            setTimeout(() => { btn.innerText = orig; }, 2000);
+          }
+        });
+      }).catch(() => {
+        copyButtons.forEach(btn => {
+          if (btn) {
+            const orig = btn.innerText;
+            btn.innerText = 'Copied Link!';
+            setTimeout(() => { btn.innerText = orig; }, 2000);
+          }
+        });
+      });
+    }
 
     function updateSetlistBadges(username) {
       const desktopBadge = document.getElementById('desktop-setlist-badge');
@@ -2942,10 +3289,14 @@
       const modal = document.getElementById('profile-modal');
       const userInp = document.getElementById('profile-setlist-username');
       const promptChk = document.getElementById('profile-prompt-sync');
+      const publicChk = document.getElementById('profile-is-public');
       const alertBox = document.getElementById('profile-modal-alert');
 
       if (userInp) userInp.value = window.userProfile.setlistfmUsername || '';
       if (promptChk) promptChk.checked = Boolean(window.userProfile.promptSetlistfm);
+      if (publicChk) publicChk.checked = Boolean(window.userProfile.isPublic);
+      toggleShareLinkDisplay(Boolean(window.userProfile.isPublic));
+
       if (alertBox) {
         alertBox.classList.add('hidden');
         alertBox.innerHTML = '';
@@ -2974,6 +3325,7 @@
       const userInp = document.getElementById('profile-setlist-username');
       const apiKeyInp = document.getElementById('profile-setlist-apikey');
       const promptChk = document.getElementById('profile-prompt-sync');
+      const publicChk = document.getElementById('profile-is-public');
       const alertBox = document.getElementById('profile-modal-alert');
       const saveBtn = document.getElementById('profile-save-btn');
       const saveSyncBtn = document.getElementById('profile-save-sync-btn');
@@ -2981,6 +3333,7 @@
       const setlistUsername = userInp ? userInp.value.trim().replace(/^@/, '') : '';
       const setlistApiKey = apiKeyInp ? apiKeyInp.value.trim() : '';
       const promptSetlistfm = promptChk ? promptChk.checked : true;
+      const isPublic = publicChk ? publicChk.checked : true;
 
       if (saveBtn) saveBtn.disabled = true;
       if (saveSyncBtn) saveSyncBtn.disabled = true;
@@ -2995,6 +3348,7 @@
           setlistfm_username: setlistUsername,
           setlistfm_api_key: setlistApiKey,
           prompt_setlistfm: promptSetlistfm,
+          is_public: isPublic,
           trigger_sync: andSync
         };
 
@@ -3011,6 +3365,8 @@
         if (res.ok && data.status === 'ok') {
           window.userProfile.setlistfmUsername = data.profile.setlistfm_username || '';
           window.userProfile.promptSetlistfm = Boolean(data.profile.prompt_setlistfm);
+          window.userProfile.isPublic = Boolean(data.profile.is_public);
+          toggleShareLinkDisplay(window.userProfile.isPublic);
           updateSetlistBadges(window.userProfile.setlistfmUsername);
 
           if (alertBox) {

@@ -10,6 +10,7 @@ from django.views.decorators.http import require_POST
 from django.db import transaction
 
 import os
+from django.contrib.auth.models import User
 from apps.catalog.models import ApiCache, Artist, Venue, Song
 from apps.concerts.models import Concert, ConcertArtist, ConcertSong
 from apps.concerts.utils import parse_setlist_text, resolve_venue_coordinates, build_manual_setlist_for_concert_artist
@@ -25,8 +26,7 @@ from src.musician_tracker import analyze_musicians_live
 from src.config import SETLISTFM_API_KEY, USER_CACHE_DIR
 from .services.sync_worker import sync_worker
 
-@login_required
-def dashboard_view(request, tab_name='overview'):
+def get_dashboard_context(request, target_user, tab_name='overview', is_public_view=False):
     alias_map = {
         '': 'overview',
         'overview': 'overview',
@@ -44,10 +44,9 @@ def dashboard_view(request, tab_name='overview'):
         'audit': 'gap',
     }
     initial_tab = alias_map.get(str(tab_name).lower().strip('/'), 'overview')
-    user = request.user
-    profile = user.profile
+    profile = target_user.profile
 
-    cache_entry = ApiCache.objects.filter(cache_key=f"user_dashboard_bundle_{user.id}").first()
+    cache_entry = ApiCache.objects.filter(cache_key=f"user_dashboard_bundle_{target_user.id}").first()
 
     if cache_entry and cache_entry.payload:
         bundle = cache_entry.payload
@@ -56,7 +55,7 @@ def dashboard_view(request, tab_name='overview'):
         album_enrichments = bundle.get("album_enrichments", {})
     else:
         # Build baseline statistics directly from database
-        db_concerts = Concert.objects.filter(user=user).select_related('venue').prefetch_related('artists__artist', 'artists__songs')
+        db_concerts = Concert.objects.filter(user=target_user).select_related('venue').prefetch_related('artists__artist', 'artists__songs')
         csv_records = []
         manual_matched_pairs = []
 
@@ -167,7 +166,7 @@ def dashboard_view(request, tab_name='overview'):
         # Cache this bundle so subsequent loads are instant
         if matched or csv_records:
             ApiCache.objects.update_or_create(
-                cache_key=f"user_dashboard_bundle_{user.id}",
+                cache_key=f"user_dashboard_bundle_{target_user.id}",
                 defaults={
                     'endpoint': 'dashboard_bundle',
                     'payload': {
@@ -202,9 +201,14 @@ def dashboard_view(request, tab_name='overview'):
     artist_drilldown_json = json.dumps(drilldown)
     venue_map_json = json.dumps(stats.get("venue_map", {}))
 
-    context = {
+    is_owner = request.user.is_authenticated and (request.user.id == target_user.id)
+    tab_url_base = f"/u/{target_user.username}" if is_public_view else ""
+    share_url = request.build_absolute_uri(f"/u/{target_user.username}/")
+
+    return {
         'initial_tab': initial_tab,
-        'username': profile.setlistfm_username or user.username,
+        'profile_user': target_user,
+        'username': profile.setlistfm_username or target_user.username,
         'profile': profile,
         'gap': gap_results,
         'stats': stats,
@@ -212,8 +216,40 @@ def dashboard_view(request, tab_name='overview'):
         'venue_map_json': venue_map_json,
         'all_venues': list(Venue.objects.order_by('name').values_list('name', flat=True).distinct()),
         'all_artists': list(Artist.objects.order_by('name').values_list('name', flat=True).distinct()),
+        'is_public_view': is_public_view,
+        'is_owner': is_owner,
+        'is_profile_private': not profile.is_public,
+        'share_url': share_url,
+        'tab_url_base': tab_url_base,
         **charts
     }
+
+@login_required
+def dashboard_view(request, tab_name='overview'):
+    context = get_dashboard_context(request, request.user, tab_name=tab_name, is_public_view=False)
+    return render(request, 'dashboard.html', context)
+
+def public_profile_view(request, username, tab_name='overview'):
+    clean_username = username.lstrip('@').strip()
+    target_user = User.objects.filter(username__iexact=clean_username).first()
+    if not target_user:
+        return render(request, 'public_profile_message.html', {
+            'title': 'User Not Found',
+            'message_type': 'not_found',
+            'requested_username': clean_username,
+        }, status=404)
+
+    is_owner = request.user.is_authenticated and (request.user.id == target_user.id)
+    is_staff = request.user.is_authenticated and request.user.is_staff
+
+    if not target_user.profile.is_public and not is_owner and not is_staff:
+        return render(request, 'public_profile_message.html', {
+            'title': 'Private Profile',
+            'message_type': 'private',
+            'target_user': target_user,
+        }, status=403)
+
+    context = get_dashboard_context(request, target_user, tab_name=tab_name, is_public_view=True)
     return render(request, 'dashboard.html', context)
 
 @login_required

@@ -64,6 +64,15 @@ def update_profile_view(request):
             profile.prompt_setlistfm = prompt_bool
             update_fields.append('prompt_setlistfm')
 
+        if 'is_public' in data:
+            val = data.get('is_public')
+            if isinstance(val, str):
+                is_pub_bool = val.lower() in ('true', '1', 'yes', 'on')
+            else:
+                is_pub_bool = bool(val)
+            profile.is_public = is_pub_bool
+            update_fields.append('is_public')
+
         if update_fields:
             update_fields.append('updated_at')
             profile.save(update_fields=update_fields)
@@ -84,6 +93,7 @@ def update_profile_view(request):
                 "username": request.user.username,
                 "setlistfm_username": profile.setlistfm_username,
                 "prompt_setlistfm": profile.prompt_setlistfm,
+                "is_public": profile.is_public,
                 "has_custom_api_key": bool(profile.setlistfm_api_key),
             },
             "sync_queued": sync_queued
