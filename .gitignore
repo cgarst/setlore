@@ -22,6 +22,8 @@ data/
 *.html
 !src/templates/*.html
 !templates/**/*.html
+!docs/**/*.html
+!docs/*.html
 
 # Backups
 *.bak

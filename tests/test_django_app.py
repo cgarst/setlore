@@ -270,7 +270,7 @@ class DjangoAppTests(TestCase):
         self.assertEqual(res.status_code, 200)
         content = res.content.decode('utf-8')
         self.assertIn('Public View (Read-Only)', content)
-        self.assertIn('My Dashboard', content)
+        self.assertIn('Overview', content)
         self.assertIn('otheruser', content)
 
         # 2. When target profile is private
@@ -281,7 +281,7 @@ class DjangoAppTests(TestCase):
         self.assertEqual(res_priv.status_code, 403)
         priv_content = res_priv.content.decode('utf-8')
         self.assertIn('This Profile is Private', priv_content)
-        self.assertIn('Go to My Dashboard', priv_content)
+        self.assertIn('Overview', priv_content)
         self.assertIn('otheruser', priv_content)
 
     def test_public_profile_owner_access(self):
@@ -292,7 +292,7 @@ class DjangoAppTests(TestCase):
         self.assertEqual(res.status_code, 200)
         content = res.content.decode('utf-8')
         self.assertIn('Your Public Profile Preview', content)
-        self.assertIn('Back to Dashboard', content)
+        self.assertIn('Back to Overview', content)
 
         # Owner viewing own profile even when set to private
         self.user.profile.is_public = False
@@ -417,7 +417,7 @@ class DjangoAppTests(TestCase):
         auth_res = self.client.get('/privacy/')
         self.assertEqual(auth_res.status_code, 200)
         auth_content = auth_res.content.decode('utf-8')
-        self.assertIn('Back to Dashboard', auth_content)
+        self.assertIn('Back to Overview', auth_content)
 
         # Redirect check for /privacy (without trailing slash)
         redirect_res = self.client.get('/privacy', follow=True)

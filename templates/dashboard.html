@@ -109,7 +109,7 @@
   <!-- Header -->
   <header class="max-w-7xl mx-auto mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
     <div>
-      <a href="{% url 'home' %}" class="flex items-center text-left group focus:outline-none transition cursor-pointer" title="Setlore - Home">
+      <a href="{% if is_demo %}{{ home_url|default:'../index.html' }}{% else %}{% url 'home' %}{% endif %}" class="flex items-center text-left group focus:outline-none transition cursor-pointer" title="Setlore - Home">
         <img src="{% static 'img/setlore_banner.png' %}" alt="Setlore" class="h-10 md:h-12 w-auto object-contain rounded-xl group-hover:scale-105 transition-all">
       </a>
     </div>
@@ -117,7 +117,7 @@
     <!-- Desktop/Tablet Controls -->
     <div class="hidden md:flex flex-wrap gap-2 items-center">
       <!-- GitHub Repo Link -->
-      <a href="https://github.com/cgarst/concert-trakr" target="_blank" rel="noopener noreferrer" class="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/60 transition flex items-center justify-center" title="View Source on GitHub" aria-label="View Source on GitHub">
+      <a href="{{ repo_url|default:'https://github.com/cgarst/concert-trakr' }}" target="_blank" rel="noopener noreferrer" class="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/60 transition flex items-center justify-center" title="View Source on GitHub" aria-label="View Source on GitHub">
         <i class="fa-brands fa-github text-base"></i>
       </a>
 
@@ -252,6 +252,16 @@
             </div>
           </div>
         </div>
+      {% elif is_demo %}
+        <!-- Demo View Desktop Header -->
+        <a href="{% if is_demo %}{{ home_url|default:'../index.html' }}{% else %}{% url 'home' %}{% endif %}" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 hover:text-white transition flex items-center gap-1.5">
+          <i class="fa-solid fa-arrow-left text-xs"></i>
+          <span>Home</span>
+        </a>
+        <a href="{{ repo_url|default:'https://github.com/cgarst/concert-trakr' }}" target="_blank" rel="noopener noreferrer" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-xs font-bold text-white shadow-md shadow-indigo-600/30 transition flex items-center gap-1.5">
+          <i class="fa-brands fa-github text-xs"></i>
+          <span>Install Setlore</span>
+        </a>
       {% else %}
         <!-- Public Profile View Desktop Header -->
         {% if request.user.is_authenticated %}
@@ -343,7 +353,11 @@
             <h1 class="text-sm md:text-base font-bold text-white flex items-center gap-1.5">
               <span>{{ profile_user.username }}'s Concert Collection</span>
             </h1>
-            {% if is_profile_private %}
+            {% if is_demo %}
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">
+                Demo Mode (Read-Only)
+              </span>
+            {% elif is_profile_private %}
               <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1">
                 <i class="fa-solid fa-lock text-[9px]"></i> Private Profile (Friend Access)
               </span>
@@ -362,29 +376,44 @@
       </div>
 
       <div class="flex items-center gap-2 w-full md:w-auto justify-end flex-wrap">
-        {% if request.user.is_authenticated and not is_owner %}
-          <button type="button" id="public-profile-friend-btn" onclick="togglePublicProfileFriend({{ profile_user.id }})"
-            class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-md {% if is_friend %}bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300{% else %}bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-600/30{% endif %}">
-            <i id="public-profile-friend-icon" class="fa-solid {% if is_friend %}fa-user-check{% else %}fa-user-plus{% endif %}"></i>
-            <span id="public-profile-friend-text">{% if is_friend %}Friended{% else %}Add Friend{% endif %}</span>
+        {% if is_demo %}
+          <a href="{{ static_csv_url|default:'concerts.csv' }}" download class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 flex items-center gap-1.5 transition cursor-pointer" title="Download CSV of concerts">
+            <i class="fa-solid fa-file-export text-emerald-400"></i>
+            <span>Export CSV</span>
+          </a>
+          <button onclick="copyPublicShareUrl()" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 flex items-center gap-1.5 transition cursor-pointer" title="Copy shareable link">
+            <i class="fa-solid fa-share-nodes text-indigo-400"></i>
+            <span id="banner-share-btn-text">Share Link</span>
           </button>
-        {% endif %}
-
-        <button onclick="copyPublicShareUrl()" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 flex items-center gap-1.5 transition cursor-pointer" title="Copy shareable link">
-          <i class="fa-solid fa-share-nodes text-indigo-400"></i>
-          <span id="banner-share-btn-text">Share Link</span>
-        </button>
-
-        {% if is_owner %}
-          <a href="{% url 'dashboard' %}" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-xs font-bold text-white flex items-center gap-1.5 shadow-md shadow-indigo-600/30 transition">
-            <i class="fa-solid fa-arrow-left"></i>
-            <span>Back to Overview</span>
+          <a href="{{ repo_url|default:'https://github.com/cgarst/concert-trakr' }}" target="_blank" rel="noopener noreferrer" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-xs font-bold text-white flex items-center gap-1.5 shadow-md shadow-indigo-600/30 transition">
+            <i class="fa-brands fa-github"></i>
+            <span>Install Setlore</span>
           </a>
-        {% elif request.user.is_authenticated %}
-          <a href="{% url 'dashboard' %}" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-xs font-bold text-white flex items-center gap-1.5 shadow-md shadow-indigo-600/30 transition">
-            <i class="fa-solid fa-house"></i>
-            <span>My Overview</span>
-          </a>
+        {% else %}
+          {% if request.user.is_authenticated and not is_owner %}
+            <button type="button" id="public-profile-friend-btn" onclick="togglePublicProfileFriend({{ profile_user.id }})"
+              class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-md {% if is_friend %}bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300{% else %}bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-600/30{% endif %}">
+              <i id="public-profile-friend-icon" class="fa-solid {% if is_friend %}fa-user-check{% else %}fa-user-plus{% endif %}"></i>
+              <span id="public-profile-friend-text">{% if is_friend %}Friended{% else %}Add Friend{% endif %}</span>
+            </button>
+          {% endif %}
+
+          <button onclick="copyPublicShareUrl()" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 flex items-center gap-1.5 transition cursor-pointer" title="Copy shareable link">
+            <i class="fa-solid fa-share-nodes text-indigo-400"></i>
+            <span id="banner-share-btn-text">Share Link</span>
+          </button>
+
+          {% if is_owner %}
+            <a href="{% url 'dashboard' %}" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-xs font-bold text-white flex items-center gap-1.5 shadow-md shadow-indigo-600/30 transition">
+              <i class="fa-solid fa-arrow-left"></i>
+              <span>Back to Overview</span>
+            </a>
+          {% elif request.user.is_authenticated %}
+            <a href="{% url 'dashboard' %}" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-xs font-bold text-white flex items-center gap-1.5 shadow-md shadow-indigo-600/30 transition">
+              <i class="fa-solid fa-house"></i>
+              <span>My Overview</span>
+            </a>
+          {% endif %}
         {% endif %}
       </div>
     </div>
@@ -2991,6 +3020,13 @@
           </div>
           <span class="text-[10px] text-slate-300 font-semibold tracking-tight mt-0.5">Mine</span>
         </a>
+      {% elif is_demo %}
+        <a href="{{ repo_url|default:'https://github.com/cgarst/concert-trakr' }}" target="_blank" rel="noopener noreferrer" id="mobile-tab-install-btn" class="flex flex-col items-center justify-center -mt-4 group cursor-pointer" title="Install Setlore">
+          <div class="w-11 h-11 rounded-full bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/40 border-2 border-slate-900 group-active:scale-90 group-hover:scale-105 transition-all">
+            <i class="fa-brands fa-github text-base font-bold"></i>
+          </div>
+          <span class="text-[10px] text-slate-300 font-semibold tracking-tight mt-0.5">Install</span>
+        </a>
       {% else %}
         <a href="{% url 'register' %}" id="mobile-tab-join-btn" class="flex flex-col items-center justify-center -mt-4 group cursor-pointer" title="Create Account">
           <div class="w-11 h-11 rounded-full bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/40 border-2 border-slate-900 group-active:scale-90 group-hover:scale-105 transition-all">
@@ -3248,6 +3284,17 @@
               </div>
               <i class="fa-solid fa-chevron-right text-indigo-300 text-xs"></i>
             </a>
+          {% elif is_demo %}
+            <div class="grid grid-cols-2 gap-2">
+              <a href="{% if is_demo %}{{ home_url|default:'../index.html' }}{% else %}{% url 'home' %}{% endif %}" class="flex items-center justify-center gap-2 p-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 border border-slate-700 transition">
+                <i class="fa-solid fa-arrow-left text-indigo-400"></i>
+                <span>Home</span>
+              </a>
+              <a href="{{ repo_url|default:'https://github.com/cgarst/concert-trakr' }}" target="_blank" rel="noopener noreferrer" class="flex items-center justify-center gap-2 p-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-xs font-bold text-white shadow-md transition">
+                <i class="fa-brands fa-github"></i>
+                <span>Install</span>
+              </a>
+            </div>
           {% else %}
             <div class="grid grid-cols-2 gap-2">
               <a href="{% url 'login' %}?next={{ request.path }}" class="flex items-center justify-center gap-2 p-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 border border-slate-700 transition">
@@ -3341,6 +3388,8 @@
 
   <!-- Plotly Data & Interactive Logic -->
   <script>
+    window.isDemoMode = {{ is_demo|yesno:"true,false" }};
+    window.isPublicView = {{ is_public_view|yesno:"true,false" }};
     window.tabUrlBase = "{{ tab_url_base|default:''|escapejs }}";
     const drilldownData = {{ artist_drilldown_json|safe }};
     const venueMapData = {{ venue_map_json|safe }};
@@ -3446,10 +3495,16 @@
       });
 
       if (updateUrl) {
-        const baseUrl = window.tabUrlBase || '';
-        const targetPath = baseUrl ? (tabId === 'overview' ? `${baseUrl}/` : `${baseUrl}/${tabId}/`) : (tabId === 'overview' ? '/overview/' : `/${tabId}/`);
-        if (window.location.pathname !== targetPath || window.location.hash) {
-          history.pushState({ tabId: tabId }, '', targetPath);
+        if (window.isDemoMode) {
+          if (window.location.hash !== '#' + tabId) {
+            history.pushState({ tabId: tabId }, '', '#' + tabId);
+          }
+        } else {
+          const baseUrl = window.tabUrlBase || '';
+          const targetPath = baseUrl ? (tabId === 'overview' ? `${baseUrl}/` : `${baseUrl}/${tabId}/`) : (tabId === 'overview' ? '/overview/' : `/${tabId}/`);
+          if (window.location.pathname !== targetPath || window.location.hash) {
+            history.pushState({ tabId: tabId }, '', targetPath);
+          }
         }
       }
 
@@ -3519,23 +3574,32 @@
     // URL path & legacy hash deep linking support on page load and back/forward navigation
     window.addEventListener('DOMContentLoaded', () => {
       const hash = window.location.hash.replace('#', '').trim();
-      const baseUrl = window.tabUrlBase || '';
-      if (hash) {
-        const resolvedTab = normalizeTab(hash);
-        const targetPath = baseUrl ? (resolvedTab === 'overview' ? `${baseUrl}/` : `${baseUrl}/${resolvedTab}/`) : (resolvedTab === 'overview' ? '/overview/' : `/${resolvedTab}/`);
-        history.replaceState({ tabId: resolvedTab }, '', targetPath);
-        switchTab(resolvedTab, false);
-      } else {
-        const pathSegment = window.location.pathname.split('/').filter(Boolean)[0] || '';
+      if (window.isDemoMode) {
         const serverTab = "{{ initial_tab|default:'overview'|escapejs }}";
-        const targetTab = normalizeTab(pathSegment || serverTab);
+        const targetTab = normalizeTab(hash || serverTab);
         switchTab(targetTab, false);
+      } else {
+        const baseUrl = window.tabUrlBase || '';
+        if (hash) {
+          const resolvedTab = normalizeTab(hash);
+          const targetPath = baseUrl ? (resolvedTab === 'overview' ? `${baseUrl}/` : `${baseUrl}/${resolvedTab}/`) : (resolvedTab === 'overview' ? '/overview/' : `/${resolvedTab}/`);
+          history.replaceState({ tabId: resolvedTab }, '', targetPath);
+          switchTab(resolvedTab, false);
+        } else {
+          const pathSegment = window.location.pathname.split('/').filter(Boolean)[0] || '';
+          const serverTab = "{{ initial_tab|default:'overview'|escapejs }}";
+          const targetTab = normalizeTab(pathSegment || serverTab);
+          switchTab(targetTab, false);
+        }
       }
     });
 
     window.addEventListener('popstate', (event) => {
       if (event.state && event.state.tabId) {
         switchTab(event.state.tabId, false);
+      } else if (window.isDemoMode) {
+        const hash = window.location.hash.replace('#', '').trim();
+        switchTab(normalizeTab(hash || 'overview'), false);
       } else {
         const pathSegment = window.location.pathname.split('/').filter(Boolean)[0] || '';
         switchTab(normalizeTab(pathSegment), false);
@@ -3544,12 +3608,16 @@
 
     window.addEventListener('hashchange', () => {
       const hash = window.location.hash.replace('#', '').trim();
-      const baseUrl = window.tabUrlBase || '';
-      if (hash) {
-        const resolvedTab = normalizeTab(hash);
-        const targetPath = baseUrl ? (resolvedTab === 'overview' ? `${baseUrl}/` : `${baseUrl}/${resolvedTab}/`) : (resolvedTab === 'overview' ? '/overview/' : `/${resolvedTab}/`);
-        history.replaceState({ tabId: resolvedTab }, '', targetPath);
-        switchTab(resolvedTab, false);
+      if (window.isDemoMode) {
+        if (hash) switchTab(normalizeTab(hash), false);
+      } else {
+        const baseUrl = window.tabUrlBase || '';
+        if (hash) {
+          const resolvedTab = normalizeTab(hash);
+          const targetPath = baseUrl ? (resolvedTab === 'overview' ? `${baseUrl}/` : `${baseUrl}/${resolvedTab}/`) : (resolvedTab === 'overview' ? '/overview/' : `/${resolvedTab}/`);
+          history.replaceState({ tabId: resolvedTab }, '', targetPath);
+          switchTab(resolvedTab, false);
+        }
       }
     });
 
@@ -6207,8 +6275,7 @@
           item.classList.add('hidden');
         }
       });
-    }
-
+    {% if not is_public_view and user.is_authenticated and is_owner %}
     /* -------------------------------------------------- */
     /* Onboarding Wizard Logic                            */
     /* -------------------------------------------------- */
@@ -6631,6 +6698,7 @@
         console.error('Failed to copy', err);
       });
     }
+    {% endif %}
 
     async function togglePublicProfileFriend(targetUserId) {
       const btn = document.getElementById('public-profile-friend-btn');
