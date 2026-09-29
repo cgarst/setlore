@@ -5,7 +5,7 @@ import re
 from datetime import datetime
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse, HttpResponseBadRequest
+from django.http import JsonResponse, HttpResponseBadRequest, HttpResponse
 from django.views.decorators.http import require_POST
 from django.db import transaction
 
@@ -1311,6 +1311,67 @@ def toggle_concert_attendance(request):
             })
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+
+
+def export_concerts_csv(request, username=None):
+    """
+    Exports a CSV file of concerts containing Date, Artist(s), Venue, and Setlist columns.
+    """
+    clean_username = (username or request.GET.get('username', '')).lstrip('@').strip()
+
+    if clean_username:
+        target_user = User.objects.filter(username__iexact=clean_username).first()
+        if not target_user:
+            return HttpResponseBadRequest("User not found")
+
+        is_owner = request.user.is_authenticated and (request.user.id == target_user.id)
+        is_staff = request.user.is_authenticated and request.user.is_staff
+        if not target_user.profile.is_public and not is_owner and not is_staff:
+            return HttpResponseBadRequest("This profile is private.")
+        is_public_view = not is_owner
+    else:
+        if not request.user.is_authenticated:
+            return redirect('login')
+        target_user = request.user
+        is_public_view = False
+
+    context = get_dashboard_context(request, target_user, tab_name='concerts', is_public_view=is_public_view)
+    concerts_drilldown = context.get('stats', {}).get('concerts_drilldown', [])
+
+    response = HttpResponse(content_type='text/csv; charset=utf-8')
+    filename = f"{target_user.username}_concerts.csv"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+
+    writer = csv.writer(response)
+    writer.writerow(['Date', 'Artist(s)', 'Venue', 'Setlist'])
+
+    for c in concerts_drilldown:
+        date_str = c.get('date', '') or ''
+        artists_str = c.get('raw_artists', '') or ''
+        venue_str = c.get('venue', '') or ''
+
+        # Extract setlist
+        artist_setlists = []
+        artists_list = c.get('artists', [])
+        for a in artists_list:
+            art_name = a.get('artist', '')
+            songs = []
+            for sg in a.get('grouped_sets', []):
+                for track in sg.get('songs', []):
+                    s_name = track.get('song', '').strip()
+                    if s_name:
+                        songs.append(s_name)
+            if songs:
+                if len(artists_list) > 1:
+                    artist_setlists.append(f"{art_name}: {', '.join(songs)}")
+                else:
+                    artist_setlists.append(", ".join(songs))
+
+        setlist_str = " | ".join(artist_setlists) if artist_setlists else ""
+        writer.writerow([date_str, artists_str, venue_str, setlist_str])
+
+    return response
+
 
 
 
