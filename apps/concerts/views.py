@@ -1337,6 +1337,8 @@ def export_concerts_csv(request, username=None):
 
     context = get_dashboard_context(request, target_user, tab_name='concerts', is_public_view=is_public_view)
     concerts_drilldown = context.get('stats', {}).get('concerts_drilldown', [])
+    # Export from oldest on top to newest date on bottom
+    chronological_concerts = list(reversed(concerts_drilldown))
 
     response = HttpResponse(content_type='text/csv; charset=utf-8')
     filename = f"{target_user.username}_concerts.csv"
@@ -1345,7 +1347,7 @@ def export_concerts_csv(request, username=None):
     writer = csv.writer(response)
     writer.writerow(['Date', 'Artist(s)', 'Venue', 'Setlist'])
 
-    for c in concerts_drilldown:
+    for c in chronological_concerts:
         date_str = c.get('date', '') or ''
         artists_str = c.get('raw_artists', '') or ''
         venue_str = c.get('venue', '') or ''

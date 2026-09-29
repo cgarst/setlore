@@ -68,18 +68,18 @@ class ConcertCSVExportTests(TestCase):
         # Data rows validation
         self.assertEqual(len(reader), 3)  # 1 header + 2 concerts
 
-        # Latest concert (Opeth)
+        # Oldest concert on top (Porcupine Tree - 2022)
         row1 = reader[1]
-        self.assertEqual(row1[1], 'Opeth')
-        self.assertEqual(row1[2], '9:30 Club')
-        self.assertEqual(row1[3], 'The Moor, Windowpane')
+        self.assertEqual(row1[1], 'Porcupine Tree, King Crimson')
+        self.assertEqual(row1[2], 'The Anthem')
+        self.assertIn('Porcupine Tree: Blackest Eyes', row1[3])
+        self.assertIn('King Crimson: Starless', row1[3])
 
-        # Multi-artist concert
+        # Newest concert on bottom (Opeth - 2024)
         row2 = reader[2]
-        self.assertEqual(row2[1], 'Porcupine Tree, King Crimson')
-        self.assertEqual(row2[2], 'The Anthem')
-        self.assertIn('Porcupine Tree: Blackest Eyes', row2[3])
-        self.assertIn('King Crimson: Starless', row2[3])
+        self.assertEqual(row2[1], 'Opeth')
+        self.assertEqual(row2[2], '9:30 Club')
+        self.assertEqual(row2[3], 'The Moor, Windowpane')
 
     def test_unauthenticated_export_redirects_to_login(self):
         res = self.client.get('/api/concerts/export/')
