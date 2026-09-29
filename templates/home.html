@@ -369,35 +369,160 @@
             </ul>
           </div>
 
-          <!-- Quick Interactive Ingestion Code / Workflow Card -->
-          <div class="glass-card p-5 rounded-2xl border border-slate-700/80 bg-slate-950/80 space-y-4">
-            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div class="flex items-center gap-2">
-                <div class="w-3 h-3 rounded-full bg-rose-500"></div>
-                <div class="w-3 h-3 rounded-full bg-amber-500"></div>
-                <div class="w-3 h-3 rounded-full bg-emerald-500"></div>
-                <span class="text-[11px] font-mono text-slate-400 ml-2">supported-import-formats.csv</span>
-              </div>
-              <span class="text-[10px] text-indigo-400 font-mono font-semibold">Live Parser</span>
-            </div>
-
-            <div class="space-y-2 text-xs font-mono">
-              <div class="p-2.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 overflow-x-auto">
-                <p class="text-slate-500"># Direct CSV format</p>
-                <p><span class="text-purple-400">Date</span>, <span class="text-purple-400">Band</span>, <span class="text-purple-400">Venue</span>, <span class="text-purple-400">City / State</span>, <span class="text-purple-400">Notes</span></p>
-                <p class="text-emerald-400">10/22/2024, Dream Theater, The Anthem, Washington DC, 40th Anniversary Tour</p>
-              </div>
-
-              <div class="p-2.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300">
-                <p class="text-slate-500"># Fast Manual Ingest Modal</p>
-                <p class="text-indigo-300">+ Add Concert &rarr; Autocomplete Venue &rarr; Paste Setlist</p>
-              </div>
-
-              <div class="p-2.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300">
-                <p class="text-slate-500"># Export Any Time</p>
-                <p class="text-amber-300">GET /api/concerts/export/ &rarr; concerts_archive.csv</p>
+          <!-- Interactive Ingestion Methods Visualizer -->
+          <div class="glass-card p-5 rounded-2xl border border-slate-700/80 bg-slate-950/90 shadow-xl space-y-4">
+            
+            <!-- Ingestion Method Tabs -->
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3 gap-1">
+              <div class="flex flex-wrap items-center gap-1.5" id="import-preview-tabs">
+                <button type="button" onclick="switchImportPreview('setlistfm')" id="import-tab-setlistfm" class="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-indigo-600/30 text-indigo-200 border border-indigo-500/40 transition flex items-center gap-1.5 cursor-pointer">
+                  <i class="fa-brands fa-lastfm text-amber-400"></i> Setlist.fm
+                </button>
+                <button type="button" onclick="switchImportPreview('ticketmaster')" id="import-tab-ticketmaster" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 border border-transparent transition flex items-center gap-1.5 cursor-pointer">
+                  <i class="fa-solid fa-ticket text-emerald-400"></i> Ticketmaster
+                </button>
+                <button type="button" onclick="switchImportPreview('csv')" id="import-tab-csv" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 border border-transparent transition flex items-center gap-1.5 cursor-pointer">
+                  <i class="fa-solid fa-file-csv text-cyan-400"></i> CSV Sheet
+                </button>
+                <button type="button" onclick="switchImportPreview('manual')" id="import-tab-manual" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 border border-transparent transition flex items-center gap-1.5 cursor-pointer">
+                  <i class="fa-solid fa-bolt text-purple-400"></i> Quick Add
+                </button>
               </div>
             </div>
+
+            <!-- Panel 1: Setlist.fm Sync -->
+            <div id="import-panel-setlistfm" class="space-y-3">
+              <div class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2.5">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <div class="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center text-xs">
+                      <i class="fa-brands fa-lastfm"></i>
+                    </div>
+                    <div>
+                      <p class="text-xs font-bold text-white">@Zathu on Setlist.fm</p>
+                      <p class="text-[10px] text-emerald-400 flex items-center gap-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Connected & Synced
+                      </p>
+                    </div>
+                  </div>
+                  <span class="badge bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[10px] font-mono">2-Way Sync</span>
+                </div>
+
+                <div class="p-2.5 rounded-lg bg-slate-950 border border-slate-800/80 space-y-1.5 text-xs">
+                  <div class="flex items-center justify-between text-[11px]">
+                    <span class="text-slate-300 font-medium">Dream Theater @ The Anthem</span>
+                    <span class="text-emerald-400 font-mono font-semibold text-[10px]">100% Matched</span>
+                  </div>
+                  <div class="flex items-center gap-2 text-[10px] text-slate-400">
+                    <span>18 Songs Imported</span> &bull; <span>Venue Geocoded</span> &bull; <span>Discography Linked</span>
+                  </div>
+                </div>
+              </div>
+
+              <p class="text-[11px] text-slate-400 leading-relaxed">
+                Background worker reconciles your entire attendance history, detects missing setlists, and marks attended shows.
+              </p>
+            </div>
+
+            <!-- Panel 2: Ticketmaster Parser -->
+            <div id="import-panel-ticketmaster" class="hidden space-y-3">
+              <div class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2.5">
+                <div class="flex items-center justify-between">
+                  <span class="text-[11px] font-semibold text-emerald-400 flex items-center gap-1.5">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> Raw Text &rarr; Structured Gig
+                  </span>
+                  <span class="text-[10px] text-slate-400 font-mono">Instant Regex & NLP</span>
+                </div>
+
+                <div class="p-2 rounded-lg bg-slate-950 border border-slate-800 text-[11px] font-mono text-slate-400 truncate">
+                  "Order #19-48201: Iron Maiden, The Future Past Tour, Capital One Arena..."
+                </div>
+
+                <div class="p-2.5 rounded-lg bg-emerald-950/40 border border-emerald-500/30 flex items-center justify-between text-xs">
+                  <div>
+                    <p class="font-bold text-white text-xs">Iron Maiden</p>
+                    <p class="text-[10px] text-slate-300">Capital One Arena &bull; Washington, DC</p>
+                  </div>
+                  <span class="badge bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px]">Parsed & Ready</span>
+                </div>
+              </div>
+
+              <p class="text-[11px] text-slate-400 leading-relaxed">
+                Copy and paste confirmation emails or receipt text to log upcoming and past shows without manual typing.
+              </p>
+            </div>
+
+            <!-- Panel 3: CSV Spreadsheet -->
+            <div id="import-panel-csv" class="hidden space-y-3">
+              <div class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2">
+                <div class="flex items-center justify-between text-[11px]">
+                  <span class="font-semibold text-cyan-400 flex items-center gap-1">
+                    <i class="fa-solid fa-table"></i> Spreadsheet Columns
+                  </span>
+                  <span class="text-[10px] text-slate-400 font-mono">.csv / .tsv / Excel</span>
+                </div>
+
+                <div class="overflow-x-auto">
+                  <table class="w-full text-left text-[11px] text-slate-300 border-collapse">
+                    <thead>
+                      <tr class="border-b border-slate-800 text-[10px] text-slate-400 uppercase font-mono">
+                        <th class="py-1 pr-2">Date</th>
+                        <th class="py-1 pr-2">Band</th>
+                        <th class="py-1 pr-2">Venue</th>
+                        <th class="py-1 text-right">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800/60 font-mono text-[10px]">
+                      <tr>
+                        <td class="py-1.5 pr-2 text-indigo-300">10/22/2024</td>
+                        <td class="py-1.5 pr-2 text-white">Dream Theater</td>
+                        <td class="py-1.5 pr-2 text-slate-400">The Anthem</td>
+                        <td class="py-1.5 text-right text-emerald-400">Imported</td>
+                      </tr>
+                      <tr>
+                        <td class="py-1.5 pr-2 text-indigo-300">11/12/2024</td>
+                        <td class="py-1.5 pr-2 text-white">Iron Maiden</td>
+                        <td class="py-1.5 pr-2 text-slate-400">Capital One Arena</td>
+                        <td class="py-1.5 text-right text-emerald-400">Imported</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <p class="text-[11px] text-slate-400 leading-relaxed">
+                Bring your existing concert tracking spreadsheet and bulk-import your entire history in one go.
+              </p>
+            </div>
+
+            <!-- Panel 4: Quick Add Modal -->
+            <div id="import-panel-manual" class="hidden space-y-3">
+              <div class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2.5">
+                <div class="flex items-center justify-between text-[11px]">
+                  <span class="font-semibold text-purple-400 flex items-center gap-1.5">
+                    <i class="fa-solid fa-bolt"></i> Fast Direct Logging
+                  </span>
+                  <span class="text-[10px] text-slate-400 font-mono">No CSV required</span>
+                </div>
+
+                <div class="space-y-1.5 text-xs">
+                  <div class="flex items-center gap-2 p-2 rounded-lg bg-slate-950 border border-slate-800">
+                    <i class="fa-solid fa-magnifying-glass text-slate-500 text-xs"></i>
+                    <span class="text-slate-300">Venue: <strong class="text-white">9:30 Club</strong></span>
+                    <span class="ml-auto text-[10px] text-indigo-400 font-mono">Geocoded (DC)</span>
+                  </div>
+                  <div class="flex items-center gap-2 p-2 rounded-lg bg-slate-950 border border-slate-800">
+                    <i class="fa-solid fa-music text-slate-500 text-xs"></i>
+                    <span class="text-slate-300 font-mono text-[10px]">Paste Setlist: 15 songs parsed</span>
+                  </div>
+                </div>
+              </div>
+
+              <p class="text-[11px] text-slate-400 leading-relaxed">
+                Log shows directly on mobile or desktop with venue autocomplete and plaintext setlist paste parsing.
+              </p>
+            </div>
+
           </div>
 
         </div>
@@ -622,5 +747,28 @@
     </div>
   </footer>
 
+  <script>
+    function switchImportPreview(tab) {
+      const tabs = ['setlistfm', 'ticketmaster', 'csv', 'manual'];
+      tabs.forEach(t => {
+        const btn = document.getElementById('import-tab-' + t);
+        const panel = document.getElementById('import-panel-' + t);
+        if (panel) {
+          if (t === tab) {
+            panel.classList.remove('hidden');
+          } else {
+            panel.classList.add('hidden');
+          }
+        }
+        if (btn) {
+          if (t === tab) {
+            btn.className = 'px-2.5 py-1.5 rounded-lg text-xs font-bold bg-indigo-600/30 text-indigo-200 border border-indigo-500/40 transition flex items-center gap-1.5 cursor-pointer';
+          } else {
+            btn.className = 'px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 border border-transparent transition flex items-center gap-1.5 cursor-pointer';
+          }
+        }
+      });
+    }
+  </script>
 </body>
 </html>
