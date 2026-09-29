@@ -204,8 +204,8 @@
         {% if request.user.is_authenticated %}
           {% if is_owner %}
             <a href="{% url 'dashboard' %}" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-xs font-bold text-white flex items-center gap-1.5 shadow-md shadow-indigo-600/25 transition">
-              <i class="fa-solid fa-sliders"></i>
-              <span>Edit Dashboard</span>
+              <i class="fa-solid fa-arrow-left"></i>
+              <span>Back to Dashboard</span>
             </a>
           {% else %}
             <a href="{% url 'dashboard' %}" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-xs font-bold text-white flex items-center gap-1.5 shadow-md shadow-indigo-600/25 transition">
@@ -319,8 +319,8 @@
 
         {% if is_owner %}
           <a href="{% url 'dashboard' %}" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-xs font-bold text-white flex items-center gap-1.5 shadow-md shadow-indigo-600/30 transition">
-            <i class="fa-solid fa-sliders"></i>
-            <span>Edit Dashboard</span>
+            <i class="fa-solid fa-arrow-left"></i>
+            <span>Back to Dashboard</span>
           </a>
         {% elif request.user.is_authenticated %}
           <a href="{% url 'dashboard' %}" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-xs font-bold text-white flex items-center gap-1.5 shadow-md shadow-indigo-600/30 transition">
@@ -1740,11 +1740,11 @@
           <span class="text-[10px] text-slate-300 font-semibold tracking-tight mt-0.5">Add</span>
         </button>
       {% elif is_owner %}
-        <a href="{% url 'dashboard' %}" id="mobile-tab-edit-btn" class="flex flex-col items-center justify-center -mt-4 group cursor-pointer" title="Edit Dashboard">
+        <a href="{% url 'dashboard' %}" id="mobile-tab-back-btn" class="flex flex-col items-center justify-center -mt-4 group cursor-pointer" title="Back to Dashboard">
           <div class="w-11 h-11 rounded-full bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/40 border-2 border-slate-900 group-active:scale-90 group-hover:scale-105 transition-all">
-            <i class="fa-solid fa-sliders text-base font-bold"></i>
+            <i class="fa-solid fa-arrow-left text-base font-bold"></i>
           </div>
-          <span class="text-[10px] text-slate-300 font-semibold tracking-tight mt-0.5">Edit</span>
+          <span class="text-[10px] text-slate-300 font-semibold tracking-tight mt-0.5">Back</span>
         </a>
       {% elif request.user.is_authenticated %}
         <a href="{% url 'dashboard' %}" id="mobile-tab-home-btn" class="flex flex-col items-center justify-center -mt-4 group cursor-pointer" title="My Dashboard">
@@ -1887,10 +1887,10 @@
             <a href="{% url 'dashboard' %}" class="w-full flex items-center justify-between p-3 rounded-2xl bg-gradient-to-r from-indigo-600/30 to-purple-600/30 border border-indigo-500/40 text-white transition shadow-sm">
               <div class="flex items-center gap-3">
                 <div class="w-9 h-9 rounded-xl bg-indigo-500/30 flex items-center justify-center text-indigo-300">
-                  <i class="fa-solid fa-sliders text-sm"></i>
+                  <i class="fa-solid fa-arrow-left text-sm"></i>
                 </div>
                 <div class="text-left">
-                  <p class="text-xs font-bold text-white">Edit My Dashboard</p>
+                  <p class="text-xs font-bold text-white">Back to Dashboard</p>
                   <p class="text-[11px] text-indigo-200/70">Return to full manager view</p>
                 </div>
               </div>

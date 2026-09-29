@@ -291,7 +291,7 @@ class DjangoAppTests(TestCase):
         self.assertEqual(res.status_code, 200)
         content = res.content.decode('utf-8')
         self.assertIn('Your Public Profile Preview', content)
-        self.assertIn('Edit Dashboard', content)
+        self.assertIn('Back to Dashboard', content)
 
         # Owner viewing own profile even when set to private
         self.user.profile.is_public = False
