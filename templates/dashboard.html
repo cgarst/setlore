@@ -1701,7 +1701,7 @@
         {% for c in stats.concerts_drilldown %}
         <div class="concert-card glass-card p-5 space-y-4 border border-slate-800/80 hover:border-slate-700/80 transition"
              id="concert-card-{{ c.id }}"
-             data-search="{{ c.date|lower }} {{ c.venue|lower }} {{ c.raw_artists|lower }}"
+             data-search="{{ c.date|lower }} {{ c.venue|lower }} {{ c.raw_artists|lower }}{% for a in c.artists %}{% for m in a.musicians %} {{ m.musician|lower }}{% endfor %}{% endfor %}"
              data-id="{{ c.id }}"
              data-db-id="{{ c.db_id }}"
              data-date="{% if c.date %}{{ c.date }}{% else %}{{ c.raw_date }}{% endif %}"
@@ -1815,6 +1815,27 @@
                 </a>
                 {% endif %}
               </div>
+
+              <!-- Band Lineup at Time of Concert -->
+              {% if a.musicians and a.musicians|length > 0 %}
+              <div class="flex flex-wrap items-center gap-1.5 pt-0.5 pb-1">
+                <span class="text-[11px] font-semibold text-slate-400 flex items-center gap-1 shrink-0">
+                  <i class="fa-solid fa-users text-indigo-400 text-[10px]"></i> Lineup ({{ c.year|default:c.date }}):
+                </span>
+                {% for m in a.musicians %}
+                <button type="button" onclick="event.stopPropagation(); jumpToMusicianInDrilldown('{{ m.musician|escapejs }}');"
+                  class="badge bg-slate-800/90 hover:bg-indigo-600/30 text-slate-300 hover:text-indigo-200 border border-slate-700/80 hover:border-indigo-500/40 text-[10px] transition cursor-pointer flex items-center gap-1"
+                  title="Filter drilldown by {{ m.musician }}">
+                  <span class="font-medium">{{ m.musician }}</span>
+                  {% if m.instrument and m.instrument != 'Other' %}
+                    <span class="text-slate-500 text-[9px]">({{ m.instrument }})</span>
+                  {% elif m.role and m.role != 'Musician' %}
+                    <span class="text-slate-500 text-[9px]">({{ m.role }})</span>
+                  {% endif %}
+                </button>
+                {% endfor %}
+              </div>
+              {% endif %}
 
               <!-- Artist Setlist Sets (Set 1 / Set 2 / Encore / etc.) -->
               {% if a.grouped_sets and a.grouped_sets|length > 0 %}
@@ -1978,7 +1999,7 @@
 
         <div id="artist-button-grid" class="flex flex-wrap gap-2 max-h-48 overflow-y-auto p-1">
           {% for a in stats.artist_drilldown.values %}
-          <button onclick="selectArtist('{{ a.artist|escapejs }}')" class="artist-btn px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-indigo-600/30 text-slate-200 hover:text-indigo-200 border border-slate-700 hover:border-indigo-500/50 text-xs font-medium transition flex items-center gap-2" data-name="{{ a.artist|lower }}">
+          <button onclick="selectArtist('{{ a.artist|escapejs }}', '', true)" class="artist-btn px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-indigo-600/30 text-slate-200 hover:text-indigo-200 border border-slate-700 hover:border-indigo-500/50 text-xs font-medium transition flex items-center gap-2" data-name="{{ a.artist|lower }}">
             <span>{{ a.artist }}</span>
             <span class="badge bg-indigo-500/20 text-indigo-300 text-[10px]">{% if a.unique_songs %}{{ a.unique_songs }} songs{% else %}{{ a.concert_count|default:1 }} shows{% endif %}</span>
           </button>
@@ -3956,12 +3977,37 @@
       if (firstVisibleKey) {
         const currentLow = (currentArtistName || '').toLowerCase().trim();
         const isCurrentVisible = allowedBands === null || allowedBands.some(b => b === currentLow || currentLow.includes(b) || b.includes(currentLow));
-        if (!currentArtistName || !isCurrentVisible) {
+        if (currentArtistName && isCurrentVisible) {
+          selectArtist(currentArtistName);
+        } else {
           selectArtist(firstVisibleKey);
         }
       } else if (allowedBands !== null) {
         deselectArtist();
       }
+    }
+
+    function isOccurrenceInMusicianTenure(occ, artistName, musicianName) {
+      if (!musicianName) return true;
+      const mLow = musicianName.toLowerCase().trim();
+      if (occ && occ.musicians && Array.isArray(occ.musicians) && occ.musicians.length > 0) {
+        return occ.musicians.some(m => String(m).toLowerCase().trim() === mLow);
+      }
+      // Fallback matching against musiciansData shows
+      const musicianObj = Array.isArray(musiciansData) ? musiciansData.find(m => (m.musician || '').toLowerCase().trim() === mLow) : null;
+      if (musicianObj && Array.isArray(musicianObj.shows)) {
+        const artNorm = (artistName || '').toLowerCase().trim();
+        return musicianObj.shows.some(sh => {
+          const shBand = (sh.band || '').toLowerCase().trim();
+          if (shBand && artNorm && shBand !== artNorm && !artNorm.includes(shBand) && !shBand.includes(artNorm)) {
+            return false;
+          }
+          if (occ.date && sh.date && occ.date === sh.date) return true;
+          if (occ.year && sh.year && occ.year === sh.year) return true;
+          return false;
+        });
+      }
+      return true;
     }
 
     function jumpToMusicianInDrilldown(musicianName) {
@@ -4053,8 +4099,8 @@
       }
     }
 
-    function selectArtist(artistName, songName = '') {
-      if (currentArtistName === artistName && !songName) {
+    function selectArtist(artistName, songName = '', isToggle = false) {
+      if (isToggle && currentArtistName === artistName && !songName) {
         deselectArtist();
         return;
       }
@@ -4072,10 +4118,35 @@
       });
 
       document.getElementById('active-artist-title').innerText = data.artist;
-      document.getElementById('active-artist-badges').innerHTML = `
-        <span class="badge bg-purple-500/20 text-purple-300 border border-purple-500/30">${data.unique_songs} Unique Songs</span>
-        <span class="badge bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">${data.total_plays} Total Plays Heard</span>
-      `;
+
+      const mLow = (activeMusicianFilter || '').toLowerCase().trim();
+      const currentArtist = data.artist;
+
+      if (mLow) {
+        let uniqueFilteredSongs = 0;
+        let totalFilteredPlays = 0;
+        (data.songs || []).forEach(s => {
+          const occs = (s.occurrences || []).filter(o => isOccurrenceInMusicianTenure(o, currentArtist, activeMusicianFilter));
+          if (occs.length > 0) {
+            uniqueFilteredSongs++;
+            totalFilteredPlays += occs.length;
+          }
+        });
+
+        document.getElementById('active-artist-badges').innerHTML = `
+          <span class="badge bg-purple-500/20 text-purple-300 border border-purple-500/30 font-semibold flex items-center gap-1.5">
+            <i class="fa-solid fa-user-tag text-purple-400 text-[10px]"></i> ${uniqueFilteredSongs} Unique Songs (with ${escapeHtml(activeMusicianFilter)})
+          </span>
+          <span class="badge bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-semibold flex items-center gap-1.5">
+            <i class="fa-solid fa-headphones text-emerald-400 text-[10px]"></i> ${totalFilteredPlays} Plays with ${escapeHtml(activeMusicianFilter)}
+          </span>
+        `;
+      } else {
+        document.getElementById('active-artist-badges').innerHTML = `
+          <span class="badge bg-purple-500/20 text-purple-300 border border-purple-500/30 font-semibold">${data.unique_songs} Unique Songs</span>
+          <span class="badge bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-semibold">${data.total_plays} Total Plays Heard</span>
+        `;
+      }
 
       // Populate album dropdown
       const albumSelect = document.getElementById('drilldown-album-filter');
@@ -4097,7 +4168,7 @@
         }
       }
 
-      renderArtistSongs(data.songs);
+      renderArtistSongs(data.songs, data.artist);
 
       if (songName) {
         filterDrilldownSongs();
@@ -4114,7 +4185,7 @@
       }
     }
 
-    function renderArtistSongs(songs) {
+    function renderArtistSongs(songs, artistName = currentArtistName) {
       const container = document.getElementById('drilldown-songs-container');
       container.innerHTML = '';
 
@@ -4129,13 +4200,24 @@
         return;
       }
 
+      let renderedCount = 0;
+
       songs.forEach((s, idx) => {
+        let occsToRender = s.occurrences || [];
+        if (activeMusicianFilter) {
+          occsToRender = occsToRender.filter(o => isOccurrenceInMusicianTenure(o, artistName, activeMusicianFilter));
+          if (occsToRender.length === 0) {
+            return;
+          }
+        }
+
+        renderedCount++;
         const item = document.createElement('div');
         item.className = 'song-item rounded-xl bg-slate-900/60 border border-slate-800/80 hover:border-slate-700 transition';
         item.setAttribute('data-song-name', s.song.toLowerCase());
         item.setAttribute('data-album-name', s.album || 'Non-Album / Singles');
 
-        let occHtml = s.occurrences.map((o, oIdx) => {
+        let occHtml = occsToRender.map((o, oIdx) => {
           let posBadge = '';
           if (o.slot) {
             let colorClasses = 'bg-indigo-500/15 text-indigo-300 border-indigo-500/30';
@@ -4180,18 +4262,21 @@
           `;
         }).join('');
 
+        const playCount = occsToRender.length;
+        const firstDate = occsToRender.length > 0 ? occsToRender[0].date : s.first_heard;
+
         item.innerHTML = `
           <div class="p-3 flex items-center justify-between cursor-pointer select-none" onclick="toggleSongOccurrences(${idx})">
             <div class="flex flex-wrap items-center gap-3">
-              <span class="text-xs font-mono text-slate-500 w-6">#${idx + 1}</span>
+              <span class="text-xs font-mono text-slate-500 w-6">#${renderedCount}</span>
               <span class="font-semibold text-white text-sm">${s.song}</span>
               <span class="badge bg-slate-800/80 text-indigo-300 border border-indigo-500/30 text-[11px]">
                 <i class="fa-solid fa-compact-disc text-[10px] mr-1 text-indigo-400"></i> ${s.album_display}
               </span>
-              <span class="text-xs text-slate-400">(First heard: <span class="text-indigo-300 font-mono">${s.first_heard}</span>)</span>
+              <span class="text-xs text-slate-400">(${activeMusicianFilter ? 'First with ' + escapeHtml(activeMusicianFilter) + ': ' : 'First heard: '}<span class="text-indigo-300 font-mono">${firstDate}</span>)</span>
             </div>
             <div class="flex items-center gap-3">
-              <span class="badge bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">${s.count}x</span>
+              <span class="badge bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">${playCount}x</span>
               <i id="chevron-${idx}" class="fa-solid fa-chevron-down text-slate-400 text-xs transition-transform duration-200"></i>
             </div>
           </div>
@@ -4201,6 +4286,16 @@
         `;
         container.appendChild(item);
       });
+
+      if (renderedCount === 0) {
+        container.innerHTML = `
+          <div class="p-8 text-center glass-card rounded-xl border border-slate-800 space-y-2">
+            <i class="fa-solid fa-user-slash text-3xl text-slate-600 block mb-2"></i>
+            <p class="text-sm font-semibold text-slate-300">No performances found for ${escapeHtml(artistName || 'this artist')} during ${escapeHtml(activeMusicianFilter)}'s tenure.</p>
+            <p class="text-xs text-slate-500">Try selecting another band above or clear the musician filter.</p>
+          </div>
+        `;
+      }
     }
 
     function toggleSongOccurrences(idx) {

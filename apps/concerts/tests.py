@@ -136,3 +136,103 @@ class AutocompleteAndCSVTests(TestCase):
         self.assertFalse(songs[1].raw_song_name == '')
         self.assertEqual(songs[2].raw_song_name, 'The Spirit Carries On')
         self.assertTrue(songs[2].is_encore)
+
+    def test_musician_tenure_lineup_and_drilldown_occurrences(self):
+        from apps.catalog.models import MusicianTenure
+        from src.analytics import ConcertAnalytics
+
+        MusicianTenure.objects.create(
+            musician_name='Mike Portnoy',
+            artist=self.art1,
+            role='Drums',
+            instrument='Drums',
+            start_year=1985,
+            end_year=2010
+        )
+        MusicianTenure.objects.create(
+            musician_name='Mike Mangini',
+            artist=self.art1,
+            role='Drums',
+            instrument='Drums',
+            start_year=2010,
+            end_year=2023
+        )
+
+        csv_records = [
+            {
+                "id": "c1",
+                "display_date": "2008-05-10",
+                "raw_date": "05/10/2008",
+                "year": 2008,
+                "venue": "Hammerstein Ballroom",
+                "primary_artist": "Dream Theater",
+                "artists": ["Dream Theater"]
+            },
+            {
+                "id": "c2",
+                "display_date": "2017-10-15",
+                "raw_date": "10/15/2017",
+                "year": 2017,
+                "venue": "Beacon Theatre",
+                "primary_artist": "Dream Theater",
+                "artists": ["Dream Theater"]
+            }
+        ]
+
+        matched_setlists = [
+            {
+                "csv": csv_records[0],
+                "artist": "Dream Theater",
+                "setlist": {
+                    "url": "https://www.setlist.fm/1",
+                    "artist": {"name": "Dream Theater"},
+                    "sets": {
+                        "set": [
+                            {"song": [{"name": "Panic Attack"}]}
+                        ]
+                    }
+                }
+            },
+            {
+                "csv": csv_records[1],
+                "artist": "Dream Theater",
+                "setlist": {
+                    "url": "https://www.setlist.fm/2",
+                    "artist": {"name": "Dream Theater"},
+                    "sets": {
+                        "set": [
+                            {"song": [{"name": "The Gift of Music"}]}
+                        ]
+                    }
+                }
+            }
+        ]
+
+        analytics = ConcertAnalytics(matched_setlists, csv_records)
+        metrics = analytics.compute_all_metrics()
+        drilldown = analytics.compute_concert_drilldown()
+
+        # Concert 1 (2008): Mike Portnoy should be in musicians, Mike Mangini should not
+        c1 = next(c for c in drilldown if c["id"] == "c1")
+        c1_musicians = [m["musician"] for m in c1["artists"][0]["musicians"]]
+        self.assertIn("Mike Portnoy", c1_musicians)
+        self.assertNotIn("Mike Mangini", c1_musicians)
+
+        # Concert 2 (2017): Mike Mangini should be in musicians, Mike Portnoy should not
+        c2 = next(c for c in drilldown if c["id"] == "c2")
+        c2_musicians = [m["musician"] for m in c2["artists"][0]["musicians"]]
+        self.assertIn("Mike Mangini", c2_musicians)
+        self.assertNotIn("Mike Portnoy", c2_musicians)
+
+        # In artist drilldown occurrences:
+        # Panic Attack (played in 2008) should have Mike Portnoy in musicians and not Mike Mangini
+        panic_occs = metrics["artist_drilldown"]["Dream Theater"]["songs"][0]["occurrences"]
+        panic_occ_2008 = next(o for o in panic_occs if o["year"] == 2008)
+        self.assertIn("Mike Portnoy", panic_occ_2008["musicians"])
+        self.assertNotIn("Mike Mangini", panic_occ_2008["musicians"])
+
+        # The Gift of Music (played in 2017) should have Mike Mangini in musicians and not Mike Portnoy
+        gift_occs = next(s["occurrences"] for s in metrics["artist_drilldown"]["Dream Theater"]["songs"] if s["song"] == "The Gift of Music")
+        gift_occ_2017 = next(o for o in gift_occs if o["year"] == 2017)
+        self.assertIn("Mike Mangini", gift_occ_2017["musicians"])
+        self.assertNotIn("Mike Portnoy", gift_occ_2017["musicians"])

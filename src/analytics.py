@@ -1,6 +1,7 @@
 from collections import defaultdict, Counter
 from typing import List, Dict, Any
 from src.config import IGNORED_ARTISTS
+from src.musician_tracker import get_effective_band_tenures
 
 class ConcertAnalytics:
     def __init__(self, matched_setlists: List[Dict[str, Any]], all_csv_records: List[Dict[str, Any]], ignored_artists: List[str] = None):
@@ -52,6 +53,8 @@ class ConcertAnalytics:
         artist_setlists = defaultdict(list)
         all_artists_seen = set()
 
+        effective_tenures = get_effective_band_tenures()
+
         for rec in self.all_csv_records:
             if rec.get("year"):
                 yearly_concerts[rec["year"]] += 1
@@ -84,6 +87,19 @@ class ConcertAnalytics:
             year = csv_rec.get("year")
             venue = csv_rec.get("venue", "")
             setlist_url = sl.get("url", "")
+
+            # Identify active musicians for this artist at the time of the concert
+            art_tenures = effective_tenures.get(sl_artist.lower().strip(), [])
+            active_musicians = []
+            for mem in art_tenures:
+                m_start = mem.get("start", 1900)
+                m_end = mem.get("end")
+                if year:
+                    if year < m_start:
+                        continue
+                    if m_end is not None and year > m_end:
+                        continue
+                active_musicians.append(mem["musician"])
 
             sets = sl.get("sets", {}).get("set", [])
             concert_song_names = []
@@ -191,7 +207,8 @@ class ConcertAnalytics:
                     "pct": pct,
                     "slot": slot,
                     "slot_category": slot_category,
-                    "position_display": position_display
+                    "position_display": position_display,
+                    "musicians": active_musicians
                 }
                 artist_song_occurrences[sl_artist][name].append(occ_info)
 
@@ -218,7 +235,8 @@ class ConcertAnalytics:
                     "pct": pct,
                     "slot": slot,
                     "slot_category": slot_category,
-                    "position_display": position_display
+                    "position_display": position_display,
+                    "musicians": active_musicians
                 })
 
             if concert_song_names:
@@ -359,6 +377,7 @@ class ConcertAnalytics:
         artist_show_counter = defaultdict(int)
         artist_song_counter = defaultdict(lambda: defaultdict(int))
         concerts_drilldown = []
+        effective_tenures = get_effective_band_tenures()
 
         for rec in sorted_records:
             c_id = rec["id"]
@@ -374,6 +393,25 @@ class ConcertAnalytics:
                 can_art = self._canonical_name(raw_art)
                 artist_show_counter[can_art] += 1
                 artist_seen_nth = artist_show_counter[can_art]
+
+                # Identify active musicians for this artist at the time of the concert
+                art_tenures = effective_tenures.get(can_art.lower().strip(), [])
+                active_musicians = []
+                for mem in art_tenures:
+                    m_start = mem.get("start", 1900)
+                    m_end = mem.get("end")
+                    if year:
+                        if year < m_start:
+                            continue
+                        if m_end is not None and year > m_end:
+                            continue
+                    active_musicians.append({
+                        "musician": mem["musician"],
+                        "role": mem.get("role", "Musician"),
+                        "instrument": mem.get("instrument", "Other"),
+                        "start": m_start,
+                        "end": m_end,
+                    })
 
                 sl = matched_map.get((c_id, can_art.strip().lower()))
                 grouped_sets = []
@@ -490,7 +528,8 @@ class ConcertAnalytics:
                     "setlist_url": setlist_url,
                     "total_songs": artist_songs_played,
                     "grouped_sets": grouped_sets,
-                    "setlist_text": artist_setlist_text
+                    "setlist_text": artist_setlist_text,
+                    "musicians": active_musicians
                 })
 
             primary_art = rec.get("primary_artist") or (artists[0] if artists else "")
