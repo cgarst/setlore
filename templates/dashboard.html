@@ -401,6 +401,23 @@
         {% csrf_token %}
         <div>
           <label class="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center gap-1.5">
+            <i class="fa-solid fa-envelope text-indigo-400"></i> Email Address
+          </label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500 text-xs">
+              <i class="fa-solid fa-at text-[11px]"></i>
+            </span>
+            <input type="email" id="profile-email" name="email" value="{{ profile_user.email|default:'' }}"
+              placeholder="e.g. you@example.com"
+              class="w-full pl-8 pr-3 py-2 text-xs rounded-xl bg-slate-900/90 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
+          </div>
+          <p class="text-[11px] text-slate-400 mt-1.5 leading-relaxed">
+            Used for account recovery and automatic Google Sign-In mapping.
+          </p>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center gap-1.5">
             <i class="fa-brands fa-lastfm text-amber-400"></i> Setlist.fm Username
           </label>
           <div class="relative">
@@ -3226,6 +3243,7 @@
     window.shareUrl = "{{ share_url|escapejs }}";
     window.userProfile = {
       username: "{{ profile_user.username|escapejs }}",
+      email: "{{ profile_user.email|default:''|escapejs }}",
       setlistfmUsername: "{{ profile.setlistfm_username|default:''|escapejs }}",
       promptSetlistfm: {{ profile.prompt_setlistfm|yesno:"true,false" }},
       isPublic: {{ profile.is_public|yesno:"true,false" }},
@@ -3390,11 +3408,13 @@
 
     function openProfileModal() {
       const modal = document.getElementById('profile-modal');
+      const emailInp = document.getElementById('profile-email');
       const userInp = document.getElementById('profile-setlist-username');
       const promptChk = document.getElementById('profile-prompt-sync');
       const publicChk = document.getElementById('profile-is-public');
       const alertBox = document.getElementById('profile-modal-alert');
 
+      if (emailInp) emailInp.value = window.userProfile.email || '';
       if (userInp) userInp.value = window.userProfile.setlistfmUsername || '';
       if (promptChk) promptChk.checked = Boolean(window.userProfile.promptSetlistfm);
       if (publicChk) publicChk.checked = Boolean(window.userProfile.isPublic);
@@ -3426,6 +3446,7 @@
 
     async function saveProfileSettings(e, andSync = false) {
       if (e && e.preventDefault) e.preventDefault();
+      const emailInp = document.getElementById('profile-email');
       const userInp = document.getElementById('profile-setlist-username');
       const apiKeyInp = document.getElementById('profile-setlist-apikey');
       const promptChk = document.getElementById('profile-prompt-sync');
@@ -3434,6 +3455,7 @@
       const saveBtn = document.getElementById('profile-save-btn');
       const saveSyncBtn = document.getElementById('profile-save-sync-btn');
 
+      const email = emailInp ? emailInp.value.trim().toLowerCase() : '';
       const setlistUsername = userInp ? userInp.value.trim().replace(/^@/, '') : '';
       const setlistApiKey = apiKeyInp ? apiKeyInp.value.trim() : '';
       const promptSetlistfm = promptChk ? promptChk.checked : true;
@@ -3449,6 +3471,7 @@
 
       try {
         const payload = {
+          email: email,
           setlistfm_username: setlistUsername,
           setlistfm_api_key: setlistApiKey,
           prompt_setlistfm: promptSetlistfm,
@@ -3467,6 +3490,7 @@
 
         const data = await res.json();
         if (res.ok && data.status === 'ok') {
+          window.userProfile.email = data.profile.email || '';
           window.userProfile.setlistfmUsername = data.profile.setlistfm_username || '';
           window.userProfile.promptSetlistfm = Boolean(data.profile.prompt_setlistfm);
           window.userProfile.isPublic = Boolean(data.profile.is_public);

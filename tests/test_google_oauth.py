@@ -178,3 +178,43 @@ class GoogleOAuthViewsTests(TestCase):
 
         self.user.refresh_from_db()
         self.assertIsNone(self.user.profile.google_id)
+
+    def test_register_with_email(self):
+        response = self.client.post(reverse('register'), {
+            'username': 'emailuser',
+            'email': 'emailuser@example.com',
+            'password1': 'StrongPass123!',
+            'password2': 'StrongPass123!',
+        })
+        self.assertEqual(response.status_code, 302)
+        created = User.objects.filter(username='emailuser').first()
+        self.assertIsNotNone(created)
+        self.assertEqual(created.email, 'emailuser@example.com')
+
+    def test_update_profile_email(self):
+        self.client.force_login(self.user)
+        response = self.client.post(
+            reverse('api_profile_update'),
+            data=json.dumps({'email': 'updated@example.com'}),
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data['status'], 'ok')
+        self.assertEqual(data['profile']['email'], 'updated@example.com')
+
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.email, 'updated@example.com')
+
+    def test_update_profile_duplicate_email_rejected(self):
+        User.objects.create_user(username='otherguy', email='taken@example.com', password='pass')
+        self.client.force_login(self.user)
+        response = self.client.post(
+            reverse('api_profile_update'),
+            data=json.dumps({'email': 'TAKEN@example.com'}),
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 400)
+        data = response.json()
+        self.assertIn('already associated with another account', data['error'])
+

@@ -89,12 +89,18 @@
       {% csrf_token %}
       <div>
         <label for="id_username" class="block text-xs font-semibold text-slate-300 mb-1">Username</label>
-        <input type="text" name="username" id="id_username" required autofocus class="w-full px-3.5 py-2.5 rounded-lg bg-slate-900/80 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition text-sm">
+        <input type="text" name="username" id="id_username" required autofocus value="{{ form.username.value|default:'' }}" class="w-full px-3.5 py-2.5 rounded-lg bg-slate-900/80 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition text-sm">
+      </div>
+
+      <div>
+        <label for="id_email" class="block text-xs font-semibold text-slate-300 mb-1">Email Address (Optional)</label>
+        <input type="email" name="email" id="id_email" placeholder="e.g. you@example.com" value="{{ form.email.value|default:'' }}" class="w-full px-3.5 py-2.5 rounded-lg bg-slate-900/80 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition text-sm">
+        <p class="text-[11px] text-slate-400 mt-1">Used for automatic Google Sign-In linking and account recovery.</p>
       </div>
 
       <div>
         <label for="id_setlistfm" class="block text-xs font-semibold text-slate-300 mb-1">Setlist.fm Username (Optional)</label>
-        <input type="text" name="setlistfm_username" id="id_setlistfm" placeholder="e.g. Zathu" class="w-full px-3.5 py-2.5 rounded-lg bg-slate-900/80 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition text-sm">
+        <input type="text" name="setlistfm_username" id="id_setlistfm" placeholder="e.g. Zathu" value="{{ request.POST.setlistfm_username|default:'' }}" class="w-full px-3.5 py-2.5 rounded-lg bg-slate-900/80 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition text-sm">
       </div>
 
       <div>

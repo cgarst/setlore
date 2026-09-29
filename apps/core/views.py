@@ -152,6 +152,16 @@ def update_profile_view(request):
         profile = request.user.profile
         update_fields = []
 
+        if 'email' in data:
+            new_email = str(data.get('email', '')).strip().lower()
+            if new_email and new_email != request.user.email.lower():
+                from django.contrib.auth.models import User
+                if User.objects.filter(email__iexact=new_email).exclude(pk=request.user.pk).exists():
+                    return JsonResponse({"status": "error", "error": "This email address is already associated with another account."}, status=400)
+            if new_email != request.user.email:
+                request.user.email = new_email
+                request.user.save(update_fields=['email'])
+
         if 'setlistfm_username' in data:
             username = str(data.get('setlistfm_username', '')).strip()
             if username.startswith('@'):
@@ -200,6 +210,7 @@ def update_profile_view(request):
             "message": "Profile updated successfully.",
             "profile": {
                 "username": request.user.username,
+                "email": request.user.email,
                 "setlistfm_username": profile.setlistfm_username,
                 "prompt_setlistfm": profile.prompt_setlistfm,
                 "is_public": profile.is_public,
