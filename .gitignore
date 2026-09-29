@@ -23,6 +23,9 @@ data/
 !src/templates/*.html
 !templates/**/*.html
 
+# Backups
+*.bak
+
 # OS metadata
 .DS_Store
 Thumbs.db
