@@ -167,20 +167,34 @@
             </div>
 
             <div class="py-1">
-              <a href="{% url 'public_profile' username=request.user.username %}" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-slate-200 hover:text-white hover:bg-indigo-600/20 transition text-left">
-                <i class="fa-solid fa-globe text-indigo-400 w-4 text-center"></i>
-                <span>View Public Profile</span>
-              </a>
+              {% if is_public_view %}
+                <a href="{% url 'dashboard' %}" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-slate-200 hover:text-white hover:bg-indigo-600/20 transition text-left">
+                  <i class="fa-solid fa-gauge-high text-indigo-400 w-4 text-center"></i>
+                  <span>Back to Dashboard</span>
+                </a>
+              {% else %}
+                <a href="{% url 'public_profile' username=request.user.username %}" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-slate-200 hover:text-white hover:bg-indigo-600/20 transition text-left">
+                  <i class="fa-solid fa-globe text-indigo-400 w-4 text-center"></i>
+                  <span>View Public Profile</span>
+                </a>
+              {% endif %}
 
               <button type="button" onclick="copyPublicShareUrl(); closeUserMenu();" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-slate-200 hover:text-white hover:bg-indigo-600/20 transition text-left cursor-pointer">
                 <i class="fa-solid fa-share-nodes text-emerald-400 w-4 text-center"></i>
                 <span>Share Profile Link</span>
               </button>
 
-              <button type="button" onclick="switchTab('friends'); closeUserMenu();" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-slate-200 hover:text-white hover:bg-indigo-600/20 transition text-left cursor-pointer">
-                <i class="fa-solid fa-user-group text-purple-400 w-4 text-center"></i>
-                <span>Friends</span>
-              </button>
+              {% if is_public_view %}
+                <a href="/friends/" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-slate-200 hover:text-white hover:bg-indigo-600/20 transition text-left cursor-pointer">
+                  <i class="fa-solid fa-user-group text-purple-400 w-4 text-center"></i>
+                  <span>Friends</span>
+                </a>
+              {% else %}
+                <button type="button" onclick="switchTab('friends'); closeUserMenu();" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-slate-200 hover:text-white hover:bg-indigo-600/20 transition text-left cursor-pointer">
+                  <i class="fa-solid fa-user-group text-purple-400 w-4 text-center"></i>
+                  <span>Friends</span>
+                </button>
+              {% endif %}
 
               <button type="button" onclick="openUploadModal(); closeUserMenu();" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-slate-200 hover:text-white hover:bg-indigo-600/20 transition text-left cursor-pointer">
                 <i class="fa-solid fa-file-csv text-cyan-400 w-4 text-center"></i>
