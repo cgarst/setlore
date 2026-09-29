@@ -321,7 +321,7 @@ def upload_csv(request):
                     raw_venue=venue_str,
                     primary_artist=rec.get("primary_artist", ""),
                     raw_artists=rec.get("raw_artists", ""),
-                    seen_before=rec.get("seen_before", ""),
+                    seen_before="",
                     notes=rec.get("notes", ""),
                     source='csv',
                     is_custom_offline=False

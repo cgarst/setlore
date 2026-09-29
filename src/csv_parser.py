@@ -68,7 +68,7 @@ def parse_csv_rows(reader, ignored_list: Optional[List[str]] = None) -> List[Dic
     is_header = False
     for idx, col in enumerate(first_row):
         col_clean = (col or "").strip().lower()
-        if any(k in col_clean for k in ['date', 'artist', 'band', 'venue', 'setlist', 'song', 'track', 'note', 'seen', 'tour']):
+        if any(k in col_clean for k in ['date', 'artist', 'band', 'venue', 'setlist', 'song', 'track', 'note', 'tour']):
             is_header = True
             if 'date' in col_clean and 'date' not in header_indices:
                 header_indices['date'] = idx
@@ -80,8 +80,6 @@ def parse_csv_rows(reader, ignored_list: Optional[List[str]] = None) -> List[Dic
                 header_indices['setlist'] = idx
             elif any(k in col_clean for k in ['note', 'tour', 'comment']) and 'notes' not in header_indices:
                 header_indices['notes'] = idx
-            elif any(k in col_clean for k in ['seen', 'attended']) and 'seen_before' not in header_indices:
-                header_indices['seen_before'] = idx
 
     rows_to_process = []
     if is_header:
@@ -112,11 +110,9 @@ def parse_csv_rows(reader, ignored_list: Optional[List[str]] = None) -> List[Dic
         setlist_raw = ""
         if 'setlist' in header_indices:
             setlist_raw = get_col('setlist', None)
-        elif len(row) == 4:
-            # Standard 4-column export format: Date, Artist(s), Venue, Setlist
+        elif len(row) >= 4:
             setlist_raw = row[3].strip()
 
-        seen_before_raw = get_col('seen_before', 4 if len(row) > 4 else None)
         notes_raw = get_col('notes', None)
 
         if not date_raw and not artists_raw and not venue_raw:
@@ -142,8 +138,6 @@ def parse_csv_rows(reader, ignored_list: Optional[List[str]] = None) -> List[Dic
             "artists": artists,
             "primary_artist": artists[0] if artists else artists_raw,
             "venue": venue_raw,
-            "artist_count": len(artists),
-            "seen_before": seen_before_raw,
             "notes": notes_raw,
             "setlist": setlist_raw
         })
