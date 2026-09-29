@@ -205,6 +205,7 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
 
     artist_drilldown_json = json.dumps(drilldown)
     venue_map_json = json.dumps(stats.get("venue_map", {}))
+    musicians_json = json.dumps(stats.get("musicians", {}).get("top_musicians", []))
 
     is_owner = request.user.is_authenticated and (request.user.id == target_user.id)
     tab_url_base = f"/u/{target_user.username}" if is_public_view else ""
@@ -364,6 +365,7 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
         'stats': stats,
         'artist_drilldown_json': artist_drilldown_json,
         'venue_map_json': venue_map_json,
+        'musicians_json': musicians_json,
         'all_venues': list(Venue.objects.order_by('name').values_list('name', flat=True).distinct()),
         'all_artists': list(Artist.objects.order_by('name').values_list('name', flat=True).distinct()),
         'is_public_view': is_public_view,

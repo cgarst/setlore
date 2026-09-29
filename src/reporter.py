@@ -275,6 +275,7 @@ def render_html_report(template_dir: Path, output_path: Path, username: str,
 
     artist_drilldown_json = json.dumps(drilldown)
     venue_map_json = json.dumps(stats.get("venue_map", {}))
+    musicians_json = json.dumps(stats.get("musicians", {}).get("top_musicians", []))
 
     html_out = template.render(
         username=username,
@@ -282,6 +283,7 @@ def render_html_report(template_dir: Path, output_path: Path, username: str,
         stats=stats,
         artist_drilldown_json=artist_drilldown_json,
         venue_map_json=venue_map_json,
+        musicians_json=musicians_json,
         **charts
     )
 

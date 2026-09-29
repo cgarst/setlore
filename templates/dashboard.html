@@ -1719,14 +1719,35 @@
             <h2 class="text-lg font-bold text-white flex items-center gap-2">
               <i class="fa-solid fa-microphone-lines text-indigo-400"></i> Select an Artist to Explore
             </h2>
-            <p class="text-xs text-slate-400">Click any artist below to inspect all songs heard, filtered by album, ranked by play count, and expand each to see concert dates and venues.</p>
+            <p class="text-xs text-slate-400">Click any artist below to inspect all songs heard, filtered by album, ranked by play count, or filter artists by musician.</p>
           </div>
-          <div class="relative flex items-center w-56">
-            <input type="text" id="artist-search-input" placeholder="Filter artist name..." oninput="handleFilterInput('artist-search-input', 'artist-search-clear', filterArtistButtons)" class="bg-slate-900 border border-slate-700 rounded-lg pl-3 pr-7 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 w-full">
-            <button type="button" id="artist-search-clear" onclick="clearFilterField('artist-search-input', 'artist-search-clear', filterArtistButtons)" class="hidden absolute right-2 text-slate-400 hover:text-white p-0.5 cursor-pointer text-xs transition" title="Clear filter">
-              <i class="fa-solid fa-xmark"></i>
-            </button>
+          <div class="flex flex-wrap items-center gap-2.5">
+            <!-- Musician Filter Dropdown -->
+            <div class="relative flex items-center">
+              <select id="drilldown-musician-filter" onchange="handleMusicianFilterChange(this.value)" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500 max-w-[190px] truncate cursor-pointer" title="Filter bands by musician">
+                <option value="">All Musicians</option>
+                {% for m in stats.musicians.top_musicians %}
+                <option value="{{ m.musician }}">{{ m.musician }} ({{ m.bands|length }} {% if m.bands|length == 1 %}band{% else %}bands{% endif %})</option>
+                {% endfor %}
+              </select>
+            </div>
+            <!-- Artist Search Input -->
+            <div class="relative flex items-center w-48 sm:w-52">
+              <input type="text" id="artist-search-input" placeholder="Filter artist name..." oninput="handleFilterInput('artist-search-input', 'artist-search-clear', filterArtistButtons)" class="bg-slate-900 border border-slate-700 rounded-lg pl-3 pr-7 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 w-full">
+              <button type="button" id="artist-search-clear" onclick="clearFilterField('artist-search-input', 'artist-search-clear', filterArtistButtons)" class="hidden absolute right-2 text-slate-400 hover:text-white p-0.5 cursor-pointer text-xs transition" title="Clear filter">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
           </div>
+        </div>
+
+        <!-- Active Musician Filter Indicator -->
+        <div id="drilldown-musician-active-badge" class="hidden flex items-center gap-2 mb-3 px-3 py-1.5 rounded-lg bg-indigo-600/20 border border-indigo-500/40 text-xs text-indigo-200">
+          <i class="fa-solid fa-user-tag text-indigo-400"></i>
+          <span>Filtered by Musician: <strong id="drilldown-musician-active-name" class="text-white font-bold"></strong></span>
+          <button type="button" onclick="clearMusicianFilter()" class="ml-auto text-indigo-300 hover:text-white flex items-center gap-1 font-semibold cursor-pointer">
+            <i class="fa-solid fa-xmark text-xs"></i> Show All Bands
+          </button>
         </div>
 
         <div id="artist-button-grid" class="flex flex-wrap gap-2 max-h-48 overflow-y-auto p-1">
@@ -1793,7 +1814,7 @@
         <div class="glass-card p-4">
           <span class="text-xs text-slate-400 font-semibold uppercase tracking-wider">#1 Most Seen Musician</span>
           <p class="text-lg font-black text-indigo-400 mt-1 truncate">
-            <button onclick="jumpToSongInDrilldown('{{ stats.musicians.top_musicians.0.musician|escapejs }}', '');" class="hover:underline text-indigo-400 text-left font-black">
+            <button onclick="jumpToMusicianInDrilldown('{{ stats.musicians.top_musicians.0.musician|escapejs }}');" class="hover:underline text-indigo-400 text-left font-black cursor-pointer">
               {{ stats.musicians.top_musicians.0.musician }}
             </button>
           </p>
@@ -1807,7 +1828,7 @@
         <div class="glass-card p-4">
           <span class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Top Multi-Band Member</span>
           <p class="text-base font-black text-pink-400 mt-1 truncate">
-            <button onclick="jumpToSongInDrilldown('{{ stats.musicians.supergroup_musicians.0.musician|escapejs }}', '');" class="hover:underline text-pink-400 text-left font-black">
+            <button onclick="jumpToMusicianInDrilldown('{{ stats.musicians.supergroup_musicians.0.musician|escapejs }}');" class="hover:underline text-pink-400 text-left font-black cursor-pointer">
               {{ stats.musicians.supergroup_musicians.0.musician }}
             </button>
           </p>
@@ -1833,7 +1854,7 @@
             <div class="flex items-start justify-between">
               <div>
                 <h4 class="font-bold text-white text-sm flex items-center gap-1.5">
-                  <button onclick="jumpToSongInDrilldown('{{ m.musician|escapejs }}', '');" class="hover:underline hover:text-indigo-300 flex items-center gap-1.5 text-white font-bold text-sm text-left">
+                  <button onclick="jumpToMusicianInDrilldown('{{ m.musician|escapejs }}');" class="hover:underline hover:text-indigo-300 flex items-center gap-1.5 text-white font-bold text-sm text-left cursor-pointer">
                     <i class="fa-solid fa-user-tag text-indigo-400 text-xs"></i> {{ m.musician }}
                   </button>
                 </h4>
@@ -1906,7 +1927,7 @@
               <tr class="musician-row hover:bg-slate-800/40 transition" data-musician-name="{{ m.musician|lower }}" data-instrument="{{ m.instrument }}">
                 <td class="px-3 py-2.5 text-xs font-mono text-slate-500">{{ forloop.counter }}</td>
                 <td class="px-3 py-2.5">
-                  <button onclick="jumpToSongInDrilldown('{{ m.musician|escapejs }}', '');" class="font-bold text-white hover:text-indigo-300 hover:underline text-xs text-left">
+                  <button onclick="jumpToMusicianInDrilldown('{{ m.musician|escapejs }}');" class="font-bold text-white hover:text-indigo-300 hover:underline text-xs text-left cursor-pointer">
                     {{ m.musician }}
                   </button>
                 </td>
@@ -2958,6 +2979,15 @@
     window.tabUrlBase = "{{ tab_url_base|default:''|escapejs }}";
     const drilldownData = {{ artist_drilldown_json|safe }};
     const venueMapData = {{ venue_map_json|safe }};
+    const musiciansData = {{ musicians_json|default:'[]'|safe }};
+    const musicianToBands = {};
+    if (Array.isArray(musiciansData)) {
+      musiciansData.forEach(m => {
+        const mName = (m.musician || '').toLowerCase().trim();
+        const bands = Object.keys(m.bands || {}).map(b => b.toLowerCase().trim());
+        musicianToBands[mName] = bands;
+      });
+    }
     let venueMap = null;
     let venueMarkers = {};
 
@@ -3502,11 +3532,103 @@
       });
     }
 
+    let activeMusicianFilter = '';
+
     function filterArtistButtons(query) {
-      const q = query.toLowerCase();
+      filterArtistsCombined();
+    }
+
+    function handleMusicianFilterChange(musicianName) {
+      activeMusicianFilter = (musicianName || '').trim();
+      filterArtistsCombined();
+    }
+
+    function clearMusicianFilter() {
+      activeMusicianFilter = '';
+      const select = document.getElementById('drilldown-musician-filter');
+      if (select) select.value = '';
+      filterArtistsCombined();
+    }
+
+    function filterArtistsCombined() {
+      const searchInp = document.getElementById('artist-search-input');
+      const q = searchInp ? searchInp.value.toLowerCase().trim() : '';
+      const mLow = activeMusicianFilter.toLowerCase().trim();
+      const allowedBands = mLow ? (musicianToBands[mLow] || []) : null;
+
+      const badge = document.getElementById('drilldown-musician-active-badge');
+      const nameEl = document.getElementById('drilldown-musician-active-name');
+      if (badge && nameEl) {
+        if (mLow) {
+          nameEl.innerText = activeMusicianFilter;
+          badge.classList.remove('hidden');
+        } else {
+          badge.classList.add('hidden');
+        }
+      }
+
+      let firstVisibleKey = null;
+
       document.querySelectorAll('.artist-btn').forEach(btn => {
-        btn.style.display = btn.getAttribute('data-name').includes(q) ? 'inline-flex' : 'none';
+        const btnName = (btn.getAttribute('data-name') || '').toLowerCase().trim();
+        let visible = true;
+
+        if (allowedBands !== null) {
+          const inBands = allowedBands.some(b => b === btnName || btnName.includes(b) || b.includes(btnName));
+          if (!inBands) visible = false;
+        }
+
+        if (visible && q) {
+          if (!btnName.includes(q)) visible = false;
+        }
+
+        btn.style.display = visible ? 'inline-flex' : 'none';
+        if (visible && !firstVisibleKey) {
+          for (const k of Object.keys(drilldownData)) {
+            if (k.toLowerCase().trim() === btnName) {
+              firstVisibleKey = k;
+              break;
+            }
+          }
+        }
       });
+
+      if (firstVisibleKey) {
+        const currentLow = (currentArtistName || '').toLowerCase().trim();
+        const isCurrentVisible = allowedBands === null || allowedBands.some(b => b === currentLow || currentLow.includes(b) || b.includes(currentLow));
+        if (!currentArtistName || !isCurrentVisible) {
+          selectArtist(firstVisibleKey);
+        }
+      } else if (allowedBands !== null) {
+        deselectArtist();
+      }
+    }
+
+    function jumpToMusicianInDrilldown(musicianName) {
+      switchTab('drilldown');
+      if (!musicianName) return;
+
+      const select = document.getElementById('drilldown-musician-filter');
+      let matchedVal = musicianName;
+      if (select) {
+        for (const opt of select.options) {
+          if (opt.value.toLowerCase().trim() === musicianName.toLowerCase().trim()) {
+            matchedVal = opt.value;
+            break;
+          }
+        }
+        select.value = matchedVal;
+      }
+
+      activeMusicianFilter = matchedVal;
+      filterArtistsCombined();
+
+      setTimeout(() => {
+        const display = document.getElementById('drilldown-display');
+        if (display) {
+          display.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 80);
     }
 
     let currentArtistName = null;
@@ -3515,6 +3637,11 @@
     function jumpToSongInDrilldown(artistName, songName = '') {
       switchTab('drilldown');
       if (!artistName) return;
+
+      // Clear musician filter if jumping directly to a specific artist
+      if (activeMusicianFilter) {
+        clearMusicianFilter();
+      }
 
       let matchedKey = Object.keys(drilldownData).find(k => k.toLowerCase() === artistName.toLowerCase());
       if (!matchedKey) {
