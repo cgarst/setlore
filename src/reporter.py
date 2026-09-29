@@ -160,6 +160,7 @@ def generate_plotly_charts(stats: Dict[str, Any], album_enrichments: Dict[str, A
             "hovertemplate": "<b>%{label}</b><br>Plays heard: %{value}<br><i>Click to zoom or open drilldown</i><extra></extra>"
         }],
         "layout": {
+            "dragmode": False,
             "margin": {"t": 35, "b": 10, "l": 10, "r": 10}
         }
     }
@@ -177,6 +178,7 @@ def generate_plotly_charts(stats: Dict[str, Any], album_enrichments: Dict[str, A
             "marker": {"colorscale": "Magma"}
         }],
         "layout": {
+            "dragmode": False,
             "showlegend": False,
             "margin": {"t": 10, "b": 10, "l": 10, "r": 10}
         }
@@ -208,8 +210,9 @@ def generate_plotly_charts(stats: Dict[str, Any], album_enrichments: Dict[str, A
         }],
         "layout": {
             "title": "",
-            "xaxis": {"title": "Album / Song Release Year", "gridcolor": "#1e293b"},
-            "yaxis": {"title": "Songs Heard Live", "gridcolor": "#1e293b"}
+            "dragmode": False,
+            "xaxis": {"title": "Album / Song Release Year", "gridcolor": "#1e293b", "fixedrange": True},
+            "yaxis": {"title": "Songs Heard Live", "gridcolor": "#1e293b", "fixedrange": True}
         }
     }
 
@@ -226,8 +229,9 @@ def generate_plotly_charts(stats: Dict[str, Any], album_enrichments: Dict[str, A
         }],
         "layout": {
             "title": "",
-            "xaxis": {"title": "Song Age when Performed (Years Since Release)", "gridcolor": "#1e293b"},
-            "yaxis": {"title": "Occurrences", "gridcolor": "#1e293b"}
+            "dragmode": False,
+            "xaxis": {"title": "Song Age when Performed (Years Since Release)", "gridcolor": "#1e293b", "fixedrange": True},
+            "yaxis": {"title": "Occurrences", "gridcolor": "#1e293b", "fixedrange": True}
         }
     }
 

@@ -2333,17 +2333,54 @@
       }),
       { responsive: true, displayModeBar: false, scrollZoom: false, doubleClick: false }
     );
-    Plotly.newPlot('chart-treemap', treemapData.data, Object.assign({}, layoutDefaults, treemapData.layout), {responsive: true, displayModeBar: false});
-    Plotly.newPlot('chart-sunburst', sunburstData.data, Object.assign({}, layoutDefaults, sunburstData.layout), {responsive: true, displayModeBar: false});
-    Plotly.newPlot('chart-era', eraData.data, Object.assign({}, layoutDefaults, eraData.layout), {responsive: true, displayModeBar: false});
-    Plotly.newPlot('chart-song-age', songAgeData.data, Object.assign({}, layoutDefaults, songAgeData.layout), {responsive: true, displayModeBar: false});
+    Plotly.newPlot(
+      'chart-treemap',
+      treemapData.data,
+      Object.assign({}, layoutDefaults, treemapData.layout, {
+        dragmode: false
+      }),
+      { responsive: true, displayModeBar: false, scrollZoom: false, doubleClick: false }
+    );
+    Plotly.newPlot(
+      'chart-sunburst',
+      sunburstData.data,
+      Object.assign({}, layoutDefaults, sunburstData.layout, {
+        dragmode: false
+      }),
+      { responsive: true, displayModeBar: false, scrollZoom: false, doubleClick: false }
+    );
+    Plotly.newPlot(
+      'chart-era',
+      eraData.data,
+      Object.assign({}, layoutDefaults, eraData.layout, {
+        dragmode: false,
+        xaxis: Object.assign({}, layoutDefaults.xaxis || {}, eraData.layout.xaxis || {}, { fixedrange: true }),
+        yaxis: Object.assign({}, layoutDefaults.yaxis || {}, eraData.layout.yaxis || {}, { fixedrange: true })
+      }),
+      { responsive: true, displayModeBar: false, scrollZoom: false, doubleClick: false }
+    );
+    Plotly.newPlot(
+      'chart-song-age',
+      songAgeData.data,
+      Object.assign({}, layoutDefaults, songAgeData.layout, {
+        dragmode: false,
+        xaxis: Object.assign({}, layoutDefaults.xaxis || {}, songAgeData.layout.xaxis || {}, { fixedrange: true }),
+        yaxis: Object.assign({}, layoutDefaults.yaxis || {}, songAgeData.layout.yaxis || {}, { fixedrange: true })
+      }),
+      { responsive: true, displayModeBar: false, scrollZoom: false, doubleClick: false }
+    );
 
     function resetTreemapZoom() {
       const el = document.getElementById('chart-treemap');
       if (el) {
         Plotly.restyle(el, { level: '' }).catch(() => {
           if (typeof treemapData !== 'undefined') {
-            Plotly.newPlot(el, treemapData.data, Object.assign({}, layoutDefaults, treemapData.layout), {responsive: true, displayModeBar: false});
+            Plotly.newPlot(
+              el,
+              treemapData.data,
+              Object.assign({}, layoutDefaults, treemapData.layout, { dragmode: false }),
+              { responsive: true, displayModeBar: false, scrollZoom: false, doubleClick: false }
+            );
           }
         });
       }
