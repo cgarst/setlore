@@ -53,7 +53,7 @@
     }
   </style>
 </head>
-<body class="min-h-screen p-4 md:p-8">
+<body class="min-h-screen p-4 md:p-8 pb-24 md:pb-8">
 
   <!-- Header -->
   <header class="max-w-7xl mx-auto mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -87,8 +87,8 @@
     </div>
   </header>
 
-  <!-- Navigation Tabs (Modern Segmented Pill Bar) -->
-  <div class="max-w-7xl mx-auto mb-8">
+  <!-- Navigation Tabs (Modern Segmented Pill Bar - Desktop/Tablet) -->
+  <div id="desktop-nav-bar" class="hidden md:block max-w-7xl mx-auto mb-8">
     <div class="glass-card p-1.5 flex flex-col lg:flex-row items-center justify-between gap-3 shadow-2xl border border-slate-800/80 bg-slate-900/90 backdrop-blur-xl">
       <nav class="flex flex-wrap items-center gap-1.5 w-full lg:w-auto">
         <button onclick="switchTab('overview')" id="tab-overview-btn" class="nav-tab-btn px-3.5 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-500/25 flex items-center gap-2 transition-all">
@@ -984,6 +984,145 @@
 
   </main>
 
+  <!-- Mobile Bottom Tab Navigation (iPhone App Navigator Style) -->
+  <nav id="mobile-bottom-nav" class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-900/95 backdrop-blur-xl border-t border-slate-800/90 shadow-[0_-10px_25px_-5px_rgba(0,0,0,0.5)] px-2 pt-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom,0px))]">
+    <div class="grid grid-cols-5 items-center justify-around max-w-lg mx-auto">
+      <!-- 1. Overview -->
+      <button onclick="switchTab('overview')" id="mobile-tab-overview-btn" class="mobile-nav-tab flex flex-col items-center justify-center py-1 px-1 rounded-xl text-indigo-400 font-bold transition-all group scale-105" title="Overview">
+        <div class="w-8 h-7 flex items-center justify-center rounded-lg transition">
+          <i class="fa-solid fa-chart-pie text-lg transition-transform group-active:scale-90"></i>
+        </div>
+        <span class="text-[10px] tracking-tight truncate mt-0.5">Overview</span>
+      </button>
+
+      <!-- 2. Concerts -->
+      <button onclick="switchTab('concerts')" id="mobile-tab-concerts-btn" class="mobile-nav-tab flex flex-col items-center justify-center py-1 px-1 rounded-xl text-slate-400 hover:text-slate-200 font-medium transition-all group" title="Concerts">
+        <div class="w-8 h-7 flex items-center justify-center rounded-lg transition">
+          <i class="fa-solid fa-ticket text-lg transition-transform group-active:scale-90"></i>
+        </div>
+        <span class="text-[10px] tracking-tight truncate mt-0.5">Concerts</span>
+      </button>
+
+      <!-- 3. Artists & Songs -->
+      <button onclick="switchTab('drilldown')" id="mobile-tab-drilldown-btn" class="mobile-nav-tab flex flex-col items-center justify-center py-1 px-1 rounded-xl text-slate-400 hover:text-slate-200 font-medium transition-all group" title="Artists & Songs">
+        <div class="w-8 h-7 flex items-center justify-center rounded-lg transition">
+          <i class="fa-solid fa-magnifying-glass-chart text-lg transition-transform group-active:scale-90"></i>
+        </div>
+        <span class="text-[10px] tracking-tight truncate mt-0.5">Artists</span>
+      </button>
+
+      <!-- 4. Venue Map -->
+      <button onclick="switchTab('map')" id="mobile-tab-map-btn" class="mobile-nav-tab flex flex-col items-center justify-center py-1 px-1 rounded-xl text-slate-400 hover:text-slate-200 font-medium transition-all group" title="Venue Map">
+        <div class="w-8 h-7 flex items-center justify-center rounded-lg transition">
+          <i class="fa-solid fa-map-location-dot text-lg transition-transform group-active:scale-90"></i>
+        </div>
+        <span class="text-[10px] tracking-tight truncate mt-0.5">Venues</span>
+      </button>
+
+      <!-- 5. More (Second-level items) -->
+      <button onclick="toggleMobileMoreMenu()" id="mobile-tab-more-btn" class="mobile-nav-tab relative flex flex-col items-center justify-center py-1 px-1 rounded-xl text-slate-400 hover:text-slate-200 font-medium transition-all group" title="More sections">
+        <div class="w-8 h-7 flex items-center justify-center rounded-lg transition relative">
+          <i id="mobile-more-icon" class="fa-solid fa-ellipsis text-lg transition-transform group-active:scale-90"></i>
+          {% if gap.csv_missing_or_partial|length > 0 %}
+            <span class="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
+            </span>
+          {% endif %}
+          <span id="mobile-more-active-dot" class="hidden absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
+        </div>
+        <span id="mobile-more-label" class="text-[10px] tracking-tight truncate mt-0.5">More</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Mobile "More" Second-Level Navigation Sheet / Modal -->
+  <div id="mobile-more-sheet" class="hidden fixed inset-0 z-50 md:hidden flex flex-col justify-end">
+    <!-- Backdrop -->
+    <div id="mobile-more-backdrop" onclick="closeMobileMoreMenu()" class="fixed inset-0 bg-black/70 backdrop-blur-sm transition-opacity opacity-0"></div>
+
+    <!-- Sheet Content -->
+    <div id="mobile-more-content" class="relative z-10 bg-slate-900 border-t border-slate-700/80 rounded-t-3xl p-5 shadow-2xl transform translate-y-full transition-transform duration-300 ease-out max-h-[85vh] overflow-y-auto pb-[max(1.5rem,env(safe-area-inset-bottom,0px))]">
+      <!-- iOS Drag Handle -->
+      <div class="w-12 h-1.5 bg-slate-700 rounded-full mx-auto mb-4 cursor-pointer" onclick="closeMobileMoreMenu()"></div>
+
+      <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-800">
+        <div>
+          <h3 class="text-base font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-layer-group text-indigo-400"></i> More Sections
+          </h3>
+          <p class="text-xs text-slate-400">Second-level analytics & audit tools</p>
+        </div>
+        <button onclick="closeMobileMoreMenu()" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center transition cursor-pointer" aria-label="Close menu">
+          <i class="fa-solid fa-xmark text-sm"></i>
+        </button>
+      </div>
+
+      <div class="space-y-2.5">
+        <!-- Musicians -->
+        <button onclick="switchTab('musicians'); closeMobileMoreMenu();" id="mobile-sheet-tab-musicians-btn" class="w-full flex items-center justify-between p-3 rounded-2xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600 transition text-left group cursor-pointer">
+          <div class="flex items-center gap-3.5">
+            <div class="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 group-hover:scale-105 transition shrink-0">
+              <i class="fa-solid fa-users-viewfinder text-lg"></i>
+            </div>
+            <div>
+              <p class="text-sm font-semibold text-white group-hover:text-amber-300 transition">Musicians</p>
+              <p class="text-xs text-slate-400">Band lineups & live musician tracking</p>
+            </div>
+          </div>
+          <i class="fa-solid fa-chevron-right text-slate-500 text-xs"></i>
+        </button>
+
+        <!-- Albums & Eras -->
+        <button onclick="switchTab('advanced'); closeMobileMoreMenu();" id="mobile-sheet-tab-advanced-btn" class="w-full flex items-center justify-between p-3 rounded-2xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600 transition text-left group cursor-pointer">
+          <div class="flex items-center gap-3.5">
+            <div class="w-10 h-10 rounded-xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 group-hover:scale-105 transition shrink-0">
+              <i class="fa-solid fa-wand-magic-sparkles text-lg"></i>
+            </div>
+            <div>
+              <p class="text-sm font-semibold text-white group-hover:text-cyan-300 transition">Albums & Eras</p>
+              <p class="text-xs text-slate-400">Album coverage, era charts & song age</p>
+            </div>
+          </div>
+          <i class="fa-solid fa-chevron-right text-slate-500 text-xs"></i>
+        </button>
+
+        <!-- Freshness -->
+        <button onclick="switchTab('setlists'); closeMobileMoreMenu();" id="mobile-sheet-tab-setlists-btn" class="w-full flex items-center justify-between p-3 rounded-2xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600 transition text-left group cursor-pointer">
+          <div class="flex items-center gap-3.5">
+            <div class="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 group-hover:scale-105 transition shrink-0">
+              <i class="fa-solid fa-leaf text-lg"></i>
+            </div>
+            <div>
+              <p class="text-sm font-semibold text-white group-hover:text-emerald-300 transition">Freshness</p>
+              <p class="text-xs text-slate-400">Setlist cache freshness & sync state</p>
+            </div>
+          </div>
+          <i class="fa-solid fa-chevron-right text-slate-500 text-xs"></i>
+        </button>
+
+        <!-- Setlist Audit -->
+        <button onclick="switchTab('gap'); closeMobileMoreMenu();" id="mobile-sheet-tab-gap-btn" class="w-full flex items-center justify-between p-3 rounded-2xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600 transition text-left group cursor-pointer">
+          <div class="flex items-center gap-3.5">
+            <div class="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 group-hover:scale-105 transition shrink-0">
+              <i class="fa-solid fa-clipboard-check text-lg"></i>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <p class="text-sm font-semibold text-white group-hover:text-amber-300 transition">Setlist Audit</p>
+                {% if gap.csv_missing_or_partial|length > 0 %}
+                  <span class="bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold border border-amber-500/30">{{ gap.csv_missing_or_partial|length }}</span>
+                {% endif %}
+              </div>
+              <p class="text-xs text-slate-400">Missing tracks & setlist discrepancy audit</p>
+            </div>
+          </div>
+          <i class="fa-solid fa-chevron-right text-slate-500 text-xs"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Plotly Data & Interactive Logic -->
   <script>
     const drilldownData = {{ artist_drilldown_json|safe }};
@@ -1020,6 +1159,44 @@
         }
       }
 
+      // Sync Mobile Bottom Tab Navigator & More Sheet
+      const primaryTabs = ['overview', 'concerts', 'drilldown', 'map'];
+      primaryTabs.forEach(t => {
+        const mBtn = document.getElementById('mobile-tab-' + t + '-btn');
+        if (mBtn) {
+          if (t === tabId) {
+            mBtn.className = 'mobile-nav-tab flex flex-col items-center justify-center py-1 px-1 rounded-xl text-indigo-400 font-bold transition-all group scale-105';
+          } else {
+            mBtn.className = 'mobile-nav-tab flex flex-col items-center justify-center py-1 px-1 rounded-xl text-slate-400 hover:text-slate-200 font-medium transition-all group';
+          }
+        }
+      });
+
+      const secondaryTabs = ['musicians', 'advanced', 'setlists', 'gap'];
+      const isSecondary = secondaryTabs.includes(tabId);
+      const moreBtn = document.getElementById('mobile-tab-more-btn');
+      const moreDot = document.getElementById('mobile-more-active-dot');
+      if (moreBtn) {
+        if (isSecondary) {
+          moreBtn.className = 'mobile-nav-tab relative flex flex-col items-center justify-center py-1 px-1 rounded-xl text-indigo-400 font-bold transition-all group scale-105';
+          if (moreDot) moreDot.classList.remove('hidden');
+        } else {
+          moreBtn.className = 'mobile-nav-tab relative flex flex-col items-center justify-center py-1 px-1 rounded-xl text-slate-400 hover:text-slate-200 font-medium transition-all group';
+          if (moreDot) moreDot.classList.add('hidden');
+        }
+      }
+
+      secondaryTabs.forEach(st => {
+        const sheetBtn = document.getElementById('mobile-sheet-tab-' + st + '-btn');
+        if (sheetBtn) {
+          if (st === tabId) {
+            sheetBtn.className = 'w-full flex items-center justify-between p-3 rounded-2xl bg-indigo-600/20 border border-indigo-500/50 shadow-md shadow-indigo-500/10 transition text-left group cursor-pointer';
+          } else {
+            sheetBtn.className = 'w-full flex items-center justify-between p-3 rounded-2xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600 transition text-left group cursor-pointer';
+          }
+        }
+      });
+
       if (updateHash) {
         history.replaceState(null, null, '#' + tabId);
       }
@@ -1046,6 +1223,45 @@
       }
 
       window.dispatchEvent(new Event('resize'));
+    }
+
+    function openMobileMoreMenu() {
+      const sheet = document.getElementById('mobile-more-sheet');
+      const backdrop = document.getElementById('mobile-more-backdrop');
+      const content = document.getElementById('mobile-more-content');
+      if (sheet && backdrop && content) {
+        sheet.classList.remove('hidden');
+        requestAnimationFrame(() => {
+          backdrop.classList.remove('opacity-0');
+          backdrop.classList.add('opacity-100');
+          content.classList.remove('translate-y-full');
+          content.classList.add('translate-y-0');
+        });
+      }
+    }
+
+    function closeMobileMoreMenu() {
+      const sheet = document.getElementById('mobile-more-sheet');
+      const backdrop = document.getElementById('mobile-more-backdrop');
+      const content = document.getElementById('mobile-more-content');
+      if (sheet && backdrop && content) {
+        backdrop.classList.remove('opacity-100');
+        backdrop.classList.add('opacity-0');
+        content.classList.remove('translate-y-0');
+        content.classList.add('translate-y-full');
+        setTimeout(() => {
+          sheet.classList.add('hidden');
+        }, 300);
+      }
+    }
+
+    function toggleMobileMoreMenu() {
+      const sheet = document.getElementById('mobile-more-sheet');
+      if (sheet && !sheet.classList.contains('hidden')) {
+        closeMobileMoreMenu();
+      } else {
+        openMobileMoreMenu();
+      }
     }
 
     // URL Hash deep linking support on page load and back/forward navigation
@@ -1568,6 +1784,12 @@
         }
       });
     }
+
+    document.addEventListener('keydown', function(event) {
+      if (event.key === 'Escape') {
+        closeMobileMoreMenu();
+      }
+    });
   </script>
 </body>
 </html>
