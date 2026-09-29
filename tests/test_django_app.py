@@ -244,7 +244,7 @@ class DjangoAppTests(TestCase):
         self.assertIn('Public View (Read-Only)', content)
         self.assertIn('Haken', content)
         self.assertIn('Sign In', content)
-        self.assertIn('Create Free Account', content)
+        self.assertIn('Create Account', content)
         # Add concert buttons should not be present for anonymous viewers
         self.assertNotIn('id="mobile-tab-add-btn"', content)
         self.assertNotIn('<i class="fa-solid fa-plus text-xs"></i> Add Concert', content)
