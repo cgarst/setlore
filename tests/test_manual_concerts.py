@@ -84,7 +84,7 @@ class ManualConcertTests(TestCase):
         self.assertEqual(artists[2].artist.name, "Acoustic Duo")
 
         # Verify dashboard renders with this concert
-        dash_res = self.client.get('/')
+        dash_res = self.client.get('/dashboard/')
         self.assertEqual(dash_res.status_code, 200)
         content = dash_res.content.decode('utf-8')
         self.assertIn("Local Garage Band", content)
@@ -129,7 +129,7 @@ class ManualConcertTests(TestCase):
         self.assertEqual(songs[2].original_artist, "Someone")
 
         # Verify dashboard computes songs heard
-        dash_res = self.client.get('/')
+        dash_res = self.client.get('/dashboard/')
         self.assertEqual(dash_res.status_code, 200)
         content = dash_res.content.decode('utf-8')
         self.assertIn("A Nightmare to Remember", content)
@@ -162,6 +162,58 @@ class ManualConcertTests(TestCase):
         )
         self.assertEqual(res.status_code, 400)
         self.assertIn("Invalid date format", res.json()["error"])
+
+    def test_autocomplete_sorted_by_frequency(self):
+        v1 = Venue.objects.create(name="9:30 Club", city="Washington", state="DC")
+        v2 = Venue.objects.create(name="The Fillmore", city="Silver Spring", state="MD")
+
+        a1 = Artist.objects.create(name="Rush", normalized_name="rush")
+        a2 = Artist.objects.create(name="Dream Theater", normalized_name="dream theater")
+
+        # Create 3 concerts at 9:30 Club for Rush
+        for i in range(3):
+            c = Concert.objects.create(
+                user=self.user,
+                raw_date=f"202{i}-05-01",
+                year=2020 + i,
+                venue=v1,
+                primary_artist="Rush",
+                raw_artists="Rush",
+                source="manual"
+            )
+            ConcertArtist.objects.create(concert=c, artist=a1)
+
+        # Create 1 concert at The Fillmore for Dream Theater
+        c2 = Concert.objects.create(
+            user=self.user,
+            raw_date="2024-06-01",
+            year=2024,
+            venue=v2,
+            primary_artist="Dream Theater",
+            raw_artists="Dream Theater",
+            source="manual"
+        )
+        ConcertArtist.objects.create(concert=c2, artist=a2)
+
+        # Test Venue autocomplete sorting (9:30 Club with 3 shows should come before The Fillmore with 1 show)
+        res = self.client.get('/api/autocomplete/?type=venue')
+        self.assertEqual(res.status_code, 200)
+        venues = res.json()["results"]
+        self.assertGreaterEqual(len(venues), 2)
+        self.assertEqual(venues[0]["name"], "9:30 Club")
+        self.assertEqual(venues[0]["count"], 3)
+        self.assertEqual(venues[1]["name"], "The Fillmore")
+        self.assertEqual(venues[1]["count"], 1)
+
+        # Test Artist autocomplete sorting (Rush with 3 shows should come before Dream Theater with 1 show)
+        res_art = self.client.get('/api/autocomplete/?type=artist')
+        self.assertEqual(res_art.status_code, 200)
+        artists = res_art.json()["results"]
+        self.assertGreaterEqual(len(artists), 2)
+        self.assertEqual(artists[0]["name"], "Rush")
+        self.assertEqual(artists[0]["count"], 3)
+        self.assertEqual(artists[1]["name"], "Dream Theater")
+        self.assertEqual(artists[1]["count"], 1)
 
     def test_csv_upload_preserves_manually_added_concerts(self):
         from unittest.mock import patch

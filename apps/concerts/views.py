@@ -1108,29 +1108,43 @@ def autocomplete_view(request):
 
     if field_type == 'venue':
         seen_keys = set()
+        # 1. User's venues ranked by attendance frequency
+        user_venues_qs = (
+            Concert.objects.filter(user=user, venue__isnull=False)
+            .values('venue__name', 'venue__city', 'venue__state')
+            .annotate(show_count=Count('id'))
+            .order_by('-show_count', 'venue__name')
+        )
         if q:
-            user_venue_ids = Concert.objects.filter(user=user, venue__isnull=False).values_list('venue_id', flat=True).distinct()
-            user_venues = list(Venue.objects.filter(id__in=user_venue_ids, name__icontains=q).values('name', 'city', 'state'))
-            for v in user_venues:
-                name = (v.get('name') or '').strip()
-                city = (v.get('city') or '').strip()
-                state = (v.get('state') or '').strip()
-                if not name:
-                    continue
-                key = (name.lower(), city.lower(), state.lower())
-                if key not in seen_keys:
-                    seen_keys.add(key)
-                    results.append({
-                        'name': name,
-                        'city': city,
-                        'state': state,
-                        'is_recent': True
-                    })
-                if len(results) >= 10:
-                    break
+            user_venues_qs = user_venues_qs.filter(venue__name__icontains=q)
 
-            other_venues = list(Venue.objects.filter(name__icontains=q).values('name', 'city', 'state'))
-            for v in other_venues:
+        for v in user_venues_qs:
+            name = (v.get('venue__name') or '').strip()
+            city = (v.get('venue__city') or '').strip()
+            state = (v.get('venue__state') or '').strip()
+            count = v.get('show_count', 1)
+            if not name:
+                continue
+            key = (name.lower(), city.lower(), state.lower())
+            if key not in seen_keys:
+                seen_keys.add(key)
+                results.append({
+                    'name': name,
+                    'city': city,
+                    'state': state,
+                    'count': count,
+                    'is_frequent': True,
+                    'is_recent': True
+                })
+            if len(results) >= (10 if q else 15):
+                break
+
+        # 2. Other venues ranked by overall frequency
+        if len(results) < 20:
+            other_venues_qs = Venue.objects.annotate(show_count=Count('concerts')).order_by('-show_count', 'name')
+            if q:
+                other_venues_qs = other_venues_qs.filter(name__icontains=q)
+            for v in other_venues_qs.values('name', 'city', 'state', 'show_count')[:50]:
                 name = (v.get('name') or '').strip()
                 city = (v.get('city') or '').strip()
                 state = (v.get('state') or '').strip()
@@ -1143,171 +1157,170 @@ def autocomplete_view(request):
                         'name': name,
                         'city': city,
                         'state': state,
+                        'is_frequent': False,
                         'is_recent': False
                     })
                 if len(results) >= 20:
                     break
-        else:
-            recent_user_concerts = Concert.objects.filter(user=user, venue__isnull=False).select_related('venue').order_by('-date', '-id')[:100]
-            for c in recent_user_concerts:
-                if c.venue and c.venue.name:
-                    name = c.venue.name.strip()
-                    city = (c.venue.city or '').strip()
-                    state = (c.venue.state or '').strip()
-                    key = (name.lower(), city.lower(), state.lower())
-                    if key not in seen_keys:
-                        seen_keys.add(key)
-                        results.append({
-                            'name': name,
-                            'city': city,
-                            'state': state,
-                            'is_recent': True
-                        })
-                    if len(results) >= 12:
-                        break
-            if not results:
-                venues = Venue.objects.all().order_by('name').values('name', 'city', 'state')[:50]
-                for v in venues:
-                    name = (v.get('name') or '').strip()
-                    city = (v.get('city') or '').strip()
-                    state = (v.get('state') or '').strip()
-                    key = (name.lower(), city.lower(), state.lower())
-                    if key not in seen_keys:
-                        seen_keys.add(key)
-                        results.append({
-                            'name': name,
-                            'city': city,
-                            'state': state,
-                            'is_recent': False
-                        })
-                    if len(results) >= 12:
-                        break
 
     elif field_type == 'artist':
         seen_artists = set()
+        # 1. User's artists ranked by attendance frequency
+        user_artists_qs = (
+            ConcertArtist.objects.filter(concert__user=user, artist__isnull=False)
+            .values('artist__name')
+            .annotate(show_count=Count('id'))
+            .order_by('-show_count', 'artist__name')
+        )
         if q:
-            user_artists = list(ConcertArtist.objects.filter(concert__user=user, artist__name__icontains=q).values_list('artist__name', flat=True))
-            for name in user_artists:
-                clean_name = (name or '').strip()
-                if not clean_name:
-                    continue
-                norm = clean_name.lower()
-                if norm not in seen_artists:
-                    seen_artists.add(norm)
-                    results.append({'name': clean_name, 'is_recent': True})
-                if len(results) >= 10:
-                    break
+            user_artists_qs = user_artists_qs.filter(artist__name__icontains=q)
 
-            other_artists = list(Artist.objects.filter(name__icontains=q).values_list('name', flat=True))
-            for name in other_artists:
-                clean_name = (name or '').strip()
+        for a in user_artists_qs:
+            clean_name = (a.get('artist__name') or '').strip()
+            count = a.get('show_count', 1)
+            if not clean_name:
+                continue
+            norm = clean_name.lower()
+            if norm not in seen_artists:
+                seen_artists.add(norm)
+                results.append({
+                    'name': clean_name,
+                    'count': count,
+                    'is_frequent': True,
+                    'is_recent': True
+                })
+            if len(results) >= (10 if q else 15):
+                break
+
+        # 2. Other artists ranked by overall frequency
+        if len(results) < 20:
+            other_artists_qs = Artist.objects.annotate(show_count=Count('concert_appearances')).order_by('-show_count', 'name')
+            if q:
+                other_artists_qs = other_artists_qs.filter(name__icontains=q)
+            for a in other_artists_qs.values('name')[:50]:
+                clean_name = (a.get('name') or '').strip()
                 if not clean_name:
                     continue
                 norm = clean_name.lower()
                 if norm not in seen_artists:
                     seen_artists.add(norm)
-                    results.append({'name': clean_name, 'is_recent': False})
+                    results.append({
+                        'name': clean_name,
+                        'is_frequent': False,
+                        'is_recent': False
+                    })
                 if len(results) >= 20:
                     break
-        else:
-            recent_artists = ConcertArtist.objects.filter(concert__user=user).select_related('artist').order_by('-concert__date', '-concert__id')[:100]
-            for ca in recent_artists:
-                if ca.artist and ca.artist.name:
-                    clean_name = ca.artist.name.strip()
-                    norm = clean_name.lower()
-                    if norm not in seen_artists:
-                        seen_artists.add(norm)
-                        results.append({'name': clean_name, 'is_recent': True})
-                    if len(results) >= 12:
-                        break
-            if not results:
-                artists = Artist.objects.all().order_by('name').values_list('name', flat=True)[:50]
-                for name in artists:
-                    clean_name = (name or '').strip()
-                    if not clean_name:
-                        continue
-                    norm = clean_name.lower()
-                    if norm not in seen_artists:
-                        seen_artists.add(norm)
-                        results.append({'name': clean_name, 'is_recent': False})
-                    if len(results) >= 12:
-                        break
 
     elif field_type == 'city':
         seen_cities = set()
+        # 1. User's cities ranked by frequency
+        user_cities_qs = (
+            Concert.objects.filter(user=user, venue__isnull=False)
+            .exclude(venue__city='')
+            .values('venue__city')
+            .annotate(show_count=Count('id'))
+            .order_by('-show_count', 'venue__city')
+        )
         if q:
-            cities = Venue.objects.filter(city__icontains=q).exclude(city='').values_list('city', flat=True).order_by('city')
-            for c in cities:
-                clean_c = (c or '').strip()
+            user_cities_qs = user_cities_qs.filter(venue__city__icontains=q)
+
+        for c in user_cities_qs:
+            clean_c = (c.get('venue__city') or '').strip()
+            count = c.get('show_count', 1)
+            if not clean_c:
+                continue
+            norm = clean_c.lower()
+            if norm not in seen_cities:
+                seen_cities.add(norm)
+                results.append({
+                    'name': clean_c,
+                    'count': count,
+                    'is_frequent': True,
+                    'is_recent': True
+                })
+            if len(results) >= (10 if q else 15):
+                break
+
+        # 2. Global cities ranked by frequency
+        if len(results) < 20:
+            global_cities_qs = (
+                Venue.objects.exclude(city='')
+                .values('city')
+                .annotate(show_count=Count('concerts'))
+                .order_by('-show_count', 'city')
+            )
+            if q:
+                global_cities_qs = global_cities_qs.filter(city__icontains=q)
+            for c in global_cities_qs[:50]:
+                clean_c = (c.get('city') or '').strip()
                 if not clean_c:
                     continue
                 norm = clean_c.lower()
                 if norm not in seen_cities:
                     seen_cities.add(norm)
-                    results.append({'name': clean_c})
-                if len(results) >= 15:
+                    results.append({
+                        'name': clean_c,
+                        'is_frequent': False,
+                        'is_recent': False
+                    })
+                if len(results) >= 20:
                     break
-        else:
-            recent_user_concerts = Concert.objects.filter(user=user, venue__isnull=False).select_related('venue').order_by('-date', '-id')[:100]
-            for c in recent_user_concerts:
-                if c.venue and c.venue.city:
-                    clean_c = c.venue.city.strip()
-                    norm = clean_c.lower()
-                    if norm not in seen_cities:
-                        seen_cities.add(norm)
-                        results.append({'name': clean_c, 'is_recent': True})
-                    if len(results) >= 10:
-                        break
-            if not results:
-                cities = Venue.objects.exclude(city='').values_list('city', flat=True).order_by('city')
-                for c in cities:
-                    clean_c = (c or '').strip()
-                    if not clean_c:
-                        continue
-                    norm = clean_c.lower()
-                    if norm not in seen_cities:
-                        seen_cities.add(norm)
-                        results.append({'name': clean_c})
-                    if len(results) >= 10:
-                        break
 
     elif field_type == 'state':
         seen_states = set()
+        # 1. User's states ranked by frequency
+        user_states_qs = (
+            Concert.objects.filter(user=user, venue__isnull=False)
+            .exclude(venue__state='')
+            .values('venue__state')
+            .annotate(show_count=Count('id'))
+            .order_by('-show_count', 'venue__state')
+        )
         if q:
-            states = Venue.objects.filter(state__icontains=q).exclude(state='').values_list('state', flat=True).order_by('state')
-            for s in states:
-                clean_s = (s or '').strip()
+            user_states_qs = user_states_qs.filter(venue__state__icontains=q)
+
+        for s in user_states_qs:
+            clean_s = (s.get('venue__state') or '').strip()
+            count = s.get('show_count', 1)
+            if not clean_s:
+                continue
+            norm = clean_s.lower()
+            if norm not in seen_states:
+                seen_states.add(norm)
+                results.append({
+                    'name': clean_s,
+                    'count': count,
+                    'is_frequent': True,
+                    'is_recent': True
+                })
+            if len(results) >= (10 if q else 15):
+                break
+
+        # 2. Global states ranked by frequency
+        if len(results) < 20:
+            global_states_qs = (
+                Venue.objects.exclude(state='')
+                .values('state')
+                .annotate(show_count=Count('concerts'))
+                .order_by('-show_count', 'state')
+            )
+            if q:
+                global_states_qs = global_states_qs.filter(state__icontains=q)
+            for s in global_states_qs[:50]:
+                clean_s = (s.get('state') or '').strip()
                 if not clean_s:
                     continue
                 norm = clean_s.lower()
                 if norm not in seen_states:
                     seen_states.add(norm)
-                    results.append({'name': clean_s})
-                if len(results) >= 15:
+                    results.append({
+                        'name': clean_s,
+                        'is_frequent': False,
+                        'is_recent': False
+                    })
+                if len(results) >= 20:
                     break
-        else:
-            recent_user_concerts = Concert.objects.filter(user=user, venue__isnull=False).select_related('venue').order_by('-date', '-id')[:100]
-            for c in recent_user_concerts:
-                if c.venue and c.venue.state:
-                    clean_s = c.venue.state.strip()
-                    norm = clean_s.lower()
-                    if norm not in seen_states:
-                        seen_states.add(norm)
-                        results.append({'name': clean_s, 'is_recent': True})
-                    if len(results) >= 10:
-                        break
-            if not results:
-                states = Venue.objects.exclude(state='').values_list('state', flat=True).order_by('state')
-                for s in states:
-                    clean_s = (s or '').strip()
-                    if not clean_s:
-                        continue
-                    norm = clean_s.lower()
-                    if norm not in seen_states:
-                        seen_states.add(norm)
-                        results.append({'name': clean_s})
-                    if len(results) >= 10:
-                        break
 
     return JsonResponse({'results': results})
 
