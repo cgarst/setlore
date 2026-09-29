@@ -24,7 +24,7 @@ from src.gap_analysis import reconcile_history
 from src.album_enricher import AlbumEnricher
 from src.musician_enricher import MusicianEnricher
 from src.venue_mapper import generate_venue_map_data
-from src.musician_tracker import analyze_musicians_live
+from src.musician_tracker import analyze_musicians_live, consolidate_musician_bands
 from src.config import SETLISTFM_API_KEY, CARTO_API_KEY, USER_CACHE_DIR
 from .services.sync_worker import sync_worker
 
@@ -57,6 +57,8 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
         bundle = cache_entry.payload
         gap_results = bundle.get("gap_results", {})
         stats = bundle.get("stats", {})
+        if "musicians" in stats:
+            stats["musicians"] = consolidate_musician_bands(stats["musicians"])
         album_enrichments = bundle.get("album_enrichments", {})
     else:
         # Build baseline statistics directly from database

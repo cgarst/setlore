@@ -164,9 +164,59 @@ def analyze_musicians_live(all_csv_records: List[Dict[str, Any]]) -> Dict[str, A
     for instr in role_counters:
         role_counters[instr].sort(key=lambda m: m["total_shows"], reverse=True)
 
-    return {
+    result = {
         "top_musicians": musician_list,
         "supergroup_musicians": supergroup_musicians,
         "by_instrument": dict(role_counters),
         "total_musicians_tracked": len(musician_list)
     }
+    return consolidate_musician_bands(result)
+
+
+def consolidate_musician_bands(musician_data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Ensures that any musician data (including cached stats) has strictly consolidated,
+    case-insensitive band entries in bands dict and accurate unique_bands_count.
+    """
+    if not musician_data or not isinstance(musician_data, dict):
+        return musician_data
+
+    def _fix_musician_entry(m: Dict[str, Any]):
+        bands = m.get("bands", {})
+        if not bands:
+            return
+        # Consolidate bands case-insensitively
+        consolidated = {}
+        for b_name, count in bands.items():
+            k = b_name.lower().strip()
+            matched_key = None
+            for existing_k in consolidated:
+                if existing_k.lower().strip() == k:
+                    matched_key = existing_k
+                    break
+            if matched_key:
+                consolidated[matched_key] += count
+            else:
+                consolidated[b_name] = count
+        m["bands"] = consolidated
+        m["unique_bands_count"] = len(consolidated)
+
+    top_m = musician_data.get("top_musicians", [])
+    for m in top_m:
+        _fix_musician_entry(m)
+
+    # Recompute supergroup musicians (musicians with unique_bands_count > 1)
+    musician_data["supergroup_musicians"] = [
+        m for m in top_m if m.get("unique_bands_count", 1) > 1
+    ]
+    musician_data["supergroup_musicians"].sort(
+        key=lambda m: (m.get("unique_bands_count", 1), m.get("total_shows", 0)),
+        reverse=True
+    )
+
+    by_instr = musician_data.get("by_instrument", {})
+    for instr, m_list in by_instr.items():
+        for m in m_list:
+            _fix_musician_entry(m)
+
+    return musician_data

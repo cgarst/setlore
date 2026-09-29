@@ -2,7 +2,7 @@ import unittest
 from django.test import TestCase
 from apps.catalog.models import Artist, MusicianTenure
 from src.musician_enricher import MusicianEnricher
-from src.musician_tracker import get_effective_band_tenures, analyze_musicians_live
+from src.musician_tracker import get_effective_band_tenures, analyze_musicians_live, consolidate_musician_bands
 
 class MusicianEnricherTests(TestCase):
     def setUp(self):
@@ -181,3 +181,52 @@ class MusicianEnricherTests(TestCase):
         self.assertEqual(len(m["bands"]), 1)
         # Verify supergroup/multi-band does not include him because he only has 1 unique band
         self.assertEqual(len(res["supergroup_musicians"]), 0)
+
+    def test_consolidate_musician_bands_stale_cache(self):
+        stale_data = {
+            "top_musicians": [
+                {
+                    "musician": "Paul Waggoner",
+                    "role": "Lead Guitar / Backing Vocals",
+                    "instrument": "Guitar",
+                    "total_shows": 5,
+                    "unique_bands_count": 2,
+                    "bands": {
+                        "Between The Buried And Me": 1,
+                        "Between the Buried and Me": 4
+                    },
+                    "shows": []
+                }
+            ],
+            "supergroup_musicians": [
+                {
+                    "musician": "Paul Waggoner",
+                    "unique_bands_count": 2,
+                    "total_shows": 5,
+                    "bands": {
+                        "Between The Buried And Me": 1,
+                        "Between the Buried and Me": 4
+                    }
+                }
+            ],
+            "by_instrument": {
+                "Guitar": [
+                    {
+                        "musician": "Paul Waggoner",
+                        "unique_bands_count": 2,
+                        "total_shows": 5,
+                        "bands": {
+                            "Between The Buried And Me": 1,
+                            "Between the Buried and Me": 4
+                        }
+                    }
+                ]
+            }
+        }
+        cleaned = consolidate_musician_bands(stale_data)
+        m = cleaned["top_musicians"][0]
+        self.assertEqual(m["unique_bands_count"], 1)
+        self.assertEqual(len(m["bands"]), 1)
+        self.assertEqual(list(m["bands"].values())[0], 5)
+        # Because unique_bands_count is 1, he should no longer be in supergroup_musicians
+        self.assertEqual(len(cleaned["supergroup_musicians"]), 0)
