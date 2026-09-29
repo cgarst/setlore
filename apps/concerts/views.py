@@ -205,6 +205,16 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
     tab_url_base = f"/u/{target_user.username}" if is_public_view else ""
     share_url = request.build_absolute_uri(f"/u/{target_user.username}/")
 
+    drilldown_list = stats.get("concerts_drilldown", [])
+    if request.user.is_authenticated and is_public_view:
+        stats_copy = dict(stats)
+        stats_copy["concerts_drilldown"] = check_viewer_attendance_for_drilldown(request.user, drilldown_list, target_user)
+        stats = stats_copy
+    elif request.user.is_authenticated and is_owner:
+        stats_copy = dict(stats)
+        stats_copy["concerts_drilldown"] = [dict(c, is_attended_by_viewer=True) for c in drilldown_list]
+        stats = stats_copy
+
     return {
         'initial_tab': initial_tab,
         'profile_user': target_user,
@@ -1028,6 +1038,280 @@ def autocomplete_view(request):
                 results = [{'name': s} for s in states]
 
     return JsonResponse({'results': results})
+
+
+def check_viewer_attendance_for_drilldown(viewer_user, concerts_drilldown, target_user):
+    """
+    Evaluates whether the logged-in viewing user has logged each concert
+    present in the target user's concerts drilldown list.
+    """
+    if not viewer_user or not viewer_user.is_authenticated:
+        return concerts_drilldown
+
+    viewer_concerts = list(
+        Concert.objects.filter(user=viewer_user)
+        .select_related('venue')
+        .prefetch_related('artists__artist')
+    )
+
+    viewer_sl_ids = set()
+    viewer_date_artist_map = {}  # (date_key, norm_art) -> vc
+
+    for vc in viewer_concerts:
+        d_keys = set()
+        if vc.date:
+            d_keys.add(vc.date.strftime("%Y-%m-%d"))
+            d_keys.add(vc.date.strftime("%m-%d-%Y"))
+            d_keys.add(vc.date.strftime("%m/%d/%Y"))
+            d_keys.add(vc.date.strftime("%d-%m-%Y"))
+        if vc.raw_date:
+            raw_s = vc.raw_date.strip()
+            d_keys.add(raw_s)
+            d_keys.add(raw_s.replace('-', '/'))
+            d_keys.add(raw_s.replace('/', '-'))
+
+        v_art_names = {normalize_artist_name(ca.artist.name) or ca.artist.name.lower().strip() for ca in vc.artists.all()}
+        if vc.primary_artist:
+            v_art_names.add(normalize_artist_name(vc.primary_artist) or vc.primary_artist.lower().strip())
+
+        for d_k in d_keys:
+            for a_name in v_art_names:
+                if a_name:
+                    viewer_date_artist_map[(d_k, a_name)] = vc
+
+        for ca in vc.artists.all():
+            if ca.setlistfm_id:
+                viewer_sl_ids.add(ca.setlistfm_id)
+
+    updated_drilldown = []
+    for c in concerts_drilldown:
+        c_copy = dict(c)
+        c_id = c_copy.get("id", "")
+        db_id = c_copy.get("db_id")
+        if db_id is None and str(c_id).startswith("concert_"):
+            try:
+                db_id = int(str(c_id).replace("concert_", ""))
+                c_copy["db_id"] = db_id
+            except ValueError:
+                pass
+
+        is_attended = False
+        matching_vc = None
+
+        if target_user and target_user.id == viewer_user.id:
+            is_attended = True
+        else:
+            # 1. Check artist and date matches
+            for a in c_copy.get("artists", []):
+                a_name = normalize_artist_name(a.get("artist", "")) or a.get("artist", "").lower().strip()
+                c_date = c_copy.get("date", "").strip()
+                date_variants = {c_date, c_date.replace('-', '/'), c_date.replace('/', '-')}
+                for d_var in date_variants:
+                    if (d_var, a_name) in viewer_date_artist_map:
+                        is_attended = True
+                        matching_vc = viewer_date_artist_map[(d_var, a_name)]
+                        break
+                if is_attended:
+                    break
+
+            if not is_attended:
+                c_date = c_copy.get("date", "").strip()
+                date_variants = {c_date, c_date.replace('-', '/'), c_date.replace('/', '-')}
+                raw_arts = c_copy.get("raw_artists", "")
+                parts = [p.strip() for p in re.split(r'[,;/]+', raw_arts) if p.strip()]
+                for p in parts:
+                    norm_p = normalize_artist_name(p) or p.lower().strip()
+                    for d_var in date_variants:
+                        if (d_var, norm_p) in viewer_date_artist_map:
+                            is_attended = True
+                            matching_vc = viewer_date_artist_map[(d_var, norm_p)]
+                            break
+                    if is_attended:
+                        break
+
+            # 2. Check Setlist.fm IDs if target concert exists in DB
+            if not is_attended and db_id:
+                tc = Concert.objects.filter(id=db_id).prefetch_related('artists').first()
+                if tc:
+                    tc_sl_ids = {ca.setlistfm_id for ca in tc.artists.all() if ca.setlistfm_id}
+                    if tc_sl_ids & viewer_sl_ids:
+                        is_attended = True
+
+        c_copy["is_attended_by_viewer"] = is_attended
+        if matching_vc:
+            c_copy["viewer_matching_concert_id"] = matching_vc.id
+
+        updated_drilldown.append(c_copy)
+
+    return updated_drilldown
+
+
+@login_required
+@require_POST
+def toggle_concert_attendance(request):
+    """
+    Toggles attendance for a concert from a public profile to the authenticated user's profile.
+    If already attended (active), de-selects and removes the concert from the user's profile.
+    If not yet attended, logs the concert and its full artists and setlists to the user's profile.
+    """
+    try:
+        try:
+            data = json.loads(request.body.decode('utf-8'))
+        except Exception:
+            data = request.POST
+
+        concert_id_raw = data.get('concert_id')
+        if not concert_id_raw:
+            return JsonResponse({"error": "Missing concert_id in request"}, status=400)
+
+        c_id_str = str(concert_id_raw).strip()
+        if c_id_str.startswith("concert_"):
+            c_id_str = c_id_str.replace("concert_", "")
+
+        try:
+            target_concert_id = int(c_id_str)
+        except ValueError:
+            return JsonResponse({"error": f"Invalid concert_id: {concert_id_raw}"}, status=400)
+
+        target_concert = Concert.objects.filter(id=target_concert_id).select_related('venue', 'user__profile').prefetch_related('artists__artist', 'artists__songs__song').first()
+        if not target_concert:
+            return JsonResponse({"error": "Concert not found"}, status=404)
+
+        is_owner = (request.user.id == target_concert.user_id)
+        if not target_concert.user.profile.is_public and not is_owner and not request.user.is_staff:
+            return JsonResponse({"error": "This profile is private."}, status=403)
+
+        # Find existing matching concert for request.user
+        viewer_concerts = list(Concert.objects.filter(user=request.user).prefetch_related('artists__artist', 'artists__songs'))
+        existing_match = None
+
+        if target_concert.user_id == request.user.id:
+            existing_match = target_concert
+        else:
+            # 1. Check setlistfm_id match
+            target_sl_ids = {ca.setlistfm_id for ca in target_concert.artists.all() if ca.setlistfm_id}
+            if target_sl_ids:
+                for vc in viewer_concerts:
+                    vc_sl_ids = {ca.setlistfm_id for ca in vc.artists.all() if ca.setlistfm_id}
+                    if target_sl_ids & vc_sl_ids:
+                        existing_match = vc
+                        break
+
+            # 2. Check date + artist match
+            if not existing_match:
+                target_art_names = {normalize_artist_name(ca.artist.name) or ca.artist.name.lower().strip() for ca in target_concert.artists.all()}
+                if target_concert.primary_artist:
+                    target_art_names.add(normalize_artist_name(target_concert.primary_artist) or target_concert.primary_artist.lower().strip())
+
+                for vc in viewer_concerts:
+                    date_match = False
+                    if vc.date and target_concert.date and vc.date == target_concert.date:
+                        date_match = True
+                    elif vc.raw_date and target_concert.raw_date and vc.raw_date.strip().replace('-', '/') == target_concert.raw_date.strip().replace('-', '/'):
+                        date_match = True
+
+                    if date_match:
+                        vc_art_names = {normalize_artist_name(ca.artist.name) or ca.artist.name.lower().strip() for ca in vc.artists.all()}
+                        if vc.primary_artist:
+                            vc_art_names.add(normalize_artist_name(vc.primary_artist) or vc.primary_artist.lower().strip())
+
+                        if target_art_names & vc_art_names:
+                            existing_match = vc
+                            break
+
+        if existing_match:
+            # De-select / remove from profile
+            existing_match_id = existing_match.id
+            artist_display = existing_match.primary_artist
+            date_display = existing_match.raw_date
+            existing_match.delete()
+
+            # Invalidate cache for request.user
+            ApiCache.objects.filter(cache_key=f"user_dashboard_bundle_{request.user.id}").delete()
+            sync_worker.enqueue_sync(request.user.id)
+
+            return JsonResponse({
+                "status": "success",
+                "action": "removed",
+                "is_attended": False,
+                "concert_id": target_concert.id,
+                "message": f"Removed '{artist_display}' on {date_display} from your profile."
+            })
+        else:
+            # Log concert to request.user's profile
+            with transaction.atomic():
+                new_concert = Concert.objects.create(
+                    user=request.user,
+                    date=target_concert.date,
+                    raw_date=target_concert.raw_date,
+                    year=target_concert.year,
+                    venue=target_concert.venue,
+                    raw_venue=target_concert.raw_venue,
+                    primary_artist=target_concert.primary_artist,
+                    raw_artists=target_concert.raw_artists,
+                    seen_before="",
+                    notes=target_concert.notes,
+                    source='manual',
+                    is_custom_offline=target_concert.is_custom_offline,
+                    is_fully_matched=target_concert.is_fully_matched,
+                    is_partially_matched=target_concert.is_partially_matched
+                )
+
+                if target_concert.artists.exists():
+                    for ca in target_concert.artists.all():
+                        new_ca = ConcertArtist.objects.create(
+                            concert=new_concert,
+                            artist=ca.artist,
+                            billing_order=ca.billing_order,
+                            setlistfm_id=ca.setlistfm_id,
+                            setlist_url=ca.setlist_url,
+                            has_setlist=ca.has_setlist
+                        )
+                        for cs in ca.songs.all():
+                            ConcertSong.objects.create(
+                                concert_artist=new_ca,
+                                song=cs.song,
+                                raw_song_name=cs.raw_song_name,
+                                set_name=cs.set_name,
+                                is_encore=cs.is_encore,
+                                encore_number=cs.encore_number,
+                                track_num=cs.track_num,
+                                total_tracks=cs.total_tracks,
+                                pct_position=cs.pct_position,
+                                slot=cs.slot,
+                                slot_category=cs.slot_category,
+                                is_cover=cs.is_cover,
+                                original_artist=cs.original_artist,
+                                info=cs.info
+                            )
+                elif target_concert.primary_artist:
+                    can_primary = normalize_artist_name(target_concert.primary_artist) or target_concert.primary_artist
+                    art_obj, _ = Artist.objects.get_or_create(
+                        name=can_primary,
+                        defaults={'normalized_name': can_primary.lower()}
+                    )
+                    ConcertArtist.objects.create(
+                        concert=new_concert,
+                        artist=art_obj,
+                        billing_order=0,
+                        has_setlist=False
+                    )
+
+            # Invalidate cache for request.user
+            ApiCache.objects.filter(cache_key=f"user_dashboard_bundle_{request.user.id}").delete()
+            sync_worker.enqueue_sync(request.user.id)
+
+            return JsonResponse({
+                "status": "success",
+                "action": "added",
+                "is_attended": True,
+                "concert_id": target_concert.id,
+                "user_concert_id": new_concert.id,
+                "message": f"Logged '{target_concert.primary_artist}' on {target_concert.raw_date} to your profile!"
+            })
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
 
 
 

@@ -314,3 +314,91 @@ class DjangoAppTests(TestCase):
             self.assertEqual(res.context['initial_tab'], t)
             self.assertTrue(res.context['is_public_view'])
 
+    def test_public_profile_i_was_there_button_and_attendance_toggle(self):
+        # Setup target user's concert
+        venue = Venue.objects.create(name='Merriweather Post Pavilion', city='Columbia', state='MD')
+        artist = Artist.objects.create(name='Rush', normalized_name='rush')
+        song = Song.objects.create(artist=artist, title='Tom Sawyer', clean_title='tom sawyer')
+        
+        target_concert = Concert.objects.create(
+            user=self.user,
+            raw_date='07/04/2015',
+            year=2015,
+            venue=venue,
+            primary_artist='Rush',
+            raw_artists='Rush'
+        )
+        ca = ConcertArtist.objects.create(concert=target_concert, artist=artist, setlistfm_id='sl_rush_123', has_setlist=True)
+        from apps.concerts.models import ConcertSong
+        cs = ConcertSong.objects.create(
+            concert_artist=ca,
+            song=song,
+            raw_song_name='Tom Sawyer',
+            set_name='Main Set',
+            track_num=1,
+            total_tracks=1,
+            slot='Opener',
+            slot_category='opener'
+        )
+
+        viewer_user = User.objects.create_user(username='vieweruser', password='password123')
+        self.client.force_login(viewer_user)
+
+        # 1. View target user's concerts page on public profile
+        res = self.client.get(f'/u/{self.user.username}/concerts/')
+        self.assertEqual(res.status_code, 200)
+        content = res.content.decode('utf-8')
+        self.assertIn('I Was There', content)
+        self.assertIn(f'attend-btn-concert_{target_concert.id}', content)
+        self.assertIn('data-attended="false"', content)
+
+        # 2. Toggle attendance ON (Log concert on viewer's profile)
+        import json
+        attend_res = self.client.post('/api/concerts/toggle-attendance/', data=json.dumps({
+            'concert_id': target_concert.id
+        }), content_type='application/json')
+        self.assertEqual(attend_res.status_code, 200)
+        attend_data = attend_res.json()
+        self.assertEqual(attend_data['status'], 'success')
+        self.assertEqual(attend_data['action'], 'added')
+        self.assertTrue(attend_data['is_attended'])
+
+        # Verify concert was created for viewer
+        viewer_concerts = Concert.objects.filter(user=viewer_user)
+        self.assertEqual(viewer_concerts.count(), 1)
+        logged_c = viewer_concerts.first()
+        self.assertEqual(logged_c.primary_artist, 'Rush')
+        self.assertEqual(logged_c.raw_date, '07/04/2015')
+        self.assertEqual(logged_c.artists.count(), 1)
+        self.assertEqual(logged_c.artists.first().songs.count(), 1)
+        self.assertEqual(logged_c.artists.first().songs.first().raw_song_name, 'Tom Sawyer')
+
+        # 3. View target user's concerts page again - button should now be active
+        res_after = self.client.get(f'/u/{self.user.username}/concerts/')
+        self.assertEqual(res_after.status_code, 200)
+        content_after = res_after.content.decode('utf-8')
+        self.assertIn('data-attended="true"', content_after)
+        self.assertIn('active-attended', content_after)
+
+        # 4. Toggle attendance OFF (De-select / remove from viewer's profile)
+        de_select_res = self.client.post('/api/concerts/toggle-attendance/', data=json.dumps({
+            'concert_id': target_concert.id
+        }), content_type='application/json')
+        self.assertEqual(de_select_res.status_code, 200)
+        de_select_data = de_select_res.json()
+        self.assertEqual(de_select_data['status'], 'success')
+        self.assertEqual(de_select_data['action'], 'removed')
+        self.assertFalse(de_select_data['is_attended'])
+
+        # Verify concert was deleted from viewer's profile
+        self.assertEqual(Concert.objects.filter(user=viewer_user).count(), 0)
+
+        # 5. Target profile is private -> 403 Forbidden
+        self.user.profile.is_public = False
+        self.user.profile.save()
+        priv_toggle_res = self.client.post('/api/concerts/toggle-attendance/', data=json.dumps({
+            'concert_id': target_concert.id
+        }), content_type='application/json')
+        self.assertEqual(priv_toggle_res.status_code, 403)
+
+

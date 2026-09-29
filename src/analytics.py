@@ -447,6 +447,7 @@ class ConcertAnalytics:
 
             concerts_drilldown.append({
                 "id": c_id,
+                "db_id": rec.get("db_id"),
                 "date": date_str,
                 "venue": venue,
                 "year": year,

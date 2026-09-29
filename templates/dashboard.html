@@ -1068,7 +1068,29 @@
               </span>
             </div>
 
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2.5">
+              {% if is_public_view and request.user.is_authenticated and not is_owner %}
+              <button type="button"
+                      id="attend-btn-{{ c.id }}"
+                      onclick="event.stopPropagation(); toggleConcertAttendance('{{ c.id }}', '{{ c.db_id }}');"
+                      class="attend-btn px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer border {% if c.is_attended_by_viewer %}bg-emerald-500/20 text-emerald-300 border-emerald-500/50 hover:bg-rose-500/20 hover:border-rose-500/40 hover:text-rose-300 active-attended{% else %}bg-slate-800 text-slate-300 border-slate-700 hover:text-white hover:bg-indigo-600/30 hover:border-indigo-500/50{% endif %}"
+                      data-concert-id="{{ c.id }}"
+                      data-db-id="{{ c.db_id }}"
+                      data-attended="{% if c.is_attended_by_viewer %}true{% else %}false{% endif %}"
+                      title="{% if c.is_attended_by_viewer %}Logged on your profile. Click to remove.{% else %}Click to log this concert on your profile{% endif %}">
+                <i class="fa-solid {% if c.is_attended_by_viewer %}fa-circle-check text-emerald-400{% else %}fa-hand-peace text-slate-400{% endif %} attend-icon"></i>
+                <span class="attend-btn-label">I Was There</span>
+              </button>
+              {% elif is_public_view and not request.user.is_authenticated %}
+              <a href="{% url 'login' %}?next={{ request.path }}"
+                 onclick="event.stopPropagation();"
+                 class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 border border-slate-700 hover:text-white hover:bg-indigo-600/30 hover:border-indigo-500/50 transition flex items-center gap-1.5"
+                 title="Log in to mark this concert as attended">
+                <i class="fa-solid fa-hand-peace text-slate-400"></i>
+                <span>I Was There</span>
+              </a>
+              {% endif %}
+
               <span class="badge bg-slate-800 text-slate-300 text-xs border border-slate-700">
                 <i class="fa-solid fa-users text-slate-400 text-[10px] mr-1"></i> {{ c.total_artists }} {% if c.total_artists == 1 %}Artist{% else %}Artists{% endif %}
               </span>
@@ -2569,6 +2591,93 @@
         const searchData = card.getAttribute('data-search') || '';
         card.style.display = searchData.includes(q) ? 'block' : 'none';
       });
+    }
+
+    async function toggleConcertAttendance(concertId, dbId) {
+      const btn = document.getElementById('attend-btn-' + concertId);
+      if (!btn) return;
+      if (btn.disabled) return;
+
+      const targetId = dbId || (concertId.startsWith('concert_') ? concertId.replace('concert_', '') : concertId);
+      const isCurrentlyAttended = btn.getAttribute('data-attended') === 'true';
+
+      const originalHtml = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin text-xs"></i> <span>Saving...</span>`;
+
+      try {
+        const res = await fetch('/api/concerts/toggle-attendance/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken'),
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          body: JSON.stringify({
+            concert_id: targetId
+          })
+        });
+
+        const data = await res.json();
+        if (res.ok && data.status === 'success') {
+          const isAttended = data.is_attended;
+          btn.setAttribute('data-attended', isAttended ? 'true' : 'false');
+
+          if (isAttended) {
+            btn.className = 'attend-btn px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer border bg-emerald-500/20 text-emerald-300 border-emerald-500/50 hover:bg-rose-500/20 hover:border-rose-500/40 hover:text-rose-300 active-attended';
+            btn.title = 'Logged on your profile. Click to remove.';
+            btn.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 attend-icon"></i> <span class="attend-btn-label">I Was There</span>`;
+            showToast(data.message || 'Concert logged to your profile!', 'success');
+          } else {
+            btn.className = 'attend-btn px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer border bg-slate-800 text-slate-300 border-slate-700 hover:text-white hover:bg-indigo-600/30 hover:border-indigo-500/50';
+            btn.title = 'Click to log this concert on your profile';
+            btn.innerHTML = `<i class="fa-solid fa-hand-peace text-slate-400 attend-icon"></i> <span class="attend-btn-label">I Was There</span>`;
+            showToast(data.message || 'Concert removed from your profile.', 'info');
+          }
+        } else {
+          btn.innerHTML = originalHtml;
+          showToast(data.error || 'Failed to update attendance.', 'error');
+        }
+      } catch (err) {
+        btn.innerHTML = originalHtml;
+        showToast('Network error: ' + err.message, 'error');
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    function showToast(message, type = 'info') {
+      let toastContainer = document.getElementById('toast-container');
+      if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.id = 'toast-container';
+        toastContainer.className = 'fixed bottom-5 right-5 z-[9999] flex flex-col gap-2 pointer-events-none';
+        document.body.appendChild(toastContainer);
+      }
+
+      const toast = document.createElement('div');
+      let bgClass = 'bg-slate-900 border-slate-700 text-white';
+      let icon = '<i class="fa-solid fa-circle-info text-indigo-400 mr-2"></i>';
+      if (type === 'success') {
+        bgClass = 'bg-slate-900 border-emerald-500/60 text-emerald-200';
+        icon = '<i class="fa-solid fa-circle-check text-emerald-400 mr-2"></i>';
+      } else if (type === 'error') {
+        bgClass = 'bg-slate-900 border-rose-500/60 text-rose-200';
+        icon = '<i class="fa-solid fa-triangle-exclamation text-rose-400 mr-2"></i>';
+      }
+
+      toast.className = `flex items-center px-4 py-2.5 rounded-xl border text-xs font-medium shadow-2xl backdrop-blur-md transition-all duration-300 pointer-events-auto transform translate-y-2 opacity-0 ${bgClass}`;
+      toast.innerHTML = `${icon}<span>${message}</span>`;
+      toastContainer.appendChild(toast);
+
+      requestAnimationFrame(() => {
+        toast.classList.remove('translate-y-2', 'opacity-0');
+      });
+
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
     }
 
     function filterTable(tableId, query) {
