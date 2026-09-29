@@ -56,7 +56,8 @@ def analyze_musicians_live(all_csv_records: List[Dict[str, Any]]) -> Dict[str, A
     multi-band tenures and instrument breakdowns.
     """
     musician_shows = defaultdict(list)
-    musician_bands = defaultdict(lambda: Counter())
+    musician_band_counts = defaultdict(lambda: Counter())
+    band_canonical_names = {}
     musician_roles = {}
     musician_instruments = {}
     seen_show_keys = set()
@@ -72,6 +73,9 @@ def analyze_musicians_live(all_csv_records: List[Dict[str, Any]]) -> Dict[str, A
         for art in artists:
             canonical_art = normalize_artist_name(art)
             art_key = canonical_art.lower().strip()
+            if art_key not in band_canonical_names or (canonical_art != art_key and band_canonical_names[art_key] == art_key):
+                band_canonical_names[art_key] = canonical_art
+
             tenures = effective_tenures.get(art_key, [])
 
             for member in tenures:
@@ -88,8 +92,8 @@ def analyze_musicians_live(all_csv_records: List[Dict[str, Any]]) -> Dict[str, A
                     if end_yr is not None and year > end_yr:
                         continue
 
-                # Deduplicate: Avoid counting the same musician twice for the same show and band
-                show_key = (m_name, date_str, venue, canonical_art)
+                # Deduplicate: Avoid counting the same musician twice for the same show and band (case-insensitive)
+                show_key = (m_name.lower().strip(), date_str, (venue or "").lower().strip(), art_key)
                 if show_key in seen_show_keys:
                     continue
                 seen_show_keys.add(show_key)
@@ -98,12 +102,12 @@ def analyze_musicians_live(all_csv_records: List[Dict[str, Any]]) -> Dict[str, A
                 if m_instr and m_instr != "Other":
                     musician_instruments[m_name] = m_instr
 
-                musician_bands[m_name][canonical_art] += 1
+                musician_band_counts[m_name][art_key] += 1
                 musician_shows[m_name].append({
                     "date": date_str,
                     "year": year,
                     "venue": venue,
-                    "band": canonical_art,
+                    "band": band_canonical_names.get(art_key, canonical_art),
                     "role": m_role
                 })
 
@@ -112,7 +116,10 @@ def analyze_musicians_live(all_csv_records: List[Dict[str, Any]]) -> Dict[str, A
     role_counters = defaultdict(list)
 
     for m_name, shows in musician_shows.items():
-        bands_dict = dict(musician_bands[m_name])
+        bands_dict = {
+            band_canonical_names.get(b_key, b_key): count
+            for b_key, count in musician_band_counts[m_name].items()
+        }
         total_shows = len(shows)
         unique_bands = len(bands_dict)
         primary_role = musician_roles.get(m_name, "Musician")

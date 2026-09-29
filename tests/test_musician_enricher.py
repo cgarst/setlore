@@ -141,3 +141,43 @@ class MusicianEnricherTests(TestCase):
         self.assertEqual(res["top_musicians"][0]["musician"], "Master Musician")
         self.assertEqual(res["top_musicians"][0]["instrument"], "Keyboards")
         self.assertEqual(res["top_musicians"][0]["total_shows"], 1)
+
+    def test_case_insensitive_band_names_musician_tracking(self):
+        # Create artist and tenure for BTBAM
+        artist = Artist.objects.create(name="Between the Buried and Me", normalized_name="between the buried and me")
+        MusicianTenure.objects.create(
+            artist=artist,
+            musician_name="Tommy Giles Rogers",
+            role="Lead Vocals / Keyboards",
+            instrument="Vocals",
+            start_year=2000,
+            end_year=None
+        )
+
+        concert_recs = [
+            {
+                "id": "c1",
+                "year": 2018,
+                "display_date": "03/10/2018",
+                "venue": "Venue A",
+                "artists": ["Between The Buried And Me"]
+            },
+            {
+                "id": "c2",
+                "year": 2022,
+                "display_date": "08/15/2022",
+                "venue": "Venue B",
+                "artists": ["Between the Buried and Me"]
+            }
+        ]
+
+        res = analyze_musicians_live(concert_recs)
+        self.assertEqual(res["total_musicians_tracked"], 1)
+        m = res["top_musicians"][0]
+        self.assertEqual(m["musician"], "Tommy Giles Rogers")
+        self.assertEqual(m["total_shows"], 2)
+        # Should count as 1 unique band, NOT 2
+        self.assertEqual(m["unique_bands_count"], 1)
+        self.assertEqual(len(m["bands"]), 1)
+        # Verify supergroup/multi-band does not include him because he only has 1 unique band
+        self.assertEqual(len(res["supergroup_musicians"]), 0)
