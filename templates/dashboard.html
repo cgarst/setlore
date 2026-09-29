@@ -196,24 +196,7 @@
         </div>
       {% else %}
         <!-- Public Profile View Desktop Header -->
-        <button onclick="copyPublicShareUrl()" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 flex items-center gap-1.5 transition cursor-pointer">
-          <i class="fa-solid fa-share-nodes text-indigo-400"></i>
-          <span>Share Profile</span>
-        </button>
-
         {% if request.user.is_authenticated %}
-          {% if is_owner %}
-            <a href="{% url 'dashboard' %}" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-xs font-bold text-white flex items-center gap-1.5 shadow-md shadow-indigo-600/25 transition">
-              <i class="fa-solid fa-arrow-left"></i>
-              <span>Back to Dashboard</span>
-            </a>
-          {% else %}
-            <a href="{% url 'dashboard' %}" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-xs font-bold text-white flex items-center gap-1.5 shadow-md shadow-indigo-600/25 transition">
-              <i class="fa-solid fa-house"></i>
-              <span>My Dashboard</span>
-            </a>
-          {% endif %}
-
           <!-- User Profile Dropdown Menu for Logged-in viewer -->
           <div class="relative" id="user-menu-container">
             <button id="user-menu-btn" onclick="toggleUserMenu()" class="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-600 text-xs text-slate-200 transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500/50" aria-label="User account menu" aria-haspopup="true" aria-expanded="false" title="Account settings">
