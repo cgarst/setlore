@@ -292,7 +292,7 @@ def upload_csv(request):
         return JsonResponse({
             "status": "success",
             "imported_count": len(csv_records),
-            "message": f"Imported {len(csv_records)} concerts! Background sync with Setlist.fm has started."
+            "message": f"Imported {len(csv_records)} concerts! Background sync has started."
         })
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
@@ -889,7 +889,7 @@ def confirm_ticketmaster_import(request):
         return JsonResponse({
             "status": "success",
             "imported_count": len(created_concerts),
-            "message": f"Successfully imported {len(created_concerts)} concerts from Ticketmaster! Syncing with Setlist.fm..."
+            "message": f"Successfully imported {len(created_concerts)} concerts from Ticketmaster! Syncing..."
         })
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)

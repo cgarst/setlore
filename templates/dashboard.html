@@ -1393,12 +1393,6 @@
       <button onclick="toggleMobileMoreMenu()" id="mobile-tab-more-btn" class="mobile-nav-tab relative flex flex-col items-center justify-center py-1 px-1 rounded-xl text-slate-400 hover:text-slate-200 font-medium transition-all group cursor-pointer" title="More sections & profile">
         <div class="w-8 h-7 flex items-center justify-center rounded-lg transition relative">
           <i id="mobile-more-icon" class="fa-solid fa-ellipsis text-lg transition-transform group-active:scale-90"></i>
-          {% if gap.csv_missing_or_partial|length > 0 %}
-            <span class="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
-              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-              <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
-            </span>
-          {% endif %}
           <span id="mobile-more-active-dot" class="hidden absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
         </div>
         <span id="mobile-more-label" class="text-[10px] tracking-tight truncate mt-0.5">More</span>
@@ -1449,8 +1443,8 @@
               <i id="mobile-sync-btn-icon" class="fa-solid fa-rotate text-sm"></i>
             </div>
             <div class="text-left">
-              <p class="text-xs font-bold text-white"><span id="mobile-sync-btn-text">Sync with Setlist.fm</span></p>
-              <p class="text-[11px] text-indigo-300/70">Fetch latest shows & update profile data</p>
+              <p class="text-xs font-bold text-white"><span id="mobile-sync-btn-text">Sync</span></p>
+              <p class="text-[11px] text-indigo-300/70">Fetch latest data & update profile</p>
             </div>
           </div>
           <i class="fa-solid fa-chevron-right text-indigo-400/60 text-xs"></i>
@@ -2587,7 +2581,7 @@
           if (text) text.innerText = 'Sync';
           if (mBtn) mBtn.disabled = false;
           if (mIcon) mIcon.classList.remove('animate-spin');
-          if (mText) mText.innerText = 'Sync with Setlist.fm';
+          if (mText) mText.innerText = 'Sync';
         }
       } catch (e) {
         console.error(e);
@@ -2596,7 +2590,7 @@
         if (text) text.innerText = 'Sync';
         if (mBtn) mBtn.disabled = false;
         if (mIcon) mIcon.classList.remove('animate-spin');
-        if (mText) mText.innerText = 'Sync with Setlist.fm';
+        if (mText) mText.innerText = 'Sync';
       }
     }
 
@@ -2613,7 +2607,7 @@
       if (icon) icon.classList.add('animate-spin');
       if (text) text.innerText = 'Syncing...';
       if (mIcon) mIcon.classList.add('animate-spin');
-      if (mText) mText.innerText = 'Syncing with Setlist.fm...';
+      if (mText) mText.innerText = 'Syncing...';
       if (mBtn) mBtn.disabled = true;
 
       if (pollInterval) clearInterval(pollInterval);
@@ -2634,7 +2628,7 @@
               if (icon) icon.classList.remove('animate-spin');
               if (text) text.innerText = 'Sync';
               if (mIcon) mIcon.classList.remove('animate-spin');
-              if (mText) mText.innerText = 'Sync with Setlist.fm';
+              if (mText) mText.innerText = 'Sync';
               if (mBtn) mBtn.disabled = false;
             }
           }

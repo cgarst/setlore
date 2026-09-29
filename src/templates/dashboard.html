@@ -1023,12 +1023,6 @@
       <button onclick="toggleMobileMoreMenu()" id="mobile-tab-more-btn" class="mobile-nav-tab relative flex flex-col items-center justify-center py-1 px-1 rounded-xl text-slate-400 hover:text-slate-200 font-medium transition-all group cursor-pointer" title="More sections">
         <div class="w-8 h-7 flex items-center justify-center rounded-lg transition relative">
           <i id="mobile-more-icon" class="fa-solid fa-ellipsis text-lg transition-transform group-active:scale-90"></i>
-          {% if gap.csv_missing_or_partial|length > 0 %}
-            <span class="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
-              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-              <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
-            </span>
-          {% endif %}
           <span id="mobile-more-active-dot" class="hidden absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
         </div>
         <span id="mobile-more-label" class="text-[10px] tracking-tight truncate mt-0.5">More</span>
