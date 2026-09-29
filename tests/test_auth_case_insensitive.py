@@ -51,31 +51,31 @@ class CaseInsensitiveAuthTests(TestCase):
         self.assertEqual(response.context['user'].username, 'TestUser')
 
     def test_preserves_display_casing(self):
-        # Register a new user with mixed casing like 'Zathu'
+        # Register a new user with mixed casing like 'JaneDoe'
         register_url = reverse('register')
         response = self.client.post(register_url, {
-            'username': 'Zathu',
-            'setlistfm_username': 'Zathu',
-            'password1': 'ZathuPass123!',
-            'password2': 'ZathuPass123!',
+            'username': 'JaneDoe',
+            'setlistfm_username': 'JaneDoe',
+            'password1': 'JaneDoePass123!',
+            'password2': 'JaneDoePass123!',
         }, follow=True)
         self.assertEqual(response.status_code, 200)
 
-        # Ensure user object in DB has exact casing 'Zathu'
-        zathu_user = User.objects.get(username__iexact='zathu')
-        self.assertEqual(zathu_user.username, 'Zathu')
+        # Ensure user object in DB has exact casing 'JaneDoe'
+        jane_user = User.objects.get(username__iexact='janedoe')
+        self.assertEqual(jane_user.username, 'JaneDoe')
         # Setlist.fm username is not captured at registration time (captured in onboarding wizard)
-        self.assertEqual(zathu_user.profile.setlistfm_username, '')
+        self.assertEqual(jane_user.profile.setlistfm_username, '')
 
-        # Log out and log back in with all lowercase 'zathu'
+        # Log out and log back in with all lowercase 'janedoe'
         self.client.logout()
         login_url = reverse('login')
         login_res = self.client.post(login_url, {
-            'username': 'zathu',
-            'password': 'ZathuPass123!'
+            'username': 'janedoe',
+            'password': 'JaneDoePass123!'
         }, follow=True)
         self.assertEqual(login_res.status_code, 200)
-        self.assertEqual(login_res.context['user'].username, 'Zathu')
+        self.assertEqual(login_res.context['user'].username, 'JaneDoe')
 
     def test_registration_form_case_insensitive_duplicate_check(self):
         # Attempt to register 'testuser' when 'TestUser' already exists

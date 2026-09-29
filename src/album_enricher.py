@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Dict, Any, Optional, Tuple, List
 import requests
 from rapidfuzz import fuzz
-from src.config import MB_CACHE_DIR, CONTACT_EMAIL
+from src.config import MB_CACHE_DIR, CONTACT_EMAIL, APP_URL
 
 def clean_album_title(title: str) -> str:
     """Normalizes album title by removing edition/remaster tags and standardizing casing."""
@@ -111,9 +111,10 @@ class AlbumEnricher:
     and thread-safe persistent disk caching.
     """
     def __init__(self, contact_email: Optional[str] = None):
-        email = contact_email or os.getenv("CONTACT_EMAIL", "admin@localhost").strip()
+        email = contact_email or CONTACT_EMAIL or "admin@localhost"
+        url_part = f" {APP_URL};" if APP_URL else ""
         self.headers = {
-            "User-Agent": f"SetloreConcertAnalytics/1.0 ({email})",
+            "User-Agent": f"SetloreConcertAnalytics/1.0 ({email};{url_part})",
             "Accept": "application/json"
         }
         self.session = requests.Session()

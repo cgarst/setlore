@@ -168,10 +168,10 @@ def parse_concerts_source(source: str, ignored_list: Optional[List[str]] = None)
 
     p = Path(source)
     if not p.exists():
-        fallback = Path(__file__).resolve().parent.parent / "Concerts - Attended.csv"
-        if fallback.exists():
-            print(f"      Falling back to local file: {fallback.name}")
-            p = fallback
+        from src.config import DEFAULT_CSV_PATH
+        if DEFAULT_CSV_PATH and DEFAULT_CSV_PATH.exists():
+            print(f"      Falling back to local file: {DEFAULT_CSV_PATH.name}")
+            p = DEFAULT_CSV_PATH
         else:
             raise FileNotFoundError(f"Source file not found: {source}")
 

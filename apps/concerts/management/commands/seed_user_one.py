@@ -23,10 +23,10 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         self.stdout.write(self.style.MIGRATE_HEADING("[1/4] Setting up User 1 (Admin)..."))
 
-        admin_username = os.getenv("ADMIN_USERNAME", SETLISTFM_USER or "Zathu").strip()
+        admin_username = os.getenv("ADMIN_USERNAME", SETLISTFM_USER or "admin").strip()
         admin_password = os.getenv("ADMIN_PASSWORD", "admin12345").strip()
         admin_email = os.getenv("ADMIN_EMAIL", "admin@example.com").strip()
-        setlistfm_user = os.getenv("SETLISTFM_USER", "Zathu").strip()
+        setlistfm_user = os.getenv("SETLISTFM_USER", "").strip()
 
         user, created = User.objects.get_or_create(username=admin_username, defaults={'email': admin_email})
         user.is_staff = True
@@ -39,9 +39,10 @@ class Command(BaseCommand):
             self.stdout.write(f"      Superuser '{admin_username}' already exists.")
 
         profile, _ = UserProfile.objects.get_or_create(user=user)
-        profile.setlistfm_username = setlistfm_user
-        profile.save()
-        self.stdout.write(f"      Linked Setlist.fm account: @{setlistfm_user}")
+        if setlistfm_user:
+            profile.setlistfm_username = setlistfm_user
+            profile.save()
+            self.stdout.write(f"      Linked Setlist.fm account: @{setlistfm_user}")
 
         self.stdout.write(self.style.MIGRATE_HEADING("[2/4] Seeding canonical Venues, Lineups & Discography..."))
         with transaction.atomic():
@@ -160,60 +161,64 @@ class Command(BaseCommand):
                 Concert.objects.filter(user=user).delete()
 
             source_url = options['source'] or DEFAULT_SHEET_URL
-            self.stdout.write(f"      Fetching concerts from: {source_url[:60]}...")
-            try:
-                csv_records = parse_concerts_source(source_url)
-                self.stdout.write(f"      Parsed {len(csv_records)} concert entries.")
+            if not source_url:
+                self.stdout.write("      No concert source provided (DEFAULT_SHEET_URL not set). Skipping concert ingestion.")
+                self.stdout.write("      Use --source <file-path-or-url> to populate concerts for User 1.")
+            else:
+                self.stdout.write(f"      Fetching concerts from: {source_url[:60]}...")
+                try:
+                    csv_records = parse_concerts_source(source_url)
+                    self.stdout.write(f"      Parsed {len(csv_records)} concert entries.")
 
-                with transaction.atomic():
-                    c_count = 0
-                    for rec in csv_records:
-                        dt = rec.get("date_obj")
-                        venue_str = rec.get("venue", "").strip()
+                    with transaction.atomic():
+                        c_count = 0
+                        for rec in csv_records:
+                            dt = rec.get("date_obj")
+                            venue_str = rec.get("venue", "").strip()
 
-                        venue_obj = None
-                        if venue_str:
-                            v_clean = venue_str.lower()
-                            venue_obj = Venue.objects.filter(name__iexact=v_clean).first()
-                            if not venue_obj:
-                                venue_obj, _ = Venue.objects.get_or_create(
-                                    name=venue_str,
-                                    defaults={
-                                        'city': '',
-                                        'state': '',
-                                        'country': 'United States',
-                                        'geocode_source': 'unresolved'
-                                    }
+                            venue_obj = None
+                            if venue_str:
+                                v_clean = venue_str.lower()
+                                venue_obj = Venue.objects.filter(name__iexact=v_clean).first()
+                                if not venue_obj:
+                                    venue_obj, _ = Venue.objects.get_or_create(
+                                        name=venue_str,
+                                        defaults={
+                                            'city': '',
+                                            'state': '',
+                                            'country': 'United States',
+                                            'geocode_source': 'unresolved'
+                                        }
+                                    )
+
+                            concert = Concert.objects.create(
+                                user=user,
+                                date=dt.date() if dt else None,
+                                raw_date=rec.get("raw_date", ""),
+                                year=rec.get("year"),
+                                venue=venue_obj,
+                                raw_venue=venue_str,
+                                primary_artist=rec.get("primary_artist", ""),
+                                raw_artists=rec.get("raw_artists", ""),
+                                seen_before="",
+                                notes=""
+                            )
+
+                            for idx, art_name in enumerate(rec.get("artists", [])):
+                                canonical_art = normalize_artist_name(art_name) or art_name
+                                art_obj, _ = Artist.objects.get_or_create(
+                                    name=canonical_art,
+                                    defaults={'normalized_name': canonical_art.lower()}
                                 )
+                                ConcertArtist.objects.create(
+                                    concert=concert,
+                                    artist=art_obj,
+                                    billing_order=idx
+                                )
+                            c_count += 1
 
-                        concert = Concert.objects.create(
-                            user=user,
-                            date=dt.date() if dt else None,
-                            raw_date=rec.get("raw_date", ""),
-                            year=rec.get("year"),
-                            venue=venue_obj,
-                            raw_venue=venue_str,
-                            primary_artist=rec.get("primary_artist", ""),
-                            raw_artists=rec.get("raw_artists", ""),
-                            seen_before="",
-                            notes=""
-                        )
-
-                        for idx, art_name in enumerate(rec.get("artists", [])):
-                            canonical_art = normalize_artist_name(art_name) or art_name
-                            art_obj, _ = Artist.objects.get_or_create(
-                                name=canonical_art,
-                                defaults={'normalized_name': canonical_art.lower()}
-                            )
-                            ConcertArtist.objects.create(
-                                concert=concert,
-                                artist=art_obj,
-                                billing_order=idx
-                            )
-                        c_count += 1
-
-                self.stdout.write(self.style.SUCCESS(f"      Successfully imported {c_count} concerts for User '{admin_username}'!"))
-            except Exception as e:
-                self.stdout.write(self.style.ERROR(f"      Failed to import concert history: {e}"))
+                    self.stdout.write(self.style.SUCCESS(f"      Successfully imported {c_count} concerts for User '{admin_username}'!"))
+                except Exception as e:
+                    self.stdout.write(self.style.ERROR(f"      Failed to import concert history: {e}"))
 
         self.stdout.write(self.style.SUCCESS("[4/4] User 1 seeding and catalog initialization complete!\n"))

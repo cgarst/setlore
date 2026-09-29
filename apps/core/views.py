@@ -50,7 +50,6 @@ def home_view(request):
             'user': u,
             'username': u.username,
             'setlistfm_username': u.profile.setlistfm_username,
-            'location': u.profile.default_location,
             'concert_count': u.concert_count,
             'top_artist': top_artist_record['primary_artist'] if top_artist_record else None,
             'top_artist_shows': top_artist_record['shows'] if top_artist_record else 0,
@@ -246,6 +245,17 @@ def update_profile_view(request):
             profile.is_public = is_pub_bool
             update_fields.append('is_public')
 
+        if 'ignored_artists' in data:
+            raw_ign = data.get('ignored_artists')
+            if isinstance(raw_ign, str):
+                ign_list = [a.strip() for a in raw_ign.split(',') if a.strip()]
+            elif isinstance(raw_ign, (list, tuple)):
+                ign_list = [str(a).strip() for a in raw_ign if str(a).strip()]
+            else:
+                ign_list = []
+            profile.ignored_artists = ign_list
+            update_fields.append('ignored_artists')
+
         if update_fields:
             update_fields.append('updated_at')
             profile.save(update_fields=update_fields)
@@ -268,6 +278,7 @@ def update_profile_view(request):
                 "setlistfm_username": profile.setlistfm_username,
                 "prompt_setlistfm": profile.prompt_setlistfm,
                 "is_public": profile.is_public,
+                "ignored_artists": profile.ignored_artists,
                 "has_custom_api_key": bool(profile.setlistfm_api_key),
                 "has_google_linked": bool(profile.google_id),
                 "google_email": profile.google_email,

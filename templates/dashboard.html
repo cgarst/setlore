@@ -562,6 +562,21 @@
           </div>
         </div>
 
+        <!-- Excluded Artists -->
+        <div class="border border-slate-800/80 rounded-xl overflow-hidden bg-slate-900/40">
+          <button type="button" onclick="toggleIgnoredArtists()" class="w-full flex items-center justify-between px-3.5 py-2.5 text-xs font-semibold text-slate-400 hover:text-slate-200 transition cursor-pointer">
+            <span class="flex items-center gap-1.5"><i class="fa-solid fa-ban text-xs"></i> Excluded Artists</span>
+            <i id="ignored-artists-chevron" class="fa-solid fa-chevron-down text-[10px] transition-transform"></i>
+          </button>
+          <div id="ignored-artists-content" class="hidden px-3.5 pb-3.5 pt-1 space-y-2 border-t border-slate-800/60">
+            <p class="text-[11px] text-slate-400 leading-relaxed">Artists to exclude from your analytics and stats. Enter names separated by commas.</p>
+            <input type="text" id="profile-ignored-artists"
+              placeholder="e.g. Opening Act, Local Band"
+              value="{{ profile.ignored_artists|join:', ' }}"
+              class="w-full px-3 py-1.5 text-xs rounded-lg bg-slate-950 border border-slate-700 text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500">
+          </div>
+        </div>
+
         <div class="flex items-center justify-between pt-2 border-t border-slate-800">
           <a href="{% url 'privacy' %}" target="_blank" class="text-[11px] text-slate-500 hover:text-indigo-400 transition flex items-center gap-1.5">
             <i class="fa-solid fa-shield-halved text-[10px]"></i> Privacy Policy
@@ -1025,7 +1040,7 @@
                 <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500 text-xs">
                   <i class="fa-solid fa-at"></i>
                 </span>
-                <input type="text" id="onboarding-setlistfm-username" placeholder="e.g. Zathu" value="{{ profile.setlistfm_username|default:'' }}"
+                <input type="text" id="onboarding-setlistfm-username" placeholder="e.g. your_username" value="{{ profile.setlistfm_username|default:'' }}"
                   class="w-full pl-8 pr-3 py-2.5 text-xs rounded-xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
               </div>
             </div>
@@ -2837,7 +2852,7 @@
         scrollWheelZoom: true
       });
 
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png?key=cb1_2exf_1_3b2a43a7cdd980ffef0b756c', {
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png{% if carto_api_key %}?key={{ carto_api_key }}{% endif %}', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
         subdomains: 'abcd',
         maxZoom: 19
@@ -4140,6 +4155,17 @@
       }
     }
 
+    function toggleIgnoredArtists() {
+      const content = document.getElementById('ignored-artists-content');
+      const chevron = document.getElementById('ignored-artists-chevron');
+      if (content) {
+        content.classList.toggle('hidden');
+        if (chevron) {
+          chevron.classList.toggle('rotate-180');
+        }
+      }
+    }
+
     async function saveProfileSettings(e, andSync = false) {
       if (e && e.preventDefault) e.preventDefault();
       const emailInp = document.getElementById('profile-email');
@@ -4147,6 +4173,7 @@
       const apiKeyInp = document.getElementById('profile-setlist-apikey');
       const promptChk = document.getElementById('profile-prompt-sync');
       const publicChk = document.getElementById('profile-is-public');
+      const ignoredInp = document.getElementById('profile-ignored-artists');
       const alertBox = document.getElementById('profile-modal-alert');
       const saveBtn = document.getElementById('profile-save-btn');
       const saveSyncBtn = document.getElementById('profile-save-sync-btn');
@@ -4156,6 +4183,7 @@
       const setlistApiKey = apiKeyInp ? apiKeyInp.value.trim() : '';
       const promptSetlistfm = promptChk ? promptChk.checked : true;
       const isPublic = publicChk ? publicChk.checked : true;
+      const ignoredArtists = ignoredInp ? ignoredInp.value : '';
 
       if (saveBtn) saveBtn.disabled = true;
       if (saveSyncBtn) saveSyncBtn.disabled = true;
@@ -4172,6 +4200,7 @@
           setlistfm_api_key: setlistApiKey,
           prompt_setlistfm: promptSetlistfm,
           is_public: isPublic,
+          ignored_artists: ignoredArtists,
           trigger_sync: andSync
         };
 

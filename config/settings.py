@@ -116,10 +116,11 @@ LOGOUT_REDIRECT_URL = 'login'
 
 # Concert Trakr Settings
 SETLISTFM_API_KEY = os.getenv("SETLISTFM_KEY") or os.getenv("setlistfm_key", "").strip()
-SETLISTFM_USER = os.getenv("SETLISTFM_USER") or os.getenv("setlistfm_user", "").strip() or "Zathu"
-CARTO_API_KEY = os.getenv("carto_api_key", "cb1_2exf_1_3b2a43a7cdd980ffef0b756c").strip()
+SETLISTFM_USER = os.getenv("SETLISTFM_USER") or os.getenv("setlistfm_user", "").strip()
+CARTO_API_KEY = os.getenv("CARTO_API_KEY") or os.getenv("carto_api_key", "").strip()
 CONTACT_EMAIL = os.getenv("CONTACT_EMAIL", "admin@localhost").strip()
-DEFAULT_CSV_PATH = Path(os.getenv("DEFAULT_CSV_PATH", BASE_DIR / "Concerts - Attended.csv"))
+APP_URL = os.getenv("APP_URL") or (CSRF_TRUSTED_ORIGINS[0] if CSRF_TRUSTED_ORIGINS else "")
+DEFAULT_CSV_PATH = Path(os.getenv("DEFAULT_CSV_PATH", BASE_DIR / "concerts.csv"))
 
 # Google OAuth Settings (via environment variables)
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "").strip()

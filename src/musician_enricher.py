@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Dict, Any, Optional, List, Tuple
 
 from rapidfuzz import fuzz
-from src.config import MB_CACHE_DIR, CONTACT_EMAIL
+from src.config import MB_CACHE_DIR, CONTACT_EMAIL, APP_URL
 from src.csv_parser import normalize_artist_name
 
 ARTIST_MBID_CACHE_DIR = MB_CACHE_DIR / "artists"
@@ -50,8 +50,9 @@ class MusicianEnricher:
 
     def __init__(self, contact_email: Optional[str] = None):
         email = contact_email or CONTACT_EMAIL or "admin@localhost"
+        url_part = f" {APP_URL};" if APP_URL else ""
         self.headers = {
-            "User-Agent": f"ConcertTrakr/1.0.0 (https://github.com/cgarst/concert-trakr; {email})",
+            "User-Agent": f"ConcertTrakr/1.0.0 ({email};{url_part})",
             "Accept": "application/json"
         }
         self._last_req_time = 0.0

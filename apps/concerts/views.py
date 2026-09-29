@@ -23,7 +23,7 @@ from src.album_enricher import AlbumEnricher
 from src.musician_enricher import MusicianEnricher
 from src.venue_mapper import generate_venue_map_data
 from src.musician_tracker import analyze_musicians_live
-from src.config import SETLISTFM_API_KEY, USER_CACHE_DIR
+from src.config import SETLISTFM_API_KEY, CARTO_API_KEY, USER_CACHE_DIR
 from .services.sync_worker import sync_worker
 
 def get_dashboard_context(request, target_user, tab_name='overview', is_public_view=False):
@@ -231,6 +231,7 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
         'is_profile_private': not profile.is_public,
         'share_url': share_url,
         'tab_url_base': tab_url_base,
+        'carto_api_key': CARTO_API_KEY,
         **charts
     }
 
