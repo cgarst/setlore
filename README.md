@@ -23,7 +23,7 @@ A privacy-first, self-hosted, open-source live concert history tracker and setli
 - **💾 Universal Exportability**: Full CSV downloads available anytime from your dashboard or via public profile endpoints (`/u/<username>/export/`).
 - **👥 Musician Lineup & Tenure Tracking**: Knows who was actually on stage. Calculates historical band rosters by concert date, tracking individual drummers, guitarists, and vocalists across all their side projects and supergroups (e.g. Mike Portnoy across Dream Theater, Transatlantic, and The Winery Dogs).
 - **💿 MusicBrainz Discography & Eras**: Enriches songs heard live with studio album attributions, release years, cover song flags, and interactive treemaps.
-- **🗺️ Interactive Dark-Mode Venue Maps**: Leaflet-powered maps visualising all venues, cities, and road trips over the decades with automated geocoding.
+- **🗺️ Interactive Venue Maps**: Leaflet-powered maps visualising all venues, cities, and road trips over the decades with automated geocoding.
 - **🌐 Public Vanity Profiles & Social Overlap**: Share your public profile at `/u/@username` or `/u/username`. Compare concert attendance with friends on the same instance to see which shows you attended together.
 - **🎛️ Django Admin Superpowers**: Full `/admin/` portal to manage catalog metadata, correct misattributed albums/songs, edit band lineups, and adjust venue coordinates.
 
