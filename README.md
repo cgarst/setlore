@@ -17,7 +17,7 @@ A privacy-first, self-hosted, open-source live concert history tracker and setli
 - **🔄 Two-Way Setlist.fm Syncing**: Connect your Setlist.fm account to auto-sync attended concerts, fetch live setlists, and run fuzzy audit reconciliations via [RapidFuzz](https://github.com/rapidfuzz/RapidFuzz) to find missing "I was there" marks.
 - **🎫 Multi-Source Ingestion**:
   - **Setlist.fm API**: Automatic rate-limited background sync worker.
-  - **Ticketmaster Parser**: Paste raw confirmation emails or ticket text to instantly extract dates, venues, artists, and tour notes.
+  - **Ticketmaster Parser**: Copy and paste directly from your Ticketmaster Past Events page to automatically parse dates, venues, artists, and link setlists.
   - **CSV / Spreadsheet Upload**: Bulk import existing archives with standard headers (`Date`, `Band`, `Venue`, `City`, `Notes`).
   - **Interactive Quick-Add**: Modal with instant venue/artist autocomplete, geocoding, and plaintext setlist paste support.
 - **💾 Universal Exportability**: Full CSV downloads available anytime from your dashboard or via public profile endpoints (`/u/<username>/export/`).
@@ -120,8 +120,8 @@ When importing a CSV, Setlore looks for standard header columns (case-insensitiv
 | **City / State** | Optional | Location details (e.g. `Washington, DC` or `Morrison, CO`) |
 | **Notes / Tour** | Optional | Tour names or notes (e.g. `40th Anniversary Tour`) |
 
-### 2. Ticketmaster Email / Order Parser
-Navigate to your dashboard menu &rarr; **Import Ticketmaster** and paste raw text from order confirmations or ticket emails. Setlore extracts the event date, primary artist, venue, location, and queries Setlist.fm to match setlists.
+### 2. Ticketmaster Past Events Parser
+Navigate to your dashboard menu &rarr; **Import Ticketmaster** and paste copied text directly from your Ticketmaster [Past Events page](https://www.ticketmaster.com/user/orders/past-events). Setlore automatically extracts event dates, primary artists, venues, and queries Setlist.fm to match setlists.
 
 ### 3. Setlist.fm Live Sync
 Enter your Setlist.fm username in **Profile & Privacy** to trigger live background syncing. Setlore pulls attended shows, setlist songs, and flags unlinked events.
