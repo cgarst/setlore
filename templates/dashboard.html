@@ -278,12 +278,6 @@
               </span>
             {% endif %}
           </div>
-          <p class="text-xs text-slate-400 mt-0.5">
-            {% if profile.setlistfm_username %}
-              Setlist.fm: <span class="text-amber-400 font-medium">@{{ profile.setlistfm_username }}</span> •
-            {% endif %}
-            {{ stats.total_concerts|default:0 }} shows • {{ stats.unique_artists_count|default:0 }} artists • {{ stats.total_songs|default:0 }} songs played
-          </p>
         </div>
       </div>
 
