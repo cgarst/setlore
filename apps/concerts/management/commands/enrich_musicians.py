@@ -49,7 +49,7 @@ class Command(BaseCommand):
             artists_to_enrich.append(art_obj)
         elif user_arg:
             try:
-                user = User.objects.get(username=user_arg)
+                user = User.objects.get(username__iexact=user_arg)
                 art_ids = ConcertArtist.objects.filter(concert__user=user).values_list('artist_id', flat=True).distinct()
                 artists_to_enrich = list(Artist.objects.filter(id__in=art_ids).order_by('name'))
                 self.stdout.write(f"Found {len(artists_to_enrich)} unique artists for user '{user_arg}'.")

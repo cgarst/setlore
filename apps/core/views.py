@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth import login
-from django.contrib.auth.forms import UserCreationForm
 from django.http import JsonResponse
+from .forms import CaseInsensitiveUserCreationForm
 from .models import UserProfile
 
 def health_check(request):
@@ -11,7 +11,7 @@ def register_view(request):
     if request.user.is_authenticated:
         return redirect('dashboard')
     if request.method == 'POST':
-        form = UserCreationForm(request.POST)
+        form = CaseInsensitiveUserCreationForm(request.POST)
         if form.is_valid():
             user = form.save()
             setlist_user = request.POST.get('setlistfm_username', '').strip()
@@ -22,5 +22,5 @@ def register_view(request):
             login(request, user)
             return redirect('dashboard')
     else:
-        form = UserCreationForm()
+        form = CaseInsensitiveUserCreationForm()
     return render(request, 'registration/register.html', {'form': form})
