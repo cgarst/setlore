@@ -96,6 +96,7 @@ class SyncWorker:
             for c in db_concerts:
                 artist_names = [ca.artist.name for ca in c.artists.all()]
                 dt = datetime.combine(c.date, datetime.min.time()) if c.date else None
+                has_sl_id = any(bool(ca.setlistfm_id) for ca in c.artists.all())
                 rec = {
                     "id": f"concert_{c.id}",
                     "db_id": c.id,
@@ -106,11 +107,17 @@ class SyncWorker:
                     "year": c.year,
                     "raw_artists": c.raw_artists,
                     "artists": artist_names,
-                    "primary_artist": c.primary_artist,
+                    "primary_artist": c.primary_artist or (artist_names[0] if artist_names else ""),
+                    "supporting_artists": ", ".join(artist_names[1:]) if len(artist_names) > 1 else "",
                     "venue": c.raw_venue or (c.venue.name if c.venue else ""),
+                    "city": c.venue.city if c.venue else "",
+                    "state": c.venue.state if c.venue else "",
+                    "country": c.venue.country if c.venue else "United States",
                     "seen_before": c.seen_before,
+                    "notes": c.notes,
                     "is_custom_offline": c.is_custom_offline,
-                    "source": c.source
+                    "source": c.source,
+                    "has_setlistfm_id": has_sl_id,
                 }
                 csv_records.append(rec)
 

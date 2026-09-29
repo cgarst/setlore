@@ -243,3 +243,149 @@ class ManualConcertTests(TestCase):
         # And the new CSV concert was added
         self.assertEqual(Concert.objects.filter(user=self.user, primary_artist="Iron Maiden").count(), 1)
         self.assertEqual(Concert.objects.filter(user=self.user).count(), 2)
+
+    def test_edit_concert(self):
+        v = Venue.objects.create(name="Original Venue", city="Baltimore", state="MD")
+        a = Artist.objects.create(name="The Protomen", normalized_name="the protomen")
+        c = Concert.objects.create(
+            user=self.user,
+            raw_date="10/10/2023",
+            year=2023,
+            venue=v,
+            primary_artist="The Protomen",
+            raw_artists="The Protomen",
+            source="manual"
+        )
+        ca = ConcertArtist.objects.create(concert=c, artist=a, billing_order=0)
+
+        payload = {
+            "concert_id": c.id,
+            "date": "2023-11-12",
+            "primary_artist": "The Protomen Act II",
+            "supporting_artists": "Bit Brigade, Mega Ran",
+            "venue_name": "Ottobar",
+            "city": "Baltimore",
+            "state": "MD",
+            "notes": "VIP Meet & Greet",
+            "setlist_text": "1. Light Up the Night\n2. The Father of Death\nEncore:\n3. Due Vendetta"
+        }
+
+        res = self.client.post('/api/concerts/edit/', data=json.dumps(payload), content_type='application/json')
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data["status"], "success")
+
+        c.refresh_from_db()
+        self.assertEqual(c.primary_artist, "The Protomen Act II")
+        self.assertEqual(c.venue.name, "Ottobar")
+        self.assertEqual(c.notes, "VIP Meet & Greet")
+        self.assertEqual(c.raw_date, "11/12/2023")
+
+        # Check artists
+        artists = list(c.artists.all().order_by('billing_order'))
+        self.assertEqual(len(artists), 3)
+        self.assertEqual(artists[0].artist.name, "The Protomen Act II")
+        self.assertEqual(artists[1].artist.name, "Bit Brigade")
+        self.assertEqual(artists[2].artist.name, "Mega Ran")
+
+        # Check setlist songs
+        songs = list(artists[0].songs.all().order_by('track_num'))
+        self.assertEqual(len(songs), 3)
+        self.assertEqual(songs[0].raw_song_name, "Light Up the Night")
+        self.assertEqual(songs[1].raw_song_name, "The Father of Death")
+        self.assertEqual(songs[2].raw_song_name, "Due Vendetta")
+        self.assertTrue(songs[2].is_encore)
+
+    def test_delete_concert(self):
+        v = Venue.objects.create(name="Soundstage", city="Baltimore", state="MD")
+        a = Artist.objects.create(name="Haken", normalized_name="haken")
+        c = Concert.objects.create(
+            user=self.user,
+            raw_date="02/15/2024",
+            year=2024,
+            venue=v,
+            primary_artist="Haken",
+            raw_artists="Haken",
+            source="manual"
+        )
+        ConcertArtist.objects.create(concert=c, artist=a)
+
+        res = self.client.post('/api/concerts/delete/', data=json.dumps({"concert_id": c.id}), content_type='application/json')
+        self.assertEqual(res.status_code, 200)
+        self.assertFalse(Concert.objects.filter(id=c.id).exists())
+
+    def test_convert_concert_to_local(self):
+        v = Venue.objects.create(name="Merriweather", city="Columbia", state="MD")
+        a = Artist.objects.create(name="Coheed and Cambria", normalized_name="coheed and cambria")
+        c = Concert.objects.create(
+            user=self.user,
+            raw_date="08/01/2023",
+            year=2023,
+            venue=v,
+            primary_artist="Coheed and Cambria",
+            raw_artists="Coheed and Cambria",
+            source="setlistfm",
+            is_custom_offline=False
+        )
+        ca = ConcertArtist.objects.create(
+            concert=c,
+            artist=a,
+            setlistfm_id="sl_12345",
+            setlist_url="https://setlist.fm/test"
+        )
+
+        res = self.client.post('/api/concerts/convert-local/', data=json.dumps({"concert_id": c.id}), content_type='application/json')
+        self.assertEqual(res.status_code, 200)
+
+        c.refresh_from_db()
+        ca.refresh_from_db()
+        self.assertTrue(c.is_custom_offline)
+        self.assertEqual(c.source, "manual")
+        self.assertEqual(ca.setlistfm_id, "")
+        self.assertEqual(ca.setlist_url, "")
+
+    def test_coattendance_non_setlistfm_user_auto_detach(self):
+        # User 1 is a setlistfm user who has a concert
+        user1 = User.objects.create_user(username='setlistuser', password='password123')
+        user1.profile.setlistfm_username = 'setlistpro'
+        user1.profile.save()
+
+        v = Venue.objects.create(name="The Anthem", city="Washington", state="DC")
+        a = Artist.objects.create(name="Porcupine Tree", normalized_name="porcupine tree")
+        c1 = Concert.objects.create(
+            user=user1,
+            raw_date="09/10/2022",
+            year=2022,
+            venue=v,
+            primary_artist="Porcupine Tree",
+            raw_artists="Porcupine Tree",
+            source="setlistfm",
+            is_custom_offline=False
+        )
+        ConcertArtist.objects.create(
+            concert=c1,
+            artist=a,
+            setlistfm_id="pt_777",
+            setlist_url="https://setlist.fm/pt777"
+        )
+
+        # self.user is NOT a setlistfm user
+        self.user.profile.setlistfm_username = ""
+        self.user.profile.save()
+
+        res = self.client.post(
+            '/api/concerts/toggle-attendance/',
+            data=json.dumps({"concert_id": c1.id}),
+            content_type='application/json'
+        )
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data["action"], "added")
+
+        user_concert = Concert.objects.filter(user=self.user, primary_artist="Porcupine Tree").first()
+        self.assertIsNotNone(user_concert)
+        self.assertEqual(user_concert.source, "manual")
+        self.assertTrue(user_concert.is_custom_offline)
+        ca = user_concert.artists.first()
+        self.assertEqual(ca.setlistfm_id, "")
+        self.assertEqual(ca.setlist_url, "")

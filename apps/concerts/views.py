@@ -67,6 +67,7 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
         for c in db_concerts:
             artist_names = [ca.artist.name for ca in c.artists.all()]
             dt = datetime.combine(c.date, datetime.min.time()) if c.date else None
+            has_sl_id = any(bool(ca.setlistfm_id) for ca in c.artists.all())
             rec = {
                 "id": f"concert_{c.id}",
                 "db_id": c.id,
@@ -77,11 +78,17 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
                 "year": c.year,
                 "raw_artists": c.raw_artists,
                 "artists": artist_names,
-                "primary_artist": c.primary_artist,
+                "primary_artist": c.primary_artist or (artist_names[0] if artist_names else ""),
+                "supporting_artists": ", ".join(artist_names[1:]) if len(artist_names) > 1 else "",
                 "venue": c.raw_venue or (c.venue.name if c.venue else ""),
+                "city": c.venue.city if c.venue else "",
+                "state": c.venue.state if c.venue else "",
+                "country": c.venue.country if c.venue else "United States",
                 "seen_before": c.seen_before,
+                "notes": c.notes,
                 "is_custom_offline": c.is_custom_offline,
-                "source": c.source
+                "source": c.source,
+                "has_setlistfm_id": has_sl_id,
             }
             csv_records.append(rec)
 
@@ -1524,6 +1531,10 @@ def toggle_concert_attendance(request):
             })
         else:
             # Log concert to request.user's profile
+            # If user does not have a setlist.fm username, or target concert is offline, treat as custom offline
+            is_non_setlistfm = not bool(request.user.profile.setlistfm_username)
+            is_offline = target_concert.is_custom_offline or is_non_setlistfm
+
             with transaction.atomic():
                 new_concert = Concert.objects.create(
                     user=request.user,
@@ -1537,7 +1548,7 @@ def toggle_concert_attendance(request):
                     seen_before="",
                     notes=target_concert.notes,
                     source='manual',
-                    is_custom_offline=target_concert.is_custom_offline,
+                    is_custom_offline=is_offline,
                     is_fully_matched=target_concert.is_fully_matched,
                     is_partially_matched=target_concert.is_partially_matched
                 )
@@ -1548,8 +1559,8 @@ def toggle_concert_attendance(request):
                             concert=new_concert,
                             artist=ca.artist,
                             billing_order=ca.billing_order,
-                            setlistfm_id=ca.setlistfm_id,
-                            setlist_url=ca.setlist_url,
+                            setlistfm_id='' if is_non_setlistfm else ca.setlistfm_id,
+                            setlist_url='' if is_non_setlistfm else ca.setlist_url,
                             has_setlist=ca.has_setlist
                         )
                         for cs in ca.songs.all():
@@ -1594,6 +1605,285 @@ def toggle_concert_attendance(request):
                 "user_concert_id": new_concert.id,
                 "message": f"Logged '{target_concert.primary_artist}' on {target_concert.raw_date} to your profile!"
             })
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@login_required
+@require_POST
+def edit_concert(request):
+    try:
+        try:
+            data = json.loads(request.body.decode('utf-8'))
+        except Exception:
+            data = request.POST
+
+        concert_id_raw = str(data.get('concert_id') or data.get('id') or '').strip()
+        if concert_id_raw.startswith('concert_'):
+            concert_id_raw = concert_id_raw.replace('concert_', '')
+
+        try:
+            concert_id = int(concert_id_raw)
+        except (ValueError, TypeError):
+            return JsonResponse({"error": "Invalid concert ID"}, status=400)
+
+        concert = Concert.objects.filter(id=concert_id, user=request.user).first()
+        if not concert:
+            return JsonResponse({"error": "Concert not found or access denied"}, status=404)
+
+        date_str = str(data.get('date', '')).strip()
+        primary_artist_raw = str(data.get('primary_artist', '')).strip()
+        supporting_artists_raw = str(data.get('supporting_artists', '')).strip()
+        venue_name_raw = str(data.get('venue_name', '')).strip()
+        city = str(data.get('city', '')).strip()
+        state = str(data.get('state', '')).strip()
+        country = str(data.get('country', '')).strip() or 'United States'
+        notes = str(data.get('notes', '')).strip()
+        setlist_text = str(data.get('setlist_text', '')).strip()
+        convert_to_local = data.get('convert_to_local', False)
+        if isinstance(convert_to_local, str):
+            convert_to_local = convert_to_local.lower() in ['true', '1', 'on', 'yes']
+
+        is_custom_offline = data.get('is_custom_offline')
+        if is_custom_offline is not None:
+            if isinstance(is_custom_offline, str):
+                is_custom_offline = is_custom_offline.lower() in ['true', '1', 'on', 'yes']
+        else:
+            is_custom_offline = concert.is_custom_offline
+
+        if convert_to_local:
+            is_custom_offline = True
+            concert.source = 'manual'
+
+        if not date_str:
+            return JsonResponse({"error": "Date is required."}, status=400)
+        if not primary_artist_raw:
+            return JsonResponse({"error": "Headliner / Primary Artist is required."}, status=400)
+        if not venue_name_raw:
+            return JsonResponse({"error": "Venue name is required."}, status=400)
+
+        dt = None
+        for fmt in ("%Y-%m-%d", "%m/%d/%Y", "%m-%d-%Y", "%d-%m-%Y"):
+            try:
+                dt = datetime.strptime(date_str, fmt)
+                break
+            except ValueError:
+                pass
+
+        if not dt:
+            return JsonResponse({"error": "Invalid date format. Please use YYYY-MM-DD or MM/DD/YYYY."}, status=400)
+
+        year = dt.year
+        raw_date = dt.strftime("%m/%d/%Y")
+
+        new_songs_to_enrich = []
+        with transaction.atomic():
+            # Venue resolution / update
+            venue_obj = Venue.objects.filter(name__iexact=venue_name_raw.lower()).first()
+            if not venue_obj:
+                lat, lng, source_type = resolve_venue_coordinates(venue_name_raw, city, state, country)
+                venue_obj = Venue.objects.create(
+                    name=venue_name_raw,
+                    city=city,
+                    state=state,
+                    country=country,
+                    latitude=lat,
+                    longitude=lng,
+                    geocode_source=source_type
+                )
+            elif (city or state) and (not venue_obj.city or not venue_obj.state):
+                venue_obj.city = city or venue_obj.city
+                venue_obj.state = state or venue_obj.state
+                if venue_obj.latitude is None:
+                    lat, lng, source_type = resolve_venue_coordinates(venue_name_raw, venue_obj.city, venue_obj.state, country)
+                    if lat is not None:
+                        venue_obj.latitude = lat
+                        venue_obj.longitude = lng
+                        venue_obj.geocode_source = source_type
+                venue_obj.save()
+
+            # Artist resolution
+            can_primary = normalize_artist_name(primary_artist_raw) or primary_artist_raw
+            primary_art_obj, _ = Artist.objects.get_or_create(
+                name=can_primary,
+                defaults={'normalized_name': can_primary.lower()}
+            )
+
+            artists_list = [can_primary]
+            supporting_objs = []
+            if supporting_artists_raw:
+                parts = re.split(r'[,;/]+', supporting_artists_raw)
+                for p in parts:
+                    p_clean = p.strip()
+                    if p_clean:
+                        can_supp = normalize_artist_name(p_clean) or p_clean
+                        supp_obj, _ = Artist.objects.get_or_create(
+                            name=can_supp,
+                            defaults={'normalized_name': can_supp.lower()}
+                        )
+                        artists_list.append(can_supp)
+                        supporting_objs.append(supp_obj)
+
+            raw_artists = ", ".join(artists_list)
+
+            # Update Concert fields
+            concert.date = dt.date()
+            concert.raw_date = raw_date
+            concert.year = year
+            concert.venue = venue_obj
+            concert.raw_venue = venue_obj.name
+            concert.primary_artist = can_primary
+            concert.raw_artists = raw_artists
+            concert.notes = notes
+            concert.is_custom_offline = bool(is_custom_offline)
+            concert.save()
+
+            # Update primary ConcertArtist
+            ca_primary = ConcertArtist.objects.filter(concert=concert, billing_order=0).first()
+            if not ca_primary:
+                ca_primary = ConcertArtist.objects.create(
+                    concert=concert,
+                    artist=primary_art_obj,
+                    billing_order=0,
+                    has_setlist=bool(setlist_text)
+                )
+            else:
+                ca_primary.artist = primary_art_obj
+                if convert_to_local:
+                    ca_primary.setlistfm_id = ''
+                    ca_primary.setlist_url = ''
+                ca_primary.save()
+
+            # Remove existing supporting ConcertArtists and recreate with new ones
+            ConcertArtist.objects.filter(concert=concert, billing_order__gt=0).delete()
+            for idx, s_obj in enumerate(supporting_objs, start=1):
+                ConcertArtist.objects.create(
+                    concert=concert,
+                    artist=s_obj,
+                    billing_order=idx,
+                    has_setlist=False
+                )
+
+            # Update setlist songs for primary artist if setlist_text is specified
+            if 'setlist_text' in data:
+                if setlist_text:
+                    parsed_tracks = parse_setlist_text(setlist_text)
+                    if parsed_tracks:
+                        ca_primary.songs.all().delete()
+                        new_songs_to_enrich = save_setlist_for_concert_artist(ca_primary, primary_art_obj, parsed_tracks)
+                        ca_primary.has_setlist = True
+                        ca_primary.save()
+                else:
+                    ca_primary.songs.all().delete()
+                    ca_primary.has_setlist = False
+                    ca_primary.save()
+
+        # Invalidate cached analytics bundle for this user
+        ApiCache.objects.filter(cache_key=f"user_dashboard_bundle_{request.user.id}").delete()
+
+        # Optional quick album and musician enrichment for new artists/songs
+        if new_songs_to_enrich:
+            try:
+                enricher = AlbumEnricher()
+                enricher.load_cached_catalog([{"artist": a, "song": s} for a, s in new_songs_to_enrich])
+            except Exception:
+                pass
+
+        try:
+            m_enricher = MusicianEnricher()
+            if not primary_art_obj.members.exists():
+                m_enricher.enrich_artist(primary_art_obj.name, artist_obj=primary_art_obj)
+        except Exception:
+            pass
+
+        return JsonResponse({
+            "status": "success",
+            "message": f"Concert for '{can_primary}' on {raw_date} updated successfully!",
+            "concert_id": concert.id
+        })
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@login_required
+@require_POST
+def delete_concert(request):
+    try:
+        try:
+            data = json.loads(request.body.decode('utf-8'))
+        except Exception:
+            data = request.POST
+
+        concert_id_raw = str(data.get('concert_id') or data.get('id') or '').strip()
+        if concert_id_raw.startswith('concert_'):
+            concert_id_raw = concert_id_raw.replace('concert_', '')
+
+        try:
+            concert_id = int(concert_id_raw)
+        except (ValueError, TypeError):
+            return JsonResponse({"error": "Invalid concert ID"}, status=400)
+
+        concert = Concert.objects.filter(id=concert_id, user=request.user).first()
+        if not concert:
+            return JsonResponse({"error": "Concert not found or access denied"}, status=404)
+
+        artist_display = concert.primary_artist
+        date_display = concert.raw_date
+        concert.delete()
+
+        # Invalidate dashboard cache
+        ApiCache.objects.filter(cache_key=f"user_dashboard_bundle_{request.user.id}").delete()
+
+        return JsonResponse({
+            "status": "success",
+            "message": f"Deleted concert for '{artist_display}' on {date_display}."
+        })
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@login_required
+@require_POST
+def convert_concert_to_local(request):
+    try:
+        try:
+            data = json.loads(request.body.decode('utf-8'))
+        except Exception:
+            data = request.POST
+
+        concert_id_raw = str(data.get('concert_id') or data.get('id') or '').strip()
+        if concert_id_raw.startswith('concert_'):
+            concert_id_raw = concert_id_raw.replace('concert_', '')
+
+        try:
+            concert_id = int(concert_id_raw)
+        except (ValueError, TypeError):
+            return JsonResponse({"error": "Invalid concert ID"}, status=400)
+
+        concert = Concert.objects.filter(id=concert_id, user=request.user).first()
+        if not concert:
+            return JsonResponse({"error": "Concert not found or access denied"}, status=404)
+
+        with transaction.atomic():
+            concert.is_custom_offline = True
+            concert.source = 'manual'
+            concert.save()
+
+            for ca in concert.artists.all():
+                ca.setlistfm_id = ''
+                ca.setlist_url = ''
+                ca.save()
+
+        # Invalidate dashboard cache
+        ApiCache.objects.filter(cache_key=f"user_dashboard_bundle_{request.user.id}").delete()
+
+        return JsonResponse({
+            "status": "success",
+            "message": f"Converted '{concert.primary_artist}' ({concert.raw_date}) to a local show.",
+            "concert_id": concert.id,
+            "is_custom_offline": True,
+            "source": "manual"
+        })
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
 

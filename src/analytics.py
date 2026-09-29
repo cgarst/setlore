@@ -464,23 +464,67 @@ class ConcertAnalytics:
                                 "songs": songs_in_set
                             })
 
+                # Build reconstructed setlist text for easy pre-filling in edit modal
+                setlist_lines = []
+                for s_group in grouped_sets:
+                    if s_group.get("is_encore"):
+                        setlist_lines.append("Encore:")
+                    elif s_group.get("set_label") and s_group.get("set_label") not in ("Main Set", "Set 1"):
+                        setlist_lines.append(f"{s_group.get('set_label')}:")
+                    for trk in s_group.get("songs", []):
+                        s_line = trk.get("song", "")
+                        if trk.get("is_cover") and trk.get("cover_original"):
+                            s_line += f" ({trk.get('cover_original')} cover)"
+                        elif trk.get("is_cover"):
+                            s_line += " (Cover)"
+                        if trk.get("info"):
+                            s_line += f" ({trk.get('info')})"
+                        if s_line:
+                            setlist_lines.append(s_line)
+                artist_setlist_text = "\n".join(setlist_lines)
+
                 artists_data.append({
                     "artist": can_art,
                     "artist_seen_nth": artist_seen_nth,
                     "has_setlist": bool(sl and grouped_sets),
                     "setlist_url": setlist_url,
                     "total_songs": artist_songs_played,
-                    "grouped_sets": grouped_sets
+                    "grouped_sets": grouped_sets,
+                    "setlist_text": artist_setlist_text
                 })
+
+            primary_art = rec.get("primary_artist") or (artists[0] if artists else "")
+            supporting_arts = ", ".join(artists[1:]) if len(artists) > 1 else ""
+            primary_setlist_text = artists_data[0].get("setlist_text", "") if artists_data else ""
+            is_offline = bool(rec.get("is_custom_offline", False))
+            is_synced = (
+                not is_offline
+                and (
+                    rec.get("source") == "setlistfm"
+                    or any(bool(a.get("setlist_url")) for a in artists_data)
+                    or bool(rec.get("has_setlistfm_id", False))
+                )
+            )
 
             concerts_drilldown.append({
                 "id": c_id,
                 "db_id": rec.get("db_id"),
                 "date": date_str,
+                "raw_date": rec.get("raw_date", date_str),
                 "venue": venue,
+                "city": rec.get("city", ""),
+                "state": rec.get("state", ""),
+                "country": rec.get("country", "United States"),
                 "year": year,
+                "primary_artist": primary_art,
+                "supporting_artists": supporting_arts,
                 "raw_artists": rec.get("raw_artists", ", ".join(artists)),
                 "artists": artists_data,
+                "notes": rec.get("notes", ""),
+                "source": rec.get("source", "manual"),
+                "is_custom_offline": is_offline,
+                "is_setlistfm_synced": is_synced,
+                "setlist_text": primary_setlist_text,
                 "total_artists": len(artists),
                 "total_songs": total_songs_in_event,
                 "has_any_setlist": any(a["has_setlist"] for a in artists_data)

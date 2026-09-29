@@ -49,14 +49,14 @@ class DjangoAppTests(TestCase):
         self.assertEqual(response.json(), {'status': 'ok'})
 
     def test_dashboard_login_required(self):
-        # Unauthenticated request redirects to login
-        res = self.client.get('/')
+        # Unauthenticated request to /dashboard/ redirects to login
+        res = self.client.get('/dashboard/')
         self.assertEqual(res.status_code, 302)
         self.assertIn('/accounts/login/', res.get('Location'))
 
         # Authenticated request renders dashboard
         self.client.force_login(self.user)
-        auth_res = self.client.get('/')
+        auth_res = self.client.get('/dashboard/')
         self.assertEqual(auth_res.status_code, 200)
 
     def test_dashboard_renders_concert_cards_and_artists(self):
@@ -73,7 +73,7 @@ class DjangoAppTests(TestCase):
         ConcertArtist.objects.create(concert=concert, artist=artist)
 
         self.client.force_login(self.user)
-        res = self.client.get('/')
+        res = self.client.get('/dashboard/')
         self.assertEqual(res.status_code, 200)
         content = res.content.decode('utf-8')
         self.assertIn('concert-card', content)
@@ -96,7 +96,7 @@ class DjangoAppTests(TestCase):
 
     def test_dashboard_renders_user_profile_dropdown(self):
         self.client.force_login(self.user)
-        res = self.client.get('/')
+        res = self.client.get('/dashboard/')
         self.assertEqual(res.status_code, 200)
         content = res.content.decode('utf-8')
         self.assertIn('user-menu-btn', content)
@@ -137,7 +137,7 @@ class DjangoAppTests(TestCase):
     def test_dashboard_tab_urls(self):
         self.client.force_login(self.user)
         tabs = [
-            ('/', 'overview'),
+            ('/dashboard/', 'overview'),
             ('/overview/', 'overview'),
             ('/concerts/', 'concerts'),
             ('/drilldown/', 'drilldown'),
@@ -159,7 +159,7 @@ class DjangoAppTests(TestCase):
 
     def test_overview_charts_zoom_disabled(self):
         self.client.force_login(self.user)
-        res = self.client.get('/')
+        res = self.client.get('/dashboard/')
         self.assertEqual(res.status_code, 200)
         import json
         timeline_chart = json.loads(res.context['plotly_timeline'])
@@ -192,7 +192,7 @@ class DjangoAppTests(TestCase):
 
     def test_dashboard_renders_profile_settings_modal(self):
         self.client.force_login(self.user)
-        res = self.client.get('/')
+        res = self.client.get('/dashboard/')
         self.assertEqual(res.status_code, 200)
         content = res.content.decode('utf-8')
         self.assertIn('profile-modal', content)

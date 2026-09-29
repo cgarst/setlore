@@ -928,6 +928,199 @@
     </div>
   </div>
 
+  <!-- Edit Concert Modal -->
+  <div id="edit-concert-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto overscroll-contain overflow-x-hidden hidden">
+    <div class="relative w-full max-w-lg glass-card p-4 sm:p-6 shadow-2xl border border-slate-700/80 rounded-2xl max-h-[92vh] my-auto flex flex-col overflow-hidden">
+      <div class="shrink-0 flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-pen-to-square text-indigo-400"></i> Edit Concert
+        </h3>
+        <button type="button" onclick="closeEditConcertModal()" class="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition cursor-pointer" aria-label="Close modal">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <form id="edit-concert-form" onsubmit="submitEditConcert(event)" class="flex flex-col flex-1 min-h-0 overflow-hidden mt-3">
+        {% csrf_token %}
+        <input type="hidden" id="edit-concert-id" value="">
+        <input type="hidden" id="edit-concert-convert-local" value="false">
+
+        <div class="overflow-y-auto overflow-x-hidden pr-1 space-y-3.5 flex-1 min-h-0 custom-scrollbar">
+          <!-- Advisory notice banner -->
+          <div id="edit-concert-notice" class="hidden p-3 rounded-xl text-xs bg-indigo-500/10 border border-indigo-500/30 text-indigo-200 space-y-1">
+            <div class="flex items-center gap-2 font-bold text-indigo-300">
+              <i class="fa-solid fa-circle-info"></i> <span id="edit-concert-notice-title">Local Show</span>
+            </div>
+            <p id="edit-concert-notice-desc" class="text-slate-300 text-[11px] leading-relaxed"></p>
+          </div>
+
+          <!-- Date & Venue Name Row -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Date <span class="text-rose-400">*</span></label>
+              <input type="date" id="edit-concert-date" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+            </div>
+            <div class="relative">
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Venue Name <span class="text-rose-400">*</span></label>
+              <input type="text" id="edit-concert-venue" placeholder="e.g. 9:30 Club" required autocomplete="off" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+              <div id="edit-venue-suggestions" class="absolute left-0 right-0 top-full mt-1 bg-slate-900/95 border border-slate-700 rounded-lg shadow-2xl z-50 max-h-48 overflow-y-auto hidden divide-y divide-slate-800/80 backdrop-blur-md"></div>
+            </div>
+          </div>
+
+          <!-- City & State / Region Row -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="relative">
+              <label class="block text-xs font-semibold text-slate-300 mb-1">City <span class="text-slate-500 font-normal">(optional)</span></label>
+              <input type="text" id="edit-concert-city" placeholder="e.g. Washington" autocomplete="off" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+              <div id="edit-city-suggestions" class="absolute left-0 right-0 top-full mt-1 bg-slate-900/95 border border-slate-700 rounded-lg shadow-2xl z-50 max-h-48 overflow-y-auto hidden divide-y divide-slate-800/80 backdrop-blur-md"></div>
+            </div>
+            <div class="relative">
+              <label class="block text-xs font-semibold text-slate-300 mb-1">State / Region <span class="text-slate-500 font-normal">(optional)</span></label>
+              <input type="text" id="edit-concert-state" placeholder="e.g. DC" autocomplete="off" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+              <div id="edit-state-suggestions" class="absolute left-0 right-0 top-full mt-1 bg-slate-900/95 border border-slate-700 rounded-lg shadow-2xl z-50 max-h-48 overflow-y-auto hidden divide-y divide-slate-800/80 backdrop-blur-md"></div>
+            </div>
+          </div>
+
+          <!-- Artist / Headliner & Support Row -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="relative">
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Headliner / Primary Artist <span class="text-rose-400">*</span></label>
+              <input type="text" id="edit-concert-artist" placeholder="e.g. Dream Theater" required autocomplete="off" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+              <div id="edit-artist-suggestions" class="absolute left-0 right-0 top-full mt-1 bg-slate-900/95 border border-slate-700 rounded-lg shadow-2xl z-50 max-h-48 overflow-y-auto hidden divide-y divide-slate-800/80 backdrop-blur-md"></div>
+            </div>
+            <div class="relative">
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Supporting Acts <span class="text-slate-500 font-normal">(optional)</span></label>
+              <input type="text" id="edit-concert-supporting" placeholder="e.g. Opeth, Bigelf (comma-separated)" autocomplete="off" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+              <div id="edit-supporting-suggestions" class="absolute left-0 right-0 top-full mt-1 bg-slate-900/95 border border-slate-700 rounded-lg shadow-2xl z-50 max-h-48 overflow-y-auto hidden divide-y divide-slate-800/80 backdrop-blur-md"></div>
+            </div>
+          </div>
+
+          <!-- Tour / Notes -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Tour Name or Notes <span class="text-slate-500 font-normal">(optional)</span></label>
+            <input type="text" id="edit-concert-notes" placeholder="e.g. Progressive Nation 2009 or Front row with friends" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+          </div>
+
+          <!-- Setlist Section Accordion -->
+          <div class="rounded-xl border border-slate-800 bg-slate-900/50 overflow-hidden">
+            <button type="button" onclick="toggleEditSetlistSection()" class="w-full flex items-center justify-between p-3 text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800/60 transition cursor-pointer select-none">
+              <span class="flex items-center gap-2">
+                <i class="fa-solid fa-music text-purple-400"></i> Setlist / Songs <span class="text-slate-500 font-normal text-[11px]">(Optional)</span>
+              </span>
+              <i id="edit-setlist-chevron" class="fa-solid fa-chevron-down text-slate-400 text-xs transition-transform duration-200"></i>
+            </button>
+            <div id="edit-setlist-container" class="hidden p-3 pt-0 space-y-2 border-t border-slate-800/60">
+              <p class="text-[11px] text-slate-400">
+                Paste or edit songs, one per line. Use <code class="text-indigo-300 bg-slate-800 px-1 py-0.5 rounded">Encore:</code> to mark encores, or <code class="text-indigo-300 bg-slate-800 px-1 py-0.5 rounded">(Cover - Artist)</code> for covers.
+              </p>
+              <textarea id="edit-concert-setlist" rows="5" placeholder="Pull Me Under&#10;Under a Glass Moon&#10;Take the Time&#10;Encore:&#10;Metropolis Pt. 1" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white placeholder-slate-600 font-mono focus:outline-none focus:border-indigo-500"></textarea>
+            </div>
+          </div>
+
+          <!-- Setlist Audit Exemption Checkbox (Unselected and Hidden) -->
+          <div class="hidden">
+            <input type="checkbox" id="edit-concert-offline" class="hidden">
+          </div>
+
+          <div id="edit-concert-status" class="hidden text-xs p-2.5 rounded-lg"></div>
+        </div>
+
+        <div class="shrink-0 flex items-center justify-end gap-2 pt-3 border-t border-slate-800 mt-2">
+          <button type="button" onclick="closeEditConcertModal()" class="px-4 py-2 rounded-lg bg-slate-800 text-xs font-semibold text-slate-300 hover:bg-slate-700 cursor-pointer transition">Cancel</button>
+          <button type="submit" id="edit-concert-submit-btn" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-bold text-white flex items-center gap-1.5 cursor-pointer shadow-md shadow-indigo-600/30 transition">
+            <i class="fa-solid fa-check"></i> Save Changes
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Synced Edit Advisory Modal -->
+  <div id="synced-edit-advisory-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 hidden">
+    <div class="relative w-full max-w-md glass-card p-5 sm:p-6 shadow-2xl border border-amber-500/40 rounded-2xl flex flex-col space-y-4">
+      <div class="flex items-start gap-3">
+        <div class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0 mt-0.5">
+          <i class="fa-solid fa-arrows-rotate text-lg"></i>
+        </div>
+        <div>
+          <h3 class="text-base font-bold text-white">Setlist.fm Synced Concert</h3>
+          <p class="text-xs text-slate-400 mt-0.5" id="synced-edit-advisory-subtitle">This concert is synced with your Setlist.fm account.</p>
+        </div>
+      </div>
+
+      <div class="space-y-3 text-xs text-slate-300 leading-relaxed bg-slate-900/60 p-3.5 rounded-xl border border-slate-800/80">
+        <p>
+          <strong class="text-amber-300">Setlist.fm Sync Notice:</strong> Direct edits made locally may be overwritten on your next Setlist.fm sync. For official updates to artists, venues, or setlists, we advise editing the show directly on Setlist.fm.
+        </p>
+        <p class="text-slate-400 text-[11px] border-t border-slate-800/80 pt-2">
+          <i class="fa-solid fa-triangle-exclamation text-amber-400 mr-1"></i>
+          <strong>Converting to Local:</strong> If you convert this show to a local entry, it will detach from future syncs. Note: If you do not also remove the concert from your Setlist.fm account, a future sync may re-import the Setlist.fm version as a duplicate.
+        </p>
+      </div>
+
+      <div class="flex flex-col gap-2 pt-1">
+        <a id="synced-edit-setlistfm-link" href="#" target="_blank" rel="noopener noreferrer" class="w-full px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-bold text-white flex items-center justify-center gap-2 transition shadow-sm">
+          <i class="fa-solid fa-arrow-up-right-from-square text-[11px]"></i> Update on Setlist.fm (Recommended)
+        </a>
+        <button type="button" onclick="proceedWithConvertToLocalAndEdit()" class="w-full px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-amber-300 border border-amber-500/30 flex items-center justify-center gap-1.5 transition cursor-pointer">
+          <i class="fa-solid fa-scissors text-[11px]"></i> Convert to Local Show & Edit
+        </button>
+        <button type="button" onclick="proceedWithDirectEdit()" class="w-full px-4 py-2 rounded-lg bg-slate-800/60 hover:bg-slate-800 text-xs font-semibold text-slate-400 hover:text-slate-200 transition cursor-pointer">
+          Edit Locally Anyway
+        </button>
+        <button type="button" onclick="closeSyncedEditAdvisoryModal()" class="w-full px-4 py-1.5 rounded-lg text-xs text-slate-500 hover:text-slate-300 transition cursor-pointer">
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Concert Confirmation Modal -->
+  <div id="delete-concert-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 hidden">
+    <div class="relative w-full max-w-md glass-card p-5 sm:p-6 shadow-2xl border border-rose-500/40 rounded-2xl flex flex-col space-y-4">
+      <div class="flex items-start gap-3">
+        <div class="w-10 h-10 rounded-xl bg-rose-500/20 border border-rose-500/30 flex items-center justify-center text-rose-400 shrink-0 mt-0.5">
+          <i class="fa-solid fa-trash-can text-lg"></i>
+        </div>
+        <div>
+          <h3 class="text-base font-bold text-white" id="delete-modal-title">Delete Concert</h3>
+          <p class="text-xs text-slate-400 mt-0.5" id="delete-modal-subtitle">Are you sure you want to remove this concert?</p>
+        </div>
+      </div>
+
+      <!-- Advisory for synced shows -->
+      <div id="delete-synced-warning" class="hidden space-y-2 text-xs text-slate-300 leading-relaxed bg-slate-900/60 p-3.5 rounded-xl border border-amber-500/30">
+        <p class="text-amber-300 font-semibold flex items-center gap-1.5">
+          <i class="fa-solid fa-circle-exclamation"></i> Synced with Setlist.fm
+        </p>
+        <p class="text-[11px] text-slate-300">
+          This concert is synced with Setlist.fm. If you delete it locally without removing it from your Setlist.fm profile, the next sync will automatically re-import it.
+        </p>
+        <p class="text-[11px] text-slate-400">
+          To keep tracking this show locally without Setlist.fm sync, you can convert it to a local entry instead.
+        </p>
+      </div>
+
+      <div id="delete-local-warning" class="text-xs text-slate-400 bg-slate-900/60 p-3 rounded-xl border border-slate-800">
+        This will permanently remove this concert record and its setlist from your profile.
+      </div>
+
+      <div class="flex flex-col gap-2 pt-1">
+        <div id="delete-convert-option" class="hidden">
+          <button type="button" onclick="confirmConvertToLocalFromDelete()" class="w-full px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-bold text-white flex items-center justify-center gap-1.5 transition cursor-pointer shadow-sm">
+            <i class="fa-solid fa-arrow-right-arrow-left text-[11px]"></i> Convert to Local Show Instead
+          </button>
+        </div>
+        <button type="button" onclick="executeConcertDelete()" id="confirm-delete-btn" class="w-full px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-xs font-bold text-white flex items-center justify-center gap-1.5 transition cursor-pointer shadow-sm shadow-rose-600/30">
+          <i class="fa-solid fa-trash text-[11px]"></i> Delete Concert
+        </button>
+        <button type="button" onclick="closeDeleteConcertModal()" class="w-full px-4 py-1.5 rounded-lg text-xs text-slate-400 hover:text-white transition cursor-pointer">
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Impersonate User Modal -->
   <div id="impersonate-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 hidden">
     <div class="max-w-md w-full glass-card p-5 sm:p-6 shadow-2xl border border-slate-700/80 rounded-2xl max-h-[90vh] flex flex-col overflow-hidden">
@@ -1506,7 +1699,24 @@
       <!-- Concert Cards List -->
       <div id="concert-cards-list" class="space-y-4">
         {% for c in stats.concerts_drilldown %}
-        <div class="concert-card glass-card p-5 space-y-4 border border-slate-800/80 hover:border-slate-700/80 transition" data-search="{{ c.date|lower }} {{ c.venue|lower }} {{ c.raw_artists|lower }}">
+        <div class="concert-card glass-card p-5 space-y-4 border border-slate-800/80 hover:border-slate-700/80 transition"
+             id="concert-card-{{ c.id }}"
+             data-search="{{ c.date|lower }} {{ c.venue|lower }} {{ c.raw_artists|lower }}"
+             data-id="{{ c.id }}"
+             data-db-id="{{ c.db_id }}"
+             data-date="{% if c.date %}{{ c.date }}{% else %}{{ c.raw_date }}{% endif %}"
+             data-raw-date="{{ c.raw_date }}"
+             data-venue="{{ c.venue }}"
+             data-city="{{ c.city }}"
+             data-state="{{ c.state }}"
+             data-country="{{ c.country }}"
+             data-primary-artist="{{ c.primary_artist }}"
+             data-supporting-artists="{{ c.supporting_artists }}"
+             data-notes="{{ c.notes }}"
+             data-is-offline="{{ c.is_custom_offline|yesno:'true,false' }}"
+             data-is-synced="{{ c.is_setlistfm_synced|yesno:'true,false' }}"
+             data-setlist-url="{{ c.artists.0.setlist_url|default:'' }}"
+             data-setlist-text="{{ c.setlist_text }}">
           
           <!-- Concert Event Header -->
           <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 cursor-pointer select-none border-b border-slate-800/60 pb-3" onclick="toggleConcertDetails('{{ c.id }}')">
@@ -1543,6 +1753,23 @@
                 <i class="fa-solid fa-hand-peace text-slate-400"></i>
                 <span>I Was There</span>
               </a>
+              {% endif %}
+
+              {% if not is_public_view or is_owner %}
+              <div class="flex items-center gap-1" onclick="event.stopPropagation();">
+                <button type="button"
+                        onclick="handleConcertEdit('{{ c.id }}');"
+                        class="px-2 py-1 rounded-lg text-xs font-semibold bg-slate-800/90 text-slate-300 border border-slate-700 hover:text-white hover:bg-indigo-600/30 hover:border-indigo-500/50 transition flex items-center gap-1 cursor-pointer"
+                        title="Edit concert details">
+                  <i class="fa-solid fa-pen-to-square text-[11px]"></i>
+                </button>
+                <button type="button"
+                        onclick="handleConcertDelete('{{ c.id }}');"
+                        class="px-2 py-1 rounded-lg text-xs font-semibold bg-slate-800/90 text-slate-300 border border-slate-700 hover:text-rose-300 hover:bg-rose-500/20 hover:border-rose-500/40 transition flex items-center gap-1 cursor-pointer"
+                        title="Delete concert">
+                  <i class="fa-solid fa-trash-can text-[11px]"></i>
+                </button>
+              </div>
               {% endif %}
 
               <span class="badge bg-slate-800 text-slate-300 text-xs border border-slate-700">
@@ -4311,20 +4538,37 @@
     }
 
     document.addEventListener('pointerdown', (e) => {
-      const modal = document.getElementById('add-concert-modal');
-      if (!modal || modal.classList.contains('hidden')) return;
-      const dropdowns = [
-        { d: document.getElementById('venue-suggestions'), i: document.getElementById('add-concert-venue') },
-        { d: document.getElementById('city-suggestions'), i: document.getElementById('add-concert-city') },
-        { d: document.getElementById('state-suggestions'), i: document.getElementById('add-concert-state') },
-        { d: document.getElementById('artist-suggestions'), i: document.getElementById('add-concert-artist') },
-        { d: document.getElementById('supporting-suggestions'), i: document.getElementById('add-concert-supporting') },
-      ];
-      dropdowns.forEach(({ d, i }) => {
-        if (d && !d.contains(e.target) && i && !i.contains(e.target)) {
-          d.classList.add('hidden');
-        }
-      });
+      const addModal = document.getElementById('add-concert-modal');
+      if (addModal && !addModal.classList.contains('hidden')) {
+        const dropdowns = [
+          { d: document.getElementById('venue-suggestions'), i: document.getElementById('add-concert-venue') },
+          { d: document.getElementById('city-suggestions'), i: document.getElementById('add-concert-city') },
+          { d: document.getElementById('state-suggestions'), i: document.getElementById('add-concert-state') },
+          { d: document.getElementById('artist-suggestions'), i: document.getElementById('add-concert-artist') },
+          { d: document.getElementById('supporting-suggestions'), i: document.getElementById('add-concert-supporting') },
+        ];
+        dropdowns.forEach(({ d, i }) => {
+          if (d && !d.contains(e.target) && i && !i.contains(e.target)) {
+            d.classList.add('hidden');
+          }
+        });
+      }
+
+      const editModal = document.getElementById('edit-concert-modal');
+      if (editModal && !editModal.classList.contains('hidden')) {
+        const editDropdowns = [
+          { d: document.getElementById('edit-venue-suggestions'), i: document.getElementById('edit-concert-venue') },
+          { d: document.getElementById('edit-city-suggestions'), i: document.getElementById('edit-concert-city') },
+          { d: document.getElementById('edit-state-suggestions'), i: document.getElementById('edit-concert-state') },
+          { d: document.getElementById('edit-artist-suggestions'), i: document.getElementById('edit-concert-artist') },
+          { d: document.getElementById('edit-supporting-suggestions'), i: document.getElementById('edit-concert-supporting') },
+        ];
+        editDropdowns.forEach(({ d, i }) => {
+          if (d && !d.contains(e.target) && i && !i.contains(e.target)) {
+            d.classList.add('hidden');
+          }
+        });
+      }
     });
 
     function initAddConcertAutocomplete() {
@@ -4333,6 +4577,12 @@
       setupModalAutocomplete('add-concert-state', 'state-suggestions', 'state');
       setupModalAutocomplete('add-concert-artist', 'artist-suggestions', 'artist');
       setupModalAutocomplete('add-concert-supporting', 'supporting-suggestions', 'artist', { multi: true });
+
+      setupModalAutocomplete('edit-concert-venue', 'edit-venue-suggestions', 'venue');
+      setupModalAutocomplete('edit-concert-city', 'edit-city-suggestions', 'city');
+      setupModalAutocomplete('edit-concert-state', 'edit-state-suggestions', 'state');
+      setupModalAutocomplete('edit-concert-artist', 'edit-artist-suggestions', 'artist');
+      setupModalAutocomplete('edit-concert-supporting', 'edit-supporting-suggestions', 'artist', { multi: true });
     }
 
     if (document.readyState === 'loading') {
@@ -4441,6 +4691,325 @@
         }
         btn.disabled = false;
         btn.innerHTML = '<i class="fa-solid fa-check"></i> Save Concert';
+      }
+    }
+
+    let currentEditConcertData = null;
+    let currentDeleteConcertData = null;
+
+    function formatDateForInput(dateStr) {
+      if (!dateStr) return '';
+      dateStr = dateStr.trim();
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
+      const m = dateStr.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+      if (m) {
+        const month = m[1].padStart(2, '0');
+        const day = m[2].padStart(2, '0');
+        const year = m[3];
+        return `${year}-${month}-${day}`;
+      }
+      return dateStr;
+    }
+
+    function handleConcertEdit(concertId) {
+      const card = document.getElementById(`concert-card-${concertId}`);
+      if (!card) return;
+      const data = {
+        id: concertId,
+        db_id: card.dataset.dbId,
+        date: card.dataset.date,
+        raw_date: card.dataset.rawDate,
+        venue: card.dataset.venue,
+        city: card.dataset.city,
+        state: card.dataset.state,
+        country: card.dataset.country,
+        primary_artist: card.dataset.primaryArtist,
+        supporting_artists: card.dataset.supportingArtists,
+        notes: card.dataset.notes,
+        is_offline: card.dataset.isOffline === 'true',
+        is_synced: card.dataset.isSynced === 'true',
+        setlist_url: card.dataset.setlistUrl,
+        setlist_text: card.dataset.setlistText
+      };
+      currentEditConcertData = data;
+
+      if (data.is_synced) {
+        const subtitle = document.getElementById('synced-edit-advisory-subtitle');
+        const slLink = document.getElementById('synced-edit-setlistfm-link');
+        if (subtitle) {
+          subtitle.textContent = `"${data.primary_artist}" on ${data.date} is synced with Setlist.fm.`;
+        }
+        if (slLink) {
+          if (data.setlist_url) {
+            slLink.href = data.setlist_url;
+          } else {
+            slLink.href = `https://www.setlist.fm/search?query=${encodeURIComponent(data.primary_artist)}+${encodeURIComponent(data.date)}`;
+          }
+        }
+        const advisoryModal = document.getElementById('synced-edit-advisory-modal');
+        if (advisoryModal) {
+          advisoryModal.classList.remove('hidden');
+          document.body.classList.add('overflow-hidden');
+        }
+      } else {
+        openEditConcertModal(data, false);
+      }
+    }
+
+    function closeSyncedEditAdvisoryModal() {
+      const modal = document.getElementById('synced-edit-advisory-modal');
+      if (modal) modal.classList.add('hidden');
+      document.body.classList.remove('overflow-hidden');
+    }
+
+    function proceedWithConvertToLocalAndEdit() {
+      closeSyncedEditAdvisoryModal();
+      if (currentEditConcertData) {
+        openEditConcertModal(currentEditConcertData, true);
+      }
+    }
+
+    function proceedWithDirectEdit() {
+      closeSyncedEditAdvisoryModal();
+      if (currentEditConcertData) {
+        openEditConcertModal(currentEditConcertData, false);
+      }
+    }
+
+    function openEditConcertModal(data, convertToLocal = false) {
+      const modal = document.getElementById('edit-concert-modal');
+      if (!modal) return;
+
+      document.getElementById('edit-concert-id').value = data.id || data.db_id;
+      document.getElementById('edit-concert-convert-local').value = convertToLocal ? 'true' : 'false';
+      document.getElementById('edit-concert-date').value = formatDateForInput(data.date || data.raw_date);
+      document.getElementById('edit-concert-venue').value = data.venue || '';
+      document.getElementById('edit-concert-city').value = data.city || '';
+      document.getElementById('edit-concert-state').value = data.state || '';
+      document.getElementById('edit-concert-artist').value = data.primary_artist || '';
+      document.getElementById('edit-concert-supporting').value = data.supporting_artists || '';
+      document.getElementById('edit-concert-notes').value = data.notes || '';
+      document.getElementById('edit-concert-setlist').value = data.setlist_text || '';
+
+      const notice = document.getElementById('edit-concert-notice');
+      const noticeTitle = document.getElementById('edit-concert-notice-title');
+      const noticeDesc = document.getElementById('edit-concert-notice-desc');
+
+      if (convertToLocal) {
+        if (notice) notice.classList.remove('hidden');
+        if (noticeTitle) noticeTitle.textContent = 'Detaching from Setlist.fm';
+        if (noticeDesc) noticeDesc.textContent = 'Saving will convert this show into a detached local entry. It will no longer sync with Setlist.fm.';
+      } else if (data.is_synced) {
+        if (notice) notice.classList.remove('hidden');
+        if (noticeTitle) noticeTitle.textContent = 'Setlist.fm Synced Show';
+        if (noticeDesc) noticeDesc.textContent = 'Direct edits made here may be overwritten on future Setlist.fm syncs unless converted to a local show.';
+      } else {
+        if (notice) notice.classList.add('hidden');
+      }
+
+      const statusBox = document.getElementById('edit-concert-status');
+      if (statusBox) {
+        statusBox.classList.add('hidden');
+        statusBox.innerHTML = '';
+      }
+
+      const setlistContainer = document.getElementById('edit-setlist-container');
+      const setlistChevron = document.getElementById('edit-setlist-chevron');
+      if (data.setlist_text && setlistContainer) {
+        setlistContainer.classList.remove('hidden');
+        if (setlistChevron) setlistChevron.classList.add('rotate-180');
+      } else if (setlistContainer) {
+        setlistContainer.classList.add('hidden');
+        if (setlistChevron) setlistChevron.classList.remove('rotate-180');
+      }
+
+      modal.classList.remove('hidden');
+      document.body.classList.add('overflow-hidden');
+    }
+
+    function closeEditConcertModal() {
+      const modal = document.getElementById('edit-concert-modal');
+      if (modal) modal.classList.add('hidden');
+      document.body.classList.remove('overflow-hidden');
+      ['edit-venue-suggestions', 'edit-city-suggestions', 'edit-state-suggestions', 'edit-artist-suggestions', 'edit-supporting-suggestions'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('hidden');
+      });
+    }
+
+    function toggleEditSetlistSection() {
+      const container = document.getElementById('edit-setlist-container');
+      const chevron = document.getElementById('edit-setlist-chevron');
+      if (container) {
+        container.classList.toggle('hidden');
+        if (chevron) chevron.classList.toggle('rotate-180');
+      }
+    }
+
+    async function submitEditConcert(e) {
+      e.preventDefault();
+      const btn = document.getElementById('edit-concert-submit-btn');
+      const statusBox = document.getElementById('edit-concert-status');
+
+      const concertId = document.getElementById('edit-concert-id').value;
+      const convertLocal = document.getElementById('edit-concert-convert-local').value === 'true';
+
+      const payload = {
+        concert_id: concertId,
+        convert_to_local: convertLocal,
+        date: document.getElementById('edit-concert-date').value,
+        venue_name: document.getElementById('edit-concert-venue').value,
+        city: document.getElementById('edit-concert-city').value,
+        state: document.getElementById('edit-concert-state').value,
+        primary_artist: document.getElementById('edit-concert-artist').value,
+        supporting_artists: document.getElementById('edit-concert-supporting').value,
+        notes: document.getElementById('edit-concert-notes').value,
+        setlist_text: document.getElementById('edit-concert-setlist').value,
+        is_custom_offline: convertLocal || (document.getElementById('edit-concert-offline') ? document.getElementById('edit-concert-offline').checked : false)
+      };
+
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> Saving...';
+      if (statusBox) {
+        statusBox.classList.remove('hidden', 'bg-rose-950/60', 'text-rose-200', 'border-rose-500/40', 'bg-emerald-950/60', 'text-emerald-200', 'border-emerald-500/40');
+        statusBox.classList.add('bg-indigo-950/50', 'text-indigo-200', 'border', 'border-indigo-500/40');
+        statusBox.innerHTML = '<i class="fa-solid fa-spinner animate-spin mr-1.5"></i> Updating concert...';
+      }
+
+      try {
+        const res = await fetch('/api/concerts/edit/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+          },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          if (statusBox) {
+            statusBox.classList.remove('bg-indigo-950/50', 'text-indigo-200', 'border-indigo-500/40');
+            statusBox.classList.add('bg-emerald-950/60', 'text-emerald-200', 'border', 'border-emerald-500/40');
+            statusBox.innerHTML = '<i class="fa-solid fa-circle-check mr-1.5 text-emerald-400"></i> ' + (data.message || 'Updated successfully! Reloading...');
+          }
+          setTimeout(() => {
+            window.location.reload();
+          }, 800);
+        } else {
+          if (statusBox) {
+            statusBox.classList.remove('bg-indigo-950/50', 'text-indigo-200', 'border-indigo-500/40');
+            statusBox.classList.add('bg-rose-950/60', 'text-rose-200', 'border', 'border-rose-500/40');
+            statusBox.innerHTML = '<i class="fa-solid fa-circle-exclamation mr-1.5 text-rose-400"></i> ' + (data.error || 'Failed to update concert.');
+          }
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fa-solid fa-check"></i> Save Changes';
+        }
+      } catch (err) {
+        if (statusBox) {
+          statusBox.classList.remove('bg-indigo-950/50', 'text-indigo-200', 'border-indigo-500/40');
+          statusBox.classList.add('bg-rose-950/60', 'text-rose-200', 'border', 'border-rose-500/40');
+          statusBox.innerHTML = '<i class="fa-solid fa-circle-exclamation mr-1.5 text-rose-400"></i> ' + err.message;
+        }
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-check"></i> Save Changes';
+      }
+    }
+
+    function handleConcertDelete(concertId) {
+      const card = document.getElementById(`concert-card-${concertId}`);
+      if (!card) return;
+      const data = {
+        id: concertId,
+        db_id: card.dataset.dbId,
+        primary_artist: card.dataset.primaryArtist,
+        date: card.dataset.date,
+        is_synced: card.dataset.isSynced === 'true'
+      };
+      currentDeleteConcertData = data;
+
+      const title = document.getElementById('delete-modal-title');
+      const subtitle = document.getElementById('delete-modal-subtitle');
+      const syncedWarning = document.getElementById('delete-synced-warning');
+      const localWarning = document.getElementById('delete-local-warning');
+      const convertOpt = document.getElementById('delete-convert-option');
+
+      if (title) title.textContent = `Delete ${data.primary_artist}`;
+      if (subtitle) subtitle.textContent = `Remove show on ${data.date}?`;
+
+      if (data.is_synced) {
+        if (syncedWarning) syncedWarning.classList.remove('hidden');
+        if (localWarning) localWarning.classList.add('hidden');
+        if (convertOpt) convertOpt.classList.remove('hidden');
+      } else {
+        if (syncedWarning) syncedWarning.classList.add('hidden');
+        if (localWarning) localWarning.classList.remove('hidden');
+        if (convertOpt) convertOpt.classList.add('hidden');
+      }
+
+      const modal = document.getElementById('delete-concert-modal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+      }
+    }
+
+    function closeDeleteConcertModal() {
+      const modal = document.getElementById('delete-concert-modal');
+      if (modal) modal.classList.add('hidden');
+      document.body.classList.remove('overflow-hidden');
+    }
+
+    async function executeConcertDelete() {
+      if (!currentDeleteConcertData) return;
+      const btn = document.getElementById('confirm-delete-btn');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> Deleting...';
+
+      try {
+        const res = await fetch('/api/concerts/delete/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+          },
+          body: JSON.stringify({ concert_id: currentDeleteConcertData.id || currentDeleteConcertData.db_id })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          window.location.reload();
+        } else {
+          alert(data.error || 'Failed to delete concert.');
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fa-solid fa-trash text-[11px]"></i> Delete Concert';
+        }
+      } catch (err) {
+        alert(err.message);
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-trash text-[11px]"></i> Delete Concert';
+      }
+    }
+
+    async function confirmConvertToLocalFromDelete() {
+      if (!currentDeleteConcertData) return;
+      closeDeleteConcertModal();
+      try {
+        const res = await fetch('/api/concerts/convert-local/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+          },
+          body: JSON.stringify({ concert_id: currentDeleteConcertData.id || currentDeleteConcertData.db_id })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          window.location.reload();
+        } else {
+          alert(data.error || 'Failed to convert concert.');
+        }
+      } catch (err) {
+        alert(err.message);
       }
     }
 
