@@ -170,7 +170,7 @@
               {% if is_public_view %}
                 <a href="{% url 'dashboard' %}" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-slate-200 hover:text-white hover:bg-indigo-600/20 transition text-left">
                   <i class="fa-solid fa-gauge-high text-indigo-400 w-4 text-center"></i>
-                  <span>Back to Dashboard</span>
+                  <span>Back to Overview</span>
                 </a>
               {% else %}
                 <a href="{% url 'public_profile' username=request.user.username %}" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-slate-200 hover:text-white hover:bg-indigo-600/20 transition text-left">
@@ -378,12 +378,12 @@
         {% if is_owner %}
           <a href="{% url 'dashboard' %}" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-xs font-bold text-white flex items-center gap-1.5 shadow-md shadow-indigo-600/30 transition">
             <i class="fa-solid fa-arrow-left"></i>
-            <span>Back to Dashboard</span>
+            <span>Back to Overview</span>
           </a>
         {% elif request.user.is_authenticated %}
           <a href="{% url 'dashboard' %}" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-xs font-bold text-white flex items-center gap-1.5 shadow-md shadow-indigo-600/30 transition">
             <i class="fa-solid fa-house"></i>
-            <span>My Dashboard</span>
+            <span>My Overview</span>
           </a>
         {% endif %}
       </div>
@@ -2978,14 +2978,14 @@
           <span class="text-[10px] text-slate-300 font-semibold tracking-tight mt-0.5">Add</span>
         </button>
       {% elif is_owner %}
-        <a href="{% url 'dashboard' %}" id="mobile-tab-back-btn" class="flex flex-col items-center justify-center -mt-4 group cursor-pointer" title="Back to Dashboard">
+        <a href="{% url 'dashboard' %}" id="mobile-tab-back-btn" class="flex flex-col items-center justify-center -mt-4 group cursor-pointer" title="Back to Overview">
           <div class="w-11 h-11 rounded-full bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/40 border-2 border-slate-900 group-active:scale-90 group-hover:scale-105 transition-all">
             <i class="fa-solid fa-arrow-left text-base font-bold"></i>
           </div>
           <span class="text-[10px] text-slate-300 font-semibold tracking-tight mt-0.5">Back</span>
         </a>
       {% elif request.user.is_authenticated %}
-        <a href="{% url 'dashboard' %}" id="mobile-tab-home-btn" class="flex flex-col items-center justify-center -mt-4 group cursor-pointer" title="My Dashboard">
+        <a href="{% url 'dashboard' %}" id="mobile-tab-home-btn" class="flex flex-col items-center justify-center -mt-4 group cursor-pointer" title="My Overview">
           <div class="w-11 h-11 rounded-full bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/40 border-2 border-slate-900 group-active:scale-90 group-hover:scale-105 transition-all">
             <i class="fa-solid fa-house text-base font-bold"></i>
           </div>
@@ -3229,7 +3229,7 @@
                   <i class="fa-solid fa-arrow-left text-sm"></i>
                 </div>
                 <div class="text-left">
-                  <p class="text-xs font-bold text-white">Back to Dashboard</p>
+                  <p class="text-xs font-bold text-white">Back to Overview</p>
                   <p class="text-[11px] text-indigo-200/70">Return to full manager view</p>
                 </div>
               </div>
@@ -3242,7 +3242,7 @@
                   <i class="fa-solid fa-house text-sm"></i>
                 </div>
                 <div class="text-left">
-                  <p class="text-xs font-bold text-white">Go to My Dashboard</p>
+                  <p class="text-xs font-bold text-white">Go to My Overview</p>
                   <p class="text-[11px] text-indigo-200/70">View and manage your own shows</p>
                 </div>
               </div>
@@ -6286,7 +6286,7 @@
         } else if (step === 3) {
           nextBtn.innerHTML = '<span>Next Step</span><i class="fa-solid fa-chevron-right text-[10px]"></i>';
         } else if (step === 4) {
-          nextBtn.innerHTML = '<i class="fa-solid fa-circle-check text-xs mr-1"></i><span>Finish & View Dashboard</span>';
+          nextBtn.innerHTML = '<i class="fa-solid fa-circle-check text-xs mr-1"></i><span>Finish & View Overview</span>';
         }
       }
 

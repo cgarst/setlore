@@ -60,7 +60,7 @@
         </a>
         {% if user.is_authenticated %}
           <a href="{% url 'dashboard' %}" class="px-3.5 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 font-semibold transition flex items-center gap-2">
-            <i class="fa-solid fa-arrow-left text-xs"></i> Back to Dashboard
+            <i class="fa-solid fa-arrow-left text-xs"></i> Back to Overview
           </a>
         {% else %}
           <a href="{% url 'login' %}" class="text-slate-400 hover:text-white transition font-medium">Sign In</a>
