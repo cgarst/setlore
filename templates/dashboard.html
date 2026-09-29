@@ -1996,8 +1996,34 @@
       colorway: ['#6366f1', '#a855f7', '#ec4899', '#10b981', '#f59e0b', '#3b82f6']
     };
 
-    Plotly.newPlot('chart-timeline', timelineData.data, Object.assign({}, layoutDefaults, timelineData.layout), {responsive: true, displayModeBar: false});
-    Plotly.newPlot('chart-top-artists', topArtistsData.data, Object.assign({}, layoutDefaults, topArtistsData.layout), {responsive: true, displayModeBar: false});
+    const staticOverviewLayout = {
+      dragmode: false,
+      xaxis: { fixedrange: true },
+      yaxis: { fixedrange: true },
+      yaxis2: { fixedrange: true }
+    };
+
+    Plotly.newPlot(
+      'chart-timeline',
+      timelineData.data,
+      Object.assign({}, layoutDefaults, timelineData.layout, {
+        dragmode: false,
+        xaxis: Object.assign({}, layoutDefaults.xaxis || {}, timelineData.layout.xaxis || {}, { fixedrange: true }),
+        yaxis: Object.assign({}, layoutDefaults.yaxis || {}, timelineData.layout.yaxis || {}, { fixedrange: true }),
+        yaxis2: Object.assign({}, layoutDefaults.yaxis2 || {}, timelineData.layout.yaxis2 || {}, { fixedrange: true })
+      }),
+      { responsive: true, displayModeBar: false, scrollZoom: false, doubleClick: false }
+    );
+    Plotly.newPlot(
+      'chart-top-artists',
+      topArtistsData.data,
+      Object.assign({}, layoutDefaults, topArtistsData.layout, {
+        dragmode: false,
+        xaxis: Object.assign({}, layoutDefaults.xaxis || {}, topArtistsData.layout.xaxis || {}, { fixedrange: true }),
+        yaxis: Object.assign({}, layoutDefaults.yaxis || {}, topArtistsData.layout.yaxis || {}, { fixedrange: true })
+      }),
+      { responsive: true, displayModeBar: false, scrollZoom: false, doubleClick: false }
+    );
     Plotly.newPlot('chart-treemap', treemapData.data, Object.assign({}, layoutDefaults, treemapData.layout), {responsive: true, displayModeBar: false});
     Plotly.newPlot('chart-sunburst', sunburstData.data, Object.assign({}, layoutDefaults, sunburstData.layout), {responsive: true, displayModeBar: false});
     Plotly.newPlot('chart-era', eraData.data, Object.assign({}, layoutDefaults, eraData.layout), {responsive: true, displayModeBar: false});

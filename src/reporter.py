@@ -30,9 +30,10 @@ def generate_plotly_charts(stats: Dict[str, Any], album_enrichments: Dict[str, A
         ],
         "layout": {
             "title": "",
+            "dragmode": False,
             "margin": {"t": 35, "b": 40, "l": 50, "r": 65},
-            "xaxis": {"title": "Concert Year", "dtick": 2, "gridcolor": "#1e293b"},
-            "yaxis": {"title": "Concerts", "gridcolor": "#1e293b", "automargin": True},
+            "xaxis": {"title": "Concert Year", "dtick": 2, "gridcolor": "#1e293b", "fixedrange": True},
+            "yaxis": {"title": "Concerts", "gridcolor": "#1e293b", "automargin": True, "fixedrange": True},
             "yaxis2": {
                 "title": {
                     "text": "Songs Heard",
@@ -41,7 +42,8 @@ def generate_plotly_charts(stats: Dict[str, Any], album_enrichments: Dict[str, A
                 "overlaying": "y",
                 "side": "right",
                 "showgrid": False,
-                "automargin": True
+                "automargin": True,
+                "fixedrange": True
             },
             "legend": {"orientation": "h", "y": 1.15, "x": 0.25}
         }
@@ -65,8 +67,9 @@ def generate_plotly_charts(stats: Dict[str, Any], album_enrichments: Dict[str, A
         }],
         "layout": {
             "title": "",
-            "xaxis": {"title": "Times Seen Live", "gridcolor": "#1e293b"},
-            "yaxis": {"automargin": True, "gridcolor": "#1e293b"}
+            "dragmode": False,
+            "xaxis": {"title": "Times Seen Live", "gridcolor": "#1e293b", "fixedrange": True},
+            "yaxis": {"automargin": True, "gridcolor": "#1e293b", "fixedrange": True}
         }
     }
 

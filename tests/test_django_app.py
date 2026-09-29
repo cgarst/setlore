@@ -156,5 +156,20 @@ class DjangoAppTests(TestCase):
             self.assertEqual(res.status_code, 200, f"Expected 200 for {url}")
             self.assertEqual(res.context['initial_tab'], expected_tab, f"Expected {expected_tab} tab for {url}")
 
+    def test_overview_charts_zoom_disabled(self):
+        self.client.force_login(self.user)
+        res = self.client.get('/')
+        self.assertEqual(res.status_code, 200)
+        import json
+        timeline_chart = json.loads(res.context['plotly_timeline'])
+        top_artists_chart = json.loads(res.context['plotly_top_artists'])
+        self.assertFalse(timeline_chart['layout']['dragmode'])
+        self.assertTrue(timeline_chart['layout']['xaxis']['fixedrange'])
+        self.assertTrue(timeline_chart['layout']['yaxis']['fixedrange'])
+        self.assertTrue(timeline_chart['layout']['yaxis2']['fixedrange'])
+        self.assertFalse(top_artists_chart['layout']['dragmode'])
+        self.assertTrue(top_artists_chart['layout']['xaxis']['fixedrange'])
+        self.assertTrue(top_artists_chart['layout']['yaxis']['fixedrange'])
+
 
 
