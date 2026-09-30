@@ -33,6 +33,7 @@ class SyncWorker:
                 cls._instance = super().__new__(cls)
                 cls._instance._queue = queue.Queue()
                 cls._instance._queued_user_ids = set()
+                cls._instance._cancelled_user_ids = set()
                 cls._instance._thread = threading.Thread(target=cls._instance._worker_loop, daemon=True)
                 cls._instance._thread.start()
         return cls._instance
@@ -50,8 +51,25 @@ class SyncWorker:
         except Exception as e:
             logger.warning("Could not check for interrupted syncs on startup: %s", e)
 
+    def cancel_sync(self, user_id: int):
+        """
+        Requests cancellation of an ongoing or queued sync for a user.
+        """
+        with self._lock:
+            self._cancelled_user_ids.add(user_id)
+            self._queued_user_ids.discard(user_id)
+        try:
+            profile = UserProfile.objects.filter(user_id=user_id).first()
+            if profile:
+                profile.sync_status = 'idle'
+                profile.sync_progress = 'Sync cancelled'
+                profile.save(update_fields=['sync_status', 'sync_progress'])
+        except Exception:
+            pass
+
     def enqueue_sync(self, user_id: int):
         with self._lock:
+            self._cancelled_user_ids.discard(user_id)
             if user_id in self._queued_user_ids:
                 return
             self._queued_user_ids.add(user_id)
@@ -85,7 +103,13 @@ class SyncWorker:
             return
         profile = user.profile
 
+        def is_cancelled() -> bool:
+            with self._lock:
+                return user_id in self._cancelled_user_ids
+
         def update_progress(msg: str):
+            if is_cancelled():
+                return
             for _ in range(5):
                 try:
                     profile.sync_progress = msg
@@ -95,6 +119,14 @@ class SyncWorker:
                     time.sleep(0.2)
 
         try:
+            if is_cancelled():
+                with self._lock:
+                    self._cancelled_user_ids.discard(user_id)
+                profile.sync_status = 'idle'
+                profile.sync_progress = 'Sync cancelled'
+                profile.save(update_fields=['sync_status', 'sync_progress'])
+                return
+
             profile.sync_status = 'syncing'
             profile.save(update_fields=['sync_status'])
 
@@ -253,8 +285,17 @@ class SyncWorker:
                 album_enrichments = enricher.enrich_catalog(
                     stats["all_songs_list"],
                     progress_callback=on_progress,
-                    batch_save_callback=on_batch
+                    batch_save_callback=on_batch,
+                    cancel_check=is_cancelled
                 )
+                if is_cancelled():
+                    with self._lock:
+                        self._cancelled_user_ids.discard(user_id)
+                    profile.sync_status = 'idle'
+                    profile.sync_progress = 'Sync cancelled'
+                    profile.save(update_fields=['sync_status', 'sync_progress'])
+                    return
+
                 stats["concerts_drilldown"] = analytics.compute_concert_drilldown(album_enrichments)
                 ApiCache.objects.update_or_create(
                     cache_key=cache_key,

@@ -354,7 +354,8 @@ class AlbumEnricher:
     def enrich_catalog(self, songs_list: list, max_workers: int = 1,
                        refresh_unresolved: bool = False, refresh_all: bool = False,
                        progress_callback: Optional[Any] = None,
-                       batch_save_callback: Optional[Any] = None) -> Dict[str, Any]:
+                       batch_save_callback: Optional[Any] = None,
+                       cancel_check: Optional[Any] = None) -> Dict[str, Any]:
         """
         Enriches a list of song records with album info, deduplicating unique artist-song
         pairs, pre-loading from disk cache, and fetching uncached tracks with live progress reporting.
@@ -376,6 +377,9 @@ class AlbumEnricher:
 
         completed = cached_count
         for key, art, song in uncached:
+            if cancel_check and cancel_check():
+                print("\n      [CANCEL] Album enrichment cancelled.")
+                break
             try:
                 info = self.get_track_info(art, song)
                 results[key] = info

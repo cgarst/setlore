@@ -507,6 +507,15 @@ def sync_status(request):
 
 @login_required
 @require_POST
+def cancel_sync(request):
+    sync_worker.cancel_sync(request.user.id)
+    return JsonResponse({
+        "status": "success",
+        "message": "Sync cancelled successfully."
+    })
+
+@login_required
+@require_POST
 def upload_csv(request):
     if 'csv_file' not in request.FILES:
         return HttpResponseBadRequest("Missing csv_file in request")

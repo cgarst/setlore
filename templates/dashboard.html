@@ -848,7 +848,7 @@
   {% endif %}
 
   <!-- Live Sync Banner -->
-  <div id="sync-banner" class="max-w-7xl mx-auto mb-6 p-4 rounded-xl glass-card border border-indigo-500/40 bg-indigo-950/40 flex items-center justify-between gap-4 {% if profile.sync_status != 'syncing' %}hidden{% endif %}">
+  <div id="sync-banner" class="max-w-7xl mx-auto mb-6 p-4 rounded-xl glass-card border border-indigo-500/40 bg-indigo-950/40 flex items-center justify-between gap-4 {% if profile.sync_status != 'syncing' and profile.sync_status != 'queued' %}hidden{% endif %}">
     <div class="flex items-center gap-3">
       <div class="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-400 animate-spin">
         <i class="fa-solid fa-circle-notch"></i>
@@ -858,7 +858,13 @@
         <p id="sync-banner-text" class="text-xs text-indigo-300">{{ profile.sync_progress|default:'Connecting to Setlist.fm...' }}</p>
       </div>
     </div>
-    <span class="text-[11px] font-mono text-slate-400">Polling status...</span>
+    <div class="flex items-center gap-3">
+      <span class="text-[11px] font-mono text-slate-400 hidden sm:inline">Polling status...</span>
+      <button type="button" onclick="cancelOngoingSync()" class="px-2.5 py-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer" title="Cancel ongoing sync">
+        <i class="fa-solid fa-xmark"></i>
+        <span>Cancel</span>
+      </button>
+    </div>
   </div>
 
   <!-- Profile & Privacy Settings Modal -->
@@ -2164,14 +2170,6 @@
               <i class="fa-regular fa-star text-amber-400" id="concert-favorites-filter-icon"></i>
               <span id="concert-favorites-filter-text">Favorites</span>
             </button>
-            <a href="{% if is_public_view %}{% url 'public_export_concerts_csv' username=profile_user.username %}{% else %}{% url 'api_export_concerts_csv' %}{% endif %}" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-emerald-300 border border-slate-700 hover:border-emerald-500/50 transition flex items-center gap-1.5 shadow-sm" title="Export all concerts and setlists to CSV">
-              <i class="fa-solid fa-file-csv text-emerald-400"></i> Export CSV
-            </a>
-            {% if not is_public_view or is_owner %}
-            <button onclick="openAddConcertModal()" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold text-white flex items-center gap-1.5 transition shadow-sm cursor-pointer">
-              <i class="fa-solid fa-plus text-xs"></i> Add
-            </button>
-            {% endif %}
             <button onclick="toggleAllConcertCards()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-indigo-300 border border-slate-700 hover:border-indigo-500/50 transition">
               Expand / Collapse All
             </button>
@@ -6883,9 +6881,11 @@
               clearInterval(pollInterval);
               if (bannerText) bannerText.innerText = 'Sync complete! Reloading...';
               setTimeout(() => { window.location.reload(); }, 1200);
-            } else if (data.status === 'error') {
+            } else if (data.status === 'error' || data.status === 'idle') {
               clearInterval(pollInterval);
-              alert('Sync error: ' + data.progress);
+              if (data.status === 'error') {
+                showToast('Sync error: ' + data.progress, 'error');
+              }
               if (banner) banner.classList.add('hidden');
               if (icon) icon.classList.remove('animate-spin');
               if (text) text.innerText = 'Sync';
@@ -6898,6 +6898,38 @@
           console.error(e);
         }
       }, 2000);
+    }
+
+    async function cancelOngoingSync() {
+      const banner = document.getElementById('sync-banner');
+      const icon = document.getElementById('sync-btn-icon');
+      const text = document.getElementById('sync-btn-text');
+      const mIcon = document.getElementById('mobile-sync-btn-icon');
+      const mText = document.getElementById('mobile-sync-btn-text');
+      const mBtn = document.getElementById('mobile-sync-btn');
+
+      try {
+        if (pollInterval) clearInterval(pollInterval);
+        const res = await fetch('/api/sync/cancel/', {
+          method: 'POST',
+          headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'X-Requested-With': 'XMLHttpRequest'
+          }
+        });
+        const data = await res.json();
+        if (res.ok && data.status === 'success') {
+          if (banner) banner.classList.add('hidden');
+          if (icon) icon.classList.remove('animate-spin');
+          if (text) text.innerText = 'Sync';
+          if (mIcon) mIcon.classList.remove('animate-spin');
+          if (mText) mText.innerText = 'Sync';
+          if (mBtn) mBtn.disabled = false;
+          showToast('Sync cancelled', 'info');
+        }
+      } catch (err) {
+        showToast('Error cancelling sync: ' + err.message, 'error');
+      }
     }
 
     function closeUserMenu() {

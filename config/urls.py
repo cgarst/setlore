@@ -66,6 +66,7 @@ urlpatterns = [
     path('api/profile/update/', core_views.update_profile_view, name='api_profile_update'),
     path('api/sync/', concerts_views.trigger_sync, name='api_sync'),
     path('api/sync/status/', concerts_views.sync_status, name='api_sync_status'),
+    path('api/sync/cancel/', concerts_views.cancel_sync, name='api_sync_cancel'),
     path('api/upload-csv/', concerts_views.upload_csv, name='api_upload_csv'),
     path('api/concerts/export/', concerts_views.export_concerts_csv, name='api_export_concerts_csv'),
     path('api/concerts/add/', concerts_views.add_concert, name='api_add_concert'),

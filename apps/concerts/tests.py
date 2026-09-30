@@ -262,3 +262,17 @@ class AutocompleteAndCSVTests(TestCase):
         self.concert.refresh_from_db()
         self.assertFalse(self.concert.is_favorite)
 
+    def test_cancel_sync(self):
+        self.user.profile.sync_status = 'syncing'
+        self.user.profile.sync_progress = 'Processing...'
+        self.user.profile.save()
+
+        response = self.client.post('/api/sync/cancel/')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data['status'], 'success')
+        self.user.profile.refresh_from_db()
+        self.assertEqual(self.user.profile.sync_status, 'idle')
+        self.assertEqual(self.user.profile.sync_progress, 'Sync cancelled')
+
+
