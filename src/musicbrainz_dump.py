@@ -134,7 +134,8 @@ class MusicBrainzDumpManager:
             except Exception:
                 pass
 
-        is_running = self._current_task_thread is not None and self._current_task_thread.is_alive()
+        task_status = task_data.get("status")
+        is_running = (self._current_task_thread is not None and self._current_task_thread.is_alive()) or (task_status in ["downloading", "extracting"])
         status_label = "not_downloaded"
         if is_running:
             status_label = task_data.get("status", "downloading")

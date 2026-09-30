@@ -598,8 +598,8 @@
   }
 
   // Initial check
-  {% if status.is_running %}
-  pollInterval = setInterval(refreshStatus, 1500);
-  {% endif %}
+  document.addEventListener('DOMContentLoaded', () => {
+    refreshStatus();
+  });
 </script>
 {% endblock %}
