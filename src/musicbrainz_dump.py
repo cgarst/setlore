@@ -460,6 +460,7 @@ class MusicBrainzDumpManager:
                                                 batch = []
 
                                                 status_state["progress"]["indexed"] = inserted_count
+                                                status_state["progress"]["percent"] = min(85, max(1, int((inserted_count / 32000000) * 85)))
                                                 status_state["progress"]["step"] = f"Indexing releases & tracklists ({inserted_count:,} tracks indexed)..."
                                                 self._update_status_file(status_state)
                                 except Exception:
@@ -613,6 +614,7 @@ class MusicBrainzDumpManager:
                                         batch = []
 
                                         status_state["progress"]["indexed"] = inserted_count
+                                        status_state["progress"]["percent"] = min(95, 85 + max(1, int((inserted_count / 2400000) * 10)))
                                         status_state["progress"]["step"] = f"Indexing artist lineups & tenures ({inserted_count:,} artists indexed)..."
                                         self._update_status_file(status_state)
                                 except Exception:
@@ -628,6 +630,7 @@ class MusicBrainzDumpManager:
                                 conn.commit()
                                 inserted_count += len(batch)
                                 status_state["progress"]["indexed"] = inserted_count
+                                status_state["progress"]["percent"] = 95
                                 status_state["progress"]["step"] = f"Indexing artist lineups & tenures ({inserted_count:,} artists indexed)..."
                                 self._update_status_file(status_state)
                             break

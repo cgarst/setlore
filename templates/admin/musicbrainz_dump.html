@@ -438,9 +438,17 @@
     if (isRunning) {
       progressBox.style.display = 'block';
       const p = status.progress || {};
+      let pct = p.percent || 0;
+      if (pct === 0 && p.indexed) {
+        if (p.step && p.step.toLowerCase().includes('artist')) {
+          pct = Math.min(95, 85 + Math.floor((p.indexed / 2400000) * 10));
+        } else {
+          pct = Math.min(85, Math.max(1, Math.floor((p.indexed / 32000000) * 85)));
+        }
+      }
       document.getElementById('progress-step-text').textContent = p.step || 'Processing...';
-      document.getElementById('progress-bar-fill').style.width = (p.percent || 0) + '%';
-      document.getElementById('progress-pct-text').textContent = (p.percent || 0) + '%';
+      document.getElementById('progress-bar-fill').style.width = pct + '%';
+      document.getElementById('progress-pct-text').textContent = pct + '%';
       let details = '';
       if (p.speed) details += p.speed + ' ';
       if (p.indexed) details += ' • ' + p.indexed.toLocaleString() + ' records indexed';
