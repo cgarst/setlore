@@ -227,10 +227,11 @@ class MusicBrainzDumpManager:
         })
 
     def _init_db(self, conn: sqlite3.Connection):
-        """Initializes SQLite tables and performance PRAGMAs."""
+        """Initializes SQLite tables and performance PRAGMAs for bulk load."""
         cur = conn.cursor()
         cur.execute("PRAGMA synchronous = OFF;")
-        cur.execute("PRAGMA journal_mode = MEMORY;")
+        cur.execute("PRAGMA journal_mode = OFF;")
+        cur.execute("PRAGMA cache_size = -128000;")
         cur.execute("""
             CREATE TABLE IF NOT EXISTS recordings (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -244,9 +245,6 @@ class MusicBrainzDumpManager:
                 score INTEGER
             )
         """)
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_rec_artist_title ON recordings(clean_artist, clean_title);")
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_rec_title ON recordings(clean_title);")
-
         cur.execute("""
             CREATE TABLE IF NOT EXISTS artists (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -304,7 +302,12 @@ class MusicBrainzDumpManager:
 
                 comp_url = f"{BASE_URL}/{upstream_version}/{comp}"
                 dest_file = self.dump_dir / comp
-                temp_dest = self.dump_dir / f"{comp}.part"
+                if dest_file.exists() and dest_file.stat().st_size > 10000000:
+                    status_state["status"] = "downloading"
+                    status_state["progress"]["step"] = f"Using existing archive: {comp} ({round(dest_file.stat().st_size / (1024*1024), 1)} MB)"
+                    status_state["progress"]["percent"] = 100
+                    self._update_status_file(status_state)
+                    continue
 
                 status_state["status"] = "downloading"
                 status_state["progress"]["step"] = f"Downloading {comp}..."
@@ -366,110 +369,112 @@ class MusicBrainzDumpManager:
                 self._update_status_file(status_state)
 
                 with tarfile.open(release_archive, mode="r:xz") as tar:
-                    member_name = None
-                    for m in tar.getmembers():
-                        if "release" in m.name and not m.name.endswith(".txt") and not m.name.endswith(".asc"):
-                            member_name = m.name
+                    while True:
+                        m = tar.next()
+                        if m is None:
                             break
-                    if member_name:
-                        f = tar.extractfile(member_name)
-                        batch = []
-                        line_count = 0
-                        inserted_count = 0
+                        if "release" in m.name and not m.name.endswith(".txt") and not m.name.endswith(".asc"):
+                            f = tar.extractfile(m)
+                            if not f:
+                                continue
+                            batch = []
+                            line_count = 0
+                            inserted_count = 0
 
-                        for line in f:
-                            if self._cancel_requested:
-                                conn.close()
-                                if temp_db.exists():
-                                    temp_db.unlink()
-                                raise Exception("Task was cancelled by user.")
+                            for line in f:
+                                if self._cancel_requested:
+                                    conn.close()
+                                    if temp_db.exists():
+                                        temp_db.unlink()
+                                    raise Exception("Task was cancelled by user.")
 
-                            line_count += 1
-                            try:
-                                obj = json.loads(line.decode("utf-8"))
-                                rel_title = obj.get("title") or ""
-                                rg = obj.get("release-group") or {}
-                                album_title = rg.get("title") or rel_title
-                                if not album_title:
+                                line_count += 1
+                                try:
+                                    obj = json.loads(line.decode("utf-8"))
+                                    rel_title = obj.get("title") or ""
+                                    rg = obj.get("release-group") or {}
+                                    album_title = rg.get("title") or rel_title
+                                    if not album_title:
+                                        continue
+
+                                    primary_type = rg.get("primary-type") or "Album"
+                                    sec_types = rg.get("secondary-types") or []
+                                    date_str = rg.get("first-release-date") or obj.get("date") or ""
+
+                                    release_year = None
+                                    if date_str and len(date_str) >= 4 and date_str[:4].isdigit():
+                                        y = int(date_str[:4])
+                                        if 1950 <= y <= 2030:
+                                            release_year = y
+
+                                    score = 100
+                                    if primary_type == "Album":
+                                        score += 80
+                                    elif primary_type == "EP":
+                                        score += 40
+                                    if any(t.lower() in ["live", "demo", "compilation", "remix", "soundtrack", "dj-mix"] for t in sec_types):
+                                        score -= 50
+                                    else:
+                                        score += 40
+
+                                    rel_artists = obj.get("artist-credit", [])
+                                    default_artist = (rel_artists[0].get("name") or rel_artists[0].get("artist", {}).get("name")) if rel_artists else ""
+
+                                    for m in obj.get("media", []):
+                                        for trk in m.get("tracks", []):
+                                            trk_title = trk.get("title") or (trk.get("recording") or {}).get("title")
+                                            if not trk_title:
+                                                continue
+                                            trk_artists = trk.get("artist-credit", [])
+                                            artist_name = (trk_artists[0].get("name") or trk_artists[0].get("artist", {}).get("name")) if trk_artists else default_artist
+                                            if not artist_name:
+                                                continue
+
+                                            clean_art = _normalize_key(clean_artist_name(artist_name))
+                                            clean_trk = _normalize_key(trk_title)
+                                            if not clean_art or not clean_trk:
+                                                continue
+
+                                            batch.append((
+                                                artist_name,
+                                                clean_art,
+                                                trk_title,
+                                                clean_trk,
+                                                clean_album_title(album_title),
+                                                release_year,
+                                                primary_type,
+                                                score
+                                            ))
+
+                                            if len(batch) >= 20000:
+                                                cur = conn.cursor()
+                                                cur.executemany("""
+                                                    INSERT INTO recordings (
+                                                        artist_name, clean_artist, song_title, clean_title,
+                                                        album_title, release_year, primary_type, score
+                                                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                                                """, batch)
+                                                conn.commit()
+                                                inserted_count += len(batch)
+                                                batch = []
+
+                                                status_state["progress"]["indexed"] = inserted_count
+                                                status_state["progress"]["step"] = f"Indexing releases & tracklists ({inserted_count:,} tracks indexed)..."
+                                                self._update_status_file(status_state)
+                                except Exception:
                                     continue
 
-                                primary_type = rg.get("primary-type") or "Album"
-                                sec_types = rg.get("secondary-types") or []
-                                date_str = rg.get("first-release-date") or obj.get("date") or ""
-
-                                release_year = None
-                                if date_str and len(date_str) >= 4 and date_str[:4].isdigit():
-                                    y = int(date_str[:4])
-                                    if 1950 <= y <= 2030:
-                                        release_year = y
-
-                                score = 100
-                                if primary_type == "Album":
-                                    score += 80
-                                elif primary_type == "EP":
-                                    score += 40
-                                if any(t.lower() in ["live", "demo", "compilation", "remix", "soundtrack", "dj-mix"] for t in sec_types):
-                                    score -= 50
-                                else:
-                                    score += 40
-
-                                rel_artists = obj.get("artist-credit", [])
-                                default_artist = (rel_artists[0].get("name") or rel_artists[0].get("artist", {}).get("name")) if rel_artists else ""
-
-                                for m in obj.get("media", []):
-                                    for trk in m.get("tracks", []):
-                                        trk_title = trk.get("title") or (trk.get("recording") or {}).get("title")
-                                        if not trk_title:
-                                            continue
-                                        trk_artists = trk.get("artist-credit", [])
-                                        artist_name = (trk_artists[0].get("name") or trk_artists[0].get("artist", {}).get("name")) if trk_artists else default_artist
-                                        if not artist_name:
-                                            continue
-
-                                        clean_art = _normalize_key(clean_artist_name(artist_name))
-                                        clean_trk = _normalize_key(trk_title)
-                                        if not clean_art or not clean_trk:
-                                            continue
-
-                                        batch.append((
-                                            artist_name,
-                                            clean_art,
-                                            trk_title,
-                                            clean_trk,
-                                            clean_album_title(album_title),
-                                            release_year,
-                                            primary_type,
-                                            score
-                                        ))
-
-                                        if len(batch) >= 20000:
-                                            cur = conn.cursor()
-                                            cur.executemany("""
-                                                INSERT INTO recordings (
-                                                    artist_name, clean_artist, song_title, clean_title,
-                                                    album_title, release_year, primary_type, score
-                                                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                                            """, batch)
-                                            conn.commit()
-                                            inserted_count += len(batch)
-                                            batch = []
-
-                                            if line_count % 50000 == 0:
-                                                status_state["progress"]["indexed"] = inserted_count
-                                                self._update_status_file(status_state)
-                            except Exception:
-                                continue
-
-                        if batch:
-                            cur = conn.cursor()
-                            cur.executemany("""
-                                INSERT INTO recordings (
-                                    artist_name, clean_artist, song_title, clean_title,
-                                    album_title, release_year, primary_type, score
-                                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                            """, batch)
-                            conn.commit()
-                            inserted_count += len(batch)
+                            if batch:
+                                cur = conn.cursor()
+                                cur.executemany("""
+                                    INSERT INTO recordings (
+                                        artist_name, clean_artist, song_title, clean_title,
+                                        album_title, release_year, primary_type, score
+                                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                                """, batch)
+                                conn.commit()
+                                inserted_count += len(batch)
+                            break
 
             # 2. Process Standalone Recordings (recording.tar.xz) if release.tar.xz was not downloaded
             recording_archive = self.dump_dir / "recording.tar.xz"
@@ -568,52 +573,79 @@ class MusicBrainzDumpManager:
                 self._update_status_file(status_state)
 
                 with tarfile.open(artist_archive, mode="r:xz") as tar:
-                    member_name = None
-                    for m in tar.getmembers():
-                        if "artist" in m.name and not m.name.endswith(".txt") and not m.name.endswith(".asc"):
-                            member_name = m.name
+                    while True:
+                        m = tar.next()
+                        if m is None:
                             break
-                    if member_name:
-                        f = tar.extractfile(member_name)
-                        batch = []
-                        for line in f:
-                            if self._cancel_requested:
-                                conn.close()
-                                if temp_db.exists():
-                                    temp_db.unlink()
-                                raise Exception("Task was cancelled by user.")
-                            try:
-                                obj = json.loads(line.decode("utf-8"))
-                                mbid = obj.get("id")
-                                name = obj.get("name")
-                                if not mbid or not name:
-                                    continue
-                                clean_name = _normalize_key(clean_artist_name(name))
-                                artist_type = obj.get("type") or ""
-                                country = obj.get("country") or ""
-                                rels_json = json.dumps(obj)
-
-                                batch.append((mbid, name, clean_name, artist_type, country, rels_json))
-                                if len(batch) >= 10000:
-                                    cur = conn.cursor()
-                                    cur.executemany("""
-                                        INSERT OR REPLACE INTO artists (
-                                            mbid, name, clean_name, type, country, relations_json
-                                        ) VALUES (?, ?, ?, ?, ?, ?)
-                                    """, batch)
-                                    conn.commit()
-                                    batch = []
-                            except Exception:
+                        if "artist" in m.name and not m.name.endswith(".txt") and not m.name.endswith(".asc"):
+                            f = tar.extractfile(m)
+                            if not f:
                                 continue
+                            batch = []
+                            for line in f:
+                                if self._cancel_requested:
+                                    conn.close()
+                                    if temp_db.exists():
+                                        temp_db.unlink()
+                                    raise Exception("Task was cancelled by user.")
+                                try:
+                                    obj = json.loads(line.decode("utf-8"))
+                                    mbid = obj.get("id")
+                                    name = obj.get("name")
+                                    if not mbid or not name:
+                                        continue
+                                    clean_name = _normalize_key(clean_artist_name(name))
+                                    artist_type = obj.get("type") or ""
+                                    country = obj.get("country") or ""
+                                    rels_json = json.dumps(obj)
 
-                        if batch:
-                            cur = conn.cursor()
-                            cur.executemany("""
-                                INSERT OR REPLACE INTO artists (
-                                    mbid, name, clean_name, type, country, relations_json
-                                ) VALUES (?, ?, ?, ?, ?, ?)
-                            """, batch)
-                            conn.commit()
+                                    batch.append((mbid, name, clean_name, artist_type, country, rels_json))
+                                    if len(batch) >= 10000:
+                                        cur = conn.cursor()
+                                        cur.executemany("""
+                                            INSERT OR REPLACE INTO artists (
+                                                mbid, name, clean_name, type, country, relations_json
+                                            ) VALUES (?, ?, ?, ?, ?, ?)
+                                        """, batch)
+                                        conn.commit()
+                                        inserted_count += len(batch)
+                                        batch = []
+
+                                        status_state["progress"]["indexed"] = inserted_count
+                                        status_state["progress"]["step"] = f"Indexing artist lineups & tenures ({inserted_count:,} artists indexed)..."
+                                        self._update_status_file(status_state)
+                                except Exception:
+                                    continue
+
+                            if batch:
+                                cur = conn.cursor()
+                                cur.executemany("""
+                                    INSERT OR REPLACE INTO artists (
+                                        mbid, name, clean_name, type, country, relations_json
+                                    ) VALUES (?, ?, ?, ?, ?, ?)
+                                """, batch)
+                                conn.commit()
+                                inserted_count += len(batch)
+                                status_state["progress"]["indexed"] = inserted_count
+                                status_state["progress"]["step"] = f"Indexing artist lineups & tenures ({inserted_count:,} artists indexed)..."
+                                self._update_status_file(status_state)
+                            break
+
+            # Create database indexes after all rows have been inserted
+            status_state["status"] = "extracting"
+            status_state["progress"] = {
+                "step": "Building database indexes for fast lookups...",
+                "percent": 95,
+                "indexed": inserted_count
+            }
+            self._update_status_file(status_state)
+
+            cur = conn.cursor()
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_rec_artist_title ON recordings(clean_artist, clean_title);")
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_rec_title ON recordings(clean_title);")
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_artist_clean_name ON artists(clean_name);")
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_artist_mbid ON artists(mbid);")
+            conn.commit()
 
             conn.close()
 
