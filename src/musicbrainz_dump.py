@@ -27,35 +27,43 @@ BASE_URL = "https://data.metabrainz.org/pub/musicbrainz/data/json-dumps"
 AVAILABLE_COMPONENTS = [
     {
         "filename": "release.tar.xz",
-        "name": "Releases & Tracklists (Full Song-to-Album Mapping)",
+        "name": "Releases & Tracklists (Song-to-Album Bridge)",
         "approx_size": "23 GB (~1.5 GB indexed DB)",
-        "description": "Authoritative tracklist bridge mapping song titles directly to studio albums, primary/secondary types, and original release years.",
+        "importance": "Essential / Recommended",
+        "badge_class": "mb-badge-ready",
+        "feature": "Song-to-Album & Release Year Enrichment",
+        "why_needed": "In MusicBrainz, song tracklists only exist inside Releases. This bridge links individual song names played at concerts directly to their canonical studio albums and earliest release dates, enabling complete offline enrichment with zero network latency.",
         "default": True,
-        "feature": "Full Offline Song-to-Album Mapping"
-    },
-    {
-        "filename": "release-group.tar.xz",
-        "name": "Release Groups (Studio Albums)",
-        "approx_size": "1.2 GB",
-        "description": "Full album catalog, studio vs live classifications, and earliest release dates.",
-        "default": False,
-        "feature": "Album & Release Year Catalog"
-    },
-    {
-        "filename": "recording.tar.xz",
-        "name": "Recordings & Tracks",
-        "approx_size": "34 MB",
-        "description": "Core song title matching, track resolution, and duration metadata.",
-        "default": False,
-        "feature": "Track Setlist Resolution"
     },
     {
         "filename": "artist.tar.xz",
         "name": "Artists & Musician Tenures",
         "approx_size": "2.1 GB",
-        "description": "Powers musician lineups, tenure start/end years, instruments (Drums, Bass, etc.), and multi-band tracking.",
+        "importance": "Optional",
+        "badge_class": "mb-badge-busy",
+        "feature": "Musicians & Multi-Band Lineups Tab",
+        "why_needed": "Contains artist relationships, active band member tenure start/end years, and instrument classifications (Drums, Bass, Guitar, Vocals, Keyboards). Powers offline lineup matching for the Musicians tab.",
         "default": False,
-        "feature": "Musicians & Multi-Band Lineup Tab"
+    },
+    {
+        "filename": "release-group.tar.xz",
+        "name": "Release Groups (Studio Albums Catalog)",
+        "approx_size": "1.2 GB",
+        "importance": "Optional",
+        "badge_class": "mb-badge-api",
+        "feature": "Album Discography & Era Visuals",
+        "why_needed": "Master list of all artist studio albums, EPs, and box sets without media tracklists. Used for album discography indexing and distinguishing studio releases from live/bootleg compilations.",
+        "default": False,
+    },
+    {
+        "filename": "recording.tar.xz",
+        "name": "Recordings & Tracks",
+        "approx_size": "34 MB",
+        "importance": "Lightweight Alternative",
+        "badge_class": "mb-badge-api",
+        "feature": "Song Title Normalization",
+        "why_needed": "Contains standalone recording titles and track lengths (without album joins). Useful for lightweight track title validation if you do not download the full release tracklists.",
+        "default": False,
     }
 ]
 
