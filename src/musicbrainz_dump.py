@@ -54,16 +54,6 @@ AVAILABLE_COMPONENTS = [
         "feature": "Album Discography & Era Visuals",
         "why_needed": "ConcertTrakr uses this to classify studio albums vs. live/compilation releases and calculate song release ages for the Albums & Visuals treemap. (Note: If you download Releases & Tracklists above, this classification is already included automatically).",
         "default": False,
-    },
-    {
-        "filename": "recording.tar.xz",
-        "name": "Recordings & Tracks",
-        "approx_size": "34 MB",
-        "importance": "Lightweight Alternative",
-        "badge_class": "mb-badge-api",
-        "feature": "Song Title Normalization",
-        "why_needed": "ConcertTrakr uses this as a lightweight fallback to normalize and fuzzy-match song titles and track lengths if you choose not to download the full Releases & Tracklists archive.",
-        "default": False,
     }
 ]
 
