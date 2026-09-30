@@ -61,7 +61,7 @@ def clean_album_title(title: str) -> str:
         "train of thought": "Train of Thought",
         "octavarium": "Octavarium",
         "systematic chaos": "Systematic Chaos",
-        "black clouds & silver linings": "Black Clouds & Silver linings",
+        "black clouds & silver linings": "Black Clouds & Silver Linings",
         "a dramatic turn of events": "A Dramatic Turn of Events",
         "dream theater": "Dream Theater",
         "the astonishing": "The Astonishing",
@@ -186,20 +186,17 @@ class AlbumEnricher:
 
         # Suite / Act / Part / Colon variations
         if ":" in song_name or " - " in song_name or ", Pt" in song_name or ", Part" in song_name:
-            # First major part (parent suite)
             first_part = re.split(r'[:\-]', song_name)[0].strip()
             if not re.match(r'^(?:act|scene)\s+[ivxlcdm0-9]+$', first_part, re.IGNORECASE):
                 if first_part and len(first_part) > 2 and first_part not in queries:
                     queries.append(first_part)
 
-            # Last part (specific movement/title)
             parts = re.split(r'[:\-]', song_name)
             last_part = parts[-1].strip()
             cleaned_last = re.sub(r'^[IVXLCDM0-9]+[\.\:\s\-]+', '', last_part).strip()
             if cleaned_last and len(cleaned_last) > 2 and cleaned_last not in queries:
                 queries.append(cleaned_last)
 
-            # Unicode accent normalization (e.g. Déjà Vu -> Deja Vu)
             normalized = unicodedata.normalize('NFKD', song_name).encode('ASCII', 'ignore').decode('utf-8')
             if normalized != song_name and normalized not in queries:
                 queries.append(normalized)
@@ -238,28 +235,36 @@ class AlbumEnricher:
             except Exception:
                 pass
 
-        # Query MusicBrainz artist MBID
+        # Query MusicBrainz artist MBID matching exact artist name
         q_art = urllib.parse.quote(f'artist:"{artist_name}"')
-        artist_url = f'https://musicbrainz.org/ws/2/artist?query={q_art}&limit=1&fmt=json'
+        artist_url = f'https://musicbrainz.org/ws/2/artist?query={q_art}&limit=5&fmt=json'
         resp = self._rate_limited_get(artist_url)
         if not resp or resp.status_code != 200:
+            self._artist_studio_cache[art_key] = {}
             return {}
 
+        mbid = None
         try:
             art_data = resp.json()
             artists = art_data.get("artists", [])
-            if not artists:
-                return {}
-            mbid = artists[0].get("id")
-            if not mbid:
-                return {}
+            for a in artists:
+                if a.get("name", "").strip().lower() == artist_name.strip().lower():
+                    mbid = a.get("id")
+                    break
+            if not mbid and artists:
+                mbid = artists[0].get("id")
         except Exception:
+            pass
+
+        if not mbid:
+            self._artist_studio_cache[art_key] = {}
             return {}
 
         # Query release groups of primary type Album for this artist
         rg_url = f'https://musicbrainz.org/ws/2/release-group?artist={mbid}&type=album&limit=100&fmt=json'
         resp_rg = self._rate_limited_get(rg_url)
         if not resp_rg or resp_rg.status_code != 200:
+            self._artist_studio_cache[art_key] = {}
             return {}
 
         studio_albums: Dict[str, Tuple[str, int]] = {}
@@ -282,20 +287,19 @@ class AlbumEnricher:
         except Exception:
             pass
 
-        if studio_albums:
-            self._artist_studio_cache[art_key] = studio_albums
-            try:
-                with open(cache_file, "w", encoding="utf-8") as f:
-                    json.dump(studio_albums, f, indent=2)
-            except Exception:
-                pass
+        self._artist_studio_cache[art_key] = studio_albums
+        try:
+            with open(cache_file, "w", encoding="utf-8") as f:
+                json.dump(studio_albums, f, indent=2)
+        except Exception:
+            pass
 
         return studio_albums
 
-    def _query_itunes_studio_album(self, artist_name: str, song_name: str,
-                                   studio_albums: Optional[Dict[str, Tuple[str, int]]] = None) -> Tuple[Optional[str], Optional[int]]:
+    def _resolve_fast_studio_album(self, artist_name: str, song_name: str,
+                                   studio_albums: Dict[str, Tuple[str, int]]) -> Tuple[Optional[str], Optional[int]]:
         """
-        Fast unauthenticated track lookup via iTunes Search API, verified against canonical studio albums.
+        Fast resolution via Deezer / iTunes search verified against canonical studio albums.
         """
         clean_s = song_name.split(':')[0].strip()
         queries = [clean_s]
@@ -304,53 +308,48 @@ class AlbumEnricher:
             if no_parens and no_parens not in queries:
                 queries.append(no_parens)
 
+        headers = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"}
+
         for q_term in queries:
-            term = f'{artist_name} {q_term}'
-            url = f'https://itunes.apple.com/search?term={urllib.parse.quote(term)}&entity=song&limit=20'
+            # 1. Deezer public search
+            term = f"{artist_name} {q_term}"
+            url_dz = f"https://api.deezer.com/search?q={urllib.parse.quote(term)}&limit=10"
             try:
-                r = requests.get(url, timeout=5)
-                if r.status_code != 200:
-                    continue
-                data = r.json()
-                candidates = []
-                for item in data.get('results', []):
-                    art = item.get('artistName', '')
-                    track = item.get('trackName', '')
-                    album_raw = item.get('collectionName', '')
-                    date_str = item.get('releaseDate', '')
-                    coll_artist = item.get('collectionArtistName', '')
-
-                    # Skip compilations and various artists
-                    if coll_artist and (coll_artist.lower() == 'various artists' or fuzz.partial_ratio(coll_artist.lower(), artist_name.lower()) < 60):
-                        continue
-                    if fuzz.partial_ratio(art.lower(), artist_name.lower()) < 65:
-                        continue
-                    if fuzz.ratio(track.lower(), q_term.lower()) < 60 and q_term.lower() not in track.lower():
-                        continue
-                    if is_blacklisted_album(album_raw):
-                        continue
-
-                    cleaned_album = clean_album_title(album_raw)
-                    yr = int(date_str[:4]) if date_str and len(date_str) >= 4 and date_str[:4].isdigit() else None
-
-                    # Validate against known artist studio discography if available
-                    if studio_albums:
-                        matched_studio = False
+                r = requests.get(url_dz, headers=headers, timeout=4)
+                if r.status_code == 200:
+                    for item in r.json().get("data", []):
+                        art = item.get("artist", {}).get("name", "")
+                        track = item.get("title", "")
+                        album = clean_album_title(item.get("album", {}).get("title", ""))
+                        if fuzz.partial_ratio(art.lower(), artist_name.lower()) < 65:
+                            continue
+                        if fuzz.ratio(q_term.lower(), track.lower()) < 60 and q_term.lower() not in track.lower():
+                            continue
                         for alb_low, (orig_title, orig_yr) in studio_albums.items():
-                            if fuzz.ratio(cleaned_album.lower(), alb_low) >= 80 or alb_low in cleaned_album.lower() or cleaned_album.lower() in alb_low:
+                            if fuzz.ratio(album.lower(), alb_low) >= 75 or alb_low in album.lower() or album.lower() in alb_low:
                                 return orig_title, orig_yr
-                        # If studio albums list exists and didn't match, this is likely a live album or re-issue
-                        continue
-
-                    if cleaned_album and yr:
-                        score = 100 + max(0, 2030 - yr)
-                        candidates.append((score, cleaned_album, yr))
-
-                if candidates:
-                    candidates.sort(key=lambda x: x[0], reverse=True)
-                    return candidates[0][1], candidates[0][2]
             except Exception:
-                continue
+                pass
+
+            # 2. iTunes Search API fallback
+            url_it = f"https://itunes.apple.com/search?term={urllib.parse.quote(term)}&entity=song&limit=10"
+            try:
+                r_it = requests.get(url_it, headers=headers, timeout=4)
+                if r_it.status_code == 200:
+                    for item in r_it.json().get("results", []):
+                        art = item.get("artistName", "")
+                        track = item.get("trackName", "")
+                        album_raw = item.get("collectionName", "")
+                        if fuzz.partial_ratio(art.lower(), artist_name.lower()) < 65:
+                            continue
+                        if fuzz.ratio(track.lower(), q_term.lower()) < 60 and q_term.lower() not in track.lower():
+                            continue
+                        cleaned_album = clean_album_title(album_raw)
+                        for alb_low, (orig_title, orig_yr) in studio_albums.items():
+                            if fuzz.ratio(cleaned_album.lower(), alb_low) >= 75 or alb_low in cleaned_album.lower() or cleaned_album.lower() in alb_low:
+                                return orig_title, orig_yr
+            except Exception:
+                pass
 
         return None, None
 
@@ -497,15 +496,22 @@ class AlbumEnricher:
             except Exception:
                 pass
 
-        # 1. Fast lookup via iTunes + studio albums discography
+        # 1. Fetch artist studio discography if not provided
         if studio_albums is None:
             studio_albums = self.get_artist_studio_albums(artist_name)
 
-        album_name, release_yr = self._query_itunes_studio_album(artist_name, song_name, studio_albums=studio_albums)
+        # If artist has 0 studio albums (live touring band, orchestra, DJ set), mark as resolved Non-Album
+        if not studio_albums:
+            result["resolved"] = True
+            try:
+                with open(cache_file, "w", encoding="utf-8") as f:
+                    json.dump(result, f, indent=2)
+            except Exception:
+                pass
+            return result
 
-        # 2. Fallback to MusicBrainz canonical recording search if needed
-        if not album_name:
-            album_name, release_yr = self._query_musicbrainz_studio_album(artist_name, song_name)
+        # 2. Fast lookup via Deezer / iTunes matched against artist's studio discography
+        album_name, release_yr = self._resolve_fast_studio_album(artist_name, song_name, studio_albums)
 
         if album_name:
             result["album"] = clean_album_title(album_name)
@@ -517,11 +523,19 @@ class AlbumEnricher:
             except Exception:
                 pass
         else:
-            result["resolved"] = False
+            # Song is not on any of artist's studio albums (live jam, cover, acoustic rarity, or unreleased)
+            result["album"] = "Non-Album / Singles"
+            result["release_year"] = None
+            result["resolved"] = True
+            try:
+                with open(cache_file, "w", encoding="utf-8") as f:
+                    json.dump(result, f, indent=2)
+            except Exception:
+                pass
 
         return result
 
-    def enrich_catalog(self, songs_list: list, max_workers: int = 6,
+    def enrich_catalog(self, songs_list: list, max_workers: int = 4,
                        refresh_unresolved: bool = False, refresh_all: bool = False,
                        progress_callback: Optional[Any] = None,
                        batch_save_callback: Optional[Any] = None) -> Dict[str, Any]:
@@ -582,6 +596,28 @@ class AlbumEnricher:
 
             # 2. Prefetch studio albums for this artist once
             studio_albums = self.get_artist_studio_albums(art)
+
+            # If artist has 0 studio albums, resolve all their songs instantly
+            if not studio_albums:
+                for key, song in remaining_tracks:
+                    info = {
+                        "song": song,
+                        "artist": art,
+                        "album": "Non-Album / Singles",
+                        "release_year": None,
+                        "is_cover": False,
+                        "original_artist": None,
+                        "resolved": True
+                    }
+                    results[key] = info
+                    completed += 1
+                    cache_key = "".join(c if c.isalnum() else "_" for c in f"{art}_{song}".lower())
+                    try:
+                        with open(MB_CACHE_DIR / f"{cache_key}.json", "w", encoding="utf-8") as f:
+                            json.dump(info, f, indent=2)
+                    except Exception:
+                        pass
+                continue
 
             # 3. Concurrently resolve tracks for this artist
             def _resolve_one(pair):
