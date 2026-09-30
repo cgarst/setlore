@@ -48,14 +48,6 @@ AVAILABLE_COMPONENTS = [
         "description": "Powers musician lineups, tenure start/end years, instruments (Drums, Bass, etc.), and multi-band tracking.",
         "default": False,
         "feature": "Musicians & Multi-Band Lineup Tab"
-    },
-    {
-        "filename": "work.tar.xz",
-        "name": "Musical Works",
-        "approx_size": "660 MB",
-        "description": "Powers composition credits, writers, and cover song original artist attribution.",
-        "default": False,
-        "feature": "Cover Song Attribution"
     }
 ]
 
