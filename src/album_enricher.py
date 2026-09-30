@@ -126,8 +126,8 @@ class AlbumEnricher:
         for attempt in range(max_retries):
             with self._req_lock:
                 elapsed = time.time() - self._last_req_time
-                if elapsed < 1.15:
-                    time.sleep(1.15 - elapsed)
+                if elapsed < 1.02:
+                    time.sleep(1.02 - elapsed)
                 self._last_req_time = time.time()
             try:
                 r = self.session.get(url, headers=self.headers, timeout=12)

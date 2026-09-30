@@ -52,7 +52,7 @@ class MusicianEnricher:
         email = contact_email or CONTACT_EMAIL or "admin@localhost"
         url_part = f" {APP_URL};" if APP_URL else ""
         self.headers = {
-            "User-Agent": f"ConcertTrakr/1.0.0 ({email};{url_part})",
+            "User-Agent": f"SetloreConcertAnalytics/1.0.0 ({email};{url_part})",
             "Accept": "application/json"
         }
         self._last_req_time = 0.0
@@ -63,8 +63,8 @@ class MusicianEnricher:
         for attempt in range(4):
             with self._req_lock:
                 elapsed = time.time() - self._last_req_time
-                if elapsed < 1.25:
-                    time.sleep(1.25 - elapsed)
+                if elapsed < 1.02:
+                    time.sleep(1.02 - elapsed)
                 self._last_req_time = time.time()
 
             try:
@@ -146,7 +146,7 @@ class MusicianEnricher:
             except Exception:
                 pass
 
-        url = f"https://musicbrainz.org/ws/2/artist/{mbid}?inc=artist-rels&fmt=json"
+        url = f"https://musicbrainz.org/ws/2/artist/{mbid}?inc=artist-rels+url-rels+release-groups+aliases&fmt=json"
         data = self._rate_limited_get(url)
         if data:
             try:
