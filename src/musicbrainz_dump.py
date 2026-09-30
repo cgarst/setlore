@@ -26,20 +26,28 @@ BASE_URL = "https://data.metabrainz.org/pub/musicbrainz/data/json-dumps"
 
 AVAILABLE_COMPONENTS = [
     {
-        "filename": "recording.tar.xz",
-        "name": "Recordings & Tracks",
-        "approx_size": "34 MB",
-        "description": "Powers song title matching, track resolution, and duration metadata.",
+        "filename": "release.tar.xz",
+        "name": "Releases & Tracklists (Full Song-to-Album Mapping)",
+        "approx_size": "23 GB (~1.5 GB indexed DB)",
+        "description": "Authoritative tracklist bridge mapping song titles directly to studio albums, primary/secondary types, and original release years.",
         "default": True,
-        "feature": "Track setlist resolution"
+        "feature": "Full Offline Song-to-Album Mapping"
     },
     {
         "filename": "release-group.tar.xz",
         "name": "Release Groups (Studio Albums)",
         "approx_size": "1.2 GB",
-        "description": "Powers studio album names, earliest release years, and studio vs live/compilation filtering.",
-        "default": True,
-        "feature": "Album & Release Year Enrichment"
+        "description": "Full album catalog, studio vs live classifications, and earliest release dates.",
+        "default": False,
+        "feature": "Album & Release Year Catalog"
+    },
+    {
+        "filename": "recording.tar.xz",
+        "name": "Recordings & Tracks",
+        "approx_size": "34 MB",
+        "description": "Core song title matching, track resolution, and duration metadata.",
+        "default": False,
+        "feature": "Track Setlist Resolution"
     },
     {
         "filename": "artist.tar.xz",
@@ -350,23 +358,141 @@ class MusicBrainzDumpManager:
                         dest_file.unlink()
                     temp_dest.rename(dest_file)
 
-            # Build / populate local SQLite database from downloaded archive
-            recording_archive = self.dump_dir / "recording.tar.xz"
-            if recording_archive.exists():
+            # Build / populate local SQLite database from downloaded archives
+            temp_db = self.dump_dir / "mb_dump_building.db"
+            if temp_db.exists():
+                temp_db.unlink()
+
+            conn = sqlite3.connect(str(temp_db))
+            self._init_db(conn)
+
+            # 1. Process Releases & Tracklists (release.tar.xz) -> Maps Song Titles directly to Albums & Years!
+            release_archive = self.dump_dir / "release.tar.xz"
+            if release_archive.exists():
                 status_state["status"] = "extracting"
                 status_state["progress"] = {
-                    "step": "Indexing recordings into fast local database...",
+                    "step": "Indexing releases & tracklists (song-to-album mapping)...",
                     "percent": 0,
                     "indexed": 0
                 }
                 self._update_status_file(status_state)
 
-                temp_db = self.dump_dir / "mb_dump_building.db"
-                if temp_db.exists():
-                    temp_db.unlink()
+                with tarfile.open(release_archive, mode="r:xz") as tar:
+                    member_name = None
+                    for m in tar.getmembers():
+                        if "release" in m.name and not m.name.endswith(".txt") and not m.name.endswith(".asc"):
+                            member_name = m.name
+                            break
+                    if member_name:
+                        f = tar.extractfile(member_name)
+                        batch = []
+                        line_count = 0
+                        inserted_count = 0
 
-                conn = sqlite3.connect(str(temp_db))
-                self._init_db(conn)
+                        for line in f:
+                            if self._cancel_requested:
+                                conn.close()
+                                if temp_db.exists():
+                                    temp_db.unlink()
+                                raise Exception("Task was cancelled by user.")
+
+                            line_count += 1
+                            try:
+                                obj = json.loads(line.decode("utf-8"))
+                                rel_title = obj.get("title") or ""
+                                rg = obj.get("release-group") or {}
+                                album_title = rg.get("title") or rel_title
+                                if not album_title:
+                                    continue
+
+                                primary_type = rg.get("primary-type") or "Album"
+                                sec_types = rg.get("secondary-types") or []
+                                date_str = rg.get("first-release-date") or obj.get("date") or ""
+
+                                release_year = None
+                                if date_str and len(date_str) >= 4 and date_str[:4].isdigit():
+                                    y = int(date_str[:4])
+                                    if 1950 <= y <= 2030:
+                                        release_year = y
+
+                                score = 100
+                                if primary_type == "Album":
+                                    score += 80
+                                elif primary_type == "EP":
+                                    score += 40
+                                if any(t.lower() in ["live", "demo", "compilation", "remix", "soundtrack", "dj-mix"] for t in sec_types):
+                                    score -= 50
+                                else:
+                                    score += 40
+
+                                rel_artists = obj.get("artist-credit", [])
+                                default_artist = (rel_artists[0].get("name") or rel_artists[0].get("artist", {}).get("name")) if rel_artists else ""
+
+                                for m in obj.get("media", []):
+                                    for trk in m.get("tracks", []):
+                                        trk_title = trk.get("title") or (trk.get("recording") or {}).get("title")
+                                        if not trk_title:
+                                            continue
+                                        trk_artists = trk.get("artist-credit", [])
+                                        artist_name = (trk_artists[0].get("name") or trk_artists[0].get("artist", {}).get("name")) if trk_artists else default_artist
+                                        if not artist_name:
+                                            continue
+
+                                        clean_art = _normalize_key(clean_artist_name(artist_name))
+                                        clean_trk = _normalize_key(trk_title)
+                                        if not clean_art or not clean_trk:
+                                            continue
+
+                                        batch.append((
+                                            artist_name,
+                                            clean_art,
+                                            trk_title,
+                                            clean_trk,
+                                            clean_album_title(album_title),
+                                            release_year,
+                                            primary_type,
+                                            score
+                                        ))
+
+                                        if len(batch) >= 20000:
+                                            cur = conn.cursor()
+                                            cur.executemany("""
+                                                INSERT INTO recordings (
+                                                    artist_name, clean_artist, song_title, clean_title,
+                                                    album_title, release_year, primary_type, score
+                                                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                                            """, batch)
+                                            conn.commit()
+                                            inserted_count += len(batch)
+                                            batch = []
+
+                                            if line_count % 50000 == 0:
+                                                status_state["progress"]["indexed"] = inserted_count
+                                                self._update_status_file(status_state)
+                            except Exception:
+                                continue
+
+                        if batch:
+                            cur = conn.cursor()
+                            cur.executemany("""
+                                INSERT INTO recordings (
+                                    artist_name, clean_artist, song_title, clean_title,
+                                    album_title, release_year, primary_type, score
+                                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                            """, batch)
+                            conn.commit()
+                            inserted_count += len(batch)
+
+            # 2. Process Standalone Recordings (recording.tar.xz) if release.tar.xz was not downloaded
+            recording_archive = self.dump_dir / "recording.tar.xz"
+            if recording_archive.exists() and not release_archive.exists():
+                status_state["status"] = "extracting"
+                status_state["progress"] = {
+                    "step": "Indexing standalone recordings...",
+                    "percent": 0,
+                    "indexed": 0
+                }
+                self._update_status_file(status_state)
 
                 with tarfile.open(recording_archive, mode="r:xz") as tar:
                     member_name = None
@@ -374,14 +500,6 @@ class MusicBrainzDumpManager:
                         if "recording" in m.name and not m.name.endswith(".txt") and not m.name.endswith(".asc"):
                             member_name = m.name
                             break
-                    
-                    if not member_name:
-                        # Fallback to first non-metadata file
-                        for m in tar.getmembers():
-                            if m.name not in ["TIMESTAMP", "COPYING", "README", "REPLICATION_SEQUENCE", "SCHEMA_SEQUENCE"]:
-                                member_name = m.name
-                                break
-
                     if member_name:
                         f = tar.extractfile(member_name)
                         batch = []
@@ -401,11 +519,9 @@ class MusicBrainzDumpManager:
                                 title = obj.get("title")
                                 if not title:
                                     continue
-                                
                                 artist_credits = obj.get("artist-credit", [])
                                 if not artist_credits:
                                     continue
-
                                 artist_name = artist_credits[0].get("name") or artist_credits[0].get("artist", {}).get("name")
                                 if not artist_name:
                                     continue
@@ -415,7 +531,6 @@ class MusicBrainzDumpManager:
                                 if not clean_artist or not clean_title:
                                     continue
 
-                                # Release year / date if present
                                 release_year = None
                                 date_str = obj.get("first-release-date") or ""
                                 if date_str and len(date_str) >= 4 and date_str[:4].isdigit():
@@ -423,19 +538,9 @@ class MusicBrainzDumpManager:
                                     if 1950 <= y <= 2030:
                                         release_year = y
 
-                                album_title = None
-                                primary_type = "Recording"
-                                score = 100
-
                                 batch.append((
-                                    artist_name,
-                                    clean_artist,
-                                    title,
-                                    clean_title,
-                                    album_title,
-                                    release_year,
-                                    primary_type,
-                                    score
+                                    artist_name, clean_artist, title, clean_title,
+                                    None, release_year, "Recording", 100
                                 ))
 
                                 if len(batch) >= 20000:
@@ -449,11 +554,6 @@ class MusicBrainzDumpManager:
                                     conn.commit()
                                     inserted_count += len(batch)
                                     batch = []
-
-                                    if line_count % 100000 == 0:
-                                        status_state["progress"]["indexed"] = inserted_count
-                                        self._update_status_file(status_state)
-
                             except Exception:
                                 continue
 
@@ -468,13 +568,72 @@ class MusicBrainzDumpManager:
                             conn.commit()
                             inserted_count += len(batch)
 
-                conn.close()
+            # 3. Process Artists (artist.tar.xz) -> Band Member Tenures & Lineups
+            artist_archive = self.dump_dir / "artist.tar.xz"
+            if artist_archive.exists():
+                status_state["status"] = "extracting"
+                status_state["progress"] = {
+                    "step": "Indexing artist lineups & tenures...",
+                    "percent": 0,
+                    "indexed": 0
+                }
+                self._update_status_file(status_state)
 
-                # Swap building DB into final location
-                if temp_db.exists():
-                    if self.db_path.exists():
-                        self.db_path.unlink()
-                    temp_db.rename(self.db_path)
+                with tarfile.open(artist_archive, mode="r:xz") as tar:
+                    member_name = None
+                    for m in tar.getmembers():
+                        if "artist" in m.name and not m.name.endswith(".txt") and not m.name.endswith(".asc"):
+                            member_name = m.name
+                            break
+                    if member_name:
+                        f = tar.extractfile(member_name)
+                        batch = []
+                        for line in f:
+                            if self._cancel_requested:
+                                conn.close()
+                                if temp_db.exists():
+                                    temp_db.unlink()
+                                raise Exception("Task was cancelled by user.")
+                            try:
+                                obj = json.loads(line.decode("utf-8"))
+                                mbid = obj.get("id")
+                                name = obj.get("name")
+                                if not mbid or not name:
+                                    continue
+                                clean_name = _normalize_key(clean_artist_name(name))
+                                artist_type = obj.get("type") or ""
+                                country = obj.get("country") or ""
+                                rels_json = json.dumps(obj)
+
+                                batch.append((mbid, name, clean_name, artist_type, country, rels_json))
+                                if len(batch) >= 10000:
+                                    cur = conn.cursor()
+                                    cur.executemany("""
+                                        INSERT OR REPLACE INTO artists (
+                                            mbid, name, clean_name, type, country, relations_json
+                                        ) VALUES (?, ?, ?, ?, ?, ?)
+                                    """, batch)
+                                    conn.commit()
+                                    batch = []
+                            except Exception:
+                                continue
+
+                        if batch:
+                            cur = conn.cursor()
+                            cur.executemany("""
+                                INSERT OR REPLACE INTO artists (
+                                    mbid, name, clean_name, type, country, relations_json
+                                ) VALUES (?, ?, ?, ?, ?, ?)
+                            """, batch)
+                            conn.commit()
+
+            conn.close()
+
+            # Swap building DB into final location
+            if temp_db.exists():
+                if self.db_path.exists():
+                    self.db_path.unlink()
+                temp_db.rename(self.db_path)
 
             # Mark version and complete
             self.latest_file.write_text(upstream_version, encoding="utf-8")
