@@ -1654,7 +1654,7 @@
 
   <!-- Onboarding Wizard Modal -->
   {% if not is_public_view and user.is_authenticated and is_owner %}
-  <div id="onboarding-modal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto hidden">
+  <div id="onboarding-modal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto hidden" onclick="if (event.target === this) closeOnboardingModal()">
     <div class="relative w-full max-w-xl glass-card p-5 sm:p-7 shadow-2xl border border-indigo-500/30 rounded-2xl max-h-[92vh] my-auto flex flex-col overflow-hidden bg-slate-900/95">
       
       <!-- Wizard Header & Progress Bar -->
@@ -7188,7 +7188,13 @@
     function closeOnboardingModal() {
       const modal = document.getElementById('onboarding-modal');
       if (modal) modal.classList.add('hidden');
-      if (onboardingConcertsAdded > 0 || onboardingSyncTriggered) {
+      try {
+        sessionStorage.setItem('setlore_onboarding_dismissed_{{ user.id }}', 'true');
+      } catch (e) {}
+      if (onboardingSyncTriggered) {
+        startSyncPolling();
+      }
+      if (onboardingConcertsAdded > 0) {
         window.location.reload();
       }
     }
@@ -7315,7 +7321,13 @@
         });
         const data = await res.json();
         if (res.ok && data.status === 'ok') {
-          if (shouldSync) onboardingSyncTriggered = true;
+          try {
+            sessionStorage.setItem('setlore_onboarding_dismissed_{{ user.id }}', 'true');
+          } catch (e) {}
+          if (shouldSync) {
+            onboardingSyncTriggered = true;
+            startSyncPolling();
+          }
           goToOnboardingStep(2);
         } else {
           if (alertBox) {
@@ -7756,7 +7768,11 @@
       }
 
       {% if should_show_onboarding and not is_public_view and user.is_authenticated and is_owner %}
-        openOnboardingModal();
+        const isOnboardingDismissed = sessionStorage.getItem('setlore_onboarding_dismissed_{{ user.id }}');
+        const currentSyncStatus = '{{ profile.sync_status }}';
+        if (!isOnboardingDismissed && currentSyncStatus !== 'syncing') {
+          openOnboardingModal();
+        }
       {% endif %}
     });
   </script>

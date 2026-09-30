@@ -16,7 +16,8 @@ def core_context(request):
 
     if hasattr(request, 'user') and request.user.is_authenticated:
         user_concerts_count = Concert.objects.filter(user=request.user).count()
-        should_show_onboarding = (user_concerts_count == 0)
+        sync_status = getattr(getattr(request.user, 'profile', None), 'sync_status', 'idle')
+        should_show_onboarding = (user_concerts_count == 0 and sync_status != 'syncing')
 
         if request.user.is_staff or is_impersonating:
             all_users_for_impersonate = list(
