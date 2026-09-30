@@ -42,6 +42,7 @@ class ConcertArtist(models.Model):
     setlistfm_id = models.CharField(max_length=100, blank=True, default='')
     setlist_url = models.URLField(max_length=500, blank=True, default='')
     has_setlist = models.BooleanField(default=False)
+    is_favorite = models.BooleanField(default=False, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

@@ -98,9 +98,12 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
         manual_matched_pairs = []
 
         for c in db_concerts:
-            artist_names = [ca.artist.name for ca in c.artists.all()]
+            ca_list = list(c.artists.all())
+            artist_names = [ca.artist.name for ca in ca_list if ca.artist]
+            artist_favorites = {ca.artist.name.lower().strip(): bool(ca.is_favorite) for ca in ca_list if ca.artist}
+            artist_ca_ids = {ca.artist.name.lower().strip(): ca.id for ca in ca_list if ca.artist}
             dt = datetime.combine(c.date, datetime.min.time()) if c.date else None
-            has_sl_id = any(bool(ca.setlistfm_id) for ca in c.artists.all())
+            has_sl_id = any(bool(ca.setlistfm_id) for ca in ca_list)
             rec = {
                 "id": f"concert_{c.id}",
                 "db_id": c.id,
@@ -111,6 +114,8 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
                 "year": c.year,
                 "raw_artists": c.raw_artists,
                 "artists": artist_names,
+                "artist_favorites": artist_favorites,
+                "artist_ca_ids": artist_ca_ids,
                 "primary_artist": c.primary_artist or (artist_names[0] if artist_names else ""),
                 "supporting_artists": ", ".join(artist_names[1:]) if len(artist_names) > 1 else "",
                 "venue": c.raw_venue or (c.venue.name if c.venue else ""),
@@ -1717,6 +1722,83 @@ def toggle_concert_favorite(request):
         })
     except Exception as e:
         logger.error("Error toggling favorite for concert: %s", e)
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@login_required
+@require_POST
+def toggle_concert_artist_favorite(request):
+    """
+    Toggles the is_favorite boolean for a specific ConcertArtist appearance belonging to the authenticated user.
+    """
+    try:
+        try:
+            data = json.loads(request.body.decode('utf-8'))
+        except Exception:
+            data = request.POST
+
+        ca_id_raw = data.get('ca_id')
+        concert_id_raw = data.get('concert_id')
+        artist_name = (data.get('artist') or '').strip()
+
+        target_ca = None
+        if ca_id_raw:
+            try:
+                target_ca = ConcertArtist.objects.select_related('concert', 'artist').filter(
+                    id=int(ca_id_raw),
+                    concert__user=request.user
+                ).first()
+            except (ValueError, TypeError):
+                pass
+
+        if not target_ca and concert_id_raw and artist_name:
+            c_id_str = str(concert_id_raw).strip()
+            if c_id_str.startswith("concert_"):
+                c_id_str = c_id_str.replace("concert_", "")
+            try:
+                c_id = int(c_id_str)
+                target_ca = ConcertArtist.objects.select_related('concert', 'artist').filter(
+                    concert__id=c_id,
+                    concert__user=request.user,
+                    artist__name__iexact=artist_name
+                ).first()
+            except (ValueError, TypeError):
+                pass
+
+        if not target_ca:
+            return JsonResponse({"error": "Concert artist appearance not found or not owned by user"}, status=404)
+
+        target_ca.is_favorite = not target_ca.is_favorite
+        target_ca.save(update_fields=['is_favorite'])
+
+        # Check if any artist in the concert is favorited
+        has_fav_artist = ConcertArtist.objects.filter(concert=target_ca.concert, is_favorite=True).exists()
+
+        # Update dashboard cache bundle if present
+        cache_key = f"user_dashboard_bundle_{request.user.id}"
+        bundle = ApiCache.objects.filter(cache_key=cache_key).first()
+        if bundle and isinstance(bundle.payload, dict):
+            drilldown = bundle.payload.get("stats", {}).get("concerts_drilldown", [])
+            for c in drilldown:
+                if c.get("db_id") == target_ca.concert.id or c.get("id") == f"concert_{target_ca.concert.id}":
+                    c["has_favorite_artist"] = has_fav_artist
+                    for a in c.get("artists", []):
+                        if (target_ca.id and a.get("ca_id") == target_ca.id) or a.get("artist", "").strip().lower() == target_ca.artist.name.strip().lower():
+                            a["is_favorite"] = target_ca.is_favorite
+                            if not a.get("ca_id"):
+                                a["ca_id"] = target_ca.id
+            bundle.save(update_fields=['payload'])
+
+        return JsonResponse({
+            "status": "success",
+            "ca_id": target_ca.id,
+            "concert_id": target_ca.concert.id,
+            "artist": target_ca.artist.name,
+            "is_favorite": target_ca.is_favorite,
+            "has_favorite_artist": has_fav_artist
+        })
+    except Exception as e:
+        logger.error("Error toggling favorite for concert artist: %s", e)
         return JsonResponse({"error": str(e)}, status=500)
 
 

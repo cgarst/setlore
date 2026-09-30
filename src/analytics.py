@@ -548,11 +548,16 @@ class ConcertAnalytics:
                     m = re.search(r'([a-zA-Z0-9]+)\.html', setlist_url)
                     if m:
                         setlistfm_id = m.group(1)
-                if setlistfm_id:
-                    setify_url = f"https://setify.co/s/{setlistfm_id}"
+                art_favs = rec.get("artist_favorites", {})
+                art_ca_ids = rec.get("artist_ca_ids", {})
+                art_k = can_art.lower().strip()
+                is_art_fav = bool(art_favs.get(art_k, False))
+                ca_id = art_ca_ids.get(art_k)
 
                 artists_data.append({
                     "artist": can_art,
+                    "ca_id": ca_id,
+                    "is_favorite": is_art_fav,
                     "artist_seen_nth": artist_seen_nth,
                     "has_setlist": bool(sl and grouped_sets),
                     "setlist_url": setlist_url,
@@ -576,6 +581,7 @@ class ConcertAnalytics:
                     or bool(rec.get("has_setlistfm_id", False))
                 )
             )
+            has_fav_artist = any(bool(a.get("is_favorite")) for a in artists_data)
 
             concerts_drilldown.append({
                 "id": c_id,
@@ -599,7 +605,8 @@ class ConcertAnalytics:
                 "total_artists": len(artists),
                 "total_songs": total_songs_in_event,
                 "has_any_setlist": any(a["has_setlist"] for a in artists_data),
-                "is_favorite": bool(rec.get("is_favorite", False))
+                "is_favorite": bool(rec.get("is_favorite", False)),
+                "has_favorite_artist": has_fav_artist
             })
 
         # Return in reverse chronological order (Latest to Oldest)

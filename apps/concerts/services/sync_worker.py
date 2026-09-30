@@ -157,9 +157,12 @@ class SyncWorker:
             manual_matched_pairs = []
 
             for c in db_concerts:
-                artist_names = [ca.artist.name for ca in c.artists.all()]
+                ca_list = list(c.artists.all())
+                artist_names = [ca.artist.name for ca in ca_list if ca.artist]
+                artist_favorites = {ca.artist.name.lower().strip(): bool(ca.is_favorite) for ca in ca_list if ca.artist}
+                artist_ca_ids = {ca.artist.name.lower().strip(): ca.id for ca in ca_list if ca.artist}
                 dt = datetime.combine(c.date, datetime.min.time()) if c.date else None
-                has_sl_id = any(bool(ca.setlistfm_id) for ca in c.artists.all())
+                has_sl_id = any(bool(ca.setlistfm_id) for ca in ca_list)
                 rec = {
                     "id": f"concert_{c.id}",
                     "db_id": c.id,
@@ -170,6 +173,8 @@ class SyncWorker:
                     "year": c.year,
                     "raw_artists": c.raw_artists,
                     "artists": artist_names,
+                    "artist_favorites": artist_favorites,
+                    "artist_ca_ids": artist_ca_ids,
                     "primary_artist": c.primary_artist or (artist_names[0] if artist_names else ""),
                     "supporting_artists": ", ".join(artist_names[1:]) if len(artist_names) > 1 else "",
                     "venue": c.raw_venue or (c.venue.name if c.venue else ""),

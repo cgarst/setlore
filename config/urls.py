@@ -78,6 +78,7 @@ urlpatterns = [
     path('api/concerts/save-setlist/', concerts_views.save_setlist, name='api_save_setlist'),
     path('api/concerts/toggle-attendance/', concerts_views.toggle_concert_attendance, name='api_toggle_concert_attendance'),
     path('api/concerts/toggle-favorite/', concerts_views.toggle_concert_favorite, name='api_toggle_concert_favorite'),
+    path('api/concerts/toggle-artist-favorite/', concerts_views.toggle_concert_artist_favorite, name='api_toggle_concert_artist_favorite'),
     path('api/autocomplete/', concerts_views.autocomplete_view, name='api_autocomplete'),
     path('api/ticketmaster/preview/', concerts_views.parse_ticketmaster_preview, name='api_ticketmaster_preview'),
     path('api/ticketmaster/confirm/', concerts_views.confirm_ticketmaster_import, name='api_ticketmaster_confirm'),

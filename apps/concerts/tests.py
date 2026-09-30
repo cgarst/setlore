@@ -1,5 +1,6 @@
 import io
 import csv
+import json
 from datetime import date
 from django.test import TestCase, Client
 from django.contrib.auth.models import User
@@ -261,6 +262,34 @@ class AutocompleteAndCSVTests(TestCase):
         self.assertFalse(data['is_favorite'])
         self.concert.refresh_from_db()
         self.assertFalse(self.concert.is_favorite)
+
+    def test_toggle_concert_artist_favorite(self):
+        self.assertFalse(self.ca.is_favorite)
+        # Toggle on by ca_id
+        response = self.client.post(
+            '/api/concerts/toggle-artist-favorite/',
+            data=json.dumps({"ca_id": self.ca.id}),
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data['is_favorite'])
+        self.assertTrue(data['has_favorite_artist'])
+        self.ca.refresh_from_db()
+        self.assertTrue(self.ca.is_favorite)
+
+        # Toggle back off by concert_id and artist name
+        response = self.client.post(
+            '/api/concerts/toggle-artist-favorite/',
+            data=json.dumps({"concert_id": self.concert.id, "artist": self.art1.name}),
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertFalse(data['is_favorite'])
+        self.assertFalse(data['has_favorite_artist'])
+        self.ca.refresh_from_db()
+        self.assertFalse(self.ca.is_favorite)
 
     def test_cancel_sync(self):
         self.user.profile.sync_status = 'syncing'

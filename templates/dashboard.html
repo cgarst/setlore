@@ -2240,6 +2240,7 @@
              data-id="{{ c.id }}"
              data-db-id="{{ c.db_id }}"
              data-is-favorite="{{ c.is_favorite|yesno:'true,false' }}"
+             data-has-favorite-artist="{{ c.has_favorite_artist|yesno:'true,false' }}"
              data-date="{% if c.date %}{{ c.date }}{% else %}{{ c.raw_date }}{% endif %}"
              data-raw-date="{{ c.raw_date }}"
              data-venue="{{ c.venue }}"
@@ -2257,20 +2258,9 @@
           <!-- Concert Event Header -->
           <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 cursor-pointer select-none border-b border-slate-800/60 pb-3" onclick="toggleConcertDetails('{{ c.id }}')">
             <div class="flex flex-wrap items-center gap-3">
-              {% if not is_public_view or is_owner %}
-              <button type="button"
-                      id="favorite-btn-{{ c.id }}"
-                      onclick="event.stopPropagation(); toggleConcertFavorite('{{ c.id }}', '{{ c.db_id }}');"
-                      class="favorite-btn p-1.5 rounded-lg text-xs transition cursor-pointer {% if c.is_favorite %}text-amber-400 hover:text-amber-300{% else %}text-slate-500 hover:text-amber-400{% endif %}"
-                      data-favorite="{% if c.is_favorite %}true{% else %}false{% endif %}"
-                      title="{% if c.is_favorite %}Favorited concert. Click to unfavorite.{% else %}Click to favorite this concert{% endif %}">
-                <i class="fa-{% if c.is_favorite %}solid{% else %}regular{% endif %} fa-star text-base"></i>
-              </button>
-              {% elif c.is_favorite %}
-              <span class="p-1 text-amber-400 text-xs" title="Favorited concert">
-                <i class="fa-solid fa-star text-base"></i>
+              <span id="concert-fav-badge-{{ c.id }}" class="text-amber-400 text-xs px-1 {% if not c.has_favorite_artist %}hidden{% endif %}" title="Contains favorited performance">
+                <i class="fa-solid fa-star text-sm"></i>
               </span>
-              {% endif %}
               <span class="badge bg-indigo-500/20 text-indigo-300 font-mono text-xs font-bold border border-indigo-500/30 px-2.5 py-1">
                 <i class="fa-solid fa-calendar mr-1.5"></i>{{ c.date }}
               </span>
@@ -2345,7 +2335,22 @@
               
               <!-- Artist Subheader -->
               <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/50 pb-2.5">
-                <div class="flex flex-wrap items-center gap-2.5">
+                <div class="flex flex-wrap items-center gap-2">
+                  {% if not is_public_view or is_owner %}
+                  <button type="button"
+                          id="favorite-artist-btn-{{ c.id }}-{{ forloop.counter }}"
+                          onclick="event.stopPropagation(); toggleConcertArtistFavorite('{{ c.id }}', '{{ a.ca_id|default:'' }}', '{{ a.artist|escapejs }}', '{{ forloop.counter }}');"
+                          class="favorite-artist-btn p-1 rounded-lg text-xs transition cursor-pointer {% if a.is_favorite %}text-amber-400 hover:text-amber-300{% else %}text-slate-500 hover:text-amber-400{% endif %}"
+                          data-favorite="{% if a.is_favorite %}true{% else %}false{% endif %}"
+                          title="{% if a.is_favorite %}Favorited artist performance. Click to unfavorite.{% else %}Click to favorite this artist performance{% endif %}">
+                    <i class="fa-{% if a.is_favorite %}solid{% else %}regular{% endif %} fa-star text-sm"></i>
+                  </button>
+                  {% elif a.is_favorite %}
+                  <span class="p-1 text-amber-400 text-xs" title="Favorited artist performance">
+                    <i class="fa-solid fa-star text-sm"></i>
+                  </span>
+                  {% endif %}
+
                   <h3 class="text-white font-black text-sm tracking-wide flex items-center gap-2">
                     <button onclick="event.stopPropagation(); jumpToSongInDrilldown('{{ a.artist|escapejs }}', '');" class="hover:underline hover:text-indigo-300 flex items-center gap-2 text-left font-black">
                       <i class="fa-solid fa-microphone-lines text-indigo-400"></i> {{ a.artist }}
@@ -2362,7 +2367,7 @@
                 <div class="flex flex-wrap items-center gap-1.5 self-start sm:self-auto">
                   {% if a.setify_url or a.setlist_url %}
                   <a href="{% if a.setify_url %}{{ a.setify_url }}{% else %}https://setify.co/s/{{ a.setlist_url|slice:'-13:-5' }}{% endif %}" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 hover:text-white text-xs font-semibold transition inline-flex items-center gap-1.5 shadow-sm" title="Export setlist to Spotify / Apple Music playlist via Setify">
-                    <i class="fa-brands fa-spotify text-emerald-400 text-xs"></i>
+                    <i class="fa-solid fa-music text-emerald-400 text-xs"></i>
                     <span>Create Playlist</span>
                     <i class="fa-solid fa-arrow-up-right-from-square text-[8px] opacity-70"></i>
                   </a>
@@ -4568,7 +4573,7 @@
       document.querySelectorAll('.concert-card').forEach(card => {
         totalCount++;
         const searchData = card.getAttribute('data-search') || '';
-        const isFav = card.getAttribute('data-is-favorite') === 'true';
+        const isFav = card.getAttribute('data-is-favorite') === 'true' || card.getAttribute('data-has-favorite-artist') === 'true';
 
         const matchesQuery = !q || searchData.includes(q);
         const matchesFav = !showOnlyFavorites || isFav;
@@ -4642,6 +4647,81 @@
           }
           if (card) card.setAttribute('data-is-favorite', isCurrentlyFav ? 'true' : 'false');
           showToast(data.error || 'Failed to update favorite', 'error');
+        }
+      } catch (err) {
+        showToast('Network error: ' + err.message, 'error');
+      }
+    }
+
+    async function toggleConcertArtistFavorite(concertId, caId, artistName, index) {
+      const btn = document.getElementById('favorite-artist-btn-' + concertId + '-' + index);
+      const card = document.getElementById('concert-card-' + concertId);
+      const targetConcertId = (concertId.startsWith('concert_') ? concertId.replace('concert_', '') : concertId);
+
+      const isCurrentlyFav = btn ? (btn.getAttribute('data-favorite') === 'true') : false;
+      const newFav = !isCurrentlyFav;
+
+      // Optimistic update
+      if (btn) {
+        btn.setAttribute('data-favorite', newFav ? 'true' : 'false');
+        btn.title = newFav ? 'Favorited artist performance. Click to unfavorite.' : 'Click to favorite this artist performance';
+        if (newFav) {
+          btn.className = 'favorite-artist-btn p-1 rounded-lg text-xs transition cursor-pointer text-amber-400 hover:text-amber-300';
+          btn.innerHTML = `<i class="fa-solid fa-star text-sm"></i>`;
+        } else {
+          btn.className = 'favorite-artist-btn p-1 rounded-lg text-xs transition cursor-pointer text-slate-500 hover:text-amber-400';
+          btn.innerHTML = `<i class="fa-regular fa-star text-sm"></i>`;
+        }
+      }
+
+      if (card) {
+        const anyFavArtist = Array.from(card.querySelectorAll('.favorite-artist-btn')).some(b => b.getAttribute('data-favorite') === 'true');
+        card.setAttribute('data-has-favorite-artist', anyFavArtist ? 'true' : 'false');
+        const badge = document.getElementById('concert-fav-badge-' + concertId);
+        if (badge) {
+          badge.classList.toggle('hidden', !anyFavArtist);
+        }
+      }
+
+      if (showOnlyFavorites) {
+        const searchInput = document.getElementById('concert-search-input');
+        filterConcertCards(searchInput ? searchInput.value : '');
+      }
+
+      try {
+        const res = await fetch('/api/concerts/toggle-artist-favorite/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken'),
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          body: JSON.stringify({
+            ca_id: caId || null,
+            concert_id: targetConcertId,
+            artist: artistName
+          })
+        });
+        const data = await res.json();
+        if (res.ok && data.status === 'success') {
+          showToast(data.is_favorite ? `Favorited ${data.artist} ⭐` : `Removed ${data.artist} from favorites`, 'info');
+        } else {
+          // Revert optimistic state
+          if (btn) {
+            btn.setAttribute('data-favorite', isCurrentlyFav ? 'true' : 'false');
+            if (isCurrentlyFav) {
+              btn.className = 'favorite-artist-btn p-1 rounded-lg text-xs transition cursor-pointer text-amber-400 hover:text-amber-300';
+              btn.innerHTML = `<i class="fa-solid fa-star text-sm"></i>`;
+            } else {
+              btn.className = 'favorite-artist-btn p-1 rounded-lg text-xs transition cursor-pointer text-slate-500 hover:text-amber-400';
+              btn.innerHTML = `<i class="fa-regular fa-star text-sm"></i>`;
+            }
+          }
+          if (card) {
+            const anyFavArtist = Array.from(card.querySelectorAll('.favorite-artist-btn')).some(b => b.getAttribute('data-favorite') === 'true');
+            card.setAttribute('data-has-favorite-artist', anyFavArtist ? 'true' : 'false');
+          }
+          showToast(data.error || 'Failed to update artist favorite', 'error');
         }
       } catch (err) {
         showToast('Network error: ' + err.message, 'error');
