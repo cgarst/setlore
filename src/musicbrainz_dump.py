@@ -29,29 +29,33 @@ AVAILABLE_COMPONENTS = [
         "filename": "recording.tar.xz",
         "name": "Recordings & Tracks",
         "approx_size": "34 MB",
-        "description": "Essential track titles, artist credits, works, and track lengths for setlist enrichment.",
+        "description": "Powers song title matching, track resolution, and duration metadata.",
         "default": True,
+        "feature": "Track setlist resolution"
     },
     {
         "filename": "release-group.tar.xz",
-        "name": "Release Groups (Albums)",
+        "name": "Release Groups (Studio Albums)",
         "approx_size": "1.2 GB",
-        "description": "Full album catalog, studio vs live classifications, and earliest release dates.",
-        "default": False,
+        "description": "Powers studio album names, earliest release years, and studio vs live/compilation filtering.",
+        "default": True,
+        "feature": "Album & Release Year Enrichment"
     },
     {
         "filename": "artist.tar.xz",
-        "name": "Artists & Aliases",
+        "name": "Artists & Musician Tenures",
         "approx_size": "2.1 GB",
-        "description": "Complete artist metadata, alternative names, and active career dates.",
+        "description": "Powers musician lineups, tenure start/end years, instruments (Drums, Bass, etc.), and multi-band tracking.",
         "default": False,
+        "feature": "Musicians & Multi-Band Lineup Tab"
     },
     {
         "filename": "work.tar.xz",
         "name": "Musical Works",
         "approx_size": "660 MB",
-        "description": "Composition works, song writers, and performance relations.",
+        "description": "Powers composition credits, writers, and cover song original artist attribution.",
         "default": False,
+        "feature": "Cover Song Attribution"
     }
 ]
 
@@ -254,6 +258,36 @@ class MusicBrainzDumpManager:
         """)
         cur.execute("CREATE INDEX IF NOT EXISTS idx_rec_artist_title ON recordings(clean_artist, clean_title);")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_rec_title ON recordings(clean_title);")
+
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS artists (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                mbid TEXT UNIQUE,
+                name TEXT,
+                clean_name TEXT,
+                type TEXT,
+                country TEXT,
+                relations_json TEXT
+            )
+        """)
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_art_clean_name ON artists(clean_name);")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_art_mbid ON artists(mbid);")
+
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS release_groups (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                mbid TEXT,
+                artist_name TEXT,
+                clean_artist TEXT,
+                title TEXT,
+                clean_title TEXT,
+                primary_type TEXT,
+                secondary_types TEXT,
+                release_year INTEGER,
+                score INTEGER
+            )
+        """)
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_rg_artist_title ON release_groups(clean_artist, clean_title);")
         conn.commit()
 
     def _run_download_and_build(self, components: List[str]):
@@ -511,3 +545,41 @@ class MusicBrainzDumpManager:
             print(f"[MusicBrainzDump] Lookup error: {e}")
 
         return None, None
+
+    def lookup_artist_mbid(self, artist_name: str) -> Optional[str]:
+        """Queries local disk SQLite database for artist MBID."""
+        if not self.is_dump_available():
+            return None
+
+        clean_art = _normalize_key(clean_artist_name(artist_name))
+        if not clean_art:
+            return None
+
+        try:
+            with sqlite3.connect(f"file:{self.db_path}?mode=ro", uri=True) as conn:
+                cur = conn.cursor()
+                cur.execute("SELECT mbid FROM artists WHERE clean_name = ? LIMIT 1", (clean_art,))
+                row = cur.fetchone()
+                if row:
+                    return row[0]
+        except Exception as e:
+            print(f"[MusicBrainzDump] Artist MBID lookup error: {e}")
+
+        return None
+
+    def lookup_artist_relations(self, mbid: str) -> Optional[Dict[str, Any]]:
+        """Queries local disk SQLite database for artist relationships and member tenures."""
+        if not self.is_dump_available() or not mbid:
+            return None
+
+        try:
+            with sqlite3.connect(f"file:{self.db_path}?mode=ro", uri=True) as conn:
+                cur = conn.cursor()
+                cur.execute("SELECT relations_json FROM artists WHERE mbid = ? LIMIT 1", (mbid,))
+                row = cur.fetchone()
+                if row and row[0]:
+                    return json.loads(row[0])
+        except Exception as e:
+            print(f"[MusicBrainzDump] Artist relations lookup error: {e}")
+
+        return None

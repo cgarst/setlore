@@ -99,6 +99,17 @@ class MusicianEnricher:
             except Exception:
                 pass
 
+        # Check local MusicBrainz dump on disk first
+        try:
+            from src.musicbrainz_dump import MusicBrainzDumpManager
+            mb_dump = MusicBrainzDumpManager.get_instance()
+            if mb_dump.is_dump_available():
+                local_mbid = mb_dump.lookup_artist_mbid(artist_name)
+                if local_mbid:
+                    return local_mbid
+        except Exception:
+            pass
+
         query = urllib.parse.quote(f'artist:"{artist_name}"')
         url = f"https://musicbrainz.org/ws/2/artist?query={query}&fmt=json"
         data = self._rate_limited_get(url)
@@ -145,6 +156,17 @@ class MusicianEnricher:
                     return json.load(f)
             except Exception:
                 pass
+
+        # Check local MusicBrainz dump on disk first
+        try:
+            from src.musicbrainz_dump import MusicBrainzDumpManager
+            mb_dump = MusicBrainzDumpManager.get_instance()
+            if mb_dump.is_dump_available():
+                local_rels = mb_dump.lookup_artist_relations(mbid)
+                if local_rels:
+                    return local_rels
+        except Exception:
+            pass
 
         url = f"https://musicbrainz.org/ws/2/artist/{mbid}?inc=artist-rels+url-rels+release-groups+aliases&fmt=json"
         data = self._rate_limited_get(url)

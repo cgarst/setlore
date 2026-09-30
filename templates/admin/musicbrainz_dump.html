@@ -253,17 +253,24 @@
       <i class="fa-solid fa-download" style="color: #38bdf8;"></i> Dump Components &amp; Actions
     </h2>
     <p style="color: #94a3b8; font-size: 0.85rem; margin-bottom: 1.25rem;">
-      Select the dataset components to download from MetaBrainz. The <code>recording.tar.xz</code> dataset (~34 MB) provides complete track-level metadata and is recommended for standard concert setlist enrichment.
+      Select the dataset components to download from MetaBrainz. Downloading <code>recording.tar.xz</code> and <code>release-group.tar.xz</code> provides full offline album and track resolution, while <code>artist.tar.xz</code> enables offline band member tenures, lineup changes, and instrument classifications.
     </p>
 
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
       {% for comp in status.components %}
-      <label style="display: flex; gap: 0.75rem; padding: 0.75rem; background: #0f172a; border: 1px solid #334155; border-radius: 0.5rem; cursor: pointer; align-items: flex-start;">
+      <label style="display: flex; gap: 0.75rem; padding: 0.85rem; background: #0f172a; border: 1px solid #334155; border-radius: 0.5rem; cursor: pointer; align-items: flex-start;">
         <input type="checkbox" name="dump_component" value="{{ comp.filename }}" {% if comp.default %}checked{% endif %} style="margin-top: 0.25rem;">
         <div>
-          <div style="font-weight: 700; color: #ffffff; font-size: 0.875rem;">{{ comp.name }}</div>
-          <div style="font-size: 0.75rem; color: #818cf8; font-family: monospace; font-weight: 600;">{{ comp.filename }} ({{ comp.approx_size }})</div>
-          <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 0.25rem;">{{ comp.description }}</div>
+          <div style="font-weight: 700; color: #ffffff; font-size: 0.875rem; display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
+            <span>{{ comp.name }}</span>
+            {% if comp.feature %}
+            <span style="font-size: 0.7rem; color: #a855f7; background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.3); padding: 0.1rem 0.4rem; border-radius: 4px; white-space: nowrap;">
+              {{ comp.feature }}
+            </span>
+            {% endif %}
+          </div>
+          <div style="font-size: 0.75rem; color: #818cf8; font-family: monospace; font-weight: 600; margin-top: 0.2rem;">{{ comp.filename }} ({{ comp.approx_size }})</div>
+          <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 0.35rem; line-height: 1.3;">{{ comp.description }}</div>
         </div>
       </label>
       {% endfor %}
