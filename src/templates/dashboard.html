@@ -1100,11 +1100,29 @@
                   {% endif %}
                 </div>
 
-                {% if a.setlist_url %}
-                <a href="{{ a.setlist_url }}" target="_blank" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs transition inline-flex items-center gap-1.5 self-start sm:self-auto">
-                  View on Setlist.fm <i class="fa-solid fa-arrow-up-right-from-square text-[9px]"></i>
-                </a>
-                {% endif %}
+                <div class="flex flex-wrap items-center gap-1.5 self-start sm:self-auto">
+                  {% if a.setify_url or a.setlist_url %}
+                  <a href="{% if a.setify_url %}{{ a.setify_url }}{% else %}https://setify.co/s/{{ a.setlist_url|slice:'-13:-5' }}{% endif %}" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 hover:text-white text-xs font-semibold transition inline-flex items-center gap-1.5 shadow-sm" title="Export setlist to Spotify / Apple Music playlist via Setify">
+                    <i class="fa-brands fa-spotify text-emerald-400 text-xs"></i>
+                    <span>Create Playlist</span>
+                    <i class="fa-solid fa-arrow-up-right-from-square text-[8px] opacity-70"></i>
+                  </a>
+                  {% endif %}
+
+                  <a href="https://www.youtube.com/results?search_query={{ a.artist|urlencode }}+{{ c.venue|urlencode }}+{% if c.year %}{{ c.year }}{% elif c.date %}{{ c.date|slice:':4' }}{% else %}{{ c.raw_date|slice:':4' }}{% endif %}" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-300 hover:text-white text-xs font-semibold transition inline-flex items-center gap-1.5 shadow-sm" title="Search YouTube for live concert recordings of {{ a.artist }} @ {{ c.venue }} ({% if c.year %}{{ c.year }}{% elif c.date %}{{ c.date|slice:':4' }}{% endif %})">
+                    <i class="fa-brands fa-youtube text-rose-500 text-xs"></i>
+                    <span>YouTube</span>
+                    <i class="fa-solid fa-arrow-up-right-from-square text-[8px] opacity-70"></i>
+                  </a>
+
+                  {% if a.setlist_url %}
+                  <a href="{{ a.setlist_url }}" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs font-medium transition inline-flex items-center gap-1.5" title="View official setlist on Setlist.fm">
+                    <i class="fa-brands fa-lastfm text-amber-400 text-xs"></i>
+                    <span>Setlist.fm</span>
+                    <i class="fa-solid fa-arrow-up-right-from-square text-[8px] opacity-70"></i>
+                  </a>
+                  {% endif %}
+                </div>
               </div>
 
               <!-- Artist Setlist Sets (Set 1 / Set 2 / Encore / etc.) -->

@@ -1,3 +1,4 @@
+import re
 from collections import defaultdict, Counter
 from typing import List, Dict, Any
 from src.config import IGNORED_ARTISTS
@@ -539,12 +540,24 @@ class ConcertAnalytics:
                         if s_line:
                             setlist_lines.append(s_line)
                 artist_setlist_text = "\n".join(setlist_lines)
+                setlistfm_id = ""
+                setify_url = ""
+                if sl and sl.get("id"):
+                    setlistfm_id = str(sl.get("id")).strip()
+                elif setlist_url:
+                    m = re.search(r'([a-zA-Z0-9]+)\.html', setlist_url)
+                    if m:
+                        setlistfm_id = m.group(1)
+                if setlistfm_id:
+                    setify_url = f"https://setify.co/s/{setlistfm_id}"
 
                 artists_data.append({
                     "artist": can_art,
                     "artist_seen_nth": artist_seen_nth,
                     "has_setlist": bool(sl and grouped_sets),
                     "setlist_url": setlist_url,
+                    "setlistfm_id": setlistfm_id,
+                    "setify_url": setify_url,
                     "total_songs": artist_songs_played,
                     "grouped_sets": grouped_sets,
                     "setlist_text": artist_setlist_text,
