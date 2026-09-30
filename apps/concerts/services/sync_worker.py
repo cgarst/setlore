@@ -86,8 +86,13 @@ class SyncWorker:
         profile = user.profile
 
         def update_progress(msg: str):
-            profile.sync_progress = msg
-            profile.save(update_fields=['sync_progress'])
+            for _ in range(5):
+                try:
+                    profile.sync_progress = msg
+                    profile.save(update_fields=['sync_progress'])
+                    break
+                except Exception:
+                    time.sleep(0.2)
 
         try:
             profile.sync_status = 'syncing'
