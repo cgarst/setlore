@@ -32,7 +32,7 @@ AVAILABLE_COMPONENTS = [
         "importance": "Essential / Recommended",
         "badge_class": "mb-badge-ready",
         "feature": "Song-to-Album & Release Year Enrichment",
-        "why_needed": "In MusicBrainz, song tracklists only exist inside Releases. This bridge links individual song names played at concerts directly to their canonical studio albums and earliest release dates, enabling complete offline enrichment with zero network latency.",
+        "why_needed": "ConcertTrakr uses this to map every song played in your concert history directly to its canonical studio album, track number, and original release year without making live API calls.",
         "default": True,
     },
     {
@@ -42,7 +42,7 @@ AVAILABLE_COMPONENTS = [
         "importance": "Optional",
         "badge_class": "mb-badge-busy",
         "feature": "Musicians & Multi-Band Lineups Tab",
-        "why_needed": "Contains artist relationships, active band member tenure start/end years, and instrument classifications (Drums, Bass, Guitar, Vocals, Keyboards). Powers offline lineup matching for the Musicians tab.",
+        "why_needed": "ConcertTrakr uses this to populate the Musicians & Lineups tab — determining which band members (Drums, Bass, Guitar, Vocals, Keyboards) were active in the band during the exact year of each concert you attended, and tracking musicians across multiple bands.",
         "default": False,
     },
     {
@@ -52,7 +52,7 @@ AVAILABLE_COMPONENTS = [
         "importance": "Optional",
         "badge_class": "mb-badge-api",
         "feature": "Album Discography & Era Visuals",
-        "why_needed": "Master list of all artist studio albums, EPs, and box sets without media tracklists. Used for album discography indexing and distinguishing studio releases from live/bootleg compilations.",
+        "why_needed": "ConcertTrakr uses this to classify studio albums vs. live/compilation releases and calculate song release ages for the Albums & Visuals treemap. (Note: If you download Releases & Tracklists above, this classification is already included automatically).",
         "default": False,
     },
     {
@@ -62,7 +62,7 @@ AVAILABLE_COMPONENTS = [
         "importance": "Lightweight Alternative",
         "badge_class": "mb-badge-api",
         "feature": "Song Title Normalization",
-        "why_needed": "Contains standalone recording titles and track lengths (without album joins). Useful for lightweight track title validation if you do not download the full release tracklists.",
+        "why_needed": "ConcertTrakr uses this as a lightweight fallback to normalize and fuzzy-match song titles and track lengths if you choose not to download the full Releases & Tracklists archive.",
         "default": False,
     }
 ]
