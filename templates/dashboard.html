@@ -2147,38 +2147,88 @@
     <div id="tab-concerts" class="hidden space-y-6">
       
       <!-- Top Bar: Search / Filter & Actions -->
-      <div class="glass-card p-5">
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div class="glass-card p-5 space-y-4">
+        <!-- Header Info Row -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/60 pb-3.5">
           <div>
-            <h2 class="text-lg font-bold text-white flex items-center gap-2">
-              <i class="fa-solid fa-ticket text-indigo-400"></i> Chronological Concert History & Setlists
-            </h2>
-            <p class="text-xs text-slate-400 mt-0.5">Explore every concert from latest to oldest, grouped by event and artist set, with nth-time heard, show frequencies, and song release ages.</p>
+            <div class="flex items-center gap-2.5 flex-wrap">
+              <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-ticket text-indigo-400"></i> Concert History & Setlists
+              </h2>
+              <span class="badge bg-indigo-500/20 text-indigo-300 font-bold text-xs border border-indigo-500/30">
+                {{ stats.concerts_drilldown|length }} Shows
+              </span>
+            </div>
+            <p class="text-xs text-slate-400 mt-1">Chronological archive of live concerts, setlists, artist lineups, and track occurrences.</p>
           </div>
-          <div class="flex flex-wrap items-center gap-3">
-            <div class="relative flex items-center w-64">
-              <input type="text" id="concert-search-input" placeholder="Search artist, venue, or year..." oninput="handleFilterInput('concert-search-input', 'concert-search-clear', filterConcertCards)" class="bg-slate-900 border border-slate-700 rounded-lg pl-3 pr-7 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 w-full">
-              <button type="button" id="concert-search-clear" onclick="clearFilterField('concert-search-input', 'concert-search-clear', filterConcertCards)" class="hidden absolute right-2 text-slate-400 hover:text-white p-0.5 cursor-pointer text-xs transition" title="Clear search">
-                <i class="fa-solid fa-xmark"></i>
+          <div class="flex items-center gap-2 shrink-0">
+            <button type="button"
+                    id="concert-expand-all-btn"
+                    onclick="toggleAllConcertCards()"
+                    class="px-3 py-1.5 rounded-lg bg-slate-800/90 hover:bg-slate-700 text-xs font-semibold text-slate-300 hover:text-white border border-slate-700 transition flex items-center gap-1.5 cursor-pointer shadow-sm">
+              <i class="fa-solid fa-up-right-and-down-left-from-center text-xs text-indigo-400" id="concert-expand-all-icon"></i>
+              <span id="concert-expand-all-text">Expand All</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Filter & Search Toolbar -->
+        <div class="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+          <!-- Search Box -->
+          <div class="relative flex-1 max-w-lg">
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs pointer-events-none"></i>
+            <input type="text"
+                   id="concert-search-input"
+                   placeholder="Search by artist, venue, city, or year..."
+                   oninput="handleFilterInput('concert-search-input', 'concert-search-clear', filterConcertCards)"
+                   class="bg-slate-900/90 border border-slate-700/80 rounded-lg pl-8 pr-8 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 w-full transition">
+            <button type="button"
+                    id="concert-search-clear"
+                    onclick="clearFilterField('concert-search-input', 'concert-search-clear', filterConcertCards)"
+                    class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-0.5 cursor-pointer text-xs transition"
+                    title="Clear search">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+
+          <!-- Filter Pills & Result Counter -->
+          <div class="flex flex-wrap items-center gap-2.5 justify-between md:justify-end">
+            <div class="inline-flex rounded-lg p-0.5 bg-slate-900 border border-slate-700/80 text-xs font-semibold">
+              <button type="button"
+                      id="concert-filter-all-btn"
+                      onclick="setConcertFavoriteFilter(false)"
+                      class="px-3 py-1.5 rounded-md transition cursor-pointer bg-indigo-600 text-white shadow-sm font-bold">
+                All Shows
+              </button>
+              <button type="button"
+                      id="concert-favorites-filter-btn"
+                      onclick="setConcertFavoriteFilter(true)"
+                      class="px-3 py-1.5 rounded-md transition cursor-pointer text-slate-400 hover:text-white flex items-center gap-1.5">
+                <i class="fa-solid fa-star text-amber-400 text-xs"></i>
+                <span>Favorites</span>
               </button>
             </div>
-            <button type="button"
-                    id="concert-favorites-filter-btn"
-                    onclick="toggleFavoriteConcertsFilter()"
-                    class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300 border border-slate-700 hover:border-amber-400/50 transition flex items-center gap-1.5 shadow-sm cursor-pointer"
-                    title="Filter to show only favorited concerts">
-              <i class="fa-regular fa-star text-amber-400" id="concert-favorites-filter-icon"></i>
-              <span id="concert-favorites-filter-text">Favorites</span>
-            </button>
-            <button onclick="toggleAllConcertCards()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-indigo-300 border border-slate-700 hover:border-indigo-500/50 transition">
-              Expand / Collapse All
-            </button>
+
+            <span id="concerts-count-badge" class="text-xs text-slate-400 font-medium px-1">
+              Showing {{ stats.concerts_drilldown|length }}
+            </span>
           </div>
         </div>
       </div>
 
       <!-- Concert Cards List -->
       <div id="concert-cards-list" class="space-y-4">
+        <!-- Empty State (Hidden by default) -->
+        <div id="concerts-no-results" class="hidden glass-card p-10 text-center space-y-3">
+          <div class="w-12 h-12 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center mx-auto text-lg">
+            <i class="fa-solid fa-ticket-simple"></i>
+          </div>
+          <h3 class="text-base font-bold text-white">No matching concerts found</h3>
+          <p class="text-xs text-slate-400 max-w-sm mx-auto">Try adjusting your search terms or filter selection to find what you're looking for.</p>
+          <button type="button" onclick="resetConcertFilters()" class="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-bold text-white transition shadow-sm cursor-pointer">
+            Reset Filters
+          </button>
+        </div>
         {% for c in stats.concerts_drilldown %}
         <div class="concert-card glass-card p-5 space-y-4 border border-slate-800/80 hover:border-slate-700/80 transition"
              id="concert-card-{{ c.id }}"
@@ -4438,6 +4488,19 @@
 
     function toggleAllConcertCards() {
       allConcertsExpanded = !allConcertsExpanded;
+      const expandBtn = document.getElementById('concert-expand-all-btn');
+      const expandIcon = document.getElementById('concert-expand-all-icon');
+      const expandText = document.getElementById('concert-expand-all-text');
+
+      if (expandText) expandText.textContent = allConcertsExpanded ? 'Collapse All' : 'Expand All';
+      if (expandIcon) {
+        if (allConcertsExpanded) {
+          expandIcon.className = 'fa-solid fa-down-left-and-up-right-to-center text-xs text-indigo-400';
+        } else {
+          expandIcon.className = 'fa-solid fa-up-right-and-down-left-from-center text-xs text-indigo-400';
+        }
+      }
+
       document.querySelectorAll('.concert-card').forEach(card => {
         const details = card.querySelector('[id^="concert-details-"]');
         const chevron = card.querySelector('[id^="concert-chevron-"]');
@@ -4455,40 +4518,71 @@
 
     let showOnlyFavorites = false;
 
-    function toggleFavoriteConcertsFilter() {
-      showOnlyFavorites = !showOnlyFavorites;
-      const btn = document.getElementById('concert-favorites-filter-btn');
-      const icon = document.getElementById('concert-favorites-filter-icon');
-      if (showOnlyFavorites) {
-        btn.classList.add('bg-amber-500/20', 'border-amber-500/60', 'text-amber-300');
-        btn.classList.remove('bg-slate-800', 'text-slate-300', 'border-slate-700');
-        if (icon) {
-          icon.classList.remove('fa-regular');
-          icon.classList.add('fa-solid');
-        }
-      } else {
-        btn.classList.remove('bg-amber-500/20', 'border-amber-500/60', 'text-amber-300');
-        btn.classList.add('bg-slate-800', 'text-slate-300', 'border-slate-700');
-        if (icon) {
-          icon.classList.remove('fa-solid');
-          icon.classList.add('fa-regular');
+    function setConcertFavoriteFilter(favOnly) {
+      showOnlyFavorites = favOnly;
+      const allBtn = document.getElementById('concert-filter-all-btn');
+      const favBtn = document.getElementById('concert-favorites-filter-btn');
+
+      if (allBtn && favBtn) {
+        if (showOnlyFavorites) {
+          allBtn.className = 'px-3 py-1.5 rounded-md transition cursor-pointer text-slate-400 hover:text-white';
+          favBtn.className = 'px-3 py-1.5 rounded-md transition cursor-pointer bg-amber-500/20 text-amber-300 font-bold border border-amber-500/40 shadow-sm flex items-center gap-1.5';
+        } else {
+          allBtn.className = 'px-3 py-1.5 rounded-md transition cursor-pointer bg-indigo-600 text-white shadow-sm font-bold';
+          favBtn.className = 'px-3 py-1.5 rounded-md transition cursor-pointer text-slate-400 hover:text-white flex items-center gap-1.5';
         }
       }
+
       const searchInput = document.getElementById('concert-search-input');
       filterConcertCards(searchInput ? searchInput.value : '');
     }
 
+    function toggleFavoriteConcertsFilter() {
+      setConcertFavoriteFilter(!showOnlyFavorites);
+    }
+
+    function resetConcertFilters() {
+      const searchInput = document.getElementById('concert-search-input');
+      const clearBtn = document.getElementById('concert-search-clear');
+      if (searchInput) searchInput.value = '';
+      if (clearBtn) clearBtn.classList.add('hidden');
+      setConcertFavoriteFilter(false);
+    }
+
     function filterConcertCards(query) {
       const q = (query || '').toLowerCase().trim();
+      let visibleCount = 0;
+      let totalCount = 0;
+
       document.querySelectorAll('.concert-card').forEach(card => {
+        totalCount++;
         const searchData = card.getAttribute('data-search') || '';
         const isFav = card.getAttribute('data-is-favorite') === 'true';
 
         const matchesQuery = !q || searchData.includes(q);
         const matchesFav = !showOnlyFavorites || isFav;
 
-        card.style.display = (matchesQuery && matchesFav) ? 'block' : 'none';
+        if (matchesQuery && matchesFav) {
+          card.style.display = 'block';
+          visibleCount++;
+        } else {
+          card.style.display = 'none';
+        }
       });
+
+      const countBadge = document.getElementById('concerts-count-badge');
+      if (countBadge) {
+        if (visibleCount === totalCount) {
+          countBadge.textContent = `Showing ${totalCount} shows`;
+        } else {
+          countBadge.textContent = `Showing ${visibleCount} of ${totalCount} shows`;
+        }
+      }
+
+      const noResults = document.getElementById('concerts-no-results');
+      if (noResults) {
+        noResults.classList.toggle('hidden', visibleCount > 0);
+      }
     }
 
     async function toggleConcertFavorite(concertId, dbId) {
