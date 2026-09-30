@@ -186,7 +186,17 @@ class AlbumEnricher:
         return queries
 
     def _query_musicbrainz_studio_album(self, artist_name: str, song_name: str) -> Tuple[Optional[str], Optional[int]]:
-        """Queries MusicBrainz API dynamically to find the original studio album and release year."""
+        """Queries local disk dump if available, otherwise queries MusicBrainz API dynamically."""
+        try:
+            from src.musicbrainz_dump import MusicBrainzDumpManager
+            mb_dump = MusicBrainzDumpManager.get_instance()
+            if mb_dump.is_dump_available():
+                local_album, local_yr = mb_dump.lookup_studio_album(artist_name, song_name)
+                if local_album or local_yr:
+                    return local_album, local_yr
+        except Exception:
+            pass
+
         queries = self._generate_query_variations(song_name)
 
         for q_song in queries:

@@ -95,3 +95,10 @@ class ApiCache(models.Model):
 
     def __str__(self):
         return f"[{self.endpoint}] {self.cache_key}"
+
+class MusicBrainzDump(models.Model):
+    class Meta:
+        managed = False
+        verbose_name = "MusicBrainz Dump Manager"
+        verbose_name_plural = "MusicBrainz Dump Manager"
+

@@ -1,5 +1,17 @@
 from django.contrib import admin
-from .models import Artist, Album, Song, Venue, MusicianTenure, ApiCache
+from .models import Artist, Album, Song, Venue, MusicianTenure, ApiCache, MusicBrainzDump
+
+@admin.register(MusicBrainzDump)
+class MusicBrainzDumpAdmin(admin.ModelAdmin):
+    def changelist_view(self, request, extra_context=None):
+        from .views import musicbrainz_dump_admin_view
+        return musicbrainz_dump_admin_view(request)
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 class AlbumInline(admin.TabularInline):
     model = Album

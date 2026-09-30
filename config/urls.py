@@ -3,8 +3,10 @@ from django.urls import path, reverse_lazy
 from django.contrib.auth import views as auth_views
 from apps.core import views as core_views
 from apps.concerts import views as concerts_views
+from apps.catalog import views as catalog_views
 
 urlpatterns = [
+    path('admin/musicbrainz/', catalog_views.musicbrainz_dump_admin_view, name='admin_musicbrainz_dump'),
     path('admin/', admin.site.urls),
     path('health/', core_views.health_check, name='health_check'),
     path('privacy/', core_views.privacy_view, name='privacy'),
@@ -79,6 +81,13 @@ urlpatterns = [
     path('api/autocomplete/', concerts_views.autocomplete_view, name='api_autocomplete'),
     path('api/ticketmaster/preview/', concerts_views.parse_ticketmaster_preview, name='api_ticketmaster_preview'),
     path('api/ticketmaster/confirm/', concerts_views.confirm_ticketmaster_import, name='api_ticketmaster_confirm'),
+
+    # MusicBrainz Dump Management API
+    path('api/admin/musicbrainz-dump/status/', catalog_views.api_musicbrainz_dump_status, name='api_mb_dump_status'),
+    path('api/admin/musicbrainz-dump/download/', catalog_views.api_musicbrainz_dump_download, name='api_mb_dump_download'),
+    path('api/admin/musicbrainz-dump/cancel/', catalog_views.api_musicbrainz_dump_cancel, name='api_mb_dump_cancel'),
+    path('api/admin/musicbrainz-dump/delete/', catalog_views.api_musicbrainz_dump_delete, name='api_mb_dump_delete'),
+    path('api/admin/musicbrainz-dump/test-lookup/', catalog_views.api_musicbrainz_dump_test_lookup, name='api_mb_dump_test_lookup'),
 ]
 
 

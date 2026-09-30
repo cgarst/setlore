@@ -1,0 +1,575 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrahead %}
+{{ block.super }}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+  :root {
+    --primary: #6366f1;
+    --primary-hover: #4f46e5;
+    --bg-card: #1e293b;
+    --border-color: #334155;
+  }
+  .mb-dump-card {
+    background-color: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    color: #f1f5f9;
+  }
+  .mb-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.65rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+  .mb-badge-ready {
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+  }
+  .mb-badge-api {
+    background: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+  }
+  .mb-badge-busy {
+    background: rgba(99, 102, 241, 0.15);
+    color: #818cf8;
+    border: 1px solid rgba(99, 102, 241, 0.3);
+  }
+  .btn-primary-mb {
+    background-color: #6366f1;
+    color: #ffffff !important;
+    padding: 0.5rem 1.25rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s ease;
+  }
+  .btn-primary-mb:hover {
+    background-color: #4f46e5;
+    transform: translateY(-1px);
+  }
+  .btn-danger-mb {
+    background-color: rgba(239, 68, 68, 0.15);
+    color: #f87171 !important;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    padding: 0.5rem 1.25rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s ease;
+  }
+  .btn-danger-mb:hover {
+    background-color: rgba(239, 68, 68, 0.25);
+    border-color: rgba(239, 68, 68, 0.5);
+  }
+  .btn-secondary-mb {
+    background-color: #334155;
+    color: #e2e8f0 !important;
+    border: 1px solid #475569;
+    padding: 0.5rem 1.25rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s ease;
+  }
+  .btn-secondary-mb:hover {
+    background-color: #475569;
+  }
+  .grid-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  .stat-box {
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 0.5rem;
+    padding: 1rem;
+  }
+  .stat-label {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+  }
+  .stat-value {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #f8fafc;
+    margin-top: 0.25rem;
+  }
+  .progress-bar-bg {
+    background-color: #0f172a;
+    border-radius: 9999px;
+    height: 0.75rem;
+    overflow: hidden;
+    border: 1px solid #334155;
+    margin-top: 0.5rem;
+  }
+  .progress-bar-fill {
+    background: linear-gradient(90deg, #6366f1, #a855f7);
+    height: 100%;
+    transition: width 0.3s ease;
+  }
+  .table-files {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+    font-size: 0.875rem;
+  }
+  .table-files th, .table-files td {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid #334155;
+  }
+  .table-files th {
+    background-color: #0f172a;
+    color: #94a3b8;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+  }
+  .input-text-mb {
+    background-color: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    color: #ffffff;
+    font-size: 0.875rem;
+    width: 100%;
+  }
+  .input-text-mb:focus {
+    outline: none;
+    border-color: #6366f1;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="max-width: 1100px; margin: 0 auto; padding: 1rem 0;">
+  
+  <!-- Header Card -->
+  <div class="mb-dump-card">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+      <div>
+        <h1 style="font-size: 1.5rem; font-weight: 800; margin: 0; color: #ffffff; display: flex; align-items: center; gap: 0.75rem;">
+          <i class="fa-solid fa-database" style="color: #818cf8;"></i> MusicBrainz JSON Dump Manager
+        </h1>
+        <p style="color: #94a3b8; font-size: 0.875rem; margin-top: 0.25rem;">
+          Download and manage local disk-based MusicBrainz dumps (<a href="https://data.metabrainz.org/pub/musicbrainz/data/json-dumps/" target="_blank" rel="noopener noreferrer" style="color: #818cf8; text-decoration: underline;">MetaBrainz Repository</a>).
+          When present, album enrichment queries disk with <strong>zero network latency and no rate limits</strong>.
+        </p>
+      </div>
+      <div>
+        <span id="header-mode-badge" class="mb-badge {% if status.is_available %}mb-badge-ready{% elif status.is_running %}mb-badge-busy{% else %}mb-badge-api{% endif %}">
+          {% if status.is_available %}
+            <i class="fa-solid fa-circle-check"></i> Local Disk Mode Active
+          {% elif status.is_running %}
+            <i class="fa-solid fa-spinner fa-spin"></i> Processing Dump...
+          {% else %}
+            <i class="fa-solid fa-cloud"></i> Live Web API Mode
+          {% endif %}
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Metric Overview Cards -->
+  <div class="grid-stats">
+    <div class="stat-box">
+      <div class="stat-label">Local Dump Version</div>
+      <div class="stat-value" id="stat-local-version" style="font-family: monospace; font-size: 1.25rem;">
+        {{ status.local_version|default:"None (Not Downloaded)" }}
+      </div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-label">Latest Upstream Dump</div>
+      <div class="stat-value" id="stat-upstream-version" style="font-family: monospace; font-size: 1.25rem; color: #818cf8;">
+        {{ upstream_version }}
+      </div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-label">Indexed Local Tracks</div>
+      <div class="stat-value" id="stat-records-count">
+        {{ status.record_count|default:"0" }}
+      </div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-label">Total Disk Footprint</div>
+      <div class="stat-value" id="stat-disk-size">
+        {{ status.total_disk_size_mb }} MB
+      </div>
+    </div>
+  </div>
+
+  <!-- Active Job Progress Box (Visible when downloading/extracting) -->
+  <div id="progress-box" class="mb-dump-card" style="{% if not status.is_running %}display: none;{% endif %} border-color: #6366f1;">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <h3 style="margin: 0; font-size: 1rem; font-weight: 700; color: #ffffff; display: flex; align-items: center; gap: 0.5rem;">
+        <i class="fa-solid fa-arrows-rotate fa-spin" style="color: #818cf8;"></i>
+        <span id="progress-step-text">{{ status.progress.step|default:"Processing..." }}</span>
+      </h3>
+      <button type="button" onclick="cancelDumpJob()" class="btn-danger-mb" style="padding: 0.25rem 0.75rem; font-size: 0.75rem;">
+        <i class="fa-solid fa-stop"></i> Cancel
+      </button>
+    </div>
+    <div class="progress-bar-bg">
+      <div id="progress-bar-fill" class="progress-bar-fill" style="width: {{ status.progress.percent|default:0 }}%;"></div>
+    </div>
+    <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: #94a3b8; margin-top: 0.5rem;">
+      <span id="progress-details-text">
+        {% if status.progress.speed %}{{ status.progress.speed }} • {% endif %}
+        {% if status.progress.indexed %}{{ status.progress.indexed }} records indexed{% endif %}
+      </span>
+      <span id="progress-pct-text">{{ status.progress.percent|default:0 }}%</span>
+    </div>
+  </div>
+
+  <!-- Actions & Component Selection -->
+  <div class="mb-dump-card">
+    <h2 style="font-size: 1.15rem; font-weight: 700; margin-top: 0; color: #ffffff; display: flex; align-items: center; gap: 0.5rem;">
+      <i class="fa-solid fa-download" style="color: #38bdf8;"></i> Dump Components &amp; Actions
+    </h2>
+    <p style="color: #94a3b8; font-size: 0.85rem; margin-bottom: 1.25rem;">
+      Select the dataset components to download from MetaBrainz. The <code>recording.tar.xz</code> dataset (~34 MB) provides complete track-level metadata and is recommended for standard concert setlist enrichment.
+    </p>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+      {% for comp in status.components %}
+      <label style="display: flex; gap: 0.75rem; padding: 0.75rem; background: #0f172a; border: 1px solid #334155; border-radius: 0.5rem; cursor: pointer; align-items: flex-start;">
+        <input type="checkbox" name="dump_component" value="{{ comp.filename }}" {% if comp.default %}checked{% endif %} style="margin-top: 0.25rem;">
+        <div>
+          <div style="font-weight: 700; color: #ffffff; font-size: 0.875rem;">{{ comp.name }}</div>
+          <div style="font-size: 0.75rem; color: #818cf8; font-family: monospace; font-weight: 600;">{{ comp.filename }} ({{ comp.approx_size }})</div>
+          <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 0.25rem;">{{ comp.description }}</div>
+        </div>
+      </label>
+      {% endfor %}
+    </div>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; justify-content: space-between; border-top: 1px solid #334155; pt: 1rem; padding-top: 1rem;">
+      <div style="display: flex; flex-wrap: wrap; gap: 0.75rem;">
+        <button type="button" id="btn-download-dump" onclick="startDumpDownload()" class="btn-primary-mb">
+          <i class="fa-solid fa-cloud-arrow-down"></i> Download / Update Latest Dump
+        </button>
+        <button type="button" onclick="refreshStatus()" class="btn-secondary-mb">
+          <i class="fa-solid fa-rotate"></i> Check Status
+        </button>
+      </div>
+      <div>
+        <button type="button" id="btn-delete-dump" onclick="confirmDeleteDump()" class="btn-danger-mb" {% if not status.files %}style="display: none;"{% endif %}>
+          <i class="fa-solid fa-trash-can"></i> Delete Local Dump from Disk
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Interactive Test Lookup Tool -->
+  <div class="mb-dump-card">
+    <h2 style="font-size: 1.15rem; font-weight: 700; margin-top: 0; color: #ffffff; display: flex; align-items: center; gap: 0.5rem;">
+      <i class="fa-solid fa-vial" style="color: #a855f7;"></i> Test Lookup Tool
+    </h2>
+    <p style="color: #94a3b8; font-size: 0.85rem; margin-bottom: 1rem;">
+      Test song studio album resolution against the local disk index.
+    </p>
+    <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 0.75rem; align-items: end;">
+      <div>
+        <label style="display: block; font-size: 0.75rem; color: #94a3b8; font-weight: 600; margin-bottom: 0.25rem;">Artist Name</label>
+        <input type="text" id="test-artist-input" placeholder="e.g. Dream Theater" class="input-text-mb" value="Dream Theater">
+      </div>
+      <div>
+        <label style="display: block; font-size: 0.75rem; color: #94a3b8; font-weight: 600; margin-bottom: 0.25rem;">Song Name</label>
+        <input type="text" id="test-song-input" placeholder="e.g. Pull Me Under" class="input-text-mb" value="Pull Me Under">
+      </div>
+      <div>
+        <button type="button" onclick="runTestLookup()" class="btn-primary-mb" style="height: 38px;">
+          <i class="fa-solid fa-magnifying-glass"></i> Test Lookup
+        </button>
+      </div>
+    </div>
+    <div id="test-result-box" style="display: none; margin-top: 1rem; padding: 0.75rem 1rem; background: #0f172a; border: 1px solid #334155; border-radius: 0.5rem;">
+      <div id="test-result-content" style="font-size: 0.875rem;"></div>
+    </div>
+  </div>
+
+  <!-- Files on Disk Table -->
+  <div class="mb-dump-card">
+    <h2 style="font-size: 1.15rem; font-weight: 700; margin-top: 0; color: #ffffff; display: flex; align-items: center; gap: 0.5rem;">
+      <i class="fa-solid fa-hard-drive" style="color: #f59e0b;"></i> Files Stored on Disk
+    </h2>
+    <div style="overflow-x: auto;">
+      <table class="table-files">
+        <thead>
+          <tr>
+            <th>Filename</th>
+            <th>Size</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="files-table-body">
+          {% for f in status.files %}
+          <tr>
+            <td style="font-family: monospace; font-weight: 600; color: #ffffff;">{{ f.name }}</td>
+            <td style="color: #94a3b8;">{{ f.size_human }}</td>
+            <td><span class="mb-badge mb-badge-ready"><i class="fa-solid fa-check"></i> On Disk</span></td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="3" style="text-align: center; color: #64748b; padding: 2rem;">No dump files downloaded yet.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  let pollInterval = null;
+
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+
+  async function refreshStatus() {
+    try {
+      const res = await fetch('/api/admin/musicbrainz-dump/status/');
+      if (!res.ok) return;
+      const data = await res.json();
+      updateUI(data);
+    } catch (e) {
+      console.error('Error fetching dump status:', e);
+    }
+  }
+
+  function updateUI(status) {
+    const isReady = status.is_available;
+    const isRunning = status.is_running;
+
+    // Mode Badge
+    const badge = document.getElementById('header-mode-badge');
+    if (badge) {
+      if (isReady) {
+        badge.className = 'mb-badge mb-badge-ready';
+        badge.innerHTML = '<i class="fa-solid fa-circle-check"></i> Local Disk Mode Active';
+      } else if (isRunning) {
+        badge.className = 'mb-badge mb-badge-busy';
+        badge.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Processing Dump...';
+      } else {
+        badge.className = 'mb-badge mb-badge-api';
+        badge.innerHTML = '<i class="fa-solid fa-cloud"></i> Live Web API Mode';
+      }
+    }
+
+    // Stats
+    document.getElementById('stat-local-version').textContent = status.local_version || 'None (Not Downloaded)';
+    if (status.upstream_version) {
+      document.getElementById('stat-upstream-version').textContent = status.upstream_version;
+    }
+    document.getElementById('stat-records-count').textContent = (status.record_count || 0).toLocaleString();
+    document.getElementById('stat-disk-size').textContent = (status.total_disk_size_mb || 0) + ' MB';
+
+    // Progress Box
+    const progressBox = document.getElementById('progress-box');
+    if (isRunning) {
+      progressBox.style.display = 'block';
+      const p = status.progress || {};
+      document.getElementById('progress-step-text').textContent = p.step || 'Processing...';
+      document.getElementById('progress-bar-fill').style.width = (p.percent || 0) + '%';
+      document.getElementById('progress-pct-text').textContent = (p.percent || 0) + '%';
+      let details = '';
+      if (p.speed) details += p.speed + ' ';
+      if (p.indexed) details += ' • ' + p.indexed.toLocaleString() + ' records indexed';
+      document.getElementById('progress-details-text').textContent = details;
+
+      if (!pollInterval) {
+        pollInterval = setInterval(refreshStatus, 1500);
+      }
+    } else {
+      progressBox.style.display = 'none';
+      if (pollInterval) {
+        clearInterval(pollInterval);
+        pollInterval = null;
+      }
+    }
+
+    // Delete Button visibility
+    const deleteBtn = document.getElementById('btn-delete-dump');
+    if (deleteBtn) {
+      deleteBtn.style.display = (status.files && status.files.length > 0) ? 'inline-flex' : 'none';
+    }
+
+    // Files table
+    const tbody = document.getElementById('files-table-body');
+    if (tbody && status.files) {
+      if (status.files.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: #64748b; padding: 2rem;">No dump files downloaded yet.</td></tr>';
+      } else {
+        tbody.innerHTML = status.files.map(f => `
+          <tr>
+            <td style="font-family: monospace; font-weight: 600; color: #ffffff;">${f.name}</td>
+            <td style="color: #94a3b8;">${f.size_human}</td>
+            <td><span class="mb-badge mb-badge-ready"><i class="fa-solid fa-check"></i> On Disk</span></td>
+          </tr>
+        `).join('');
+      }
+    }
+  }
+
+  async function startDumpDownload() {
+    const checkboxes = document.querySelectorAll('input[name="dump_component"]:checked');
+    const components = Array.from(checkboxes).map(cb => cb.value);
+    if (components.length === 0) {
+      alert('Please select at least one component to download.');
+      return;
+    }
+
+    const btn = document.getElementById('btn-download-dump');
+    btn.disabled = true;
+    try {
+      const res = await fetch('/api/admin/musicbrainz-dump/download/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken'),
+        },
+        body: JSON.stringify({ components: components })
+      });
+      const data = await res.json();
+      if (data.status === 'success') {
+        refreshStatus();
+      } else {
+        alert(data.message || 'Failed to start download.');
+      }
+    } catch (e) {
+      alert('Error initiating download: ' + e);
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  async function cancelDumpJob() {
+    try {
+      await fetch('/api/admin/musicbrainz-dump/cancel/', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': getCookie('csrftoken') }
+      });
+      refreshStatus();
+    } catch (e) {
+      alert('Error cancelling job: ' + e);
+    }
+  }
+
+  async function confirmDeleteDump() {
+    if (!confirm('Are you sure you want to delete the local MusicBrainz dump from disk? All local lookup indexes will be removed and Setlore will fall back to live API mode.')) {
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/admin/musicbrainz-dump/delete/', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': getCookie('csrftoken') }
+      });
+      const data = await res.json();
+      if (data.status === 'success') {
+        refreshStatus();
+      } else {
+        alert(data.message || 'Error deleting dump.');
+      }
+    } catch (e) {
+      alert('Error deleting dump: ' + e);
+    }
+  }
+
+  async function runTestLookup() {
+    const artist = document.getElementById('test-artist-input').value.trim();
+    const song = document.getElementById('test-song-input').value.trim();
+    if (!artist || !song) return;
+
+    const resBox = document.getElementById('test-result-box');
+    const content = document.getElementById('test-result-content');
+    resBox.style.display = 'block';
+    content.innerHTML = '<span style="color: #94a3b8;"><i class="fa-solid fa-spinner fa-spin"></i> Querying...</span>';
+
+    try {
+      const res = await fetch('/api/admin/musicbrainz-dump/test-lookup/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({ artist: artist, song: song })
+      });
+      const data = await res.json();
+      if (data.status === 'success') {
+        const local = data.local_result;
+        if (local && (local.album || local.release_year)) {
+          content.innerHTML = `
+            <div style="color: #34d399; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+              <i class="fa-solid fa-circle-check"></i> Found in Local Disk Index!
+            </div>
+            <div style="color: #f1f5f9;">
+              <strong>Artist:</strong> ${data.artist} &nbsp;|&nbsp; 
+              <strong>Song:</strong> ${data.song} &nbsp;|&nbsp; 
+              <strong>Album:</strong> ${local.album || 'Unknown'} &nbsp;|&nbsp; 
+              <strong>Release Year:</strong> ${local.release_year || 'Unknown'}
+            </div>
+          `;
+        } else {
+          content.innerHTML = `
+            <div style="color: #fbbf24; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+              <i class="fa-solid fa-circle-info"></i> Not found in local disk index (will fall back to Live API during sync).
+            </div>
+            <div style="color: #94a3b8; font-size: 0.75rem;">
+              Dump Active: ${data.local_dump_available ? 'Yes' : 'No'}
+            </div>
+          `;
+        }
+      } else {
+        content.innerHTML = `<span style="color: #f87171;">${data.message || 'Lookup failed'}</span>`;
+      }
+    } catch (e) {
+      content.innerHTML = `<span style="color: #f87171;">Error: ${e}</span>`;
+    }
+  }
+
+  // Initial check
+  {% if status.is_running %}
+  pollInterval = setInterval(refreshStatus, 1500);
+  {% endif %}
+</script>
+{% endblock %}
