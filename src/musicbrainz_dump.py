@@ -29,7 +29,7 @@ AVAILABLE_COMPONENTS = [
         "filename": "release.tar.xz",
         "name": "Releases & Tracklists (Song-to-Album Bridge)",
         "approx_size": "23 GB (~1.5 GB indexed DB)",
-        "importance": "Essential / Recommended",
+        "importance": "Required",
         "badge_class": "mb-badge-ready",
         "feature": "Song-to-Album & Release Year Enrichment",
         "why_needed": "ConcertTrakr uses this to map every song played in your concert history directly to its canonical studio album, track number, and original release year without making live API calls.",
@@ -39,11 +39,11 @@ AVAILABLE_COMPONENTS = [
         "filename": "artist.tar.xz",
         "name": "Artists & Musician Tenures",
         "approx_size": "2.1 GB",
-        "importance": "Optional",
-        "badge_class": "mb-badge-busy",
+        "importance": "Required",
+        "badge_class": "mb-badge-ready",
         "feature": "Musicians & Multi-Band Lineups Tab",
         "why_needed": "ConcertTrakr uses this to populate the Musicians & Lineups tab — determining which band members (Drums, Bass, Guitar, Vocals, Keyboards) were active in the band during the exact year of each concert you attended, and tracking musicians across multiple bands.",
-        "default": False,
+        "default": True,
     }
 ]
 
@@ -184,7 +184,7 @@ class MusicBrainzDumpManager:
             return False, "A download or build task is already currently running."
 
         if not components:
-            components = ["release.tar.xz"]
+            components = ["release.tar.xz", "artist.tar.xz"]
 
         self._cancel_requested = False
 
