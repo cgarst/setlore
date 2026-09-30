@@ -32,12 +32,30 @@ class SyncWorker:
             if cls._instance is None:
                 cls._instance = super().__new__(cls)
                 cls._instance._queue = queue.Queue()
+                cls._instance._queued_user_ids = set()
                 cls._instance._thread = threading.Thread(target=cls._instance._worker_loop, daemon=True)
                 cls._instance._thread.start()
         return cls._instance
 
+    def resume_interrupted_syncs(self):
+        """
+        Scans for user profiles that were marked as 'syncing' when the server last stopped
+        or restarted, and enqueues them to continue processing automatically.
+        """
+        try:
+            interrupted = list(UserProfile.objects.filter(sync_status='syncing').values_list('user_id', flat=True))
+            for uid in interrupted:
+                logger.info("Resuming in-process sync for user_id=%d after server startup/restart", uid)
+                self.enqueue_sync(uid)
+        except Exception as e:
+            logger.warning("Could not check for interrupted syncs on startup: %s", e)
+
     def enqueue_sync(self, user_id: int):
-        self._queue.put(user_id)
+        with self._lock:
+            if user_id in self._queued_user_ids:
+                return
+            self._queued_user_ids.add(user_id)
+            self._queue.put(user_id)
         try:
             profile = UserProfile.objects.get(user_id=user_id)
             profile.sync_status = 'syncing'
@@ -47,9 +65,13 @@ class SyncWorker:
             pass
 
     def _worker_loop(self):
+        # On worker startup, check for any in-process syncs from previous run
+        self.resume_interrupted_syncs()
         while True:
             try:
                 user_id = self._queue.get()
+                with self._lock:
+                    self._queued_user_ids.discard(user_id)
                 self._process_user_sync(user_id)
             except Exception as e:
                 logger.exception("Error in sync worker loop: %s", e)
@@ -84,6 +106,10 @@ class SyncWorker:
             if setlist_username and client:
                 update_progress(f"Connecting to Setlist.fm for @{setlist_username}...")
                 user_attended = client.get_user_attended(setlist_username, use_cache=True)
+                if user_attended:
+                    update_progress(f"Synchronizing {len(user_attended)} attended setlists into database...")
+                    from apps.concerts.utils import import_setlistfm_shows_into_database
+                    import_setlistfm_shows_into_database(user, user_attended, ignored_artists=profile.ignored_artists)
                 update_progress(f"Retrieved {len(user_attended)} attended setlists. Reconciling with concert history...")
             else:
                 update_progress("Reconciling concerts and metadata...")

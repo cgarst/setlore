@@ -355,3 +355,243 @@ def build_manual_setlist_for_concert_artist(ca) -> Optional[Dict[str, Any]]:
         "sets": {"set": sets_list},
         "is_manual": True
     }
+
+def parse_setlistfm_sets_to_tracks(sl: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """
+    Extracts ordered track dictionaries from a Setlist.fm API setlist payload dictionary.
+    """
+    sets = sl.get("sets", {}).get("set", []) if isinstance(sl.get("sets"), dict) else []
+    tracks = []
+    encore_count = 0
+    for s in sets:
+        if not isinstance(s, dict):
+            continue
+        is_encore = bool(s.get("encore"))
+        if is_encore:
+            encore_count += 1
+            enc_num = s.get("encore")
+            encore_number = enc_num if isinstance(enc_num, int) else encore_count
+            set_name = f"Encore {encore_number}" if encore_number > 1 else "Encore"
+        else:
+            encore_number = None
+            set_name = s.get("name") or "Main Set"
+        song_list = s.get("song", [])
+        if not isinstance(song_list, list):
+            song_list = [song_list]
+        for song_obj in song_list:
+            if not isinstance(song_obj, dict):
+                continue
+            if song_obj.get("tape"):
+                continue
+            name = (song_obj.get("name") or "").strip()
+            if not name:
+                continue
+            is_cover = bool(song_obj.get("cover"))
+            orig = song_obj.get("cover", {}).get("name", "") if is_cover and isinstance(song_obj.get("cover"), dict) else ""
+            info = (song_obj.get("info") or "").strip()
+            tracks.append({
+                "title": name,
+                "set_name": set_name,
+                "is_encore": is_encore,
+                "encore_number": encore_number,
+                "is_cover": is_cover,
+                "original_artist": orig,
+                "info": info
+            })
+    return tracks
+
+def import_setlistfm_shows_into_database(user, user_attended: List[Dict[str, Any]], ignored_artists: Optional[List[str]] = None) -> int:
+    """
+    Ingests attended setlists from Setlist.fm directly into the database as Concert,
+    ConcertArtist, and ConcertSong records for the specified user, ensuring existing shows
+    are linked and new shows are created automatically.
+    """
+    from datetime import datetime
+    from django.db import transaction
+    from apps.catalog.models import Venue, Artist, Song
+    from apps.concerts.models import Concert, ConcertArtist, ConcertSong
+    from src.csv_parser import normalize_artist_name
+    from src.gap_analysis import is_ignored_artist
+
+    if not user_attended:
+        return 0
+
+    ignored_list = ignored_artists or []
+    venues_cache = {v.name.lower(): v for v in Venue.objects.all()}
+    artists_cache = {a.normalized_name: a for a in Artist.objects.all()}
+    songs_cache = {}
+    imported_count = 0
+
+    with transaction.atomic():
+        for sl in user_attended:
+            art_name = (sl.get("artist", {}).get("name") or "").strip()
+            if not art_name or is_ignored_artist(art_name, ignored_list):
+                continue
+
+            can_art = normalize_artist_name(art_name) or art_name
+            norm_art = can_art.lower()
+            if norm_art in artists_cache:
+                art_obj = artists_cache[norm_art]
+            else:
+                art_obj = Artist.objects.filter(normalized_name=norm_art).first()
+                if not art_obj:
+                    art_obj = Artist.objects.filter(name__iexact=can_art).first()
+                if not art_obj:
+                    try:
+                        art_obj = Artist.objects.create(name=can_art, normalized_name=norm_art)
+                    except Exception:
+                        art_obj = Artist.objects.filter(name__iexact=can_art).first()
+                if art_obj:
+                    artists_cache[norm_art] = art_obj
+
+            if not art_obj:
+                continue
+
+            event_date_str = (sl.get("eventDate") or "").strip()
+            d_obj = None
+            if event_date_str:
+                try:
+                    d_obj = datetime.strptime(event_date_str, "%d-%m-%Y").date()
+                except Exception:
+                    pass
+            raw_date = d_obj.strftime("%m-%d-%Y") if d_obj else event_date_str
+            year = d_obj.year if d_obj else None
+
+            v_dict = sl.get("venue") or {}
+            v_name = (v_dict.get("name") or "").strip()
+            city_dict = v_dict.get("city") or {}
+            city_name = (city_dict.get("name") or "").strip()
+            state_name = (city_dict.get("state") or city_dict.get("stateCode") or "").strip()
+            country_dict = city_dict.get("country") or {}
+            country_name = (country_dict.get("name") or "United States").strip()
+            coords = city_dict.get("coords") or {}
+            lat = coords.get("lat")
+            lng = coords.get("long")
+
+            venue_obj = None
+            if v_name:
+                v_low = v_name.lower()
+                if v_low in venues_cache:
+                    venue_obj = venues_cache[v_low]
+                    if (venue_obj.latitude is None or venue_obj.longitude is None) and (lat is not None and lng is not None):
+                        venue_obj.latitude = lat
+                        venue_obj.longitude = lng
+                        venue_obj.geocode_source = 'setlistfm'
+                        venue_obj.save(update_fields=['latitude', 'longitude', 'geocode_source'])
+                else:
+                    venue_obj = Venue.objects.create(
+                        name=v_name,
+                        city=city_name,
+                        state=state_name,
+                        country=country_name,
+                        latitude=lat,
+                        longitude=lng,
+                        geocode_source='setlistfm' if (lat is not None and lng is not None) else 'unresolved'
+                    )
+                    venues_cache[v_low] = venue_obj
+
+            sl_id = sl.get("id", "")
+            sl_url = sl.get("url", "")
+
+            # Check existing ConcertArtist
+            existing_ca = None
+            if sl_id:
+                existing_ca = ConcertArtist.objects.filter(concert__user=user, setlistfm_id=sl_id).select_related('concert').first()
+            if not existing_ca and d_obj and art_obj:
+                existing_ca = ConcertArtist.objects.filter(concert__user=user, concert__date=d_obj, artist=art_obj).select_related('concert').first()
+
+            tracks = parse_setlistfm_sets_to_tracks(sl)
+
+            if existing_ca:
+                if sl_id:
+                    existing_ca.setlistfm_id = sl_id
+                if sl_url:
+                    existing_ca.setlist_url = sl_url
+                if tracks:
+                    existing_ca.has_setlist = True
+                existing_ca.save(update_fields=['setlistfm_id', 'setlist_url', 'has_setlist'])
+                ca = existing_ca
+            else:
+                concert = Concert.objects.create(
+                    user=user,
+                    date=d_obj,
+                    raw_date=raw_date,
+                    year=year,
+                    venue=venue_obj,
+                    raw_venue=v_name,
+                    primary_artist=art_obj.name,
+                    raw_artists=art_obj.name,
+                    source='setlistfm',
+                    is_custom_offline=False
+                )
+                ca = ConcertArtist.objects.create(
+                    concert=concert,
+                    artist=art_obj,
+                    billing_order=0,
+                    setlistfm_id=sl_id,
+                    setlist_url=sl_url,
+                    has_setlist=bool(tracks)
+                )
+                imported_count += 1
+
+            if tracks and not ca.songs.exists():
+                total_tracks = len(tracks)
+                cs_objs = []
+                for idx, t in enumerate(tracks):
+                    track_num = idx + 1
+                    pct = round((track_num / total_tracks) * 100) if total_tracks > 0 else 100
+                    if track_num == 1:
+                        slot = "Opener"
+                        slot_category = "opener"
+                    elif t["is_encore"]:
+                        slot = "Show Closer" if track_num == total_tracks else (f"Encore {t['encore_number']}" if t['encore_number'] else "Encore")
+                        slot_category = "encore"
+                    elif track_num == total_tracks:
+                        slot = "Show Closer"
+                        slot_category = "closer"
+                    elif pct <= 35:
+                        slot = "Early Set"
+                        slot_category = "early"
+                    elif pct <= 70:
+                        slot = "Mid-Set"
+                        slot_category = "mid"
+                    else:
+                        slot = "Late Set"
+                        slot_category = "late"
+
+                    clean_title_key = t["title"].lower().strip()
+                    cache_k = (art_obj.id, clean_title_key)
+                    if cache_k in songs_cache:
+                        song_obj = songs_cache[cache_k]
+                    else:
+                        song_obj = Song.objects.filter(artist=art_obj, clean_title=clean_title_key).first()
+                        if not song_obj:
+                            song_obj = Song.objects.create(
+                                artist=art_obj,
+                                clean_title=clean_title_key,
+                                title=t["title"],
+                                is_cover=t["is_cover"],
+                                original_artist=t["original_artist"] or None
+                            )
+                        songs_cache[cache_k] = song_obj
+
+                    cs_objs.append(ConcertSong(
+                        concert_artist=ca,
+                        song=song_obj,
+                        raw_song_name=t["title"],
+                        set_name=t["set_name"],
+                        is_encore=t["is_encore"],
+                        encore_number=t["encore_number"],
+                        track_num=track_num,
+                        total_tracks=total_tracks,
+                        pct_position=pct,
+                        slot=slot,
+                        slot_category=slot_category,
+                        is_cover=t["is_cover"],
+                        original_artist=t["original_artist"] or '',
+                        info=t["info"] or ''
+                    ))
+                ConcertSong.objects.bulk_create(cs_objs)
+
+    return imported_count
+

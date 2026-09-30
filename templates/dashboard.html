@@ -3357,52 +3357,6 @@
         {% endif %}
       </div>
 
-      <!-- Missing in Shows Table -->
-      {% if gap.setlist_only|length > 0 %}
-      <div class="glass-card p-6">
-        <div class="flex items-center justify-between mb-4">
-          <div>
-            <h2 class="text-lg font-bold text-white flex items-center gap-2">
-              <i class="fa-solid fa-circle-arrow-down text-blue-400"></i> On Setlist.fm Profile but Missing from Shows
-            </h2>
-            <p class="text-xs text-slate-400 mt-0.5">Shows marked as "I was there" on Setlist.fm that aren't matched in your shows.</p>
-          </div>
-          <span class="badge bg-blue-500/20 text-blue-300 border border-blue-500/30">{{ gap.setlist_only|length }} Shows</span>
-        </div>
-
-        <div class="overflow-x-auto max-h-80">
-          <table class="w-full text-left text-sm text-slate-300">
-            <thead class="text-xs uppercase bg-slate-800/60 text-slate-400 sticky top-0">
-              <tr>
-                <th class="px-4 py-3">Date</th>
-                <th class="px-4 py-3">Artist</th>
-                <th class="px-4 py-3">Venue</th>
-                <th class="px-4 py-3 text-right">Setlist Link</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-800">
-              {% for item in gap.setlist_only %}
-              <tr class="hover:bg-slate-800/40 transition">
-                <td class="px-4 py-3 font-mono text-xs text-blue-300 whitespace-nowrap">{{ item.display_date }}</td>
-                <td class="px-4 py-3 font-medium text-white">
-                  <button onclick="jumpToSongInDrilldown('{{ item.artist.name|escapejs }}', '')" class="hover:underline hover:text-indigo-300 font-medium text-white text-left">
-                    {{ item.artist.name }}
-                  </button>
-                </td>
-                <td class="px-4 py-3 text-slate-400 whitespace-nowrap">{{ item.venue.name }} ({{ item.venue.city.name }})</td>
-                <td class="px-4 py-3 text-right whitespace-nowrap">
-                  <a href="{{ item.url }}" target="_blank" class="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded text-xs transition">
-                    View Setlist <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
-                  </a>
-                </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </div>
-      {% endif %}
-
     </div>
 
   </main>
