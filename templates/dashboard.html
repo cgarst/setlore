@@ -2191,8 +2191,8 @@
             </button>
           </div>
 
-          <!-- Filter Pills & Result Counter -->
-          <div class="flex flex-wrap items-center gap-2.5 justify-between md:justify-end">
+          <!-- Filter Pills -->
+          <div class="flex items-center gap-2.5 justify-end">
             <div class="inline-flex rounded-lg p-0.5 bg-slate-900 border border-slate-700/80 text-xs font-semibold">
               <button type="button"
                       id="concert-filter-all-btn"
@@ -2208,10 +2208,6 @@
                 <span>Favorites</span>
               </button>
             </div>
-
-            <span id="concerts-count-badge" class="text-xs text-slate-400 font-medium px-1">
-              Showing {{ stats.concerts_drilldown|length }}
-            </span>
           </div>
         </div>
       </div>
@@ -4569,15 +4565,6 @@
           card.style.display = 'none';
         }
       });
-
-      const countBadge = document.getElementById('concerts-count-badge');
-      if (countBadge) {
-        if (visibleCount === totalCount) {
-          countBadge.textContent = `Showing ${totalCount} shows`;
-        } else {
-          countBadge.textContent = `Showing ${visibleCount} of ${totalCount} shows`;
-        }
-      }
 
       const noResults = document.getElementById('concerts-no-results');
       if (noResults) {
