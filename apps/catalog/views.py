@@ -46,7 +46,7 @@ def api_musicbrainz_dump_download(request):
     except Exception:
         data = {}
 
-    components = data.get('components', ['recording.tar.xz'])
+    components = data.get('components', ['release.tar.xz'])
     manager = MusicBrainzDumpManager.get_instance()
     success, message = manager.download_and_build(components=components, background=True)
     

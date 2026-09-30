@@ -44,16 +44,6 @@ AVAILABLE_COMPONENTS = [
         "feature": "Musicians & Multi-Band Lineups Tab",
         "why_needed": "ConcertTrakr uses this to populate the Musicians & Lineups tab — determining which band members (Drums, Bass, Guitar, Vocals, Keyboards) were active in the band during the exact year of each concert you attended, and tracking musicians across multiple bands.",
         "default": False,
-    },
-    {
-        "filename": "release-group.tar.xz",
-        "name": "Release Groups (Studio Albums Catalog)",
-        "approx_size": "1.2 GB",
-        "importance": "Optional",
-        "badge_class": "mb-badge-api",
-        "feature": "Album Discography & Era Visuals",
-        "why_needed": "ConcertTrakr uses this to classify studio albums vs. live/compilation releases and calculate song release ages for the Albums & Visuals treemap. (Note: If you download Releases & Tracklists above, this classification is already included automatically).",
-        "default": False,
     }
 ]
 
@@ -194,7 +184,7 @@ class MusicBrainzDumpManager:
             return False, "A download or build task is already currently running."
 
         if not components:
-            components = ["recording.tar.xz"]
+            components = ["release.tar.xz"]
 
         self._cancel_requested = False
 
