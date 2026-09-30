@@ -236,3 +236,29 @@ class AutocompleteAndCSVTests(TestCase):
         gift_occ_2017 = next(o for o in gift_occs if o["year"] == 2017)
         self.assertIn("Mike Mangini", gift_occ_2017["musicians"])
         self.assertNotIn("Mike Portnoy", gift_occ_2017["musicians"])
+
+    def test_toggle_concert_favorite(self):
+        self.assertFalse(self.concert.is_favorite)
+        response = self.client.post(
+            '/api/concerts/toggle-favorite/',
+            data='{"concert_id": %d}' % self.concert.id,
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data['is_favorite'])
+        self.concert.refresh_from_db()
+        self.assertTrue(self.concert.is_favorite)
+
+        # Toggle back off
+        response = self.client.post(
+            '/api/concerts/toggle-favorite/',
+            data='{"concert_id": %d}' % self.concert.id,
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertFalse(data['is_favorite'])
+        self.concert.refresh_from_db()
+        self.assertFalse(self.concert.is_favorite)
+

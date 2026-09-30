@@ -149,6 +149,7 @@ class SyncWorker:
                     "is_custom_offline": c.is_custom_offline,
                     "source": c.source,
                     "has_setlistfm_id": has_sl_id,
+                    "is_favorite": bool(c.is_favorite),
                 }
                 csv_records.append(rec)
 

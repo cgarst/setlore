@@ -279,15 +279,15 @@
       -webkit-touch-callout: none;
       -webkit-text-size-adjust: 100%;
       transition: background-color 0.25s ease, color 0.25s ease;
-      padding-top: max(1rem, env(safe-area-inset-top, 0px)) !important;
-      padding-left: max(1rem, env(safe-area-inset-left, 0px)) !important;
-      padding-right: max(1rem, env(safe-area-inset-right, 0px)) !important;
-      padding-bottom: max(6rem, calc(env(safe-area-inset-bottom, 0px) + 5rem)) !important;
+      padding-top: env(safe-area-inset-top, 0.5rem) !important;
+      padding-left: max(0.75rem, env(safe-area-inset-left, 0px)) !important;
+      padding-right: max(0.75rem, env(safe-area-inset-right, 0px)) !important;
+      padding-bottom: max(5.5rem, calc(env(safe-area-inset-bottom, 0px) + 4.5rem)) !important;
     }
     @media (min-width: 768px) {
       html, body {
         padding: 2rem !important;
-        padding-top: max(2rem, env(safe-area-inset-top, 0px)) !important;
+        padding-top: max(1.5rem, env(safe-area-inset-top, 0px)) !important;
       }
     }
     button, a, input, select, textarea {
@@ -494,33 +494,6 @@
           <div class="logo-tint-overlay"></div>
         </div>
       </a>
-
-      <!-- Mobile Top Bar Quick Theme Selector & Actions -->
-      <div class="flex items-center gap-2 md:hidden">
-        <!-- Mobile Theme Dropdown -->
-        <div class="relative" id="mobile-theme-menu-container">
-          <button id="mobile-theme-menu-btn" onclick="toggleMobileThemeMenu()" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs text-slate-200 transition cursor-pointer" aria-label="Select theme" title="Theme">
-            <span class="theme-btn-swatch inline-block w-3 h-3 rounded-full border border-white/30" id="mobile-header-theme-swatch"></span>
-            <i class="fa-solid fa-palette text-[11px] text-slate-400"></i>
-          </button>
-          <div id="mobile-theme-dropdown-menu" class="hidden absolute right-0 mt-2 w-60 rounded-xl glass-card border border-slate-700/80 bg-slate-900/95 shadow-2xl py-2 z-50 backdrop-blur-xl">
-            <div class="px-3 py-1.5 border-b border-slate-800">
-              <p class="text-xs font-bold text-white flex items-center gap-1.5">
-                <i class="fa-solid fa-palette text-indigo-400"></i>
-                <span>Theme</span>
-              </p>
-              <p class="text-[10px] text-slate-400">Select dashboard color theme</p>
-            </div>
-            <div class="py-1 max-h-64 overflow-y-auto space-y-0.5 px-1" id="mobile-theme-options-list"></div>
-          </div>
-        </div>
-
-        {% if not is_public_view %}
-          <button onclick="openAddConcertModal()" class="p-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xs font-bold shadow-md shadow-indigo-600/25" title="Add Concert">
-            <i class="fa-solid fa-plus"></i>
-          </button>
-        {% endif %}
-      </div>
     </div>
 
     <!-- Desktop/Tablet Controls -->
@@ -2183,6 +2156,14 @@
                 <i class="fa-solid fa-xmark"></i>
               </button>
             </div>
+            <button type="button"
+                    id="concert-favorites-filter-btn"
+                    onclick="toggleFavoriteConcertsFilter()"
+                    class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300 border border-slate-700 hover:border-amber-400/50 transition flex items-center gap-1.5 shadow-sm cursor-pointer"
+                    title="Filter to show only favorited concerts">
+              <i class="fa-regular fa-star text-amber-400" id="concert-favorites-filter-icon"></i>
+              <span id="concert-favorites-filter-text">Favorites</span>
+            </button>
             <a href="{% if is_public_view %}{% url 'public_export_concerts_csv' username=profile_user.username %}{% else %}{% url 'api_export_concerts_csv' %}{% endif %}" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-emerald-300 border border-slate-700 hover:border-emerald-500/50 transition flex items-center gap-1.5 shadow-sm" title="Export all concerts and setlists to CSV">
               <i class="fa-solid fa-file-csv text-emerald-400"></i> Export CSV
             </a>
@@ -2206,6 +2187,7 @@
              data-search="{{ c.date|lower }} {{ c.venue|lower }} {{ c.raw_artists|lower }}{% for a in c.artists %}{% for m in a.musicians %} {{ m.musician|lower }}{% endfor %}{% endfor %}"
              data-id="{{ c.id }}"
              data-db-id="{{ c.db_id }}"
+             data-is-favorite="{{ c.is_favorite|yesno:'true,false' }}"
              data-date="{% if c.date %}{{ c.date }}{% else %}{{ c.raw_date }}{% endif %}"
              data-raw-date="{{ c.raw_date }}"
              data-venue="{{ c.venue }}"
@@ -2223,6 +2205,20 @@
           <!-- Concert Event Header -->
           <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 cursor-pointer select-none border-b border-slate-800/60 pb-3" onclick="toggleConcertDetails('{{ c.id }}')">
             <div class="flex flex-wrap items-center gap-3">
+              {% if not is_public_view or is_owner %}
+              <button type="button"
+                      id="favorite-btn-{{ c.id }}"
+                      onclick="event.stopPropagation(); toggleConcertFavorite('{{ c.id }}', '{{ c.db_id }}');"
+                      class="favorite-btn p-1.5 rounded-lg text-xs transition cursor-pointer {% if c.is_favorite %}text-amber-400 hover:text-amber-300{% else %}text-slate-500 hover:text-amber-400{% endif %}"
+                      data-favorite="{% if c.is_favorite %}true{% else %}false{% endif %}"
+                      title="{% if c.is_favorite %}Favorited concert. Click to unfavorite.{% else %}Click to favorite this concert{% endif %}">
+                <i class="fa-{% if c.is_favorite %}solid{% else %}regular{% endif %} fa-star text-base"></i>
+              </button>
+              {% elif c.is_favorite %}
+              <span class="p-1 text-amber-400 text-xs" title="Favorited concert">
+                <i class="fa-solid fa-star text-base"></i>
+              </span>
+              {% endif %}
               <span class="badge bg-indigo-500/20 text-indigo-300 font-mono text-xs font-bold border border-indigo-500/30 px-2.5 py-1">
                 <i class="fa-solid fa-calendar mr-1.5"></i>{{ c.date }}
               </span>
@@ -4459,12 +4455,103 @@
       });
     }
 
+    let showOnlyFavorites = false;
+
+    function toggleFavoriteConcertsFilter() {
+      showOnlyFavorites = !showOnlyFavorites;
+      const btn = document.getElementById('concert-favorites-filter-btn');
+      const icon = document.getElementById('concert-favorites-filter-icon');
+      if (showOnlyFavorites) {
+        btn.classList.add('bg-amber-500/20', 'border-amber-500/60', 'text-amber-300');
+        btn.classList.remove('bg-slate-800', 'text-slate-300', 'border-slate-700');
+        if (icon) {
+          icon.classList.remove('fa-regular');
+          icon.classList.add('fa-solid');
+        }
+      } else {
+        btn.classList.remove('bg-amber-500/20', 'border-amber-500/60', 'text-amber-300');
+        btn.classList.add('bg-slate-800', 'text-slate-300', 'border-slate-700');
+        if (icon) {
+          icon.classList.remove('fa-solid');
+          icon.classList.add('fa-regular');
+        }
+      }
+      const searchInput = document.getElementById('concert-search-input');
+      filterConcertCards(searchInput ? searchInput.value : '');
+    }
+
     function filterConcertCards(query) {
-      const q = query.toLowerCase().trim();
+      const q = (query || '').toLowerCase().trim();
       document.querySelectorAll('.concert-card').forEach(card => {
         const searchData = card.getAttribute('data-search') || '';
-        card.style.display = searchData.includes(q) ? 'block' : 'none';
+        const isFav = card.getAttribute('data-is-favorite') === 'true';
+
+        const matchesQuery = !q || searchData.includes(q);
+        const matchesFav = !showOnlyFavorites || isFav;
+
+        card.style.display = (matchesQuery && matchesFav) ? 'block' : 'none';
       });
+    }
+
+    async function toggleConcertFavorite(concertId, dbId) {
+      const btn = document.getElementById('favorite-btn-' + concertId);
+      const card = document.getElementById('concert-card-' + concertId);
+      const targetId = dbId || (concertId.startsWith('concert_') ? concertId.replace('concert_', '') : concertId);
+
+      const isCurrentlyFav = btn ? (btn.getAttribute('data-favorite') === 'true') : false;
+      const newFav = !isCurrentlyFav;
+
+      // Optimistic update
+      if (btn) {
+        btn.setAttribute('data-favorite', newFav ? 'true' : 'false');
+        btn.title = newFav ? 'Favorited concert. Click to unfavorite.' : 'Click to favorite this concert';
+        if (newFav) {
+          btn.className = 'favorite-btn p-1.5 rounded-lg text-xs transition cursor-pointer text-amber-400 hover:text-amber-300';
+          btn.innerHTML = `<i class="fa-solid fa-star text-base"></i>`;
+        } else {
+          btn.className = 'favorite-btn p-1.5 rounded-lg text-xs transition cursor-pointer text-slate-500 hover:text-amber-400';
+          btn.innerHTML = `<i class="fa-regular fa-star text-base"></i>`;
+        }
+      }
+      if (card) {
+        card.setAttribute('data-is-favorite', newFav ? 'true' : 'false');
+      }
+      if (showOnlyFavorites) {
+        const searchInput = document.getElementById('concert-search-input');
+        filterConcertCards(searchInput ? searchInput.value : '');
+      }
+
+      try {
+        const res = await fetch('/api/concerts/toggle-favorite/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken'),
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          body: JSON.stringify({ concert_id: targetId })
+        });
+        const data = await res.json();
+        if (res.ok && data.status === 'success') {
+          showToast(data.is_favorite ? 'Concert added to favorites ⭐' : 'Concert removed from favorites', 'info');
+        } else {
+          // Revert optimistic state
+          if (btn) {
+            btn.setAttribute('data-favorite', isCurrentlyFav ? 'true' : 'false');
+            if (isCurrentlyFav) {
+              btn.className = 'favorite-btn p-1.5 rounded-lg text-xs transition cursor-pointer text-amber-400 hover:text-amber-300';
+              btn.innerHTML = `<i class="fa-solid fa-star text-base"></i>`;
+            } else {
+              btn.className = 'favorite-btn p-1.5 rounded-lg text-xs transition cursor-pointer text-slate-500 hover:text-amber-400';
+              btn.innerHTML = `<i class="fa-regular fa-star text-base"></i>`;
+            }
+          }
+          if (card) card.setAttribute('data-is-favorite', isCurrentlyFav ? 'true' : 'false');
+          showToast(data.error || 'Failed to update favorite', 'error');
+        }
+      } catch (err) {
+        showToast('Network error: ' + err.message, 'error');
+      }
     }
 
     async function toggleConcertAttendance(concertId, dbId) {

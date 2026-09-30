@@ -24,6 +24,7 @@ class Concert(models.Model):
     )
     is_fully_matched = models.BooleanField(default=False)
     is_partially_matched = models.BooleanField(default=False)
+    is_favorite = models.BooleanField(default=False, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

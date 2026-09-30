@@ -122,6 +122,7 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
                 "is_custom_offline": c.is_custom_offline,
                 "source": c.source,
                 "has_setlistfm_id": has_sl_id,
+                "is_favorite": bool(c.is_favorite),
             }
             csv_records.append(rec)
 
@@ -1655,6 +1656,58 @@ def toggle_concert_attendance(request):
                 "message": f"Logged '{target_concert.primary_artist}' on {target_concert.raw_date} to your profile!"
             })
     except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@login_required
+@require_POST
+def toggle_concert_favorite(request):
+    """
+    Toggles the is_favorite boolean for a concert belonging to the authenticated user.
+    """
+    try:
+        try:
+            data = json.loads(request.body.decode('utf-8'))
+        except Exception:
+            data = request.POST
+
+        concert_id_raw = data.get('concert_id')
+        if not concert_id_raw:
+            return JsonResponse({"error": "Missing concert_id in request"}, status=400)
+
+        c_id_str = str(concert_id_raw).strip()
+        if c_id_str.startswith("concert_"):
+            c_id_str = c_id_str.replace("concert_", "")
+
+        try:
+            target_concert_id = int(c_id_str)
+        except ValueError:
+            return JsonResponse({"error": f"Invalid concert_id: {concert_id_raw}"}, status=400)
+
+        target_concert = Concert.objects.filter(id=target_concert_id, user=request.user).first()
+        if not target_concert:
+            return JsonResponse({"error": "Concert not found or not owned by user"}, status=404)
+
+        target_concert.is_favorite = not target_concert.is_favorite
+        target_concert.save(update_fields=['is_favorite'])
+
+        # Update cache bundle if present
+        cache_key = f"user_dashboard_bundle_{request.user.id}"
+        bundle = ApiCache.objects.filter(cache_key=cache_key).first()
+        if bundle and isinstance(bundle.payload, dict):
+            drilldown = bundle.payload.get("stats", {}).get("concerts_drilldown", [])
+            for c in drilldown:
+                if c.get("db_id") == target_concert.id or c.get("id") == f"concert_{target_concert.id}":
+                    c["is_favorite"] = target_concert.is_favorite
+            bundle.save(update_fields=['payload'])
+
+        return JsonResponse({
+            "status": "success",
+            "concert_id": target_concert.id,
+            "is_favorite": target_concert.is_favorite
+        })
+    except Exception as e:
+        logger.error("Error toggling favorite for concert: %s", e)
         return JsonResponse({"error": str(e)}, status=500)
 
 
