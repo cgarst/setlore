@@ -458,27 +458,37 @@ def toggle_friend_view(request):
 
 @login_required
 def list_friends_view(request):
-    """Returns the authenticated user's friends and community suggestions."""
+    """Returns the authenticated user's friends, pending friended-by users, and community suggestions."""
     friend_ids = list(Friendship.objects.filter(user=request.user).values_list('friend_id', flat=True))
     friends = list(User.objects.filter(id__in=friend_ids).order_by('username').values('id', 'username', 'email'))
     for f in friends:
         f['concert_count'] = Concert.objects.filter(user_id=f['id']).count()
         f['is_friend'] = True
 
-    # User suggestions (public users or existing users)
+    friended_by_ids = list(Friendship.objects.filter(friend=request.user).exclude(user_id__in=friend_ids).values_list('user_id', flat=True))
+    friended_by = list(User.objects.filter(id__in=friended_by_ids).order_by('username').values('id', 'username', 'email'))
+    for fb in friended_by:
+        fb['concert_count'] = Concert.objects.filter(user_id=fb['id']).count()
+        fb['is_friend'] = False
+        fb['has_friended_you'] = True
+
+    excluded_ids = set(friend_ids) | set(friended_by_ids)
     other_users = list(
         User.objects.exclude(id=request.user.id)
-        .exclude(id__in=friend_ids)
+        .exclude(id__in=excluded_ids)
         .order_by('username')
         .values('id', 'username')
     )
     for u in other_users:
         u['concert_count'] = Concert.objects.filter(user_id=u['id']).count()
         u['is_friend'] = False
+        u['has_friended_you'] = False
 
     return JsonResponse({
         "status": "ok",
         "friends": friends,
+        "friended_by": friended_by,
         "suggestions": other_users[:20],
         "total_friends": len(friends),
+        "total_friended_by": len(friended_by),
     })

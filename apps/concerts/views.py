@@ -359,6 +359,10 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
                         })
                 return co_list
 
+            friends_list = []
+            friended_by_list = []
+            friend_suggestions = []
+
             friend_ids = list(Friendship.objects.filter(user=request.user).values_list('friend_id', flat=True))
             friends_qs = User.objects.filter(id__in=friend_ids).select_related('profile').order_by('username')
             for f in friends_qs:
@@ -378,7 +382,29 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
                     'co_attended_concerts': co_shows,
                 })
 
-            sugg_qs = User.objects.exclude(id=request.user.id).exclude(id__in=friend_ids).select_related('profile').order_by('username')[:30]
+            # People who friended request.user but request.user hasn't friended back yet
+            friended_by_ids = list(Friendship.objects.filter(friend=request.user).exclude(user_id__in=friend_ids).values_list('user_id', flat=True))
+            friended_by_qs = User.objects.filter(id__in=friended_by_ids).select_related('profile').order_by('username')
+            for fb in friended_by_qs:
+                c_count = Concert.objects.filter(user=fb).count()
+                top_art = Concert.objects.filter(user=fb).values('primary_artist').annotate(shows=Count('id')).order_by('-shows').first()
+                co_shows = find_co_attended(fb)
+                friended_by_list.append({
+                    'id': fb.id,
+                    'username': fb.username,
+                    'is_public': fb.profile.is_public,
+                    'setlistfm_username': fb.profile.setlistfm_username,
+                    'concert_count': c_count,
+                    'top_artist': top_art['primary_artist'] if top_art else None,
+                    'top_artist_shows': top_art['shows'] if top_art else 0,
+                    'is_friend': False,
+                    'has_friended_you': True,
+                    'co_attended_count': len(co_shows),
+                    'co_attended_concerts': co_shows,
+                })
+
+            excluded_suggestion_ids = set(friend_ids) | set(friended_by_ids)
+            sugg_qs = User.objects.exclude(id=request.user.id).exclude(id__in=excluded_suggestion_ids).select_related('profile').order_by('username')[:30]
             for s in sugg_qs:
                 c_count = Concert.objects.filter(user=s).count()
                 top_art = Concert.objects.filter(user=s).values('primary_artist').annotate(shows=Count('id')).order_by('-shows').first()
@@ -392,6 +418,7 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
                     'top_artist': top_art['primary_artist'] if top_art else None,
                     'top_artist_shows': top_art['shows'] if top_art else 0,
                     'is_friend': False,
+                    'has_friended_you': False,
                     'co_attended_count': len(co_shows),
                     'co_attended_concerts': co_shows,
                 })
@@ -412,6 +439,7 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
         'is_owner': is_owner,
         'is_friend': is_friend,
         'friends_list': friends_list,
+        'friended_by_list': friended_by_list,
         'friend_suggestions': friend_suggestions,
         'is_profile_private': not profile.is_public,
         'share_url': share_url,
