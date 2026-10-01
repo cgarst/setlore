@@ -50,8 +50,8 @@ def generate_plotly_charts(stats: Dict[str, Any], album_enrichments: Dict[str, A
         }
     }
 
-    # 2. Top Artists Packed Bubble Chart (Top 30, Aspect-Weighted Landscape Packing)
-    top_artists = stats["top_artists"][:30]
+    # 2. Top Artists Packed Bubble Chart (Data-Driven Fair Cutoff & Aspect-Weighted Packing)
+    all_raw_artists = stats.get("top_artists", [])
     
     bubble_x = []
     bubble_y = []
@@ -64,7 +64,43 @@ def generate_plotly_charts(stats: Dict[str, Any], album_enrichments: Dict[str, A
     
     min_x, max_x, min_y, max_y = -50.0, 50.0, -50.0, 50.0
     
-    if top_artists:
+    if all_raw_artists:
+        sorted_all = sorted(all_raw_artists, key=lambda x: x["concert_count"], reverse=True)
+        distinct_counts = sorted(list(set(a["concert_count"] for a in sorted_all)), reverse=True)
+        
+        target_max = 30
+        absolute_max = 38
+        
+        top_artists = []
+        selected_cutoff = distinct_counts[0]
+        
+        for c_thresh in distinct_counts:
+            tier_artists = [a for a in sorted_all if a["concert_count"] >= c_thresh]
+            count_tier = len(tier_artists)
+            
+            if c_thresh == 1:
+                if count_tier <= target_max and len(distinct_counts) == 1:
+                    selected_cutoff = 1
+                    top_artists = tier_artists
+                elif count_tier <= target_max and not top_artists:
+                    selected_cutoff = 1
+                    top_artists = tier_artists
+                break
+            
+            if count_tier <= absolute_max:
+                selected_cutoff = c_thresh
+                top_artists = tier_artists
+            else:
+                break
+                
+        if not top_artists:
+            if distinct_counts[0] == 1:
+                top_artists = sorted_all[:target_max]
+                selected_cutoff = 1
+            else:
+                top_artists = [a for a in sorted_all if a["concert_count"] >= distinct_counts[0]]
+                selected_cutoff = distinct_counts[0]
+
         sorted_artists = sorted(top_artists, key=lambda x: x["concert_count"], reverse=True)
         counts = [a["concert_count"] for a in sorted_artists]
         max_c = max(counts) if counts else 1
