@@ -247,15 +247,15 @@
     </div>
   </div>
 
-  <!-- Actions & Component Selection -->
+  <!-- Actions & Component Details -->
   <div class="mb-dump-card">
     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 0.75rem;">
       <div>
         <h2 style="font-size: 1.15rem; font-weight: 700; margin: 0; color: #ffffff; display: flex; align-items: center; gap: 0.5rem;">
-          <i class="fa-solid fa-list-check" style="color: #38bdf8;"></i> Dump Components &amp; Application Requirements
+          <i class="fa-solid fa-layer-group" style="color: #38bdf8;"></i> Dump Components &amp; Datasets
         </h2>
         <p style="color: #94a3b8; font-size: 0.85rem; margin: 0.25rem 0 0 0;">
-          Review which datasets are utilized by ConcertTrakr and why they are needed for offline operation.
+          Both datasets are downloaded and indexed together to provide offline album enrichment and musician lineups.
         </p>
       </div>
     </div>
@@ -263,10 +263,9 @@
     <!-- Component List -->
     <div style="display: flex; flex-direction: column; gap: 0.75rem; margin: 1.25rem 0 1.5rem 0;">
       {% for comp in status.components %}
-      <label style="display: flex; gap: 1rem; padding: 1.1rem; background: #0f172a; border: 1px solid #334155; border-radius: 0.6rem; cursor: pointer; align-items: flex-start; transition: border-color 0.2s;">
-        <input type="checkbox" name="dump_component" value="{{ comp.filename }}" {% if comp.default %}checked{% endif %} style="margin-top: 0.35rem; width: 1.1rem; height: 1.1rem; accent-color: #6366f1;">
+      <div style="display: flex; gap: 1rem; padding: 1.1rem; background: #0f172a; border: 1px solid #334155; border-radius: 0.6rem; align-items: flex-start;">
         <div style="flex: 1;">
-          <!-- Top Row: Name, File, Feature, Importance -->
+          <!-- Top Row: Name, File, Feature -->
           <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.4rem;">
             <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
               <span style="font-weight: 800; color: #ffffff; font-size: 0.95rem;">{{ comp.name }}</span>
@@ -280,9 +279,6 @@
                 <i class="fa-solid fa-cube text-[9px] mr-1"></i> {{ comp.feature }}
               </span>
               {% endif %}
-              <span class="mb-badge {{ comp.badge_class }}">
-                {{ comp.importance }}
-              </span>
             </div>
           </div>
 
@@ -294,7 +290,7 @@
             {{ comp.why_needed }}
           </div>
         </div>
-      </label>
+      </div>
       {% endfor %}
     </div>
 
@@ -302,7 +298,7 @@
     <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; justify-content: space-between; border-top: 1px solid #334155; padding-top: 1.25rem;">
       <div style="display: flex; flex-wrap: wrap; gap: 0.75rem;">
         <button type="button" id="btn-download-dump" onclick="startDumpDownload()" class="btn-primary-mb">
-          <i class="fa-solid fa-cloud-arrow-down"></i> Download / Update Selected Components
+          <i class="fa-solid fa-cloud-arrow-down"></i> Download / Update MusicBrainz Dump
         </button>
         <button type="button" onclick="refreshStatus()" class="btn-secondary-mb">
           <i class="fa-solid fa-rotate"></i> Check Status
@@ -489,13 +485,6 @@
   }
 
   async function startDumpDownload() {
-    const checkboxes = document.querySelectorAll('input[name="dump_component"]:checked');
-    const components = Array.from(checkboxes).map(cb => cb.value);
-    if (components.length === 0) {
-      alert('Please select at least one component to download.');
-      return;
-    }
-
     const btn = document.getElementById('btn-download-dump');
     btn.disabled = true;
     try {
@@ -505,7 +494,7 @@
           'Content-Type': 'application/json',
           'X-CSRFToken': getCookie('csrftoken'),
         },
-        body: JSON.stringify({ components: components })
+        body: JSON.stringify({ components: ['release.tar.xz', 'artist.tar.xz'] })
       });
       const data = await res.json();
       if (data.status === 'success') {
