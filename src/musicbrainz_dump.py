@@ -30,14 +30,14 @@ AVAILABLE_COMPONENTS = [
         "name": "Releases & Tracklists (Song-to-Album Bridge)",
         "approx_size": "23 GB (~1.5 GB indexed DB)",
         "feature": "Song-to-Album & Release Year Enrichment",
-        "why_needed": "ConcertTrakr uses this to map every song played in your concert history directly to its canonical studio album, track number, and original release year without making live API calls.",
+        "why_needed": "Setlore uses this to map every song played in your concert history directly to its canonical studio album, track number, and original release year without making live API calls.",
     },
     {
         "filename": "artist.tar.xz",
         "name": "Artists & Musician Tenures",
         "approx_size": "2.1 GB",
         "feature": "Musicians & Multi-Band Lineups Tab",
-        "why_needed": "ConcertTrakr uses this to populate the Musicians & Lineups tab — determining which band members (Drums, Bass, Guitar, Vocals, Keyboards) were active in the band during the exact year of each concert you attended, and tracking musicians across multiple bands.",
+        "why_needed": "Setlore uses this to populate the Musicians & Lineups tab — determining which band members (Drums, Bass, Guitar, Vocals, Keyboards) were active in the band during the exact year of each concert you attended, and tracking musicians across multiple bands.",
     }
 ]
 
@@ -96,7 +96,7 @@ class MusicBrainzDumpManager:
     def get_latest_upstream_version(self) -> Optional[str]:
         """Fetches the latest dump date tag from MetaBrainz."""
         url = f"{BASE_URL}/LATEST"
-        req = urllib.request.Request(url, headers={"User-Agent": f"ConcertTrakr/1.0 ({CONTACT_EMAIL})"})
+        req = urllib.request.Request(url, headers={"User-Agent": f"Setlore/1.0 ({CONTACT_EMAIL})"})
         try:
             with urllib.request.urlopen(req, timeout=10) as resp:
                 if resp.status == 200:
@@ -342,7 +342,7 @@ class MusicBrainzDumpManager:
                 status_state["progress"]["step"] = f"Downloading {comp}..."
                 self._update_status_file(status_state)
 
-                req = urllib.request.Request(comp_url, headers={"User-Agent": f"ConcertTrakr/1.0 ({CONTACT_EMAIL})"})
+                req = urllib.request.Request(comp_url, headers={"User-Agent": f"Setlore/1.0 ({CONTACT_EMAIL})"})
                 with urllib.request.urlopen(req, timeout=30) as resp:
                     total_size = int(resp.headers.get("Content-Length", 0))
                     status_state["progress"]["total_bytes"] = total_size

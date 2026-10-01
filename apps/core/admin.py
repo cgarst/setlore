@@ -23,6 +23,10 @@ class UserAdmin(BaseUserAdmin):
 admin.site.unregister(User)
 admin.site.register(User, UserAdmin)
 
+admin.site.site_header = 'Setlore Administration'
+admin.site.site_title = 'Setlore Admin'
+admin.site.index_title = 'Setlore Administration'
+
 @admin.register(UserProfile)
 class UserProfileAdmin(admin.ModelAdmin):
     list_display = ['user', 'setlistfm_username', 'prompt_setlistfm', 'sync_status', 'last_synced_at']

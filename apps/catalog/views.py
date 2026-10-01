@@ -18,7 +18,8 @@ def musicbrainz_dump_admin_view(request):
         'status': status,
         'upstream_version': manager.get_latest_upstream_version() or 'Unknown',
         'has_permission': True,
-        'site_header': 'ConcertTrakr Administration',
+        'site_header': 'Setlore Administration',
+        'site_title': 'Setlore Admin',
     }
     return render(request, 'admin/musicbrainz_dump.html', context)
 
