@@ -30,6 +30,43 @@ class ArtistAdmin(admin.ModelAdmin):
     list_display = ['name', 'normalized_name', 'mbid', 'created_at']
     search_fields = ['name', 'normalized_name']
     inlines = [MusicianTenureInline, AlbumInline]
+    actions = ['refresh_musician_lineups', 'refresh_albums_discography']
+
+    @admin.action(description="⚡ Refresh musician lineups from MusicBrainz (Live)")
+    def refresh_musician_lineups(self, request, queryset):
+        from src.musician_enricher import MusicianEnricher
+        enricher = MusicianEnricher()
+        total_created = 0
+        total_updated = 0
+        artists_processed = 0
+
+        for art in queryset:
+            tenures = enricher.enrich_artist(art.name, artist_obj=art, refresh=True)
+            created, updated = getattr(enricher, 'last_sync_stats', (0, 0))
+            total_created += created
+            total_updated += updated
+            artists_processed += 1
+
+        ApiCache.objects.filter(endpoint='dashboard_bundle').delete()
+        self.message_user(
+            request,
+            f"Successfully refreshed {artists_processed} artist(s). Added {total_created} new tenures, updated {total_updated} existing records. Dashboard cache cleared."
+        )
+
+    @admin.action(description="⚡ Refresh albums & discography from MusicBrainz")
+    def refresh_albums_discography(self, request, queryset):
+        from src.album_enricher import AlbumEnricher
+        enricher = AlbumEnricher()
+        for art in queryset:
+            songs = Song.objects.filter(artist=art)
+            if songs.exists():
+                pairs = [{"artist": art.name, "song": s.title} for s in songs]
+                enricher.load_cached_catalog(pairs)
+        ApiCache.objects.filter(endpoint='dashboard_bundle').delete()
+        self.message_user(
+            request,
+            f"Discography enrichment triggered for {queryset.count()} artist(s). Dashboard cache cleared."
+        )
 
 @admin.register(Album)
 class AlbumAdmin(admin.ModelAdmin):
@@ -57,9 +94,37 @@ class MusicianTenureAdmin(admin.ModelAdmin):
     search_fields = ['musician_name', 'artist__name', 'role']
     list_filter = ['instrument', 'artist']
     autocomplete_fields = ['artist']
+    actions = ['refresh_parent_artist_tenures']
+
+    @admin.action(description="⚡ Refresh selected artists' lineups from MusicBrainz")
+    def refresh_parent_artist_tenures(self, request, queryset):
+        from src.musician_enricher import MusicianEnricher
+        enricher = MusicianEnricher()
+        artists = {t.artist for t in queryset if t.artist}
+        total_created = 0
+        total_updated = 0
+
+        for art in artists:
+            enricher.enrich_artist(art.name, artist_obj=art, refresh=True)
+            created, updated = getattr(enricher, 'last_sync_stats', (0, 0))
+            total_created += created
+            total_updated += updated
+
+        ApiCache.objects.filter(endpoint='dashboard_bundle').delete()
+        self.message_user(
+            request,
+            f"Successfully refreshed {len(artists)} artist(s). Added {total_created} new tenures, updated {total_updated} existing records. Dashboard cache cleared."
+        )
 
 @admin.register(ApiCache)
 class ApiCacheAdmin(admin.ModelAdmin):
     list_display = ['cache_key', 'endpoint', 'updated_at']
     search_fields = ['cache_key', 'endpoint']
     list_filter = ['endpoint']
+    actions = ['purge_selected_caches']
+
+    @admin.action(description="⚡ Purge selected API cache records")
+    def purge_selected_caches(self, request, queryset):
+        count = queryset.count()
+        queryset.delete()
+        self.message_user(request, f"Purged {count} cache records.")

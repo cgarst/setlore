@@ -90,7 +90,7 @@ urlpatterns = [
     path('api/upcoming/toggle-hidden/', concerts_views.toggle_upcoming_hidden_artist, name='api_toggle_upcoming_hidden_artist'),
     path('api/upcoming/settings/', concerts_views.save_upcoming_settings, name='api_save_upcoming_settings'),
 
-    # MusicBrainz Dump Management API
+    # MusicBrainz Dump & Catalog Refresh API
     path('api/admin/musicbrainz-dump/status/', catalog_views.api_musicbrainz_dump_status, name='api_mb_dump_status'),
     path('api/admin/musicbrainz-dump/download/', catalog_views.api_musicbrainz_dump_download, name='api_mb_dump_download'),
     path('api/admin/musicbrainz-dump/cancel/', catalog_views.api_musicbrainz_dump_cancel, name='api_mb_dump_cancel'),
@@ -99,6 +99,8 @@ urlpatterns = [
     path('api/admin/musicbrainz-dump/set-mode/', catalog_views.api_musicbrainz_dump_set_mode, name='api_mb_dump_set_mode'),
     path('api/admin/musicbrainz-dump/set-online-fallback/', catalog_views.api_musicbrainz_dump_set_online_fallback, name='api_mb_dump_set_online_fallback'),
     path('api/admin/musicbrainz-dump/test-lookup/', catalog_views.api_musicbrainz_dump_test_lookup, name='api_mb_dump_test_lookup'),
+    path('api/admin/catalog/refresh-lineup/', catalog_views.api_refresh_musician_lineup, name='api_refresh_musician_lineup'),
+    path('api/admin/catalog/purge-cache/', catalog_views.api_purge_dashboard_cache, name='api_purge_dashboard_cache'),
 ]
 
 

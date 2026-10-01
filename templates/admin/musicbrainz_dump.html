@@ -396,6 +396,45 @@
     </div>
   </div>
 
+  <!-- Live Musician Lineups & Catalog Refresh Tools -->
+  <div class="mb-dump-card">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem;">
+      <div>
+        <h2 style="font-size: 1.15rem; font-weight: 700; margin: 0; color: #ffffff; display: flex; align-items: center; gap: 0.5rem;">
+          <i class="fa-solid fa-users-viewfinder" style="color: #38bdf8;"></i> Musician Lineups & Catalog Refreshes
+        </h2>
+        <p style="color: #94a3b8; font-size: 0.85rem; margin: 0.25rem 0 0 0;">
+          Re-query MusicBrainz relations live to sync band member arrivals, departures, and lineup tenures with zero duplication.
+        </p>
+      </div>
+      <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+        <button type="button" onclick="runAllArtistsRefresh()" id="btn-refresh-all-lineups" class="btn-primary-mb" style="background-color: #0284c7;">
+          <i class="fa-solid fa-arrows-rotate"></i> Refresh All Artists Live
+        </button>
+        <button type="button" onclick="runPurgeCache()" id="btn-purge-cache" class="btn-secondary-mb">
+          <i class="fa-solid fa-broom"></i> Purge Dashboard Caches
+        </button>
+      </div>
+    </div>
+
+    <!-- Single Artist Live Refresh Input -->
+    <div style="display: grid; grid-template-columns: 1fr auto; gap: 0.75rem; align-items: end; padding: 1rem; background: #0f172a; border: 1px solid #334155; border-radius: 0.5rem;">
+      <div>
+        <label style="display: block; font-size: 0.75rem; color: #94a3b8; font-weight: 600; margin-bottom: 0.25rem;">Refresh Single Artist Lineup</label>
+        <input type="text" id="refresh-artist-input" placeholder="e.g. Iron Maiden" class="input-text-mb" value="Iron Maiden">
+      </div>
+      <div>
+        <button type="button" onclick="runSingleArtistRefresh()" id="btn-refresh-single-lineup" class="btn-primary-mb" style="height: 38px;">
+          <i class="fa-solid fa-bolt"></i> Refresh Lineup
+        </button>
+      </div>
+    </div>
+
+    <div id="lineup-result-box" style="display: none; margin-top: 1rem; padding: 0.75rem 1rem; background: #0f172a; border: 1px solid #334155; border-radius: 0.5rem;">
+      <div id="lineup-result-content" style="font-size: 0.875rem;"></div>
+    </div>
+  </div>
+
   <!-- Files on Disk Table -->
   <div class="mb-dump-card">
     <h2 style="font-size: 1.15rem; font-weight: 700; margin-top: 0; color: #ffffff; display: flex; align-items: center; gap: 0.5rem;">
@@ -827,6 +866,139 @@
       }
     } catch (e) {
       content.innerHTML = `<span style="color: #f87171;">Error: ${e}</span>`;
+    }
+  }
+
+  async function runSingleArtistRefresh() {
+    const artist = document.getElementById('refresh-artist-input').value.trim();
+    if (!artist) {
+      alert('Please enter an artist name.');
+      return;
+    }
+
+    const btn = document.getElementById('btn-refresh-single-lineup');
+    const resultBox = document.getElementById('lineup-result-box');
+    const content = document.getElementById('lineup-result-content');
+
+    const origHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Refreshing...';
+    resultBox.style.display = 'block';
+    content.innerHTML = `<span style="color: #818cf8;"><i class="fa-solid fa-spinner fa-spin"></i> Querying MusicBrainz live relationships for "${artist}"...</span>`;
+
+    try {
+      const res = await fetch('/api/admin/catalog/refresh-lineup/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken'),
+        },
+        body: JSON.stringify({ artist: artist })
+      });
+      const data = await res.json();
+      if (data.status === 'success') {
+        let membersHtml = '';
+        if (data.members && data.members.length > 0) {
+          membersHtml = '<div style="display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.5rem;">' +
+            data.members.map(m => {
+              const span = m.end ? `${m.start}–${m.end}` : `${m.start}–Present`;
+              return `<span style="background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.3); border-radius: 0.375rem; padding: 0.2rem 0.5rem; font-size: 0.75rem; color: #c7d2fe;"><strong>${m.musician}</strong> (${m.role}): <span style="font-family: monospace; color: #a5b4fc;">${span}</span></span>`;
+            }).join('') +
+            '</div>';
+        }
+
+        content.innerHTML = `
+          <div style="color: #34d399; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+            <i class="fa-solid fa-circle-check"></i> ${data.message}
+          </div>
+          <div style="color: #94a3b8; font-size: 0.8rem;">
+            Relations parsed: <strong style="color: #ffffff;">${data.relations_found}</strong> &bull;
+            New tenures added: <strong style="color: #34d399;">${data.tenures_created}</strong> &bull;
+            Existing tenures updated: <strong style="color: #38bdf8;">${data.tenures_updated}</strong> &bull;
+            Total DB tenures: <strong style="color: #ffffff;">${data.total_db_tenures}</strong>
+          </div>
+          ${membersHtml}
+        `;
+      } else {
+        content.innerHTML = `<span style="color: #f87171;"><i class="fa-solid fa-triangle-exclamation"></i> ${data.message || 'Refresh failed'}</span>`;
+      }
+    } catch (e) {
+      content.innerHTML = `<span style="color: #f87171;">Error: ${e}</span>`;
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = origHtml;
+    }
+  }
+
+  async function runAllArtistsRefresh() {
+    if (!confirm('Re-query MusicBrainz relations for all catalog artists in the database? This may take a few moments depending on catalog size.')) {
+      return;
+    }
+
+    const btn = document.getElementById('btn-refresh-all-lineups');
+    const resultBox = document.getElementById('lineup-result-box');
+    const content = document.getElementById('lineup-result-content');
+
+    const origHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Refreshing All Artists...';
+    resultBox.style.display = 'block';
+    content.innerHTML = `<span style="color: #818cf8;"><i class="fa-solid fa-spinner fa-spin"></i> Refreshing all catalog artists live from MusicBrainz...</span>`;
+
+    try {
+      const res = await fetch('/api/admin/catalog/refresh-lineup/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken'),
+        },
+        body: JSON.stringify({ all: true })
+      });
+      const data = await res.json();
+      if (data.status === 'success') {
+        content.innerHTML = `
+          <div style="color: #34d399; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+            <i class="fa-solid fa-circle-check"></i> ${data.message}
+          </div>
+          <div style="color: #94a3b8; font-size: 0.8rem;">
+            Artists processed: <strong style="color: #ffffff;">${data.artists_processed}</strong> &bull;
+            New tenures added: <strong style="color: #34d399;">${data.tenures_created}</strong> &bull;
+            Existing tenures updated: <strong style="color: #38bdf8;">${data.tenures_updated}</strong> &bull;
+            Dashboard cache cleared.
+          </div>
+        `;
+      } else {
+        content.innerHTML = `<span style="color: #f87171;"><i class="fa-solid fa-triangle-exclamation"></i> ${data.message || 'Refresh failed'}</span>`;
+      }
+    } catch (e) {
+      content.innerHTML = `<span style="color: #f87171;">Error: ${e}</span>`;
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = origHtml;
+    }
+  }
+
+  async function runPurgeCache() {
+    const btn = document.getElementById('btn-purge-cache');
+    const origHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Purging...';
+
+    try {
+      const res = await fetch('/api/admin/catalog/purge-cache/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken'),
+        }
+      });
+      const data = await res.json();
+      alert(data.message || 'Cache purged.');
+    } catch (e) {
+      alert('Error purging cache: ' + e);
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = origHtml;
     }
   }
 

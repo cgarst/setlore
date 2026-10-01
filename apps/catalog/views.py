@@ -195,3 +195,86 @@ def api_musicbrainz_dump_delete_raw(request):
         'message': message,
         'dump_status': manager.get_status()
     })
+
+@require_http_methods(["POST"])
+def api_refresh_musician_lineup(request):
+    """Admin API endpoint to trigger MusicBrainz live musician lineup refresh."""
+    if not _is_staff_or_admin(request):
+        return HttpResponseForbidden(json.dumps({'error': 'Admin access required'}), content_type='application/json')
+
+    try:
+        data = json.loads(request.body or '{}')
+    except Exception:
+        data = {}
+
+    artist_name = data.get('artist', '').strip()
+    refresh_all = bool(data.get('all', False))
+
+    from src.musician_enricher import MusicianEnricher
+    from apps.catalog.models import Artist, MusicianTenure, ApiCache
+    from src.csv_parser import normalize_artist_name
+
+    enricher = MusicianEnricher()
+
+    if refresh_all:
+        artists = list(Artist.objects.all().order_by('name'))
+        total_created = 0
+        total_updated = 0
+        processed = 0
+        for art in artists:
+            enricher.enrich_artist(art.name, artist_obj=art, refresh=True)
+            created, updated = getattr(enricher, 'last_sync_stats', (0, 0))
+            total_created += created
+            total_updated += updated
+            processed += 1
+
+        ApiCache.objects.filter(endpoint='dashboard_bundle').delete()
+        return JsonResponse({
+            'status': 'success',
+            'mode': 'all',
+            'artists_processed': processed,
+            'tenures_created': total_created,
+            'tenures_updated': total_updated,
+            'message': f"Refreshed all {processed} artists from MusicBrainz ({total_created} new, {total_updated} updated)."
+        })
+
+    if not artist_name:
+        return JsonResponse({'status': 'error', 'message': 'Artist name is required.'}, status=400)
+
+    canon = normalize_artist_name(artist_name) or artist_name
+    art_obj, _ = Artist.objects.get_or_create(
+        name=canon,
+        defaults={'normalized_name': canon.lower()}
+    )
+
+    tenures = enricher.enrich_artist(canon, artist_obj=art_obj, refresh=True)
+    created, updated = getattr(enricher, 'last_sync_stats', (0, 0))
+    total_db_tenures = MusicianTenure.objects.filter(artist=art_obj).count()
+
+    ApiCache.objects.filter(endpoint='dashboard_bundle').delete()
+
+    return JsonResponse({
+        'status': 'success',
+        'mode': 'single',
+        'artist': art_obj.name,
+        'relations_found': len(tenures),
+        'tenures_created': created,
+        'tenures_updated': updated,
+        'total_db_tenures': total_db_tenures,
+        'members': tenures,
+        'message': f"Refreshed '{art_obj.name}': {len(tenures)} relations ({created} added, {updated} updated, {total_db_tenures} in DB)."
+    })
+
+@require_http_methods(["POST"])
+def api_purge_dashboard_cache(request):
+    """Admin API endpoint to purge all cached dashboard bundles and analytics."""
+    if not _is_staff_or_admin(request):
+        return HttpResponseForbidden(json.dumps({'error': 'Admin access required'}), content_type='application/json')
+
+    from apps.catalog.models import ApiCache
+    deleted, _ = ApiCache.objects.filter(endpoint='dashboard_bundle').delete()
+    return JsonResponse({
+        'status': 'success',
+        'deleted_count': deleted,
+        'message': f"Purged {deleted} cached dashboard bundles."
+    })
