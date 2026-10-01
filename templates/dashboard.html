@@ -2190,7 +2190,7 @@
             <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs pointer-events-none"></i>
             <input type="text"
                    id="concert-search-input"
-                   placeholder="Search by artist, venue, city, or year..."
+                   placeholder="Search by artist, musician, venue, city, or year..."
                    oninput="handleFilterInput('concert-search-input', 'concert-search-clear', filterConcertCards)"
                    class="bg-slate-900/90 border border-slate-700/80 rounded-lg pl-8 pr-8 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 w-full transition">
             <button type="button"
@@ -3080,15 +3080,15 @@
                   </div>
                   <div>
                     {% if ps.is_public and ps.co_attended_count > 0 %}
-                      <button type="button" onclick="toggleCoAttendedDetails('ps-co-{{ ps.id }}')" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-pink-500/20 hover:bg-pink-500/30 text-pink-300 border border-pink-500/40 flex items-center gap-1 transition cursor-pointer" title="Click to view shared concerts">
+                      <button type="button" onclick="toggleCoAttendedDetails('ps-co-{{ ps.id }}')" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-pink-500/20 hover:bg-pink-500/30 text-pink-300 border border-pink-500/40 flex items-center gap-1 transition cursor-pointer" title="Click to view co-attended concerts">
                         <i class="fa-solid fa-users text-[9px]"></i>
-                        <span>{{ ps.co_attended_count }} Shared Show{{ ps.co_attended_count|pluralize }}</span>
+                        <span>{{ ps.co_attended_count }} Co-Attended Show{{ ps.co_attended_count|pluralize }}</span>
                         <i class="fa-solid fa-chevron-down text-[8px] transition-transform" id="icon-ps-co-{{ ps.id }}"></i>
                       </button>
                     {% elif not ps.is_public %}
                       <span class="text-[10px] text-slate-500 flex items-center gap-1"><i class="fa-solid fa-lock text-[9px]"></i> Hidden</span>
                     {% else %}
-                      <span class="text-[10px] text-slate-500 flex items-center gap-1"><i class="fa-solid fa-users-slash text-[9px]"></i> 0 shared</span>
+                      <span class="text-[10px] text-slate-500 flex items-center gap-1"><i class="fa-solid fa-users-slash text-[9px]"></i> 0 Co-Attended</span>
                     {% endif %}
                   </div>
                 </div>
@@ -3097,17 +3097,22 @@
                   <div id="ps-co-{{ ps.id }}" class="hidden p-2.5 rounded-xl bg-slate-950/90 border border-slate-800 space-y-1.5 text-xs">
                     <div class="flex items-center justify-between text-[10px] font-bold text-pink-300 uppercase tracking-wider">
                       <span class="flex items-center gap-1"><i class="fa-solid fa-sparkles text-[9px]"></i> Co-Attended Concerts</span>
-                      <span class="font-mono">{{ ps.co_attended_count }} show{{ ps.co_attended_count|pluralize }}</span>
+                      <button type="button" onclick="jumpToCoAttendedConcerts('{{ ps.username|escapejs }}', [{% for c in ps.co_attended_concerts %}'{{ c.date }}'{% if not forloop.last %},{% endif %}{% endfor %}])" class="text-[10px] text-indigo-300 hover:text-white hover:underline flex items-center gap-1 cursor-pointer font-normal normal-case">
+                        <span>View all in /concerts &rarr;</span>
+                      </button>
                     </div>
                     <div class="max-h-36 overflow-y-auto space-y-1 custom-scrollbar pr-1">
                       {% for c in ps.co_attended_concerts %}
-                        <div class="p-1.5 rounded-lg bg-slate-900/90 border border-slate-800/80 flex items-center justify-between gap-2 text-[11px]">
+                        <button type="button" onclick="jumpToConcertInDrilldown('{{ c.venue|escapejs }}', '{{ c.date }}')" class="w-full text-left p-1.5 rounded-lg bg-slate-900/90 hover:bg-indigo-950/40 border border-slate-800/80 hover:border-indigo-500/50 flex items-center justify-between gap-2 text-[11px] transition cursor-pointer group">
                           <div class="min-w-0 flex-1">
-                            <span class="font-bold text-white truncate block">{{ c.artist }}</span>
+                            <span class="font-bold text-white group-hover:text-indigo-300 transition truncate block">{{ c.artist }}</span>
                             <span class="text-[10px] text-slate-400 truncate block">{{ c.venue }}{% if c.city %}, {{ c.city }}{% endif %}</span>
                           </div>
-                          <span class="font-mono text-[10px] text-indigo-300 shrink-0">{{ c.date }}</span>
-                        </div>
+                          <div class="flex items-center gap-1 shrink-0">
+                            <span class="font-mono text-[10px] text-indigo-300">{{ c.date }}</span>
+                            <i class="fa-solid fa-arrow-right text-[8px] text-slate-500 group-hover:text-indigo-300 transition"></i>
+                          </div>
+                        </button>
                       {% endfor %}
                     </div>
                   </div>
@@ -3187,13 +3192,13 @@
                   </div>
                   <div>
                     {% if fb.co_attended_count > 0 %}
-                      <button type="button" onclick="toggleCoAttendedDetails('fb-co-{{ fb.id }}')" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-pink-500/20 hover:bg-pink-500/30 text-pink-300 border border-pink-500/40 flex items-center gap-1 transition cursor-pointer" title="Click to view shared concerts">
+                      <button type="button" onclick="toggleCoAttendedDetails('fb-co-{{ fb.id }}')" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-pink-500/20 hover:bg-pink-500/30 text-pink-300 border border-pink-500/40 flex items-center gap-1 transition cursor-pointer" title="Click to view co-attended concerts">
                         <i class="fa-solid fa-users text-[9px]"></i>
-                        <span>{{ fb.co_attended_count }} Shared Show{{ fb.co_attended_count|pluralize }}</span>
+                        <span>{{ fb.co_attended_count }} Co-Attended Show{{ fb.co_attended_count|pluralize }}</span>
                         <i class="fa-solid fa-chevron-down text-[8px] transition-transform" id="icon-fb-co-{{ fb.id }}"></i>
                       </button>
                     {% else %}
-                      <span class="text-[10px] text-slate-500 flex items-center gap-1"><i class="fa-solid fa-users-slash text-[9px]"></i> 0 shared</span>
+                      <span class="text-[10px] text-slate-500 flex items-center gap-1"><i class="fa-solid fa-users-slash text-[9px]"></i> 0 Co-Attended</span>
                     {% endif %}
                   </div>
                 </div>
@@ -3202,17 +3207,22 @@
                   <div id="fb-co-{{ fb.id }}" class="hidden p-2.5 rounded-xl bg-slate-950/90 border border-slate-800 space-y-1.5 text-xs">
                     <div class="flex items-center justify-between text-[10px] font-bold text-pink-300 uppercase tracking-wider">
                       <span class="flex items-center gap-1"><i class="fa-solid fa-sparkles text-[9px]"></i> Co-Attended Concerts</span>
-                      <span class="font-mono">{{ fb.co_attended_count }} show{{ fb.co_attended_count|pluralize }}</span>
+                      <button type="button" onclick="jumpToCoAttendedConcerts('{{ fb.username|escapejs }}', [{% for c in fb.co_attended_concerts %}'{{ c.date }}'{% if not forloop.last %},{% endif %}{% endfor %}])" class="text-[10px] text-indigo-300 hover:text-white hover:underline flex items-center gap-1 cursor-pointer font-normal normal-case">
+                        <span>View all in /concerts &rarr;</span>
+                      </button>
                     </div>
                     <div class="max-h-36 overflow-y-auto space-y-1 custom-scrollbar pr-1">
                       {% for c in fb.co_attended_concerts %}
-                        <div class="p-1.5 rounded-lg bg-slate-900/90 border border-slate-800/80 flex items-center justify-between gap-2 text-[11px]">
+                        <button type="button" onclick="jumpToConcertInDrilldown('{{ c.venue|escapejs }}', '{{ c.date }}')" class="w-full text-left p-1.5 rounded-lg bg-slate-900/90 hover:bg-indigo-950/40 border border-slate-800/80 hover:border-indigo-500/50 flex items-center justify-between gap-2 text-[11px] transition cursor-pointer group">
                           <div class="min-w-0 flex-1">
-                            <span class="font-bold text-white truncate block">{{ c.artist }}</span>
+                            <span class="font-bold text-white group-hover:text-indigo-300 transition truncate block">{{ c.artist }}</span>
                             <span class="text-[10px] text-slate-400 truncate block">{{ c.venue }}{% if c.city %}, {{ c.city }}{% endif %}</span>
                           </div>
-                          <span class="font-mono text-[10px] text-indigo-300 shrink-0">{{ c.date }}</span>
-                        </div>
+                          <div class="flex items-center gap-1 shrink-0">
+                            <span class="font-mono text-[10px] text-indigo-300">{{ c.date }}</span>
+                            <i class="fa-solid fa-arrow-right text-[8px] text-slate-500 group-hover:text-indigo-300 transition"></i>
+                          </div>
+                        </button>
                       {% endfor %}
                     </div>
                   </div>
@@ -3245,182 +3255,225 @@
         </div>
       {% endif %}
 
-      <!-- Current Friends Section -->
+      <!-- Current Friends Section (Table View) -->
       <div class="glass-card p-6 space-y-4">
         <div class="flex items-center justify-between border-b border-slate-800 pb-3">
           <div class="flex items-center gap-2">
             <h3 class="text-base font-bold text-white flex items-center gap-2">
               <i class="fa-solid fa-user-check text-indigo-400"></i> Your Friends
             </h3>
-            <span id="friends-list-header-count" class="text-xs text-slate-400">({{ friends_list|length }})</span>
+            <span id="friends-list-header-count" class="badge bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 font-mono text-xs">{{ friends_list|length }}</span>
           </div>
-          <span class="text-[11px] text-slate-400">Click a friend to view their concert collection</span>
         </div>
 
-        <div id="friends-list-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          {% for f in friends_list %}
-            <div class="friend-card p-4 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-indigo-500/40 transition flex flex-col justify-between space-y-3" data-username="{{ f.username|lower }}">
-              <div class="flex items-start justify-between gap-2.5">
-                <div class="flex items-center gap-3 min-w-0">
-                  <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white text-sm font-bold shadow-sm shrink-0">
-                    {{ f.username|slice:":1"|upper }}
-                  </div>
-                  <div class="min-w-0">
-                    <a href="{% url 'public_profile' username=f.username %}" class="text-sm font-bold text-white hover:text-indigo-300 transition truncate block">
-                      @{{ f.username }}
-                    </a>
-                  </div>
-                </div>
-                {% if not f.is_public %}
-                  <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1 shrink-0" title="Private profile (viewable because you are friends)">
-                    <i class="fa-solid fa-lock text-[9px]"></i> Private
-                  </span>
-                {% endif %}
-              </div>
-
-              <div class="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400 flex-wrap gap-1">
-                <div>
-                  <span class="font-bold text-white font-mono">{{ f.concert_count }}</span> concerts
-                  {% if f.top_artist %}
-                    &bull; <span class="text-slate-300">{{ f.top_artist }}</span>
-                  {% endif %}
-                </div>
-                <div>
-                  {% if f.co_attended_count > 0 %}
-                    <button type="button" onclick="toggleCoAttendedDetails('friend-co-{{ f.id }}')" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-pink-500/20 hover:bg-pink-500/30 text-pink-300 border border-pink-500/40 flex items-center gap-1 transition cursor-pointer" title="Click to view shared concerts">
-                      <i class="fa-solid fa-users text-[9px]"></i>
-                      <span>{{ f.co_attended_count }} Shared Show{{ f.co_attended_count|pluralize }}</span>
-                      <i class="fa-solid fa-chevron-down text-[8px] transition-transform" id="icon-friend-co-{{ f.id }}"></i>
-                    </button>
-                  {% else %}
-                    <span class="text-[10px] text-slate-500 flex items-center gap-1"><i class="fa-solid fa-users-slash text-[9px]"></i> 0 shared</span>
-                  {% endif %}
-                </div>
-              </div>
-
-              {% if f.co_attended_count > 0 %}
-                <div id="friend-co-{{ f.id }}" class="hidden p-2.5 rounded-xl bg-slate-950/90 border border-slate-800 space-y-1.5 text-xs">
-                  <div class="flex items-center justify-between text-[10px] font-bold text-pink-300 uppercase tracking-wider">
-                    <span class="flex items-center gap-1"><i class="fa-solid fa-sparkles text-[9px]"></i> Co-Attended Concerts</span>
-                    <span class="font-mono">{{ f.co_attended_count }} show{{ f.co_attended_count|pluralize }}</span>
-                  </div>
-                  <div class="max-h-36 overflow-y-auto space-y-1 custom-scrollbar pr-1">
-                    {% for c in f.co_attended_concerts %}
-                      <div class="p-1.5 rounded-lg bg-slate-900/90 border border-slate-800/80 flex items-center justify-between gap-2 text-[11px]">
-                        <div class="min-w-0 flex-1">
-                          <span class="font-bold text-white truncate block">{{ c.artist }}</span>
-                          <span class="text-[10px] text-slate-400 truncate block">{{ c.venue }}{% if c.city %}, {{ c.city }}{% endif %}</span>
+        {% if friends_list %}
+          <div class="overflow-x-auto rounded-xl border border-slate-800/80 bg-slate-900/60">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="border-b border-slate-800 text-slate-400 text-xs font-semibold uppercase tracking-wider bg-slate-900/90">
+                  <th class="px-4 py-3">Friend</th>
+                  <th class="px-4 py-3">Concerts</th>
+                  <th class="px-4 py-3">Top Artist</th>
+                  <th class="px-4 py-3">Co-Attended Concerts</th>
+                  <th class="px-4 py-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800/60 text-xs">
+                {% for f in friends_list %}
+                  <tr class="friend-card friend-row hover:bg-slate-800/40 transition" data-username="{{ f.username|lower }}">
+                    <!-- Friend Column -->
+                    <td class="px-4 py-3">
+                      <div class="flex items-center gap-2.5 min-w-0">
+                        <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold shadow-sm shrink-0">
+                          {{ f.username|slice:":1"|upper }}
                         </div>
-                        <span class="font-mono text-[10px] text-indigo-300 shrink-0">{{ c.date }}</span>
+                        <div class="min-w-0 flex items-center gap-1.5 flex-wrap">
+                          <a href="{% url 'public_profile' username=f.username %}" class="font-bold text-white hover:text-indigo-300 transition truncate">
+                            @{{ f.username }}
+                          </a>
+                          {% if not f.is_public %}
+                            <span class="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 inline-flex items-center gap-1 shrink-0" title="Private profile (viewable because you are mutual friends)">
+                              <i class="fa-solid fa-lock text-[8px]"></i> Private
+                            </span>
+                          {% endif %}
+                        </div>
                       </div>
-                    {% endfor %}
-                  </div>
-                </div>
-              {% endif %}
+                    </td>
 
-              <div class="flex items-center gap-2 pt-1">
-                <a href="{% url 'public_profile' username=f.username %}" class="flex-1 py-1.5 px-3 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 text-indigo-300 hover:text-white text-xs font-semibold text-center transition flex items-center justify-center gap-1.5">
-                  <i class="fa-solid fa-eye text-[11px]"></i>
-                  <span>View Profile</span>
-                </a>
-                <button type="button" onclick="toggleFriendsPageFriend({{ f.id }}, this)" class="py-1.5 px-3 rounded-lg bg-emerald-500/20 hover:bg-rose-500/20 border border-emerald-500/30 hover:border-rose-500/40 text-emerald-300 hover:text-rose-300 text-xs font-semibold transition cursor-pointer flex items-center gap-1 shrink-0 group">
-                  <i class="fa-solid fa-check group-hover:hidden text-[10px]"></i>
-                  <i class="fa-solid fa-user-xmark hidden group-hover:inline text-[10px]"></i>
-                  <span class="group-hover:hidden">Friended</span>
-                  <span class="hidden group-hover:inline">Remove</span>
-                </button>
+                    <!-- Total Concerts Column -->
+                    <td class="px-4 py-3 whitespace-nowrap">
+                      <span class="font-bold text-white font-mono text-xs">{{ f.concert_count }}</span>
+                      <span class="text-slate-400 text-[11px]">show{{ f.concert_count|pluralize }}</span>
+                    </td>
+
+                    <!-- Top Artist Column -->
+                    <td class="px-4 py-3 max-w-[200px] truncate">
+                      {% if f.top_artist %}
+                        <span class="text-slate-200 font-medium truncate block">{{ f.top_artist }}</span>
+                        <span class="text-[11px] text-slate-500 font-mono">({{ f.top_artist_shows }} show{{ f.top_artist_shows|pluralize }})</span>
+                      {% else %}
+                        <span class="text-slate-500 text-xs">&mdash;</span>
+                      {% endif %}
+                    </td>
+
+                    <!-- Co-Attended Column -->
+                    <td class="px-4 py-3 whitespace-nowrap">
+                      {% if f.co_attended_count > 0 %}
+                        <div class="inline-flex items-center rounded-lg bg-pink-500/15 border border-pink-500/30 overflow-hidden">
+                          <button type="button" onclick="jumpToCoAttendedConcerts('{{ f.username|escapejs }}', [{% for c in f.co_attended_concerts %}'{{ c.date }}'{% if not forloop.last %},{% endif %}{% endfor %}])" class="px-2.5 py-1 text-xs font-semibold text-pink-300 hover:bg-pink-500/25 hover:text-pink-200 inline-flex items-center gap-1.5 transition cursor-pointer" title="Filter to these co-attended concerts in /concerts">
+                            <i class="fa-solid fa-users text-pink-400 text-[10px]"></i>
+                            <span><strong class="font-mono">{{ f.co_attended_count }}</strong> Co-Attended Show{{ f.co_attended_count|pluralize }}</span>
+                            <i class="fa-solid fa-arrow-up-right-from-square text-[9px] text-pink-400/80"></i>
+                          </button>
+                          <button type="button" onclick="toggleCoAttendedDetails('friend-co-{{ f.id }}')" class="px-1.5 py-1 text-xs text-pink-400 hover:bg-pink-500/30 border-l border-pink-500/30 transition cursor-pointer" title="Toggle list of co-attended shows">
+                            <i class="fa-solid fa-chevron-down text-[9px] transition-transform" id="icon-friend-co-{{ f.id }}"></i>
+                          </button>
+                        </div>
+                      {% else %}
+                        <span class="text-[11px] text-slate-500 inline-flex items-center gap-1.5">
+                          <i class="fa-solid fa-users-slash text-[10px] text-slate-600"></i>
+                          <span>0 Co-Attended</span>
+                        </span>
+                      {% endif %}
+                    </td>
+
+                    <!-- Actions Column -->
+                    <td class="px-4 py-3 whitespace-nowrap text-right">
+                      <div class="inline-flex items-center gap-1.5 justify-end">
+                        <a href="{% url 'public_profile' username=f.username %}" class="py-1 px-2.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 text-indigo-300 hover:text-white text-xs font-semibold transition inline-flex items-center gap-1">
+                          <i class="fa-solid fa-eye text-[10px]"></i>
+                          <span>Profile</span>
+                        </a>
+                        <button type="button" onclick="respondFriendRequest({{ f.id }}, 'remove', this)" class="py-1 px-2.5 rounded-lg bg-slate-800 hover:bg-rose-500/20 border border-slate-700 hover:border-rose-500/40 text-slate-400 hover:text-rose-300 text-xs font-semibold transition cursor-pointer inline-flex items-center gap-1 group" title="Remove friend">
+                          <i class="fa-solid fa-user-xmark text-[10px]"></i>
+                          <span>Remove</span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+
+                  {% if f.co_attended_count > 0 %}
+                    <tr id="friend-co-{{ f.id }}" class="hidden bg-slate-950/90 border-b border-slate-800">
+                      <td colspan="5" class="px-4 py-3">
+                        <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2">
+                          <div class="flex items-center justify-between text-xs font-bold text-pink-300">
+                            <span class="flex items-center gap-1.5"><i class="fa-solid fa-sparkles text-xs"></i> Co-Attended Concerts with @{{ f.username }}</span>
+                            <button type="button" onclick="jumpToCoAttendedConcerts('{{ f.username|escapejs }}', [{% for c in f.co_attended_concerts %}'{{ c.date }}'{% if not forloop.last %},{% endif %}{% endfor %}])" class="text-xs text-indigo-300 hover:text-white hover:underline flex items-center gap-1 cursor-pointer font-normal normal-case">
+                              <span>Filter all in /concerts &rarr;</span>
+                            </button>
+                          </div>
+                          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 pt-1 max-h-48 overflow-y-auto custom-scrollbar">
+                            {% for c in f.co_attended_concerts %}
+                              <button type="button" onclick="jumpToConcertInDrilldown('{{ c.venue|escapejs }}', '{{ c.date }}')" class="w-full text-left p-2 rounded-lg bg-slate-950/80 hover:bg-indigo-950/40 border border-slate-800/80 hover:border-indigo-500/50 flex items-center justify-between gap-2 text-xs transition cursor-pointer group">
+                                <div class="min-w-0 flex-1">
+                                  <span class="font-bold text-white group-hover:text-indigo-300 transition truncate block">{{ c.artist }}</span>
+                                  <span class="text-[11px] text-slate-400 truncate block">{{ c.venue }}{% if c.city %}, {{ c.city }}{% endif %}</span>
+                                </div>
+                                <div class="flex items-center gap-1 shrink-0">
+                                  <span class="font-mono text-[11px] text-indigo-300">{{ c.date }}</span>
+                                  <i class="fa-solid fa-arrow-right text-[8px] text-slate-500 group-hover:text-indigo-300 transition"></i>
+                                </div>
+                              </button>
+                            {% endfor %}
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  {% endif %}
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div id="friends-empty-state" class="py-8 px-6 rounded-2xl glass-card border border-slate-800/80 bg-slate-900/60 text-center space-y-6">
+            <div class="max-w-md mx-auto space-y-2">
+              <div class="w-14 h-14 rounded-2xl bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 flex items-center justify-center text-2xl mx-auto shadow-inner">
+                <i class="fa-solid fa-user-group"></i>
+              </div>
+              <h4 class="text-base font-bold text-white">No Friends Added Yet</h4>
+              <p class="text-xs text-slate-300 leading-relaxed">
+                Setlore is built for concert crews. Connect with friends to compare attended shows, share setlist stats, and see your live music overlap!
+              </p>
+            </div>
+
+            <!-- Quick Add & Share Box -->
+            <div class="max-w-xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-3 text-left">
+              <!-- Add by Username -->
+              <div class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2 flex flex-col justify-between">
+                <div>
+                  <label class="block text-xs font-semibold text-slate-200 mb-1 flex items-center gap-1.5">
+                    <i class="fa-solid fa-user-plus text-indigo-400"></i> Add Friend by Username
+                  </label>
+                  <p class="text-[11px] text-slate-400">Know their Setlore handle? Enter it below:</p>
+                </div>
+                <div class="flex items-center gap-1.5 pt-1">
+                  <div class="relative flex-1">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-2.5 text-slate-500 text-xs font-mono">@</span>
+                    <input type="text" id="empty-friends-add-input" placeholder="username"
+                      onkeydown="if(event.key==='Enter'){event.preventDefault(); addFriendByUsername('empty-friends-add-input');}"
+                      class="w-full pl-6 pr-2.5 py-1.5 text-xs rounded-lg bg-slate-950 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+                  </div>
+                  <button type="button" onclick="addFriendByUsername('empty-friends-add-input')"
+                    class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition cursor-pointer shrink-0">
+                    Add
+                  </button>
+                </div>
+              </div>
+
+              <!-- Share Your Profile Link -->
+              <div class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2 flex flex-col justify-between">
+                <div>
+                  <span class="block text-xs font-semibold text-slate-200 mb-1 flex items-center gap-1.5">
+                    <i class="fa-solid fa-share-nodes text-indigo-400"></i> Share Your Profile Link
+                  </span>
+                  <p class="text-[11px] text-slate-400">Send your link so friends can view &amp; friend you:</p>
+                </div>
+                <div class="flex items-center gap-1.5 pt-1">
+                  <input type="text" readonly value="{{ share_url }}"
+                    class="w-full px-2.5 py-1.5 text-[11px] rounded-lg bg-slate-950 border border-slate-700 text-indigo-300 font-mono select-all truncate">
+                  <button type="button" onclick="copyPublicShareUrl()"
+                    class="px-3 py-1.5 rounded-lg bg-indigo-600/30 hover:bg-indigo-600/50 border border-indigo-500/40 text-indigo-200 text-xs font-semibold transition cursor-pointer shrink-0 flex items-center gap-1">
+                    <i class="fa-solid fa-copy text-[11px]"></i>
+                    <span>Copy</span>
+                  </button>
+                </div>
               </div>
             </div>
-          {% empty %}
-            <div id="friends-empty-state" class="col-span-full py-8 px-6 rounded-2xl glass-card border border-slate-800/80 bg-slate-900/60 text-center space-y-6">
-              <div class="max-w-md mx-auto space-y-2">
-                <div class="w-14 h-14 rounded-2xl bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 flex items-center justify-center text-2xl mx-auto shadow-inner">
-                  <i class="fa-solid fa-user-group"></i>
-                </div>
-                <h4 class="text-base font-bold text-white">No Friends Added Yet</h4>
-                <p class="text-xs text-slate-300 leading-relaxed">
-                  Setlore is built for concert crews. Connect with friends to compare attended shows, share setlist stats, and see your live music overlap!
-                </p>
-              </div>
 
-              <!-- Quick Add & Share Box -->
-              <div class="max-w-xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-3 text-left">
-                <!-- Add by Username -->
-                <div class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2 flex flex-col justify-between">
-                  <div>
-                    <label class="block text-xs font-semibold text-slate-200 mb-1 flex items-center gap-1.5">
-                      <i class="fa-solid fa-user-plus text-indigo-400"></i> Add Friend by Username
-                    </label>
-                    <p class="text-[11px] text-slate-400">Know their Setlore handle? Enter it below:</p>
+            <!-- Feature Highlights / Explainer -->
+            <div class="pt-4 border-t border-slate-800/80 max-w-2xl mx-auto">
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-left">
+                <div class="p-3 rounded-xl bg-slate-900/50 border border-slate-800/60 space-y-1">
+                  <div class="flex items-center gap-1.5 text-pink-400 text-xs font-semibold">
+                    <i class="fa-solid fa-sparkles text-[11px]"></i>
+                    <span>Co-Attended Shows</span>
                   </div>
-                  <div class="flex items-center gap-1.5 pt-1">
-                    <div class="relative flex-1">
-                      <span class="absolute inset-y-0 left-0 flex items-center pl-2.5 text-slate-500 text-xs font-mono">@</span>
-                      <input type="text" id="empty-friends-add-input" placeholder="username"
-                        onkeydown="if(event.key==='Enter'){event.preventDefault(); addFriendByUsername('empty-friends-add-input');}"
-                        class="w-full pl-6 pr-2.5 py-1.5 text-xs rounded-lg bg-slate-950 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
-                    </div>
-                    <button type="button" onclick="addFriendByUsername('empty-friends-add-input')"
-                      class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition cursor-pointer shrink-0">
-                      Add
-                    </button>
-                  </div>
+                  <p class="text-[11px] text-slate-400 leading-relaxed">
+                    Automatically detects when you both attended the same concert date and venue.
+                  </p>
                 </div>
-
-                <!-- Share Your Profile Link -->
-                <div class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2 flex flex-col justify-between">
-                  <div>
-                    <span class="block text-xs font-semibold text-slate-200 mb-1 flex items-center gap-1.5">
-                      <i class="fa-solid fa-share-nodes text-indigo-400"></i> Share Your Profile Link
-                    </span>
-                    <p class="text-[11px] text-slate-400">Send your link so friends can view &amp; friend you:</p>
+                <div class="p-3 rounded-xl bg-slate-900/50 border border-slate-800/60 space-y-1">
+                  <div class="flex items-center gap-1.5 text-amber-400 text-xs font-semibold">
+                    <i class="fa-solid fa-lock-open text-[11px]"></i>
+                    <span>Private Profiles</span>
                   </div>
-                  <div class="flex items-center gap-1.5 pt-1">
-                    <input type="text" readonly value="{{ share_url }}"
-                      class="w-full px-2.5 py-1.5 text-[11px] rounded-lg bg-slate-950 border border-slate-700 text-indigo-300 font-mono select-all truncate">
-                    <button type="button" onclick="copyPublicShareUrl()"
-                      class="px-3 py-1.5 rounded-lg bg-indigo-600/30 hover:bg-indigo-600/50 border border-indigo-500/40 text-indigo-200 text-xs font-semibold transition cursor-pointer shrink-0 flex items-center gap-1">
-                      <i class="fa-solid fa-copy text-[11px]"></i>
-                      <span>Copy</span>
-                    </button>
+                  <p class="text-[11px] text-slate-400 leading-relaxed">
+                    Friends get reciprocal viewing access to private profiles and setlist logs.
+                  </p>
+                </div>
+                <div class="p-3 rounded-xl bg-slate-900/50 border border-slate-800/60 space-y-1">
+                  <div class="flex items-center gap-1.5 text-indigo-400 text-xs font-semibold">
+                    <i class="fa-solid fa-chart-simple text-[11px]"></i>
+                    <span>Live Stat Overlap</span>
                   </div>
+                  <p class="text-[11px] text-slate-400 leading-relaxed">
+                    Compare shared artists, top venues, and tracklist stats across your circle.
+                  </p>
                 </div>
               </div>
-
-              <!-- Feature Highlights / Explainer -->
-              <div class="pt-4 border-t border-slate-800/80 max-w-2xl mx-auto">
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-left">
-                  <div class="p-3 rounded-xl bg-slate-900/50 border border-slate-800/60 space-y-1">
-                    <div class="flex items-center gap-1.5 text-pink-400 text-xs font-semibold">
-                      <i class="fa-solid fa-sparkles text-[11px]"></i>
-                      <span>Co-Attended Shows</span>
-                    </div>
-                    <p class="text-[11px] text-slate-400 leading-relaxed">
-                      Automatically detects when you both attended the same concert date and venue.
-                    </p>
-                  </div>
-                  <div class="p-3 rounded-xl bg-slate-900/50 border border-slate-800/60 space-y-1">
-                    <div class="flex items-center gap-1.5 text-amber-400 text-xs font-semibold">
-                      <i class="fa-solid fa-lock-open text-[11px]"></i>
-                      <span>Private Profiles</span>
-                    </div>
-                    <p class="text-[11px] text-slate-400 leading-relaxed">
-                      Friends get reciprocal viewing access to private profiles and setlist logs.
-                    </p>
-                  </div>
-                  <div class="p-3 rounded-xl bg-slate-900/50 border border-slate-800/60 space-y-1">
-                    <div class="flex items-center gap-1.5 text-indigo-400 text-xs font-semibold">
-                      <i class="fa-solid fa-chart-simple text-[11px]"></i>
-                      <span>Live Stat Overlap</span>
-                    </div>
-                    <p class="text-[11px] text-slate-400 leading-relaxed">
-                      Compare shared artists, top venues, and tracklist stats across your circle.
-                    </p>
-                  </div>
-                </div>
-              </div>
-          {% endfor %}
-        </div>
+            </div>
+          </div>
+        {% endif %}
       </div>
 
       <!-- Discover Community Section -->
@@ -3472,13 +3525,13 @@
                 </div>
                 <div>
                   {% if s.co_attended_count > 0 %}
-                    <button type="button" onclick="toggleCoAttendedDetails('sugg-co-{{ s.id }}')" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-pink-500/20 hover:bg-pink-500/30 text-pink-300 border border-pink-500/40 flex items-center gap-1 transition cursor-pointer" title="Click to view shared concerts">
+                    <button type="button" onclick="toggleCoAttendedDetails('sugg-co-{{ s.id }}')" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-pink-500/20 hover:bg-pink-500/30 text-pink-300 border border-pink-500/40 flex items-center gap-1 transition cursor-pointer" title="Click to view co-attended concerts">
                       <i class="fa-solid fa-users text-[9px]"></i>
-                      <span>{{ s.co_attended_count }} Shared Show{{ s.co_attended_count|pluralize }}</span>
+                      <span>{{ s.co_attended_count }} Co-Attended Show{{ s.co_attended_count|pluralize }}</span>
                       <i class="fa-solid fa-chevron-down text-[8px] transition-transform" id="icon-sugg-co-{{ s.id }}"></i>
                     </button>
                   {% else %}
-                    <span class="text-[10px] text-slate-500 flex items-center gap-1"><i class="fa-solid fa-users-slash text-[9px]"></i> 0 shared</span>
+                    <span class="text-[10px] text-slate-500 flex items-center gap-1"><i class="fa-solid fa-users-slash text-[9px]"></i> 0 Co-Attended</span>
                   {% endif %}
                 </div>
               </div>
@@ -3487,17 +3540,22 @@
                 <div id="sugg-co-{{ s.id }}" class="hidden p-2.5 rounded-xl bg-slate-950/90 border border-slate-800 space-y-1.5 text-xs">
                   <div class="flex items-center justify-between text-[10px] font-bold text-pink-300 uppercase tracking-wider">
                     <span class="flex items-center gap-1"><i class="fa-solid fa-sparkles text-[9px]"></i> Co-Attended Concerts</span>
-                    <span class="font-mono">{{ s.co_attended_count }} show{{ s.co_attended_count|pluralize }}</span>
+                    <button type="button" onclick="jumpToCoAttendedConcerts('{{ s.username|escapejs }}', [{% for c in s.co_attended_concerts %}'{{ c.date }}'{% if not forloop.last %},{% endif %}{% endfor %}])" class="text-[10px] text-indigo-300 hover:text-white hover:underline flex items-center gap-1 cursor-pointer font-normal normal-case">
+                      <span>View all in /concerts &rarr;</span>
+                    </button>
                   </div>
                   <div class="max-h-36 overflow-y-auto space-y-1 custom-scrollbar pr-1">
                     {% for c in s.co_attended_concerts %}
-                      <div class="p-1.5 rounded-lg bg-slate-900/90 border border-slate-800/80 flex items-center justify-between gap-2 text-[11px]">
+                      <button type="button" onclick="jumpToConcertInDrilldown('{{ c.venue|escapejs }}', '{{ c.date }}')" class="w-full text-left p-1.5 rounded-lg bg-slate-900/90 hover:bg-indigo-950/40 border border-slate-800/80 hover:border-indigo-500/50 flex items-center justify-between gap-2 text-[11px] transition cursor-pointer group">
                         <div class="min-w-0 flex-1">
-                          <span class="font-bold text-white truncate block">{{ c.artist }}</span>
+                          <span class="font-bold text-white group-hover:text-indigo-300 transition truncate block">{{ c.artist }}</span>
                           <span class="text-[10px] text-slate-400 truncate block">{{ c.venue }}{% if c.city %}, {{ c.city }}{% endif %}</span>
                         </div>
-                        <span class="font-mono text-[10px] text-indigo-300 shrink-0">{{ c.date }}</span>
-                      </div>
+                        <div class="flex items-center gap-1 shrink-0">
+                          <span class="font-mono text-[10px] text-indigo-300">{{ c.date }}</span>
+                          <i class="fa-solid fa-arrow-right text-[8px] text-slate-500 group-hover:text-indigo-300 transition"></i>
+                        </div>
+                      </button>
                     {% endfor %}
                   </div>
                 </div>
@@ -4611,6 +4669,65 @@
 
     function jumpToMusicianInConcerts(musicianName) {
       jumpToArtistInConcerts(musicianName);
+    }
+
+    function jumpToCoAttendedConcerts(friendUsername, datesList) {
+      switchTab('concerts');
+      const searchInput = document.getElementById('concert-search-input');
+      const clearBtn = document.getElementById('concert-search-clear');
+
+      const datesSet = new Set((datesList || []).map(d => String(d).toLowerCase().trim()));
+
+      if (searchInput) {
+        searchInput.value = friendUsername ? `Co-attended with @${friendUsername}` : 'Co-attended';
+        if (clearBtn) clearBtn.classList.remove('hidden');
+      }
+
+      let visibleCount = 0;
+      let firstMatch = null;
+
+      document.querySelectorAll('.concert-card').forEach(card => {
+        const cardDate = (card.getAttribute('data-date') || '').toLowerCase().trim();
+        const searchData = (card.getAttribute('data-search') || '').toLowerCase();
+
+        let matches = false;
+        if (datesSet.size > 0) {
+          for (const d of datesSet) {
+            if (d && (cardDate === d || cardDate.includes(d) || searchData.includes(d))) {
+              matches = true;
+              break;
+            }
+          }
+        }
+
+        if (matches) {
+          card.style.display = 'block';
+          visibleCount++;
+          if (!firstMatch) firstMatch = card;
+          const details = card.querySelector('[id^="concert-details-"]');
+          const chevron = card.querySelector('[id^="concert-chevron-"]');
+          if (details) {
+            details.classList.remove('hidden');
+            if (chevron) chevron.classList.add('rotate-180');
+          }
+        } else {
+          card.style.display = 'none';
+        }
+      });
+
+      const countBadge = document.getElementById('concert-count-badge');
+      if (countBadge) {
+        const total = document.querySelectorAll('.concert-card').length;
+        countBadge.innerText = friendUsername
+          ? `${visibleCount} of ${total} Shows (Co-attended with @${friendUsername})`
+          : `${visibleCount} of ${total} Shows`;
+      }
+
+      if (firstMatch) {
+        setTimeout(() => {
+          firstMatch.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 60);
+      }
     }
 
     function focusVenueOnMap(lat, lng, venueName) {
