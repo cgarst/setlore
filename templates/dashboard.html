@@ -3647,7 +3647,7 @@
       </div>
 
       <!-- Live Albums & Vinyl Wall Gallery -->
-      <div class="glass-card p-6 space-y-5">
+      <div id="album-wall-section" class="glass-card p-6 space-y-5">
         <!-- Section Header -->
         <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-800 pb-4">
           <div>
@@ -3829,6 +3829,26 @@
           <i class="fa-solid fa-compact-disc text-3xl text-slate-600"></i>
           <p class="text-sm font-bold text-slate-300">No matching albums found</p>
           <p class="text-xs text-slate-500">Try searching for a different album, artist, or decade.</p>
+        </div>
+
+        <!-- Pagination Controls Bar -->
+        <div id="album-gallery-pagination" class="hidden flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-slate-800/80 text-xs">
+          <!-- Range Info & Per Page -->
+          <div class="flex items-center gap-3 text-slate-400">
+            <span id="album-pagination-info" class="font-medium text-slate-300">Showing 1–24 of 120 albums</span>
+            <div class="flex items-center gap-1.5 pl-2 border-l border-slate-800">
+              <span class="text-slate-500">Per page:</span>
+              <select id="album-per-page-select" onchange="setAlbumPageSize(this.value)" class="bg-slate-900 border border-slate-700/80 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-indigo-500 cursor-pointer">
+                <option value="24" selected>24</option>
+                <option value="48">48</option>
+                <option value="96">96</option>
+                <option value="all">All</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Page Navigation Buttons -->
+          <div class="flex items-center gap-1.5" id="album-pagination-buttons"></div>
         </div>
       </div>
 
@@ -7448,6 +7468,9 @@
     }
 
     let currentGalleryDecade = 'all';
+    let currentAlbumPage = 1;
+    let albumPageSize = 24;
+    let currentFilteredAlbumCards = [];
 
     function setAlbumGalleryDecade(decade) {
       currentGalleryDecade = decade;
@@ -7458,7 +7481,7 @@
           btn.className = 'album-decade-btn px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 font-semibold transition shrink-0 cursor-pointer';
         }
       });
-      filterAlbumGallery();
+      filterAlbumGallery(true);
     }
 
     function clearAlbumGallerySearch() {
@@ -7466,17 +7489,44 @@
       if (input) input.value = '';
       const clearBtn = document.getElementById('album-gallery-search-clear');
       if (clearBtn) clearBtn.classList.add('hidden');
-      filterAlbumGallery();
+      filterAlbumGallery(true);
     }
 
-    function filterAlbumGallery() {
+    function setAlbumPageSize(size) {
+      albumPageSize = size === 'all' ? 'all' : parseInt(size, 10);
+      currentAlbumPage = 1;
+      updateAlbumGalleryDisplay();
+      scrollToAlbumWall();
+    }
+
+    function goToAlbumPage(page) {
+      const pageSize = albumPageSize === 'all' ? currentFilteredAlbumCards.length : albumPageSize;
+      const totalPages = Math.max(1, Math.ceil(currentFilteredAlbumCards.length / (pageSize || 1)));
+      if (page < 1 || page > totalPages) return;
+      currentAlbumPage = page;
+      updateAlbumGalleryDisplay();
+      scrollToAlbumWall();
+    }
+
+    function scrollToAlbumWall() {
+      const wallSection = document.getElementById('album-wall-section');
+      if (wallSection) {
+        wallSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+
+    function filterAlbumGallery(resetPage = true) {
       const input = document.getElementById('album-gallery-search');
       const q = (input ? input.value : '').toLowerCase().trim();
       const clearBtn = document.getElementById('album-gallery-search-clear');
       if (clearBtn) clearBtn.classList.toggle('hidden', !q);
 
-      let visibleCount = 0;
-      document.querySelectorAll('.album-gallery-card').forEach(card => {
+      if (resetPage) currentAlbumPage = 1;
+
+      currentFilteredAlbumCards = [];
+      const allCards = Array.from(document.querySelectorAll('.album-gallery-card'));
+
+      allCards.forEach(card => {
         const searchData = card.getAttribute('data-search') || '';
         const decadeData = card.getAttribute('data-decade') || '';
         const matchSearch = !q || searchData.includes(q);
@@ -7494,26 +7544,114 @@
         }
 
         if (matchSearch && matchDecade) {
-          card.style.display = 'flex';
-          visibleCount++;
-        } else {
-          card.style.display = 'none';
+          currentFilteredAlbumCards.push(card);
         }
       });
 
       const countBadge = document.getElementById('album-gallery-count-badge');
+      const totalCount = currentFilteredAlbumCards.length;
       if (countBadge) {
         if (currentGalleryDecade === 'Covers') {
-          countBadge.innerText = `${visibleCount} Cover Collection${visibleCount === 1 ? '' : 's'}`;
+          countBadge.innerText = `${totalCount} Cover Collection${totalCount === 1 ? '' : 's'}`;
         } else {
-          countBadge.innerText = `${visibleCount} Album${visibleCount === 1 ? '' : 's'}`;
+          countBadge.innerText = `${totalCount} Album${totalCount === 1 ? '' : 's'}`;
         }
       }
 
       const noResults = document.getElementById('album-gallery-no-results');
-      if (noResults) {
-        noResults.classList.toggle('hidden', visibleCount > 0);
+      const paginationEl = document.getElementById('album-gallery-pagination');
+
+      if (totalCount === 0) {
+        allCards.forEach(c => c.style.display = 'none');
+        if (noResults) noResults.classList.remove('hidden');
+        if (paginationEl) paginationEl.classList.add('hidden');
+        return;
       }
+
+      if (noResults) noResults.classList.add('hidden');
+      updateAlbumGalleryDisplay();
+    }
+
+    function updateAlbumGalleryDisplay() {
+      const allCards = document.querySelectorAll('.album-gallery-card');
+      const totalCount = currentFilteredAlbumCards.length;
+      const paginationEl = document.getElementById('album-gallery-pagination');
+      const paginationInfo = document.getElementById('album-pagination-info');
+      const paginationBtns = document.getElementById('album-pagination-buttons');
+
+      const pageSize = albumPageSize === 'all' ? totalCount : albumPageSize;
+      const totalPages = Math.max(1, Math.ceil(totalCount / (pageSize || 1)));
+      currentAlbumPage = Math.max(1, Math.min(currentAlbumPage, totalPages));
+
+      const startIdx = (currentAlbumPage - 1) * pageSize;
+      const endIdx = Math.min(startIdx + pageSize, totalCount);
+
+      // Hide all cards first
+      allCards.forEach(card => card.style.display = 'none');
+
+      // Show only cards for current page
+      for (let i = startIdx; i < endIdx; i++) {
+        if (currentFilteredAlbumCards[i]) {
+          currentFilteredAlbumCards[i].style.display = 'flex';
+        }
+      }
+
+      // Update pagination info & controls
+      if (paginationEl) {
+        paginationEl.classList.remove('hidden');
+      }
+
+      if (paginationInfo) {
+        paginationInfo.innerText = totalCount > 0 ? `Showing ${startIdx + 1}–${endIdx} of ${totalCount} album${totalCount === 1 ? '' : 's'}` : '0 albums';
+      }
+
+      if (paginationBtns) {
+        if (totalPages <= 1) {
+          paginationBtns.innerHTML = '';
+        } else {
+          let btnsHtml = `
+            <button type="button" onclick="goToAlbumPage(${currentAlbumPage - 1})"
+                    ${currentAlbumPage === 1 ? 'disabled' : ''}
+                    class="px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition ${currentAlbumPage === 1 ? 'bg-slate-900 text-slate-600 border-slate-800 cursor-not-allowed' : 'bg-slate-800 text-slate-300 hover:text-white border-slate-700 hover:bg-slate-700 cursor-pointer'} flex items-center gap-1">
+              <i class="fa-solid fa-chevron-left text-[10px]"></i>
+              <span class="hidden sm:inline">Prev</span>
+            </button>
+          `;
+
+          // Generate smart page numbers: 1, 2 ... current-1, current, current+1 ... totalPages
+          const pagesToShow = [];
+          for (let p = 1; p <= totalPages; p++) {
+            if (p === 1 || p === totalPages || (p >= currentAlbumPage - 1 && p <= currentAlbumPage + 1)) {
+              pagesToShow.push(p);
+            }
+          }
+
+          let lastP = 0;
+          pagesToShow.forEach(p => {
+            if (lastP && p - lastP > 1) {
+              btnsHtml += `<span class="px-1 text-slate-600 text-xs select-none">...</span>`;
+            }
+            if (p === currentAlbumPage) {
+              btnsHtml += `<button type="button" class="w-8 h-8 rounded-lg bg-indigo-600 text-white font-bold text-xs shadow-md shadow-indigo-600/30 cursor-default">${p}</button>`;
+            } else {
+              btnsHtml += `<button type="button" onclick="goToAlbumPage(${p})" class="w-8 h-8 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/80 font-semibold text-xs transition cursor-pointer">${p}</button>`;
+            }
+            lastP = p;
+          });
+
+          btnsHtml += `
+            <button type="button" onclick="goToAlbumPage(${currentAlbumPage + 1})"
+                    ${currentAlbumPage === totalPages ? 'disabled' : ''}
+                    class="px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition ${currentAlbumPage === totalPages ? 'bg-slate-900 text-slate-600 border-slate-800 cursor-not-allowed' : 'bg-slate-800 text-slate-300 hover:text-white border-slate-700 hover:bg-slate-700 cursor-pointer'} flex items-center gap-1">
+              <span class="hidden sm:inline">Next</span>
+              <i class="fa-solid fa-chevron-right text-[10px]"></i>
+            </button>
+          `;
+          paginationBtns.innerHTML = btnsHtml;
+        }
+      }
+
+      initAlbumGalleryImages();
     }
 
     function sortAlbumGallery() {
@@ -7541,7 +7679,7 @@
       });
 
       cards.forEach(card => grid.appendChild(card));
-      initAlbumGalleryImages();
+      filterAlbumGallery(true);
     }
 
     function openAlbumModal(idx) {
