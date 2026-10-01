@@ -469,7 +469,7 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
         'upcoming_total_artists': upcoming_total_artists,
         'upcoming_has_shows': upcoming_has_shows,
         'upcoming_location': profile.upcoming_location,
-        'upcoming_radius_miles': profile.upcoming_radius_miles,
+        'upcoming_radius_miles': profile.upcoming_radius_miles if (profile.upcoming_radius_miles and profile.upcoming_radius_miles > 0) else 100,
         'all_venues': list(Venue.objects.order_by('name').values_list('name', flat=True).distinct()),
         'all_artists': list(Artist.objects.order_by('name').values_list('name', flat=True).distinct()),
         'is_public_view': is_public_view,
@@ -2422,13 +2422,15 @@ def save_upcoming_settings(request):
 
         if 'radius_miles' in data or 'upcoming_radius_miles' in data:
             raw_rad = data.get('radius_miles', data.get('upcoming_radius_miles'))
-            if raw_rad in (None, '', 'null', 'any', '0', 0):
-                radius_val = None
+            if raw_rad in (None, '', 'null'):
+                radius_val = 100
             else:
                 try:
                     radius_val = int(raw_rad)
+                    if radius_val <= 0:
+                        radius_val = 100
                 except (ValueError, TypeError):
-                    radius_val = None
+                    radius_val = 100
             profile.upcoming_radius_miles = radius_val
             update_fields.append('upcoming_radius_miles')
 

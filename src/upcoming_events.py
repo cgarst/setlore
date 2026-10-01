@@ -311,6 +311,8 @@ def get_upcoming_shows_for_user(user, force_refresh: bool = False, limit: int = 
     if hasattr(user, 'profile'):
         user_loc = (user.profile.upcoming_location or '').strip()
         user_radius = user.profile.upcoming_radius_miles
+        if user_radius is None or user_radius <= 0:
+            user_radius = 100
         user_lat = user.profile.upcoming_latitude
         user_lon = user.profile.upcoming_longitude
         
@@ -326,7 +328,26 @@ def get_upcoming_shows_for_user(user, force_refresh: bool = False, limit: int = 
                     user.profile.save(update_fields=['upcoming_latitude', 'upcoming_longitude'])
                 except Exception:
                     pass
-    
+    else:
+        if user_radius is None or user_radius <= 0:
+            user_radius = 100
+
+    # If user has no location set, do not show worldwide events; return empty to prompt location setup
+    if not user_loc and user_lat is None:
+        hidden_count = sum(1 for a in seen_artists_summary if a.get('is_hidden'))
+        return {
+            'upcoming_shows': [],
+            'seen_artists': seen_artists_summary,
+            'total_artists': len(seen_artists_summary),
+            'eligible_artists_count': len(eligible_artists),
+            'hidden_artists_count': hidden_count,
+            'has_shows': False,
+            'user_location': '',
+            'user_radius_miles': user_radius or 100,
+            'user_latitude': None,
+            'user_longitude': None,
+        }
+
     # Pre-fetch user's tracked concerts to mark upcoming shows
     tracked_set = set()
     if user and user.is_authenticated:
@@ -348,8 +369,10 @@ def get_upcoming_shows_for_user(user, force_refresh: bool = False, limit: int = 
     if user and hasattr(user, 'profile') and hasattr(user.profile, 'time_format'):
         user_time_format = user.profile.time_format or '12'
 
-    # Query/fetch events for top seen artists
-    for art_info in eligible_artists[:40]:
+    effective_radius = user_radius if (user_radius and user_radius > 0) else 100
+
+    # Query/fetch events for seen artists
+    for art_info in eligible_artists:
         artist_name = art_info['name']
         times_seen = art_info['count']
         
@@ -370,20 +393,17 @@ def get_upcoming_shows_for_user(user, force_refresh: bool = False, limit: int = 
                 is_tracked = (normalize_artist_name(ev_art), ev_dt_str) in tracked_set or (ev_art.strip().lower(), ev_dt_str) in tracked_set
                 parsed['is_tracked'] = is_tracked
 
-                # Apply range filtering if specified
-                if user_radius and user_radius > 0:
-                    if parsed.get('distance_miles') is not None:
-                        if parsed['distance_miles'] <= user_radius:
-                            upcoming_events.append(parsed)
-                    elif user_loc:
-                        # Fallback text match when event coordinates are absent
-                        loc_clean = user_loc.lower().strip()
-                        city_clean = (parsed.get('city') or '').lower().strip()
-                        region_clean = (parsed.get('region') or '').lower().strip()
-                        if loc_clean in city_clean or loc_clean in region_clean or city_clean in loc_clean:
-                            upcoming_events.append(parsed)
-                else:
-                    upcoming_events.append(parsed)
+                # Apply range filtering against user discovery location
+                if parsed.get('distance_miles') is not None:
+                    if parsed['distance_miles'] <= effective_radius:
+                        upcoming_events.append(parsed)
+                elif user_loc:
+                    # Fallback text match when event coordinates are absent
+                    loc_clean = user_loc.lower().strip()
+                    city_clean = (parsed.get('city') or '').lower().strip()
+                    region_clean = (parsed.get('region') or '').lower().strip()
+                    if loc_clean in city_clean or loc_clean in region_clean or city_clean in loc_clean:
+                        upcoming_events.append(parsed)
     
     # Sort chronologically by date
     upcoming_events.sort(key=lambda x: (x.get('days_until', 999), x.get('datetime', '')))

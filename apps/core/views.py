@@ -285,13 +285,15 @@ def update_profile_view(request):
 
         if 'upcoming_radius_miles' in data or 'radius_miles' in data:
             raw_rad = data.get('upcoming_radius_miles', data.get('radius_miles'))
-            if raw_rad in (None, '', 'null', 'any', '0', 0):
-                radius_val = None
+            if raw_rad in (None, '', 'null'):
+                radius_val = 100
             else:
                 try:
                     radius_val = int(raw_rad)
+                    if radius_val <= 0:
+                        radius_val = 100
                 except (ValueError, TypeError):
-                    radius_val = None
+                    radius_val = 100
             profile.upcoming_radius_miles = radius_val
             update_fields.append('upcoming_radius_miles')
 

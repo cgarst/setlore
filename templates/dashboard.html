@@ -2659,7 +2659,7 @@
                   Enter your home city or zip code and search radius to discover upcoming concerts from artists you've seen live.
                 </p>
               </div>
-              {% if not is_public_view and user.is_authenticated and is_owner %}
+              {% if user.is_authenticated and is_owner %}
               <div class="max-w-2xl mx-auto pt-2 flex flex-col sm:flex-row items-center gap-3">
                 <div class="relative w-full sm:flex-1 min-w-0 sm:min-w-[260px]">
                   <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-indigo-400/70 text-xs pointer-events-none">
@@ -2704,7 +2704,7 @@
                   {% endif %}
                 </p>
               </div>
-              {% if not is_public_view and user.is_authenticated and is_owner %}
+              {% if user.is_authenticated and is_owner %}
               <div class="flex items-center justify-center gap-2 pt-1">
                 <button type="button" onclick="refreshUpcomingShows()" class="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer">
                   <i class="fa-solid fa-arrows-rotate"></i>
@@ -9388,7 +9388,7 @@
     let upcomingSeenArtists = {{ upcoming_seen_artists_json|default:'[]'|safe }};
     let currentUpcomingLocation = "{{ upcoming_location|default:''|escapejs }}";
     let currentUpcomingRadius = "{{ upcoming_radius_miles|default:''|escapejs }}";
-    const isUpcomingOwner = {% if not is_public_view and user.is_authenticated and is_owner %}true{% else %}false{% endif %};
+    const isUpcomingOwner = {% if user.is_authenticated and is_owner %}true{% else %}false{% endif %};
     let upcomingModalFilter = 'all';
 
     function openUpcomingConfigModal() {
