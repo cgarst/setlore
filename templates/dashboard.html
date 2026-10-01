@@ -525,26 +525,12 @@
     <!-- Desktop/Tablet Controls -->
     <div class="hidden md:flex flex-wrap gap-2 items-center">
       {% if not request.user.is_authenticated %}
-        <!-- Theme Switcher Dropdown (Desktop for non-logged in visitors) -->
-        <div class="relative" id="theme-menu-container">
-          <button id="theme-menu-btn" onclick="toggleThemeMenu()" class="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-600 text-xs text-slate-200 transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500/50" aria-label="Select theme" title="Theme">
-            <span class="theme-btn-swatch inline-block w-3.5 h-3.5 rounded-full border border-white/30 shadow-inner" id="header-theme-swatch"></span>
-            <span class="font-medium text-slate-200" id="header-theme-label">Default</span>
-            <i class="fa-solid fa-palette text-[11px] text-slate-400 ml-0.5"></i>
-            <i class="fa-solid fa-chevron-down text-[9px] text-slate-400 transition-transform duration-200" id="theme-menu-chevron"></i>
-          </button>
-
-          <div id="theme-dropdown-menu" class="hidden absolute right-0 mt-2 w-64 rounded-xl glass-card border border-slate-700/80 bg-slate-900/95 shadow-2xl py-2 z-50 backdrop-blur-xl">
-            <div class="px-3.5 py-1.5 border-b border-slate-800">
-              <p class="text-xs font-bold text-white flex items-center gap-1.5">
-                <i class="fa-solid fa-palette text-indigo-400"></i>
-                <span>Theme</span>
-              </p>
-              <p class="text-[10px] text-slate-400">Select dashboard color theme</p>
-            </div>
-            <div class="py-1 max-h-72 overflow-y-auto space-y-0.5 px-1" id="theme-options-list"></div>
-          </div>
-        </div>
+        <!-- Theme Switcher (Desktop for non-logged in visitors) -->
+        <button id="theme-menu-btn" onclick="openThemeModal()" class="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-600 text-xs text-slate-200 transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500/50" aria-label="Select theme" title="Theme">
+          <span class="theme-btn-swatch inline-block w-3.5 h-3.5 rounded-full border border-white/30 shadow-inner" id="header-theme-swatch"></span>
+          <span class="font-medium text-slate-200" id="header-theme-label">Default</span>
+          <i class="fa-solid fa-palette text-[11px] text-slate-400 ml-0.5"></i>
+        </button>
       {% endif %}
 
       {% if not is_public_view %}
@@ -636,17 +622,17 @@
               </a>
             </div>
 
-            <!-- Theme Selector Section inside Username Dropdown -->
-            <div class="border-t border-slate-800 py-2 px-3">
-              <div class="flex items-center justify-between mb-1.5">
-                <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                  <i class="fa-solid fa-palette text-indigo-400"></i> Theme
-                </span>
+            <!-- Theme Option in User Dropdown -->
+            <div class="border-t border-slate-800 py-1">
+              <button type="button" onclick="openThemeModal(); closeUserMenu();" class="w-full flex items-center justify-between px-3.5 py-2 text-xs font-medium text-slate-200 hover:text-white hover:bg-indigo-600/20 transition text-left cursor-pointer">
+                <div class="flex items-center gap-2.5">
+                  <i class="fa-solid fa-palette text-indigo-400 w-4 text-center"></i>
+                  <span>Theme & Color Palette</span>
+                </div>
                 <span id="user-menu-active-theme-label" class="badge bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[10px] font-mono">
                   Default
                 </span>
-              </div>
-              <div class="py-1 max-h-48 overflow-y-auto space-y-0.5 px-0.5 custom-scrollbar" id="user-menu-theme-options-list"></div>
+              </button>
             </div>
 
             <div class="border-t border-slate-800 py-1">
@@ -731,6 +717,16 @@
               </div>
 
               <div class="py-1">
+                <button type="button" onclick="openThemeModal(); closeUserMenu();" class="w-full flex items-center justify-between px-3.5 py-2 text-xs font-medium text-slate-200 hover:text-white hover:bg-indigo-600/20 transition text-left cursor-pointer">
+                  <div class="flex items-center gap-2.5">
+                    <i class="fa-solid fa-palette text-indigo-400 w-4 text-center"></i>
+                    <span>Theme & Palette</span>
+                  </div>
+                  <span id="user-menu-active-theme-label-public" class="badge bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[10px] font-mono">
+                    Default
+                  </span>
+                </button>
+
                 <button type="button" onclick="openProfileModal(); closeUserMenu();" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-slate-200 hover:text-white hover:bg-amber-500/10 transition text-left cursor-pointer">
                   <i class="fa-solid fa-user-gear text-amber-400 w-4 text-center"></i>
                   <span>Profile & Privacy</span>
@@ -901,6 +897,35 @@
     </div>
   </div>
 
+  <!-- Theme Selection Modal -->
+  <div id="theme-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 hidden" onclick="if(event.target === this) closeThemeModal();">
+    <div class="max-w-2xl w-full glass-card p-6 shadow-2xl space-y-4 border border-slate-700 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+            <i class="fa-solid fa-palette text-sm"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-white">Color Themes</h3>
+            <p class="text-[11px] text-slate-400">Personalize dashboard styling and chart color palettes</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <span id="theme-modal-active-theme-badge" class="badge bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[10px] font-mono">
+            Default
+          </span>
+          <button type="button" onclick="closeThemeModal()" class="text-slate-400 hover:text-white p-1 cursor-pointer">
+            <i class="fa-solid fa-xmark text-lg"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1" id="theme-modal-grid">
+        <!-- Populated by JavaScript with theme cards + color palettes -->
+      </div>
+    </div>
+  </div>
+
   <!-- Profile & Privacy Settings Modal -->
   <div id="profile-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
     <div class="max-w-md w-full glass-card p-6 shadow-2xl space-y-4 border border-slate-700 max-h-[90vh] overflow-y-auto">
@@ -980,25 +1005,6 @@
         <p class="text-[11px] text-slate-400">
           Update the login password for your Setlore account.
         </p>
-      </div>
-
-      <!-- Theme Selector Section -->
-      <div class="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2.5">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-2">
-            <i class="fa-solid fa-palette text-indigo-400 text-xs w-4 text-center"></i>
-            <span class="text-xs font-semibold text-white">Theme</span>
-          </div>
-          <span id="modal-active-theme-badge" class="badge bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[10px] font-mono">
-            Default
-          </span>
-        </div>
-        <p class="text-[11px] text-slate-400">
-          Select a color theme for your dashboard and charts.
-        </p>
-        <div class="grid grid-cols-2 gap-2 pt-1" id="modal-theme-grid">
-          <!-- Populated by JavaScript with theme swatch cards -->
-        </div>
       </div>
 
       <form id="profile-form" onsubmit="saveProfileSettings(event)" class="space-y-4">
@@ -4514,18 +4520,21 @@
       </div>
 
       <!-- Theme Selector (Mobile Sheet) -->
-      <div class="space-y-2 pt-2 border-t border-slate-800">
-        <div class="flex items-center justify-between">
-          <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-            <i class="fa-solid fa-palette text-indigo-400"></i> Theme
-          </p>
-          <span id="mobile-sheet-active-theme-label" class="badge bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[10px] font-mono">
+      <div class="pt-2 border-t border-slate-800">
+        <button type="button" onclick="openThemeModal(); closeMobileMoreMenu();" class="w-full flex items-center justify-between p-2.5 rounded-xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600 transition text-left cursor-pointer group">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-lg bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400 group-hover:scale-105 transition shrink-0">
+              <i class="fa-solid fa-palette text-sm"></i>
+            </div>
+            <div>
+              <p class="text-xs font-semibold text-white group-hover:text-indigo-300 transition">Theme & Color Palette</p>
+              <p class="text-[11px] text-slate-400">Choose dashboard colorway</p>
+            </div>
+          </div>
+          <span id="mobile-sheet-active-theme-label" class="badge bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[10px] font-mono shrink-0">
             Default
           </span>
-        </div>
-        <div class="grid grid-cols-2 gap-1.5" id="mobile-sheet-theme-grid">
-          <!-- Populated by JavaScript with theme chips -->
-        </div>
+        </button>
       </div>
 
       <!-- Quick Actions (Sync, Import Tools or Public Options) -->
@@ -6306,14 +6315,16 @@
       const headerLabel = document.getElementById('header-theme-label');
       const mobileHeaderSwatch = document.getElementById('mobile-header-theme-swatch');
       const userMenuBadge = document.getElementById('user-menu-active-theme-label');
-      const modalBadge = document.getElementById('modal-active-theme-badge');
+      const userMenuBadgePublic = document.getElementById('user-menu-active-theme-label-public');
+      const themeModalBadge = document.getElementById('theme-modal-active-theme-badge');
       const mobileSheetBadge = document.getElementById('mobile-sheet-active-theme-label');
 
       if (headerSwatch) headerSwatch.style.background = themeObj.gradient;
       if (headerLabel) headerLabel.innerText = themeObj.name;
       if (mobileHeaderSwatch) mobileHeaderSwatch.style.background = themeObj.gradient;
       if (userMenuBadge) userMenuBadge.innerText = themeObj.name;
-      if (modalBadge) modalBadge.innerText = themeObj.name;
+      if (userMenuBadgePublic) userMenuBadgePublic.innerText = themeObj.name;
+      if (themeModalBadge) themeModalBadge.innerText = themeObj.name;
       if (mobileSheetBadge) mobileSheetBadge.innerText = themeObj.name;
 
       renderThemeSelectors(validThemeId);
@@ -6331,22 +6342,26 @@
       }
     }
 
-    function toggleThemeMenu() {
-      const menu = document.getElementById('theme-dropdown-menu');
-      const chevron = document.getElementById('theme-menu-chevron');
-      if (!menu) return;
-      const isHidden = menu.classList.contains('hidden');
+    function openThemeModal() {
       closeAllHeaderMenus();
-      if (isHidden) {
-        menu.classList.remove('hidden');
-        if (chevron) chevron.classList.add('rotate-180');
+      const modal = document.getElementById('theme-modal');
+      if (modal) {
+        renderThemeSelectors(getCurrentTheme());
+        modal.classList.remove('hidden');
       }
     }
 
+    function closeThemeModal() {
+      const modal = document.getElementById('theme-modal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function toggleThemeMenu() {
+      openThemeModal();
+    }
+
     function toggleMobileThemeMenu() {
-      const menu = document.getElementById('mobile-theme-dropdown-menu');
-      if (!menu) return;
-      menu.classList.toggle('hidden');
+      openThemeModal();
     }
 
     function closeAllHeaderMenus() {
@@ -6364,96 +6379,41 @@
     }
 
     function renderThemeSelectors(activeThemeId) {
-      // 1. User Menu Dropdown Theme List
-      const userMenuContainer = document.getElementById('user-menu-theme-options-list');
-      if (userMenuContainer) {
-        userMenuContainer.innerHTML = THEMES.map(t => {
+      const themeModalGrid = document.getElementById('theme-modal-grid');
+      if (themeModalGrid) {
+        themeModalGrid.innerHTML = THEMES.map(t => {
           const isActive = t.id === activeThemeId;
-          return `
-            <button type="button" onclick="setTheme('${t.id}');" class="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium transition text-left cursor-pointer ${isActive ? 'bg-indigo-600/25 text-white font-bold' : 'text-slate-300 hover:text-white hover:bg-slate-800/80'}">
-              <div class="flex items-center gap-2 min-w-0">
-                <span class="w-3.5 h-3.5 rounded-full shrink-0 shadow border border-white/30" style="background: ${t.gradient};"></span>
-                <span class="truncate text-[11px]">${t.name}</span>
-              </div>
-              ${isActive ? '<i class="fa-solid fa-check text-indigo-400 text-[10px] shrink-0 ml-1.5"></i>' : ''}
-            </button>
-          `;
-        }).join('');
-      }
+          const paletteChips = (t.colorway || []).map(color => `
+            <span class="w-4 h-4 rounded-full border border-white/20 shadow-sm flex-shrink-0" style="background-color: ${color};" title="${color}"></span>
+          `).join('');
 
-      // 2. Desktop Header Dropdown (for visitors / non-logged in)
-      const desktopContainer = document.getElementById('theme-options-list');
-      if (desktopContainer) {
-        desktopContainer.innerHTML = THEMES.map(t => {
-          const isActive = t.id === activeThemeId;
           return `
-            <button type="button" onclick="setTheme('${t.id}'); closeAllHeaderMenus();" class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition text-left cursor-pointer ${isActive ? 'bg-indigo-600/25 text-white font-bold' : 'text-slate-300 hover:text-white hover:bg-slate-800/80'}">
-              <div class="flex items-center gap-2.5 min-w-0">
-                <span class="w-3.5 h-3.5 rounded-full shrink-0 shadow border border-white/30" style="background: ${t.gradient};"></span>
-                <div class="truncate">
-                  <p class="truncate leading-tight">${t.name}</p>
-                  <p class="text-[10px] text-slate-400 font-normal truncate">${t.subtitle}</p>
+            <div onclick="setTheme('${t.id}')"
+                 class="group p-3 rounded-xl border transition cursor-pointer flex flex-col justify-between gap-3 ${
+                   isActive
+                     ? 'border-indigo-500 bg-indigo-600/20 shadow-lg shadow-indigo-500/10 ring-1 ring-indigo-500/50'
+                     : 'border-slate-800 bg-slate-900/80 hover:bg-slate-800/90 hover:border-slate-700'
+                 }">
+              <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2.5 min-w-0">
+                  <span class="w-6 h-6 rounded-lg shrink-0 shadow-inner border border-white/30" style="background: ${t.gradient};"></span>
+                  <div class="min-w-0">
+                    <p class="text-xs font-bold text-white truncate">${t.name}</p>
+                    <p class="text-[10px] text-slate-400 truncate">${t.subtitle}</p>
+                  </div>
+                </div>
+                ${isActive
+                  ? '<span class="inline-flex items-center gap-1 text-[11px] font-semibold text-indigo-400 bg-indigo-500/20 px-2 py-0.5 rounded-full border border-indigo-500/30 shrink-0"><i class="fa-solid fa-circle-check text-xs"></i> Active</span>'
+                  : '<span class="text-[11px] text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity font-medium shrink-0">Select</span>'
+                }
+              </div>
+              <div class="pt-2 border-t border-slate-800/80 flex items-center justify-between">
+                <span class="text-[10px] font-mono uppercase text-slate-400">Palette</span>
+                <div class="flex items-center gap-1.5">
+                  ${paletteChips}
                 </div>
               </div>
-              ${isActive ? '<i class="fa-solid fa-check text-indigo-400 text-xs shrink-0 ml-2"></i>' : ''}
-            </button>
-          `;
-        }).join('');
-      }
-
-      // 3. Mobile Top Bar Dropdown
-      const mobileContainer = document.getElementById('mobile-theme-options-list');
-      if (mobileContainer) {
-        mobileContainer.innerHTML = THEMES.map(t => {
-          const isActive = t.id === activeThemeId;
-          return `
-            <button type="button" onclick="setTheme('${t.id}'); closeAllHeaderMenus();" class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition text-left cursor-pointer ${isActive ? 'bg-indigo-600/25 text-white font-bold' : 'text-slate-300 hover:text-white hover:bg-slate-800/80'}">
-              <div class="flex items-center gap-2.5 min-w-0">
-                <span class="w-3.5 h-3.5 rounded-full shrink-0 shadow border border-white/30" style="background: ${t.gradient};"></span>
-                <div class="truncate">
-                  <p class="truncate leading-tight">${t.name}</p>
-                  <p class="text-[10px] text-slate-400 font-normal truncate">${t.subtitle}</p>
-                </div>
-              </div>
-              ${isActive ? '<i class="fa-solid fa-check text-indigo-400 text-xs shrink-0 ml-2"></i>' : ''}
-            </button>
-          `;
-        }).join('');
-      }
-
-      // 4. Settings Modal Grid
-      const modalContainer = document.getElementById('modal-theme-grid');
-      if (modalContainer) {
-        modalContainer.innerHTML = THEMES.map(t => {
-          const isActive = t.id === activeThemeId;
-          return `
-            <button type="button" onclick="setTheme('${t.id}');" class="flex items-center gap-2.5 p-2 rounded-xl border text-left transition cursor-pointer ${isActive ? 'border-indigo-500 bg-indigo-600/20 shadow-md shadow-indigo-500/20' : 'border-slate-800 bg-slate-900/80 hover:bg-slate-800/90 hover:border-slate-700'}">
-              <span class="w-6 h-6 rounded-lg shrink-0 shadow-inner border border-white/30" style="background: ${t.gradient};"></span>
-              <div class="min-w-0 flex-1">
-                <div class="flex items-center justify-between">
-                  <p class="text-xs font-bold text-white truncate">${t.name}</p>
-                  ${isActive ? '<i class="fa-solid fa-circle-check text-indigo-400 text-xs"></i>' : ''}
-                </div>
-                <p class="text-[10px] text-slate-400 truncate">${t.subtitle}</p>
-              </div>
-            </button>
-          `;
-        }).join('');
-      }
-
-      // 5. Mobile More Sheet Grid
-      const sheetContainer = document.getElementById('mobile-sheet-theme-grid');
-      if (sheetContainer) {
-        sheetContainer.innerHTML = THEMES.map(t => {
-          const isActive = t.id === activeThemeId;
-          return `
-            <button type="button" onclick="setTheme('${t.id}'); closeMobileMoreMenu();" class="flex items-center gap-2 p-2 rounded-xl border text-left transition cursor-pointer ${isActive ? 'border-indigo-500 bg-indigo-600/20' : 'border-slate-800 bg-slate-900/80 hover:bg-slate-800'}">
-              <span class="w-4 h-4 rounded-full shrink-0 shadow border border-white/30" style="background: ${t.gradient};"></span>
-              <div class="min-w-0 flex-1">
-                <p class="text-[11px] font-bold text-white truncate">${t.name}</p>
-              </div>
-              ${isActive ? '<i class="fa-solid fa-check text-indigo-400 text-[10px]"></i>' : ''}
-            </button>
+            </div>
           `;
         }).join('');
       }
@@ -8315,6 +8275,7 @@
       if (event.key === 'Escape') {
         closeAllHeaderMenus();
         closeMobileMoreMenu();
+        closeThemeModal();
       }
     });
 
