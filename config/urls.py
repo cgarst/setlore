@@ -88,6 +88,8 @@ urlpatterns = [
     path('api/admin/musicbrainz-dump/download/', catalog_views.api_musicbrainz_dump_download, name='api_mb_dump_download'),
     path('api/admin/musicbrainz-dump/cancel/', catalog_views.api_musicbrainz_dump_cancel, name='api_mb_dump_cancel'),
     path('api/admin/musicbrainz-dump/delete/', catalog_views.api_musicbrainz_dump_delete, name='api_mb_dump_delete'),
+    path('api/admin/musicbrainz-dump/delete-raw/', catalog_views.api_musicbrainz_dump_delete_raw, name='api_mb_dump_delete_raw'),
+    path('api/admin/musicbrainz-dump/set-mode/', catalog_views.api_musicbrainz_dump_set_mode, name='api_mb_dump_set_mode'),
     path('api/admin/musicbrainz-dump/test-lookup/', catalog_views.api_musicbrainz_dump_test_lookup, name='api_mb_dump_test_lookup'),
 ]
 

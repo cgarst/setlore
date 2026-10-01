@@ -140,6 +140,17 @@ class MusicBrainzDumpManager:
             except Exception:
                 pass
 
+        # Check raw archives on disk
+        raw_archives_bytes = 0
+        raw_archives_list = []
+        for fn in ["release.tar.xz", "artist.tar.xz"]:
+            p = self.dump_dir / fn
+            if p.exists() and p.stat().st_size > 10000000:
+                s = p.stat().st_size
+                raw_archives_bytes += s
+                raw_archives_list.append(fn)
+        has_raw_archives = len(raw_archives_list) > 0
+
         # Load persisted task status if present
         task_data = {}
         if self.status_file.exists():
@@ -168,12 +179,24 @@ class MusicBrainzDumpManager:
         elif task_data.get("status") == "error":
             status_label = "error"
 
+        mode = self.get_mode()
+        upstream_version = task_data.get("upstream_version")
+        has_new_version = bool(upstream_version and local_version and upstream_version != local_version)
+        can_index_local = bool(has_raw_archives and not is_ready)
+
         return {
             "status": status_label,
-            "is_available": is_ready and not is_running,
+            "mode": mode,
+            "is_available": (is_ready and not is_running) if mode == "auto" else False,
+            "is_ready_on_disk": is_ready,
             "is_running": is_running,
             "local_version": local_version,
-            "upstream_version": task_data.get("upstream_version"),
+            "upstream_version": upstream_version,
+            "has_new_version": has_new_version,
+            "has_raw_archives": has_raw_archives,
+            "raw_archives_bytes": raw_archives_bytes,
+            "raw_archives_human": format_bytes(raw_archives_bytes),
+            "can_index_local": can_index_local,
             "record_count": record_count,
             "total_disk_size_bytes": total_bytes,
             "total_disk_size_human": format_bytes(total_bytes),
@@ -185,8 +208,36 @@ class MusicBrainzDumpManager:
             "last_updated": task_data.get("last_updated")
         }
 
+    def get_mode(self) -> str:
+        """Returns 'auto' or 'off' (forced Live Web API)."""
+        if self.status_file.exists():
+            try:
+                with open(self.status_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    return data.get("mode", "auto")
+            except Exception:
+                pass
+        return "auto"
+
+    def set_mode(self, mode: str):
+        """Sets dump mode to 'auto' or 'off'."""
+        if mode not in ("auto", "off"):
+            mode = "auto"
+        data = {}
+        if self.status_file.exists():
+            try:
+                with open(self.status_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+            except Exception:
+                pass
+        data["mode"] = mode
+        data["last_updated"] = time.strftime("%Y-%m-%d %H:%M:%S")
+        self._update_status_file(data)
+
     def is_dump_available(self) -> bool:
-        """Returns True if local SQLite dump exists and has indexed records."""
+        """Returns True if local SQLite dump exists, has indexed records, and mode != 'off'."""
+        if self.get_mode() == "off":
+            return False
         if not self.db_path.exists():
             return False
         try:
@@ -198,6 +249,33 @@ class MusicBrainzDumpManager:
             return cur.fetchone() is not None
         except Exception:
             return False
+
+    def delete_raw_archives(self) -> Tuple[bool, str]:
+        """Deletes only raw .tar.xz and .part archives, preserving the SQLite database and LATEST tag."""
+        if self._current_task_thread and self._current_task_thread.is_alive():
+            return False, "Cannot delete raw archives while a task is currently running."
+
+        deleted_files = []
+        freed_bytes = 0
+        for item in self.dump_dir.glob("*.tar.xz*"):
+            try:
+                if item.is_file():
+                    freed_bytes += item.stat().st_size
+                    deleted_files.append(item.name)
+                    item.unlink()
+            except Exception as e:
+                print(f"[MusicBrainzDump] Error removing {item}: {e}")
+
+        for item in self.dump_dir.glob("*.part"):
+            try:
+                if item.is_file():
+                    freed_bytes += item.stat().st_size
+                    deleted_files.append(item.name)
+                    item.unlink()
+            except Exception:
+                pass
+
+        return True, f"Deleted raw archives ({format_bytes(freed_bytes)} freed)."
 
     def _update_status_file(self, data: Dict[str, Any]):
         """Persists current state to status.json."""

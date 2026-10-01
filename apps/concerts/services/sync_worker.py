@@ -204,10 +204,19 @@ class SyncWorker:
 
             gap_results = reconcile_history(csv_records, user_attended, client=client, ignored_artists=profile.ignored_artists)
 
-            # Merge manual matched pairs
+            # Merge manual matched pairs without duplicating already-matched pairs
             if manual_matched_pairs:
-                gap_results["matched"].extend(manual_matched_pairs)
+                existing_keys = {(p["csv"]["id"], p["artist"].lower().strip()) for p in gap_results.get("matched", [])}
+                existing_sl_ids = {p["setlist"].get("id") for p in gap_results.get("matched", []) if isinstance(p.get("setlist"), dict) and p["setlist"].get("id")}
                 for mp in manual_matched_pairs:
+                    mp_key = (mp["csv"]["id"], mp["artist"].lower().strip())
+                    mp_sl_id = mp["setlist"].get("id") if isinstance(mp.get("setlist"), dict) else None
+                    if mp_key in existing_keys or (mp_sl_id and mp_sl_id in existing_sl_ids):
+                        continue
+                    gap_results["matched"].append(mp)
+                    existing_keys.add(mp_key)
+                    if mp_sl_id:
+                        existing_sl_ids.add(mp_sl_id)
                     rec_id = mp["csv"]["id"]
                     if rec_id in gap_results.get("csv_status", {}):
                         st = gap_results["csv_status"][rec_id]

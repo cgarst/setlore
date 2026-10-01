@@ -284,29 +284,33 @@ class ConcertAnalytics:
         top_venues = [{"venue": v, "count": c} for v, c in venue_counter.most_common(25)]
 
         # Prepare structured artist drill-down data sorted by highest songs heard
-        artist_drilldown = {}
+        artist_drilldown_raw = defaultdict(lambda: {"songs_dict": defaultdict(lambda: {"count": 0, "occurrences": []})})
         for artist, songs_dict in artist_song_map.items():
             can_artist = self._canonical_name(artist)
-            sorted_songs = []
-            for song_name, play_count in songs_dict.most_common():
+            for song_name, play_count in songs_dict.items():
                 occs = artist_song_occurrences[artist][song_name]
+                s_entry = artist_drilldown_raw[can_artist]["songs_dict"][song_name]
+                s_entry["count"] += play_count
+                s_entry["occurrences"].extend(occs)
+
+        artist_drilldown = {}
+        for can_artist, raw_data in artist_drilldown_raw.items():
+            songs_dict = raw_data["songs_dict"]
+            sorted_songs = []
+            for song_name, s_info in sorted(songs_dict.items(), key=lambda x: (-x[1]["count"], x[0])):
+                occs = s_info["occurrences"]
                 sorted_songs.append({
                     "song": song_name,
-                    "count": play_count,
+                    "count": s_info["count"],
                     "first_heard": occs[0]["date"] if occs else "-",
                     "occurrences": occs
                 })
-            if can_artist not in artist_drilldown:
-                artist_drilldown[can_artist] = {
-                    "artist": can_artist,
-                    "total_plays": sum(songs_dict.values()),
-                    "unique_songs": len(songs_dict),
-                    "songs": sorted_songs
-                }
-            else:
-                artist_drilldown[can_artist]["total_plays"] += sum(songs_dict.values())
-                artist_drilldown[can_artist]["songs"].extend(sorted_songs)
-                artist_drilldown[can_artist]["unique_songs"] = len(artist_drilldown[can_artist]["songs"])
+            artist_drilldown[can_artist] = {
+                "artist": can_artist,
+                "total_plays": sum(s["count"] for s in sorted_songs),
+                "unique_songs": len(sorted_songs),
+                "songs": sorted_songs
+            }
 
         # Ensure all seen artists are included in artist_drilldown even if no setlists are matched yet
         for artist, concert_count in artist_counter.items():

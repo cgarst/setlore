@@ -187,11 +187,19 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
                 "coverage_percentage": round(len([r for r in csv_records if r.get("is_custom_offline")]) / len(csv_records) * 100, 1) if csv_records else 0.0
             }
 
-        # Merge manual matched pairs
+        # Merge manual matched pairs without duplicating already-matched pairs
         if manual_matched_pairs:
-            matched.extend(manual_matched_pairs)
-            gap_results["matched"] = matched
+            existing_keys = {(p["csv"]["id"], p["artist"].lower().strip()) for p in matched}
+            existing_sl_ids = {p["setlist"].get("id") for p in matched if isinstance(p.get("setlist"), dict) and p["setlist"].get("id")}
             for mp in manual_matched_pairs:
+                mp_key = (mp["csv"]["id"], mp["artist"].lower().strip())
+                mp_sl_id = mp["setlist"].get("id") if isinstance(mp.get("setlist"), dict) else None
+                if mp_key in existing_keys or (mp_sl_id and mp_sl_id in existing_sl_ids):
+                    continue
+                matched.append(mp)
+                existing_keys.add(mp_key)
+                if mp_sl_id:
+                    existing_sl_ids.add(mp_sl_id)
                 rec_id = mp["csv"]["id"]
                 if rec_id in gap_results.get("csv_status", {}):
                     st = gap_results["csv_status"][rec_id]
@@ -203,6 +211,7 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
                     st["is_fully_matched"] = (len(st["missing_bands"]) == 0)
                     st["is_partially_matched"] = (len(st["matched_bands"]) > 0 and len(st["missing_bands"]) > 0)
                     st["is_unmatched"] = (len(st["matched_bands"]) == 0)
+            gap_results["matched"] = matched
 
         analytics = ConcertAnalytics(matched, csv_records, ignored_artists=profile.ignored_artists)
         stats = analytics.compute_all_metrics()

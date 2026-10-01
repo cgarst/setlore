@@ -118,3 +118,42 @@ def api_musicbrainz_dump_test_lookup(request):
             'source': 'local_disk' if (local_album or local_year) else None
         }
     })
+
+@require_http_methods(["POST"])
+def api_musicbrainz_dump_set_mode(request):
+    """API endpoint to toggle MusicBrainz dump mode (auto vs off)."""
+    if not _is_staff_or_admin(request):
+        return HttpResponseForbidden(json.dumps({'error': 'Admin access required'}), content_type='application/json')
+    
+    try:
+        data = json.loads(request.body or '{}')
+    except Exception:
+        data = {}
+
+    mode = data.get('mode', 'auto').lower().strip()
+    if mode not in ('auto', 'off'):
+        mode = 'auto'
+
+    manager = MusicBrainzDumpManager.get_instance()
+    manager.set_mode(mode)
+    
+    return JsonResponse({
+        'status': 'success',
+        'mode': mode,
+        'dump_status': manager.get_status()
+    })
+
+@require_http_methods(["POST"])
+def api_musicbrainz_dump_delete_raw(request):
+    """API endpoint to delete raw .tar.xz and .part archives while keeping the indexed SQLite database."""
+    if not _is_staff_or_admin(request):
+        return HttpResponseForbidden(json.dumps({'error': 'Admin access required'}), content_type='application/json')
+    
+    manager = MusicBrainzDumpManager.get_instance()
+    success, message = manager.delete_raw_archives()
+    
+    return JsonResponse({
+        'status': 'success' if success else 'error',
+        'message': message,
+        'dump_status': manager.get_status()
+    })
