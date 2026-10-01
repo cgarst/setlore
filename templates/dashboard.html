@@ -6903,6 +6903,56 @@
     // Dynamic Album Art Background Provider for Treemap Album Cells
     const albumArtCache = {};
 
+    function fetchDeezerAlbumArt(artist, album) {
+      return new Promise((resolve) => {
+        const cbName = 'dz_cb_' + Math.random().toString(36).substring(2, 10);
+        const q = encodeURIComponent(`${artist} ${album}`);
+        const script = document.createElement('script');
+        script.src = `https://api.deezer.com/search/album?q=${q}&limit=1&output=jsonp&callback=${cbName}`;
+
+        const timer = setTimeout(() => {
+          try { delete window[cbName]; } catch (e) {}
+          if (script.parentNode) script.parentNode.removeChild(script);
+          resolve(null);
+        }, 4000);
+
+        window[cbName] = function(data) {
+          clearTimeout(timer);
+          try { delete window[cbName]; } catch (e) {}
+          if (script.parentNode) script.parentNode.removeChild(script);
+          if (data && data.data && data.data.length > 0) {
+            const r = data.data[0];
+            resolve(r.cover_big || r.cover_medium || r.cover_xl || null);
+          } else {
+            resolve(null);
+          }
+        };
+
+        script.onerror = function() {
+          clearTimeout(timer);
+          try { delete window[cbName]; } catch (e) {}
+          if (script.parentNode) script.parentNode.removeChild(script);
+          resolve(null);
+        };
+
+        document.head.appendChild(script);
+      });
+    }
+
+    async function fetchItunesAlbumArt(artist, album) {
+      try {
+        const q = encodeURIComponent(`${artist} ${album}`);
+        const res = await fetch(`https://itunes.apple.com/search?term=${q}&media=music&entity=album&limit=1`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.results && json.results.length > 0 && json.results[0].artworkUrl100) {
+            return json.results[0].artworkUrl100.replace('100x100bb', '500x500bb');
+          }
+        }
+      } catch (e) {}
+      return null;
+    }
+
     async function getAlbumArtUrl(artist, album) {
       if (!artist || !album) return null;
       const cleanAlbum = album.replace(/\s*\([^)]*\)/g, '').trim();
@@ -6920,19 +6970,19 @@
         }
       } catch (e) {}
 
-      try {
-        const q = encodeURIComponent(`${artist} ${cleanAlbum}`);
-        const res = await fetch(`https://itunes.apple.com/search?term=${q}&media=music&entity=album&limit=1`);
-        if (res.ok) {
-          const json = await res.json();
-          if (json.results && json.results.length > 0 && json.results[0].artworkUrl100) {
-            const imgUrl = json.results[0].artworkUrl100.replace('100x100bb', '300x300bb');
-            albumArtCache[cacheKey] = imgUrl;
-            try { localStorage.setItem(cacheKey, imgUrl); } catch (e) {}
-            return imgUrl;
-          }
-        }
-      } catch (e) {}
+      // 1. Primary: Deezer CDN (covers all major rock/metal catalogs with high-res artwork)
+      let artUrl = await fetchDeezerAlbumArt(artist, cleanAlbum);
+
+      // 2. Fallback: Apple iTunes Search API
+      if (!artUrl) {
+        artUrl = await fetchItunesAlbumArt(artist, cleanAlbum);
+      }
+
+      if (artUrl) {
+        albumArtCache[cacheKey] = artUrl;
+        try { localStorage.setItem(cacheKey, artUrl); } catch (e) {}
+        return artUrl;
+      }
 
       return null;
     }
