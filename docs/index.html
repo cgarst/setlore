@@ -60,6 +60,9 @@
     .code-badge {
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     }
+    .screenshot-frame {
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.1);
+    }
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: #090d16; }
     ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
@@ -70,8 +73,9 @@
   <!-- Floating Background Ambient Light -->
   <div class="fixed inset-0 pointer-events-none overflow-hidden -z-10">
     <div class="absolute -top-40 left-1/2 -translate-x-1/2 w-[700px] h-[500px] bg-indigo-600/15 rounded-full blur-3xl"></div>
-    <div class="absolute top-[35%] -left-32 w-[500px] h-[500px] bg-purple-600/10 rounded-full blur-3xl"></div>
-    <div class="absolute top-[65%] -right-32 w-[500px] h-[500px] bg-pink-600/10 rounded-full blur-3xl"></div>
+    <div class="absolute top-[30%] -left-32 w-[500px] h-[500px] bg-purple-600/10 rounded-full blur-3xl"></div>
+    <div class="absolute top-[60%] -right-32 w-[500px] h-[500px] bg-pink-600/10 rounded-full blur-3xl"></div>
+    <div class="absolute top-[85%] left-1/3 w-[600px] h-[400px] bg-cyan-600/10 rounded-full blur-3xl"></div>
   </div>
 
   <!-- Navigation Bar -->
@@ -83,11 +87,17 @@
       </a>
 
       <!-- Desktop Navigation Links -->
-      <nav class="hidden md:flex items-center gap-6 text-xs font-semibold text-slate-300">
-        <a href="#features" class="hover:text-white transition">Features</a>
-        <a href="#sync-import" class="hover:text-white transition">Sync & Import</a>
+      <nav class="hidden md:flex items-center gap-5 text-xs font-semibold text-slate-300">
+        <a href="#showcase" class="hover:text-white transition">Showcase</a>
+        <a href="#features" class="hover:text-white transition">Analytics</a>
+        <a href="#upcoming" class="hover:text-white transition">Upcoming Tours</a>
+        <a href="#social" class="hover:text-white transition flex items-center gap-1">
+          <span>Social &amp; Friends</span>
+        </a>
+        <a href="#themes" class="hover:text-white transition">Guitar Themes</a>
+        <a href="#sync-import" class="hover:text-white transition">Sync &amp; Ingestion</a>
         
-        <a href="#tech-stack" class="hover:text-white transition">Tech Stack</a>
+        <a href="#tech-stack" class="hover:text-white transition">Stack</a>
         <a href="#self-hosting" class="hover:text-white transition">Self-Hosting</a>
         <a href="https://github.com/cgarst/setlore" target="_blank" rel="noopener noreferrer" class="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/60 transition flex items-center justify-center" title="View Source on GitHub" aria-label="View Source on GitHub">
           <i class="fa-brands fa-github text-base"></i>
@@ -97,14 +107,7 @@
       <!-- User Auth Actions -->
       <div class="flex items-center gap-2.5">
         
-          <a href="demo/" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs shadow-md shadow-indigo-500/25 transition flex items-center gap-1.5">
-            <i class="fa-solid fa-play text-xs"></i>
-            <span>Demo Setlore</span>
-          </a>
-          <a href="https://github.com/cgarst/setlore" target="_blank" rel="noopener noreferrer" class="hidden sm:flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 hover:text-white transition">
-            <i class="fa-brands fa-github text-xs"></i>
-            <span>GitHub</span>
-          </a>
+          <!-- No upper-right demo/github buttons on static demo landing page -->
         
       </div>
     </div>
@@ -118,18 +121,18 @@
       <!-- Tagline Pill -->
       <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 text-xs font-semibold shadow-inner">
         <i class="fa-solid fa-compact-disc animate-spin" style="animation-duration: 8s;"></i>
-        <span>100% Open Source & Self-Hosted Concert Intelligence</span>
+        <span>100% Open Source &amp; Self-Hosted Concert Intelligence</span>
       </div>
 
       <!-- Main Headline -->
       <h1 class="text-3xl sm:text-5xl md:text-6xl font-black tracking-tight leading-tight md:leading-tight">
         Your Live Music History,<br>
-        <span class="gradient-text">Decoded & Preserved.</span>
+        <span class="gradient-text">Decoded &amp; Preserved.</span>
       </h1>
 
       <!-- Subtitle -->
       <p class="text-sm sm:text-base md:text-lg text-slate-300 leading-relaxed max-w-2xl mx-auto font-normal">
-        Track every show you’ve ever attended with rich discography insights, musician lineup tenures, setlist freshness audits, and interactive venue maps. Built for music obsessives who value data ownership and privacy.
+        Track every show you’ve ever attended with rich discography insights, musician lineup tenures, upcoming tour radars, friend attendance overlaps, and custom guitar-finish themes. Built for music obsessives who value data ownership and privacy.
       </p>
 
       <!-- Hero Action Buttons -->
@@ -137,7 +140,7 @@
         
           <a href="demo/" class="px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-sm shadow-xl shadow-indigo-500/30 transition transform hover:-translate-y-0.5 flex items-center gap-2">
             <i class="fa-solid fa-play"></i>
-            <span>Demo Setlore</span>
+            <span>Demo Setlore Live</span>
           </a>
           <a href="https://github.com/cgarst/setlore" target="_blank" rel="noopener noreferrer" class="px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-semibold text-sm shadow-lg transition transform hover:-translate-y-0.5 flex items-center gap-2">
             <i class="fa-brands fa-github text-indigo-400"></i>
@@ -152,24 +155,371 @@
           <i class="fa-brands fa-docker text-sky-400"></i> Easy Docker Self-Host
         </span>
         <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-900/80 border border-slate-800">
-          <i class="fa-solid fa-lock text-emerald-400"></i> 100% Private & No Ads
+          <i class="fa-solid fa-lock text-emerald-400"></i> 100% Private &amp; Zero Ads
         </span>
         <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-900/80 border border-slate-800">
           <i class="fa-solid fa-arrows-rotate text-purple-400"></i> 2-Way Setlist.fm Sync
         </span>
         <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-900/80 border border-slate-800">
-          <i class="fa-solid fa-file-csv text-amber-400"></i> CSV Import & Export
+          <i class="fa-solid fa-calendar-check text-cyan-400"></i> Upcoming Tour Radar
+        </span>
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-900/80 border border-slate-800">
+          <i class="fa-solid fa-users text-pink-400"></i> Social &amp; Friend Overlaps
+        </span>
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-900/80 border border-slate-800">
+          <i class="fa-solid fa-palette text-amber-400"></i> 8 Guitar Finish Themes
         </span>
       </div>
-
     </section>
 
-    
+    <!-- 2. INTERACTIVE SCREENSHOT SHOWCASE -->
+    <section id="showcase" class="space-y-6">
+      <div class="text-center space-y-2 max-w-3xl mx-auto">
+        <h2 class="text-xs font-bold uppercase tracking-widest text-indigo-400">Live Interface Preview</h2>
+        <p class="text-2xl sm:text-3xl font-extrabold text-white">Experience Setlore's Deep Analytics</p>
+        <p class="text-xs sm:text-sm text-slate-400">
+          Real screenshots rendered directly from our demo dataset of 970+ live concerts. Explore how Setlore brings concert lore to life.
+        </p>
+      </div>
 
-    <!-- 2. CORE FEATURES GRID -->
+      <!-- Showcase Tabs -->
+      <div class="flex flex-wrap items-center justify-center gap-1.5 p-1.5 rounded-2xl bg-slate-900/90 border border-slate-800 max-w-4xl mx-auto">
+        <button type="button" onclick="switchShowcaseTab('overview')" id="sc-btn-overview" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 text-white shadow transition cursor-pointer flex items-center gap-1.5">
+          <i class="fa-solid fa-chart-pie"></i> Overview
+        </button>
+        <button type="button" onclick="switchShowcaseTab('concerts')" id="sc-btn-concerts" class="px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition cursor-pointer flex items-center gap-1.5">
+          <i class="fa-solid fa-ticket text-purple-400"></i> Concerts
+        </button>
+        <button type="button" onclick="switchShowcaseTab('songs')" id="sc-btn-songs" class="px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition cursor-pointer flex items-center gap-1.5">
+          <i class="fa-solid fa-magnifying-glass-chart text-pink-400"></i> Songs &amp; Artists
+        </button>
+        <button type="button" onclick="switchShowcaseTab('albums')" id="sc-btn-albums" class="px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition cursor-pointer flex items-center gap-1.5">
+          <i class="fa-solid fa-wand-magic-sparkles text-cyan-400"></i> Albums &amp; Eras
+        </button>
+        <button type="button" onclick="switchShowcaseTab('musicians')" id="sc-btn-musicians" class="px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition cursor-pointer flex items-center gap-1.5">
+          <i class="fa-solid fa-users-viewfinder text-amber-400"></i> Musicians
+        </button>
+        <button type="button" onclick="switchShowcaseTab('map')" id="sc-btn-map" class="px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition cursor-pointer flex items-center gap-1.5">
+          <i class="fa-solid fa-map-location-dot text-emerald-400"></i> Venue Map
+        </button>
+        <button type="button" onclick="switchShowcaseTab('freshness')" id="sc-btn-freshness" class="px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition cursor-pointer flex items-center gap-1.5">
+          <i class="fa-solid fa-leaf text-teal-400"></i> Freshness
+        </button>
+      </div>
+
+      <!-- Screenshot Display Window with Browser Bezel -->
+      <div class="glass-card rounded-2xl border border-slate-700/80 overflow-hidden max-w-5xl mx-auto shadow-2xl">
+        <!-- Bezel Header -->
+        <div class="px-4 py-2.5 bg-slate-900/95 border-b border-slate-800 flex items-center justify-between text-xs text-slate-400">
+          <div class="flex items-center gap-2">
+            <span class="w-3 h-3 rounded-full bg-rose-500/80 inline-block"></span>
+            <span class="w-3 h-3 rounded-full bg-amber-500/80 inline-block"></span>
+            <span class="w-3 h-3 rounded-full bg-emerald-500/80 inline-block"></span>
+          </div>
+          <div class="px-4 py-1 rounded-lg bg-slate-950/80 border border-slate-800 font-mono text-[11px] text-slate-300 flex items-center gap-2 max-w-sm sm:max-w-md truncate">
+            <i class="fa-solid fa-lock text-emerald-400 text-[10px]"></i>
+            <span id="showcase-url-label">https://setlore.local/overview/</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span id="showcase-caption" class="font-medium text-slate-300 text-[11px] hidden sm:inline">Overview &amp; Attendance Timeline</span>
+          </div>
+        </div>
+
+        <!-- Screenshots -->
+        <div class="relative bg-slate-950 p-2 sm:p-4">
+          <!-- Overview -->
+          <div id="sc-panel-overview" class="space-y-3">
+            <img src="static/img/screenshots/overview.png" alt="Setlore Overview Dashboard" class="w-full h-auto rounded-xl border border-slate-800/80 shadow-lg object-contain">
+            <p class="text-center text-xs text-slate-400">Yearly attendance timeline chart, total artists/venues count, quick stats, top bands, and recent shows.</p>
+          </div>
+
+          <!-- Concerts -->
+          <div id="sc-panel-concerts" class="hidden space-y-3">
+            <img src="static/img/screenshots/concerts.png" alt="Setlore Concerts Drilldown" class="w-full h-auto rounded-xl border border-slate-800/80 shadow-lg object-contain">
+            <p class="text-center text-xs text-slate-400">Comprehensive concert logs with instant search, year filters, setlist expandable cards, and favorite badges.</p>
+          </div>
+
+          <!-- Songs -->
+          <div id="sc-panel-songs" class="hidden space-y-3">
+            <img src="static/img/screenshots/songs.png" alt="Setlore Songs & Artists" class="w-full h-auto rounded-xl border border-slate-800/80 shadow-lg object-contain">
+            <p class="text-center text-xs text-slate-400">Artist catalog breakdowns, song frequency counters, and individual live performance history drilldowns.</p>
+          </div>
+
+          <!-- Albums -->
+          <div id="sc-panel-albums" class="hidden space-y-3">
+            <img src="static/img/screenshots/albums.png" alt="Setlore Albums & Eras Treemap" class="w-full h-auto rounded-xl border border-slate-800/80 shadow-lg object-contain">
+            <p class="text-center text-xs text-slate-400">MusicBrainz discography enrichment: studio album distribution treemaps, release decades, and live set representation.</p>
+          </div>
+
+          <!-- Musicians -->
+          <div id="sc-panel-musicians" class="hidden space-y-3">
+            <img src="static/img/screenshots/musicians.png" alt="Setlore Musicians Lineup Tracking" class="w-full h-auto rounded-xl border border-slate-800/80 shadow-lg object-contain">
+            <p class="text-center text-xs text-slate-400">Musician lineup tenure calculations, multi-band artists cross-referencing, and supergroup spotlight matrices.</p>
+          </div>
+
+          <!-- Map -->
+          <div id="sc-panel-map" class="hidden space-y-3">
+            <img src="static/img/screenshots/map.png" alt="Setlore Interactive Venue Map" class="w-full h-auto rounded-xl border border-slate-800/80 shadow-lg object-contain">
+            <p class="text-center text-xs text-slate-400">Interactive Carto dark tile venue map powered by Leaflet with geocoded concert pins and artist filtering.</p>
+          </div>
+
+          <!-- Freshness -->
+          <div id="sc-panel-freshness" class="hidden space-y-3">
+            <img src="static/img/screenshots/freshness.png" alt="Setlore Song Freshness & Rarities" class="w-full h-auto rounded-xl border border-slate-800/80 shadow-lg object-contain">
+            <p class="text-center text-xs text-slate-400">Live rarity audits: songs heard only once, tour debuts, and tracks you haven’t heard live in years.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. UPCOMING TOUR RADAR SECTION -->
+    <section id="upcoming" class="space-y-8">
+      <div class="glass-card p-6 sm:p-10 rounded-3xl border border-purple-500/30 bg-gradient-to-br from-slate-900/95 via-purple-950/20 to-slate-900/95 shadow-2xl">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+          <div class="space-y-4">
+            <span class="badge bg-purple-500/20 text-purple-300 border border-purple-500/40 text-[11px] font-mono">
+              <i class="fa-solid fa-radar mr-1.5"></i> Live Tour Radar
+            </span>
+            <h2 class="text-2xl sm:text-3xl font-extrabold text-white">Upcoming Concert &amp; Tour Tracking</h2>
+            <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+              Never miss your favorite bands when they come to town. Setlore automatically queries upcoming tour dates for every artist you’ve ever seen live, filtered to your hometown and search radius.
+            </p>
+
+            <ul class="space-y-3 pt-2 text-xs text-slate-300">
+              <li class="flex items-start gap-3">
+                <div class="w-6 h-6 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center shrink-0 mt-0.5">
+                  <i class="fa-solid fa-location-crosshairs text-xs"></i>
+                </div>
+                <div>
+                  <strong class="text-white font-semibold">Custom Geographic Radius:</strong>
+                  <span>Set your target coordinates and search within 25, 50, 100, 250, or 500 miles.</span>
+                </div>
+              </li>
+
+              <li class="flex items-start gap-3">
+                <div class="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 mt-0.5">
+                  <i class="fa-solid fa-bookmark text-xs"></i>
+                </div>
+                <div>
+                  <strong class="text-white font-semibold">"I'll Be There" Pre-Tracking:</strong>
+                  <span>1-click mark upcoming shows you plan to attend to pre-load them into your dashboard and planning pipeline.</span>
+                </div>
+              </li>
+
+              <li class="flex items-start gap-3">
+                <div class="w-6 h-6 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center shrink-0 mt-0.5">
+                  <i class="fa-solid fa-ticket text-xs"></i>
+                </div>
+                <div>
+                  <strong class="text-white font-semibold">Direct Ticket &amp; Venue Links:</strong>
+                  <span>Instant links to official box offices, venue details, and precise distance calculations.</span>
+                </div>
+              </li>
+
+              <li class="flex items-start gap-3">
+                <div class="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0 mt-0.5">
+                  <i class="fa-solid fa-eye-slash text-xs"></i>
+                </div>
+                <div>
+                  <strong class="text-white font-semibold">Tailored Artist Filters:</strong>
+                  <span>Easily hide one-off festival acts or unhide artists anytime to keep your tour radar focused on bands you care about.</span>
+                </div>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Interactive Upcoming Tour Preview Box -->
+          <div class="glass-card p-5 rounded-2xl border border-purple-500/30 bg-slate-950/90 shadow-xl space-y-3">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-xl bg-purple-600/20 border border-purple-500/30 flex items-center justify-center text-purple-400 text-xs">
+                  <i class="fa-solid fa-calendar-days"></i>
+                </div>
+                <div>
+                  <h4 class="text-xs font-bold text-white">Upcoming Tour Radar</h4>
+                  <p class="text-[10px] text-slate-400">Within 100 miles of Washington, DC</p>
+                </div>
+              </div>
+              <span class="badge bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[10px] font-mono">Bandsintown API</span>
+            </div>
+
+            <!-- Sample Tour Card 1 -->
+            <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2 hover:border-purple-500/40 transition">
+              <div class="flex items-start justify-between gap-2">
+                <div>
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs font-bold text-white">Dream Theater</span>
+                    <span class="px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 text-[10px] font-mono">Seen 14x</span>
+                  </div>
+                  <p class="text-[11px] text-slate-400">40th Anniversary Tour &bull; The Anthem, Washington, DC</p>
+                </div>
+                <span class="text-[10px] text-emerald-400 font-mono flex items-center gap-1">
+                  <i class="fa-solid fa-route text-[9px]"></i> 12 mi
+                </span>
+              </div>
+              <div class="flex items-center justify-between text-[11px] pt-1">
+                <span class="text-indigo-300 font-mono font-semibold">Nov 18, 2026</span>
+                <span class="px-2 py-0.5 rounded bg-emerald-600/20 border border-emerald-500/40 text-emerald-300 text-[10px] font-semibold">
+                  <i class="fa-solid fa-check mr-1"></i> Tracked (I'll be there)
+                </span>
+              </div>
+            </div>
+
+            <!-- Sample Tour Card 2 -->
+            <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2 hover:border-purple-500/40 transition">
+              <div class="flex items-start justify-between gap-2">
+                <div>
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs font-bold text-white">Iron Maiden</span>
+                    <span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[10px] font-mono">Seen 8x</span>
+                  </div>
+                  <p class="text-[11px] text-slate-400">Run For Your Lives Tour &bull; CFG Bank Arena, Baltimore, MD</p>
+                </div>
+                <span class="text-[10px] text-emerald-400 font-mono flex items-center gap-1">
+                  <i class="fa-solid fa-route text-[9px]"></i> 38 mi
+                </span>
+              </div>
+              <div class="flex items-center justify-between text-[11px] pt-1">
+                <span class="text-indigo-300 font-mono font-semibold">Dec 04, 2026</span>
+                <span class="px-2 py-0.5 rounded bg-indigo-600/20 border border-indigo-500/40 text-indigo-300 text-[10px] font-semibold">
+                  <i class="fa-solid fa-ticket mr-1"></i> Tickets Available
+                </span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. SOCIAL & FRIEND OVERLAP FEATURES -->
+    <section id="social" class="space-y-8">
+      <div class="text-center space-y-2 max-w-3xl mx-auto">
+        <h2 class="text-xs font-bold uppercase tracking-widest text-indigo-400">Social Concert Intelligence</h2>
+        <p class="text-2xl sm:text-3xl font-extrabold text-white">Compare Concerts &amp; Share With Friends</p>
+        <p class="text-xs sm:text-sm text-slate-400">Live music is better together. Connect with fellow fans to analyze shared shows, compare artist overlap, and share vanity profile links.</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Social Card 1: Co-Attendance Overlap -->
+        <div class="glass-card-interactive p-6 rounded-2xl space-y-3 border border-slate-800">
+          <div class="w-10 h-10 rounded-xl bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 flex items-center justify-center text-lg">
+            <i class="fa-solid fa-user-group"></i>
+          </div>
+          <h3 class="text-base font-bold text-white">Social Show Overlap</h3>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            Instantly see every concert you attended with friends. Setlore compares date, venue, and artists to calculate exact mutual attendance and show overlap percentage.
+          </p>
+          <div class="pt-2 flex flex-wrap gap-1.5 text-[11px] text-slate-400 font-mono">
+            <span class="bg-slate-900 px-2 py-0.5 rounded border border-slate-800">Mutual Show Logs</span>
+            <span class="bg-slate-900 px-2 py-0.5 rounded border border-slate-800">Shared Artist Overlap</span>
+          </div>
+        </div>
+
+        <!-- Social Card 2: Public Vanity Profiles -->
+        <div class="glass-card-interactive p-6 rounded-2xl space-y-3 border border-slate-800">
+          <div class="w-10 h-10 rounded-xl bg-pink-500/20 border border-pink-500/30 text-pink-400 flex items-center justify-center text-lg">
+            <i class="fa-solid fa-share-nodes"></i>
+          </div>
+          <h3 class="text-base font-bold text-white">Vanity Public Profiles</h3>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            Share your concert profile via clean vanity URLs (<code class="text-indigo-300">/u/@username</code>). Toggle privacy on or off anytime with 1 click.
+          </p>
+          <div class="pt-2 flex flex-wrap gap-1.5 text-[11px] text-slate-400 font-mono">
+            <span class="bg-slate-900 px-2 py-0.5 rounded border border-slate-800">1-Click Privacy Toggle</span>
+            <span class="bg-slate-900 px-2 py-0.5 rounded border border-slate-800">Public CSV Endpoints</span>
+          </div>
+        </div>
+
+        <!-- Social Card 3: Friend Requests & Approval -->
+        <div class="glass-card-interactive p-6 rounded-2xl space-y-3 border border-slate-800">
+          <div class="w-10 h-10 rounded-xl bg-purple-500/20 border border-purple-500/30 text-purple-400 flex items-center justify-center text-lg">
+            <i class="fa-solid fa-user-check"></i>
+          </div>
+          <h3 class="text-base font-bold text-white">Friendship &amp; Approvals</h3>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            Send and accept friend requests with fellow users on your server. Mutual friendship unlocks access to private concert collections and shared stats.
+          </p>
+          <div class="pt-2 flex flex-wrap gap-1.5 text-[11px] text-slate-400 font-mono">
+            <span class="bg-slate-900 px-2 py-0.5 rounded border border-slate-800">Mutual Approvals</span>
+            <span class="bg-slate-900 px-2 py-0.5 rounded border border-slate-800">Live Friend Search</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. GUITAR FINISH THEMES & COLOR PALETTES -->
+    <section id="themes" class="space-y-8">
+      <div class="glass-card p-6 sm:p-10 rounded-3xl border border-indigo-500/30 bg-gradient-to-br from-slate-900/95 via-indigo-950/20 to-slate-900/95 shadow-2xl">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+          
+          <div class="space-y-4">
+            <h2 class="text-2xl sm:text-3xl font-extrabold text-white">Guitar Inspired Themes</h2>
+            <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+              Personalize your concert analytics dashboard with bespoke color schemes created as homages to legendary electric guitar finishes and bursts.
+            </p>
+
+            <!-- Theme Swatches Grid -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2">
+              <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
+                <div class="w-full h-4 rounded bg-gradient-to-r from-purple-700 via-indigo-600 to-emerald-500"></div>
+                <p class="text-[11px] font-bold text-white truncate">Mystic Dream</p>
+                <p class="text-[9px] text-slate-400">Iridescent shift</p>
+              </div>
+              <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
+                <div class="w-full h-4 rounded bg-gradient-to-r from-purple-900 via-purple-600 to-indigo-400"></div>
+                <p class="text-[11px] font-bold text-white truncate">Purple Nebula</p>
+                <p class="text-[9px] text-slate-400">Deep cosmic burst</p>
+              </div>
+              <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
+                <div class="w-full h-4 rounded bg-gradient-to-r from-red-800 via-rose-600 to-pink-500"></div>
+                <p class="text-[11px] font-bold text-white truncate">Red Nebula</p>
+                <p class="text-[9px] text-slate-400">Vibrant ruby flame</p>
+              </div>
+              <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
+                <div class="w-full h-4 rounded bg-gradient-to-r from-cyan-600 via-sky-500 to-blue-400"></div>
+                <p class="text-[11px] font-bold text-white truncate">Cerulean Paradise</p>
+                <p class="text-[9px] text-slate-400">Tropical aqua burst</p>
+              </div>
+              <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
+                <div class="w-full h-4 rounded bg-gradient-to-r from-sky-600 via-blue-500 to-indigo-400"></div>
+                <p class="text-[11px] font-bold text-white truncate">Blue Pearl</p>
+                <p class="text-[9px] text-slate-400">Shimmering metallic</p>
+              </div>
+              <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
+                <div class="w-full h-4 rounded bg-gradient-to-r from-slate-900 via-slate-700 to-indigo-950"></div>
+                <p class="text-[11px] font-bold text-white truncate">Dark Side</p>
+                <p class="text-[9px] text-slate-400">Monochrome stealth</p>
+              </div>
+              <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
+                <div class="w-full h-4 rounded bg-gradient-to-r from-amber-700 via-amber-500 to-orange-400"></div>
+                <p class="text-[11px] font-bold text-white truncate">Ember Glow</p>
+                <p class="text-[9px] text-slate-400">Warm flame maple</p>
+              </div>
+              <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
+                <div class="w-full h-4 rounded bg-gradient-to-r from-red-900 via-rose-700 to-amber-600"></div>
+                <p class="text-[11px] font-bold text-white truncate">Red Pearl Burst</p>
+                <p class="text-[9px] text-slate-400">Deep crimson edge</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Theme Modal Screenshot Preview -->
+          <div class="space-y-2">
+            <div class="rounded-2xl border border-slate-700/80 overflow-hidden bg-slate-950 shadow-2xl p-1.5">
+              <img src="static/img/screenshots/theme_palettes.png" alt="Setlore Guitar Finish Theme Selector Modal" class="w-full h-auto rounded-xl object-contain border border-slate-800">
+            </div>
+            <p class="text-center text-[11px] text-slate-400">Interactive theme selector modal with real-time CSS property adaptations and monochrome logo filter.</p>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. CORE ANALYTICS & DEEP LORE -->
     <section id="features" class="space-y-8">
       <div class="text-center space-y-2 max-w-3xl mx-auto">
-        <h2 class="text-xs font-bold uppercase tracking-widest text-indigo-400">Analytics & Deep Lore</h2>
+        <h2 class="text-xs font-bold uppercase tracking-widest text-indigo-400">Analytics &amp; Deep Lore</h2>
         <p class="text-2xl sm:text-3xl font-extrabold text-white">Deep Live Concert Intelligence</p>
         <p class="text-xs sm:text-sm text-slate-400">Beyond simple check-ins. Setlore dives into lineups, discographies, eras, and geographic road trips.</p>
       </div>
@@ -180,7 +530,7 @@
           <div class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 text-amber-400 flex items-center justify-center text-lg">
             <i class="fa-solid fa-users-viewfinder"></i>
           </div>
-          <h3 class="text-base font-bold text-white">Musician Lineup & Tenure Tracking</h3>
+          <h3 class="text-base font-bold text-white">Musician Lineup &amp; Tenure Tracking</h3>
           <p class="text-xs text-slate-300 leading-relaxed">
             Know who was actually on stage. Setlore calculates historical band rosters by concert date, tracking individual drummers, guitarists, and vocalists across all their side projects and supergroups.
           </p>
@@ -195,7 +545,7 @@
           <div class="w-10 h-10 rounded-xl bg-purple-500/20 border border-purple-500/30 text-purple-400 flex items-center justify-center text-lg">
             <i class="fa-solid fa-compact-disc"></i>
           </div>
-          <h3 class="text-base font-bold text-white">MusicBrainz Discography & Eras</h3>
+          <h3 class="text-base font-bold text-white">MusicBrainz Discography &amp; Eras</h3>
           <p class="text-xs text-slate-300 leading-relaxed">
             Every song heard live is enriched via MusicBrainz to map studio albums, original release years, and cover flags. Visualized in interactive treemaps, album breakdown matrices, and era timelines.
           </p>
@@ -225,7 +575,7 @@
           <div class="w-10 h-10 rounded-xl bg-pink-500/20 border border-pink-500/30 text-pink-400 flex items-center justify-center text-lg">
             <i class="fa-solid fa-clipboard-check"></i>
           </div>
-          <h3 class="text-base font-bold text-white">Setlist Reconciliation & Audit</h3>
+          <h3 class="text-base font-bold text-white">Setlist Reconciliation &amp; Audit</h3>
           <p class="text-xs text-slate-300 leading-relaxed">
             Fuzzy matching automatically flags shows missing from Setlist.fm, catches unlinked attended marks, and highlights gaps in your live concert history so your records stay immaculate.
           </p>
@@ -240,7 +590,7 @@
           <div class="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 flex items-center justify-center text-lg">
             <i class="fa-solid fa-leaf"></i>
           </div>
-          <h3 class="text-base font-bold text-white">Song Freshness & Debut Tracker</h3>
+          <h3 class="text-base font-bold text-white">Song Freshness &amp; Debut Tracker</h3>
           <p class="text-xs text-slate-300 leading-relaxed">
             Discover tracks you haven’t heard in years, songs heard for the very first time on a tour, and personal rarest gems across all your favorite artists with deep setlist analytics.
           </p>
@@ -250,33 +600,33 @@
           </div>
         </div>
 
-        <!-- Feature 6: Social & Public Profiles -->
+        <!-- Feature 6: Local MusicBrainz Dump Builder -->
         <div class="glass-card-interactive p-6 rounded-2xl space-y-3">
           <div class="w-10 h-10 rounded-xl bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 flex items-center justify-center text-lg">
-            <i class="fa-solid fa-share-nodes"></i>
+            <i class="fa-solid fa-database"></i>
           </div>
-          <h3 class="text-base font-bold text-white">Public Profiles & Friend Overlaps</h3>
+          <h3 class="text-base font-bold text-white">Offline MusicBrainz Dumps</h3>
           <p class="text-xs text-slate-300 leading-relaxed">
-            Share your concert profile with a clean vanity link (<code class="text-indigo-300">/u/@username</code>). Compare attendance overlap with friends to immediately see every show you’ve attended together.
+            Download and build local SQLite mirrors of complete MusicBrainz artist and release catalogs. Provides lightning-fast offline lookups without external API rate limits.
           </p>
           <div class="pt-2 flex flex-wrap gap-1.5 text-[11px] text-slate-400 font-mono">
-            <span class="bg-slate-900 px-2 py-0.5 rounded border border-slate-800">Social Show Overlap</span>
-            <span class="bg-slate-900 px-2 py-0.5 rounded border border-slate-800">1-Click Privacy Toggle</span>
+            <span class="bg-slate-900 px-2 py-0.5 rounded border border-slate-800">Local SQLite Dump</span>
+            <span class="bg-slate-900 px-2 py-0.5 rounded border border-slate-800">Zero Rate Limits</span>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- 3. INGESTION, SYNC & EXPORTABILITY -->
+    <!-- 7. INGESTION, SYNC & EXPORTABILITY -->
     <section id="sync-import" class="space-y-8">
       <div class="glass-card p-6 sm:p-10 rounded-3xl border border-indigo-500/30 bg-gradient-to-br from-slate-900/95 via-indigo-950/30 to-slate-900/95 shadow-2xl">
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
           
           <div class="space-y-4">
             <span class="badge bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 text-[11px] font-mono">
-              <i class="fa-solid fa-plug mr-1.5"></i> Multi-Source Ingestion & Zero Lock-In
+              <i class="fa-solid fa-plug mr-1.5"></i> Multi-Source Ingestion &amp; Zero Lock-In
             </span>
-            <h2 class="text-2xl sm:text-3xl font-extrabold text-white">Effortless Ingestion, Instant Syncing & Portable Exports</h2>
+            <h2 class="text-2xl sm:text-3xl font-extrabold text-white">Effortless Ingestion, Instant Syncing &amp; Portable Exports</h2>
             <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
               Your live music history shouldn’t be locked in a silo or manual chore. Setlore connects to your favorite services and gives you full control over how you import, sync, and export your archives.
             </p>
@@ -307,7 +657,7 @@
                   <i class="fa-solid fa-file-csv text-xs"></i>
                 </div>
                 <div>
-                  <strong class="text-white font-semibold">Spreadsheet & CSV Import:</strong>
+                  <strong class="text-white font-semibold">Spreadsheet &amp; CSV Import:</strong>
                   <span>Drop your existing spreadsheet (<code class="text-indigo-300">Date, Band, Venue, City, Notes</code>) and normalize automatically.</span>
                 </div>
               </li>
@@ -356,7 +706,7 @@
                     <div>
                       <p class="text-xs font-bold text-white">@musicfan on Setlist.fm</p>
                       <p class="text-[10px] text-emerald-400 flex items-center gap-1">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Connected & Synced
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Connected &amp; Synced
                       </p>
                     </div>
                   </div>
@@ -386,7 +736,7 @@
                   <span class="text-[11px] font-semibold text-emerald-400 flex items-center gap-1.5">
                     <i class="fa-solid fa-wand-magic-sparkles"></i> Raw Text &rarr; Structured Show
                   </span>
-                  <span class="text-[10px] text-slate-400 font-mono">Instant Regex & NLP</span>
+                  <span class="text-[10px] text-slate-400 font-mono">Instant Regex &amp; NLP</span>
                 </div>
 
                 <div class="p-2 rounded-lg bg-slate-950 border border-slate-800 text-[11px] font-mono text-slate-400 truncate">
@@ -398,7 +748,7 @@
                     <p class="font-bold text-white text-xs">Iron Maiden</p>
                     <p class="text-[10px] text-slate-300">Capital One Arena &bull; Washington, DC</p>
                   </div>
-                  <span class="badge bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px]">Parsed & Ready</span>
+                  <span class="badge bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px]">Parsed &amp; Ready</span>
                 </div>
               </div>
 
@@ -484,11 +834,12 @@
       </div>
     </section>
 
+    
 
-    <!-- 5. TECH STACK & ARCHITECTURE -->
+    <!-- 8. TECH STACK & ARCHITECTURE -->
     <section id="tech-stack" class="space-y-8">
       <div class="text-center space-y-2 max-w-2xl mx-auto">
-        <h2 class="text-xs font-bold uppercase tracking-widest text-indigo-400">Engineering & Performance</h2>
+        <h2 class="text-xs font-bold uppercase tracking-widest text-indigo-400">Engineering &amp; Performance</h2>
         <p class="text-2xl sm:text-3xl font-extrabold text-white">Modern, Pragmatic Tech Stack</p>
         <p class="text-xs sm:text-sm text-slate-400">Engineered for lightweight self-hosting, responsive analytics, and uncompromising reliability.</p>
       </div>
@@ -498,7 +849,7 @@
         <div class="glass-card p-6 rounded-2xl space-y-2.5">
           <div class="flex items-center gap-2.5 text-indigo-400 text-sm font-bold">
             <i class="fa-brands fa-python text-lg"></i>
-            <span>Python 3.12+ & Django 5</span>
+            <span>Python 3.12+ &amp; Django 6</span>
           </div>
           <p class="text-xs text-slate-300 leading-relaxed">
             Robust MVC web framework with typed database models, case-insensitive authentication backends, and full Django Admin portal for catalog curation.
@@ -509,7 +860,7 @@
         <div class="glass-card p-6 rounded-2xl space-y-2.5">
           <div class="flex items-center gap-2.5 text-emerald-400 text-sm font-bold">
             <i class="fa-solid fa-database text-lg"></i>
-            <span>SQLite & Write-Ahead Logging</span>
+            <span>SQLite &amp; Write-Ahead Logging</span>
           </div>
           <p class="text-xs text-slate-300 leading-relaxed">
             Single portable <code class="text-emerald-300 font-mono">db.sqlite3</code> file mounted on host storage. High-concurrency WAL mode with automatic API caching tables.
@@ -520,7 +871,7 @@
         <div class="glass-card p-6 rounded-2xl space-y-2.5">
           <div class="flex items-center gap-2.5 text-purple-400 text-sm font-bold">
             <i class="fa-solid fa-chart-line text-lg"></i>
-            <span>Plotly.js & Leaflet Cartography</span>
+            <span>Plotly.js &amp; Leaflet Cartography</span>
           </div>
           <p class="text-xs text-slate-300 leading-relaxed">
             Interactive, hardware-accelerated vector charts (yearly attendance timelines, discography sunbursts, treemaps) and customized Carto dark tile venue maps.
@@ -531,7 +882,7 @@
         <div class="glass-card p-6 rounded-2xl space-y-2.5">
           <div class="flex items-center gap-2.5 text-cyan-400 text-sm font-bold">
             <i class="fa-solid fa-network-wired text-lg"></i>
-            <span>Setlist.fm & MusicBrainz APIs</span>
+            <span>Setlist.fm, MusicBrainz &amp; Bandsintown</span>
           </div>
           <p class="text-xs text-slate-300 leading-relaxed">
             Automated rate-limited background ingestion pipelines with persistent caching to prevent IP throttling and ensure seamless syncs.
@@ -553,7 +904,7 @@
         <div class="glass-card p-6 rounded-2xl space-y-2.5">
           <div class="flex items-center gap-2.5 text-amber-400 text-sm font-bold">
             <i class="fa-brands fa-docker text-lg"></i>
-            <span>Docker & UV Package Manager</span>
+            <span>Docker &amp; UV Package Manager</span>
           </div>
           <p class="text-xs text-slate-300 leading-relaxed">
             Ultra-fast virtual environment resolution via Astral’s <code class="text-amber-300 font-mono">uv</code> and streamlined single-container Docker Compose deployment.
@@ -562,7 +913,7 @@
       </div>
     </section>
 
-    <!-- 6. SELF-HOSTING QUICKSTART -->
+    <!-- 9. SELF-HOSTING QUICKSTART -->
     <section id="self-hosting" class="space-y-8">
       <div class="glass-card p-6 sm:p-10 rounded-3xl border border-indigo-500/30 bg-slate-900/90 shadow-2xl">
         <div class="max-w-3xl mx-auto text-center space-y-4 mb-6">
@@ -577,7 +928,7 @@
 
         <div class="max-w-2xl mx-auto space-y-3 font-mono text-xs">
           <div class="p-4 rounded-xl bg-slate-950 border border-slate-800 text-slate-200 relative group overflow-x-auto">
-            <p class="text-slate-500"># 1. Clone repository & configure environment</p>
+            <p class="text-slate-500"># 1. Clone repository &amp; configure environment</p>
             <p><span class="text-indigo-400">git clone</span> https://github.com/cgarst/setlore.git</p>
             <p><span class="text-indigo-400">cd</span> setlore</p>
             <p><span class="text-indigo-400">cp</span> .env.example .env</p>
@@ -626,6 +977,51 @@
   </footer>
 
   <script>
+    const showcaseTabs = ['overview', 'concerts', 'songs', 'albums', 'musicians', 'map', 'freshness'];
+    const showcaseCaptions = {
+      'overview': 'Overview & Attendance Timeline',
+      'concerts': 'Concert History Drilldown & Setlists',
+      'songs': 'Artists & Song Performance Statistics',
+      'albums': 'MusicBrainz Discography & Era Treemaps',
+      'musicians': 'Musician Lineup & Supergroup Tenures',
+      'map': 'Interactive Geocoded Venue Map',
+      'freshness': 'Song Freshness & Debut Badges'
+    };
+    const showcaseUrls = {
+      'overview': 'https://setlore.local/overview/',
+      'concerts': 'https://setlore.local/concerts/',
+      'songs': 'https://setlore.local/songs/',
+      'albums': 'https://setlore.local/albums/',
+      'musicians': 'https://setlore.local/musicians/',
+      'map': 'https://setlore.local/map/',
+      'freshness': 'https://setlore.local/freshness/'
+    };
+
+    function switchShowcaseTab(tab) {
+      showcaseTabs.forEach(t => {
+        const btn = document.getElementById('sc-btn-' + t);
+        const panel = document.getElementById('sc-panel-' + t);
+        if (panel) {
+          if (t === tab) {
+            panel.classList.remove('hidden');
+          } else {
+            panel.classList.add('hidden');
+          }
+        }
+        if (btn) {
+          if (t === tab) {
+            btn.className = 'px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 text-white shadow transition cursor-pointer flex items-center gap-1.5';
+          } else {
+            btn.className = 'px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition cursor-pointer flex items-center gap-1.5';
+          }
+        }
+      });
+      const capEl = document.getElementById('showcase-caption');
+      if (capEl) capEl.textContent = showcaseCaptions[tab] || '';
+      const urlEl = document.getElementById('showcase-url-label');
+      if (urlEl) urlEl.textContent = showcaseUrls[tab] || 'https://setlore.local/overview/';
+    }
+
     function switchImportPreview(tab) {
       const tabs = ['setlistfm', 'ticketmaster', 'csv', 'manual'];
       tabs.forEach(t => {
