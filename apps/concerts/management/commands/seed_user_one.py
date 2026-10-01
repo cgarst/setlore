@@ -71,10 +71,8 @@ class Command(BaseCommand):
             m_created = 0
             for band_key, members in BAND_MEMBERS_TENURE.items():
                 canonical_band_name = normalize_artist_name(band_key) or band_key.title()
-                artist_obj, _ = Artist.objects.get_or_create(
-                    name=canonical_band_name,
-                    defaults={'normalized_name': canonical_band_name.lower()}
-                )
+                artist_obj, _ = Artist.get_or_create_artist(canonical_band_name)
+
                 for mem in members:
                     m_name = mem["musician"]
                     m_role = mem["role"]
@@ -113,7 +111,7 @@ class Command(BaseCommand):
             a_created = 0
             for (art_norm, alb_title), yr in CANONICAL_ALBUM_YEARS.items():
                 art_name = normalize_artist_name(art_norm) or art_norm.title()
-                art_obj, _ = Artist.objects.get_or_create(name=art_name, defaults={'normalized_name': art_norm})
+                art_obj, _ = Artist.get_or_create_artist(art_name)
                 clean_t = clean_album_title(alb_title)
                 _, is_a_new = Album.objects.get_or_create(
                     artist=art_obj,
@@ -128,13 +126,14 @@ class Command(BaseCommand):
             t_created = 0
             for (art_norm, song_norm), (alb_name, yr) in CANONICAL_TRACK_ALBUMS.items():
                 art_name = normalize_artist_name(art_norm) or art_norm.title()
-                art_obj, _ = Artist.objects.get_or_create(name=art_name, defaults={'normalized_name': art_norm})
+                art_obj, _ = Artist.get_or_create_artist(art_name)
                 clean_alb = clean_album_title(alb_name)
                 alb_obj, _ = Album.objects.get_or_create(
                     artist=art_obj,
                     clean_title=clean_alb.lower(),
                     defaults={'title': clean_alb, 'release_year': yr}
                 )
+
                 _, is_t_new = Song.objects.get_or_create(
                     artist=art_obj,
                     clean_title=song_norm.lower(),
@@ -206,15 +205,13 @@ class Command(BaseCommand):
 
                             for idx, art_name in enumerate(rec.get("artists", [])):
                                 canonical_art = normalize_artist_name(art_name) or art_name
-                                art_obj, _ = Artist.objects.get_or_create(
-                                    name=canonical_art,
-                                    defaults={'normalized_name': canonical_art.lower()}
-                                )
+                                art_obj, _ = Artist.get_or_create_artist(canonical_art)
                                 ConcertArtist.objects.create(
                                     concert=concert,
                                     artist=art_obj,
                                     billing_order=idx
                                 )
+
                             c_count += 1
 
                     self.stdout.write(self.style.SUCCESS(f"      Successfully imported {c_count} concerts for User '{admin_username}'!"))

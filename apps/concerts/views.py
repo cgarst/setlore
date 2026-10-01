@@ -30,35 +30,8 @@ from src.upcoming_events import get_upcoming_shows_for_user, get_user_seen_artis
 from .services.sync_worker import sync_worker
 
 def get_or_create_artist(name: str):
-    can_name = (normalize_artist_name(name) if normalize_artist_name else "") or (name or "").strip()
-    if not can_name:
-        return None, False
-    norm = can_name.lower()
-    art = Artist.objects.filter(normalized_name=norm).first()
-    if not art:
-        art = Artist.objects.filter(name__iexact=can_name).first()
-        if art and not art.normalized_name:
-            art.normalized_name = norm
-            try:
-                art.save(update_fields=['normalized_name'])
-            except Exception:
-                pass
-    if art:
-        if ((art.name.isupper() or art.name.islower()) and not (can_name.isupper() or can_name.islower())) or (art.name.isupper() and not can_name.isupper()):
-            if not Artist.objects.filter(name=can_name).exclude(id=art.id).exists():
-                art.name = can_name
-                try:
-                    art.save(update_fields=['name'])
-                except Exception:
-                    pass
-        return art, False
-    try:
-        return Artist.objects.create(name=can_name, normalized_name=norm), True
-    except Exception:
-        existing = Artist.objects.filter(name__iexact=can_name).first()
-        if existing:
-            return existing, False
-        raise
+    return Artist.get_or_create_artist(name)
+
 
 def get_dashboard_context(request, target_user, tab_name='overview', is_public_view=False):
     alias_map = {

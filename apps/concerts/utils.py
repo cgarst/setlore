@@ -431,19 +431,13 @@ def import_setlistfm_shows_into_database(user, user_attended: List[Dict[str, Any
             if norm_art in artists_cache:
                 art_obj = artists_cache[norm_art]
             else:
-                art_obj = Artist.objects.filter(normalized_name=norm_art).first()
-                if not art_obj:
-                    art_obj = Artist.objects.filter(name__iexact=can_art).first()
-                if not art_obj:
-                    try:
-                        art_obj = Artist.objects.create(name=can_art, normalized_name=norm_art)
-                    except Exception:
-                        art_obj = Artist.objects.filter(name__iexact=can_art).first()
+                art_obj, _ = Artist.get_or_create_artist(can_art)
                 if art_obj:
                     artists_cache[norm_art] = art_obj
 
             if not art_obj:
                 continue
+
 
             event_date_str = (sl.get("eventDate") or "").strip()
             d_obj = None

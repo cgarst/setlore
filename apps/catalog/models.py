@@ -13,6 +13,45 @@ class Artist(models.Model):
     def __str__(self):
         return self.name
 
+    @classmethod
+    def get_or_create_artist(cls, name: str):
+        from src.csv_parser import normalize_artist_name
+        can_name = (normalize_artist_name(name) if normalize_artist_name else "") or (name or "").strip()
+        if not can_name:
+            return None, False
+        norm = can_name.lower()
+        art = cls.objects.filter(normalized_name=norm).first()
+        if not art:
+            art = cls.objects.filter(name__iexact=can_name).first()
+            if art and not art.normalized_name:
+                art.normalized_name = norm
+                try:
+                    art.save(update_fields=['normalized_name'])
+                except Exception:
+                    pass
+
+        if art:
+            # Upgrade casing if incoming name is properly capitalized and stored name is lowercase/uppercase
+            if (art.name.islower() and not can_name.islower()) or (art.name.isupper() and not can_name.isupper()):
+                if not cls.objects.filter(name=can_name).exclude(id=art.id).exists():
+                    art.name = can_name
+                    try:
+                        art.save(update_fields=['name'])
+                    except Exception:
+                        pass
+            return art, False
+
+        # If incoming name is all-lowercase, give it Title Case for display
+        display_name = can_name.title() if can_name.islower() else can_name
+        try:
+            return cls.objects.create(name=display_name, normalized_name=norm), True
+        except Exception:
+            existing = cls.objects.filter(normalized_name=norm).first() or cls.objects.filter(name__iexact=can_name).first()
+            if existing:
+                return existing, False
+            raise
+
+
 class Album(models.Model):
     artist = models.ForeignKey(Artist, on_delete=models.CASCADE, related_name='albums')
     title = models.CharField(max_length=255)
