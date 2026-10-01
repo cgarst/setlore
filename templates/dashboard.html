@@ -2420,6 +2420,55 @@
     </div>
   </div>
 
+  <!-- Album Inspector Modal -->
+  <div id="album-inspector-modal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 lg:p-6 hidden">
+    <div class="max-w-2xl w-full glass-card p-5 sm:p-6 shadow-2xl space-y-4 border border-slate-700/80 max-h-[90vh] flex flex-col">
+      <!-- Modal Header -->
+      <div class="flex items-start justify-between gap-3 border-b border-slate-800 pb-3.5 shrink-0">
+        <div class="flex items-center gap-3.5 min-w-0">
+          <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden shadow-xl border border-white/10 shrink-0 bg-slate-900 flex items-center justify-center relative">
+            <img id="modal-album-cover-img" src="" alt="Album Cover" class="w-full h-full object-cover">
+            <div id="modal-album-cover-fallback" class="absolute inset-0 bg-gradient-to-br from-slate-800 to-indigo-950 flex items-center justify-center text-indigo-400">
+              <i class="fa-solid fa-compact-disc text-3xl"></i>
+            </div>
+          </div>
+          <div class="min-w-0">
+            <div class="flex items-center gap-2 flex-wrap mb-0.5">
+              <h3 id="modal-album-title" class="text-base sm:text-lg font-bold text-white truncate"></h3>
+              <span id="modal-album-year" class="badge bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[11px] font-mono font-bold"></span>
+            </div>
+            <p id="modal-album-artist" class="text-xs sm:text-sm text-indigo-300 font-semibold truncate"></p>
+            <p id="modal-album-stats" class="text-[11px] text-slate-400 mt-1"></p>
+          </div>
+        </div>
+        <button type="button" onclick="closeAlbumModal()" class="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition cursor-pointer shrink-0">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <!-- Songs Heard Live List -->
+      <div class="flex-1 overflow-y-auto space-y-2 custom-scrollbar pr-1 min-h-[180px]">
+        <div class="flex items-center justify-between text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+          <span>Tracks Experienced Live</span>
+          <span id="modal-album-track-count" class="text-slate-400 font-normal normal-case text-[11px]"></span>
+        </div>
+        <div id="modal-album-songs-list" class="space-y-1.5">
+          <!-- Dynamically populated by JS -->
+        </div>
+      </div>
+
+      <!-- Modal Footer Quick Actions -->
+      <div class="flex flex-wrap items-center justify-between gap-2 border-t border-slate-800 pt-3 shrink-0 text-xs">
+        <div class="flex flex-wrap items-center gap-2" id="modal-album-actions">
+          <!-- Quick links generated dynamically -->
+        </div>
+        <button type="button" onclick="closeAlbumModal()" class="px-4 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold transition cursor-pointer">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Navigation Tabs (Modern Segmented Pill Bar - Desktop/Tablet) -->
   <div id="desktop-nav-bar" class="hidden md:block max-w-7xl mx-auto mb-8">
     <div class="glass-card p-1.5 flex flex-col lg:flex-row items-center justify-between gap-3 shadow-2xl border border-slate-800/80 bg-slate-900/90 backdrop-blur-xl">
@@ -3549,22 +3598,178 @@
     <!-- 5. ADVANCED & ALBUM VISUALS TAB -->
     <div id="tab-advanced" class="hidden space-y-6">
       
-      <!-- Treemap -->
-      <div class="glass-card p-6 space-y-3">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+      <!-- Live Albums & Vinyl Wall Gallery -->
+      <div class="glass-card p-6 space-y-5">
+        <!-- Section Header -->
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-800 pb-4">
           <div>
-            <h3 class="text-lg font-bold text-white flex items-center gap-2">
-              <i class="fa-solid fa-compact-disc text-indigo-400"></i> Artist to Album & Track Treemap
-            </h3>
-            <p class="text-xs text-slate-400 mt-0.5">
-              Click artist or album boxes to zoom in • Click the top path breadcrumbs or the button to navigate back up • Click any song to jump directly to its drilldown
+            <div class="flex items-center gap-2.5 flex-wrap">
+              <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-compact-disc text-indigo-400"></i> Live Albums &amp; Vinyl Wall
+              </h3>
+              <span class="badge bg-indigo-500/20 text-indigo-300 font-mono text-xs font-bold border border-indigo-500/30 px-2.5 py-0.5">
+                {{ stats.albums_gallery|length|intcomma }} Albums
+              </span>
+            </div>
+            <p class="text-xs text-slate-400 mt-1">
+              Interactive album catalog with full artwork, song breakdowns, and live play occurrences across every show.
             </p>
           </div>
-          <button onclick="resetTreemapZoom()" class="px-3 py-1.5 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/35 text-indigo-300 hover:text-white border border-indigo-500/30 text-xs font-semibold flex items-center gap-1.5 transition shrink-0 cursor-pointer">
-            <i class="fa-solid fa-rotate-left text-[11px]"></i> Reset View (All Live Music)
+
+          <!-- Controls: Search & Sort -->
+          <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full lg:w-auto">
+            <!-- Search Input -->
+            <div class="relative flex-1 sm:w-60">
+              <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500 text-xs pointer-events-none">
+                <i class="fa-solid fa-magnifying-glass"></i>
+              </span>
+              <input type="text" id="album-gallery-search" oninput="filterAlbumGallery()" placeholder="Search albums or artists..."
+                     class="w-full pl-8 pr-8 py-2 text-xs rounded-xl bg-slate-900/90 border border-slate-700/80 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition">
+              <button type="button" id="album-gallery-search-clear" onclick="clearAlbumGallerySearch()" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-0.5 text-xs transition cursor-pointer">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+
+            <!-- Sort Select -->
+            <div class="relative shrink-0">
+              <select id="album-gallery-sort" onchange="sortAlbumGallery()"
+                      class="w-full sm:w-auto pl-3 pr-8 py-2 text-xs rounded-xl bg-slate-900/90 border border-slate-700/80 text-slate-200 font-semibold focus:outline-none focus:border-indigo-500 transition appearance-none cursor-pointer">
+                <option value="plays-desc">Most Heard Live</option>
+                <option value="year-desc">Release Year (Newest)</option>
+                <option value="year-asc">Release Year (Oldest)</option>
+                <option value="artist-asc">Artist (A → Z)</option>
+                <option value="album-asc">Album (A → Z)</option>
+              </select>
+              <i class="fa-solid fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-[10px] pointer-events-none"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- Decade Filters -->
+        <div class="flex items-center gap-1.5 overflow-x-auto pb-1 custom-scrollbar text-xs">
+          <button type="button" onclick="setAlbumGalleryDecade('all')" id="album-decade-btn-all" class="album-decade-btn px-3 py-1.5 rounded-lg bg-indigo-600 text-white font-bold transition shrink-0 cursor-pointer shadow-sm">
+            All Eras
+          </button>
+          <button type="button" onclick="setAlbumGalleryDecade('2020s')" id="album-decade-btn-2020s" class="album-decade-btn px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 font-semibold transition shrink-0 cursor-pointer">
+            2020s
+          </button>
+          <button type="button" onclick="setAlbumGalleryDecade('2010s')" id="album-decade-btn-2010s" class="album-decade-btn px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 font-semibold transition shrink-0 cursor-pointer">
+            2010s
+          </button>
+          <button type="button" onclick="setAlbumGalleryDecade('2000s')" id="album-decade-btn-2000s" class="album-decade-btn px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 font-semibold transition shrink-0 cursor-pointer">
+            2000s
+          </button>
+          <button type="button" onclick="setAlbumGalleryDecade('1990s')" id="album-decade-btn-1990s" class="album-decade-btn px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 font-semibold transition shrink-0 cursor-pointer">
+            1990s
+          </button>
+          <button type="button" onclick="setAlbumGalleryDecade('1980s')" id="album-decade-btn-1980s" class="album-decade-btn px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 font-semibold transition shrink-0 cursor-pointer">
+            1980s
+          </button>
+          <button type="button" onclick="setAlbumGalleryDecade('1970s')" id="album-decade-btn-1970s" class="album-decade-btn px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 font-semibold transition shrink-0 cursor-pointer">
+            1970s
+          </button>
+          <button type="button" onclick="setAlbumGalleryDecade('Older')" id="album-decade-btn-Older" class="album-decade-btn px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 font-semibold transition shrink-0 cursor-pointer">
+            60s &amp; Older
+          </button>
+          <button type="button" onclick="setAlbumGalleryDecade('Covers')" id="album-decade-btn-Covers" class="album-decade-btn px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 font-semibold transition shrink-0 cursor-pointer">
+            Covers
           </button>
         </div>
-        <div id="chart-treemap" class="w-full h-[540px]"></div>
+
+        <!-- Album Cards Grid -->
+        <div id="album-gallery-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-5 pt-2">
+          {% for alb in stats.albums_gallery %}
+          <div class="album-gallery-card group relative flex flex-col justify-between rounded-2xl bg-slate-900/80 border border-slate-800/90 hover:border-indigo-500/50 hover:bg-slate-800/60 transition-all duration-300 p-3 shadow-lg hover:shadow-2xl hover:shadow-indigo-500/10 cursor-pointer"
+               id="album-card-{{ alb.id }}"
+               data-artist="{{ alb.artist|lower }}"
+               data-album="{{ alb.album|lower }}"
+               data-search="{{ alb.artist|lower }} {{ alb.album|lower }} {{ alb.decade|lower }} {% for s in alb.songs %}{{ s.song|lower }} {% endfor %}"
+               data-plays="{{ alb.plays_heard }}"
+               data-year="{{ alb.release_year|default:0 }}"
+               data-decade="{{ alb.decade }}"
+               data-album-idx="{{ forloop.counter0 }}"
+               onclick="openAlbumModal({{ forloop.counter0 }})">
+
+            <!-- Vinyl Sleeve & Sliding Record Container -->
+            <div class="relative w-full aspect-square rounded-xl overflow-hidden mb-3 bg-slate-950/80 shadow-inner flex items-center justify-center">
+              <!-- Vinyl Record Disc (Peeking / Sliding out on hover) -->
+              <div class="absolute right-1 w-[88%] h-[88%] rounded-full bg-gradient-to-tr from-black via-slate-900 to-black border-2 border-slate-800 shadow-2xl flex items-center justify-center transform translate-x-0 group-hover:translate-x-6 sm:group-hover:translate-x-8 transition-transform duration-300 z-0 pointer-events-none">
+                <!-- Vinyl Grooves -->
+                <div class="w-[70%] h-[70%] rounded-full border border-slate-800/60 flex items-center justify-center">
+                  <div class="w-[50%] h-[50%] rounded-full border border-slate-800/40 flex items-center justify-center">
+                    <!-- Center Label -->
+                    <div class="w-[34%] h-[34%] rounded-full bg-gradient-to-tr from-indigo-600 to-pink-500 border border-white/40 shadow-sm flex items-center justify-center">
+                      <div class="w-1.5 h-1.5 rounded-full bg-slate-950"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Album Cover Sleeve -->
+              <div class="relative w-full h-full rounded-xl overflow-hidden z-10 shadow-md border border-white/10 bg-slate-900">
+                <img id="album-cover-img-{{ forloop.counter0 }}"
+                     src=""
+                     data-artist="{{ alb.artist }}"
+                     data-album="{{ alb.album }}"
+                     alt="{{ alb.album }} by {{ alb.artist }}"
+                     loading="lazy"
+                     class="album-cover-img w-full h-full object-cover rounded-xl transition-transform duration-500 group-hover:scale-105 opacity-0">
+                
+                <!-- Fallback Sleeve Graphics (shown until art loads) -->
+                <div id="album-cover-fallback-{{ forloop.counter0 }}" class="absolute inset-0 bg-gradient-to-br from-slate-800 via-slate-900 to-indigo-950 flex flex-col items-center justify-center p-3 text-center transition-opacity duration-300">
+                  <i class="fa-solid fa-compact-disc text-indigo-400 text-3xl mb-2 group-hover:rotate-45 transition-transform duration-500"></i>
+                  <p class="text-xs font-bold text-white line-clamp-2">{{ alb.album }}</p>
+                  <p class="text-[11px] text-indigo-300 truncate max-w-full">{{ alb.artist }}</p>
+                </div>
+
+                <!-- Top Right Badge: Plays Heard Count -->
+                <div class="absolute top-2 right-2 z-20">
+                  <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-slate-950/85 text-emerald-400 border border-emerald-500/40 backdrop-blur-md shadow-md">
+                    {{ alb.plays_heard }}x live
+                  </span>
+                </div>
+
+                <!-- Top Left Badge: Release Year -->
+                {% if alb.release_year %}
+                <div class="absolute top-2 left-2 z-20">
+                  <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-slate-950/85 text-slate-300 border border-slate-700/60 backdrop-blur-md">
+                    {{ alb.release_year }}
+                  </span>
+                </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Card Meta Details -->
+            <div class="space-y-1 min-w-0 z-20">
+              <h4 class="text-xs font-bold text-white truncate group-hover:text-indigo-300 transition" title="{{ alb.album }}">
+                {{ alb.album }}
+              </h4>
+              <p class="text-[11px] text-indigo-300 truncate font-medium" title="{{ alb.artist }}">
+                {{ alb.artist }}
+              </p>
+              <div class="flex items-center justify-between text-[10px] text-slate-400 pt-1 border-t border-slate-800/60">
+                <span>{{ alb.unique_songs }} song{{ alb.unique_songs|pluralize }} heard</span>
+                {% if alb.last_seen_date %}
+                <span class="text-slate-500 font-mono">{{ alb.last_seen_date|slice:":4" }}</span>
+                {% endif %}
+              </div>
+            </div>
+
+          </div>
+          {% empty %}
+          <div class="col-span-full py-12 text-center text-slate-500 italic text-xs">
+            No albums recorded yet. Click "Sync" to fetch setlists.
+          </div>
+          {% endfor %}
+        </div>
+
+        <!-- Empty Filter Results Message -->
+        <div id="album-gallery-no-results" class="hidden py-12 text-center space-y-2">
+          <i class="fa-solid fa-compact-disc text-3xl text-slate-600"></i>
+          <p class="text-sm font-bold text-slate-300">No matching albums found</p>
+          <p class="text-xs text-slate-500">Try searching for a different album, artist, or decade.</p>
+        </div>
       </div>
 
       <!-- Album Era & Catalog Age Analysis -->
@@ -5037,21 +5242,18 @@
           if (venueMap) venueMap.invalidateSize();
         }, 150);
       } else if (tabId === 'advanced') {
-        ['chart-treemap', 'chart-era', 'chart-song-age', 'chart-sunburst'].forEach(id => {
+        ['chart-era', 'chart-song-age', 'chart-sunburst'].forEach(id => {
           const el = document.getElementById(id);
           if (el) Plotly.Plots.resize(el);
         });
-        if (typeof applyAlbumArtToTreemap === 'function') {
-          applyAlbumArtToTreemap();
+        if (typeof initAlbumGalleryImages === 'function') {
+          initAlbumGalleryImages();
         }
         requestAnimationFrame(() => {
-          ['chart-treemap', 'chart-era', 'chart-song-age', 'chart-sunburst'].forEach(id => {
+          ['chart-era', 'chart-song-age', 'chart-sunburst'].forEach(id => {
             const el = document.getElementById(id);
             if (el) Plotly.Plots.resize(el);
           });
-          if (typeof applyAlbumArtToTreemap === 'function') {
-            applyAlbumArtToTreemap();
-          }
         });
       } else if (tabId === 'overview') {
         setTimeout(() => {
@@ -6749,16 +6951,6 @@
         }).catch(() => {});
       }
 
-      // 3. Treemap Chart - Excluded from theme colorscale to preserve rich artist/album/track hierarchy
-      const treemapEl = document.getElementById('chart-treemap');
-      if (treemapEl && treemapEl.data) {
-        Plotly.relayout(treemapEl, {
-          'paper_bgcolor': 'transparent',
-          'plot_bgcolor': 'transparent',
-          'font.color': themeObj.textColor
-        }).catch(() => {});
-      }
-
       // 4. Sunburst Chart
       const sunburstEl = document.getElementById('chart-sunburst');
       if (sunburstEl && sunburstEl.data) {
@@ -6801,7 +6993,6 @@
     // Chart Inits
     const timelineData = {{ plotly_timeline|safe }};
     const topArtistsData = {{ plotly_top_artists|safe }};
-    const treemapData = {{ plotly_treemap|safe }};
     const sunburstData = {{ plotly_sunburst|safe }};
     const eraData = {{ plotly_era|safe }};
     const songAgeData = {{ plotly_song_age|safe }};
@@ -6867,18 +7058,6 @@
       }),
       { responsive: true, displayModeBar: false, scrollZoom: false, doubleClick: false }
     );
-    const initContainerWidth = (document.querySelector('main') && document.querySelector('main').clientWidth) || (document.getElementById('tab-overview') && document.getElementById('tab-overview').clientWidth) || (window.innerWidth ? Math.min(1280, window.innerWidth - 32) : 1200);
-
-    Plotly.newPlot(
-      'chart-treemap',
-      treemapData.data,
-      Object.assign({}, layoutDefaults, treemapData.layout, {
-        dragmode: false,
-        autosize: true,
-        width: initContainerWidth
-      }),
-      { responsive: true, displayModeBar: false, scrollZoom: false, doubleClick: false }
-    );
     Plotly.newPlot(
       'chart-sunburst',
       sunburstData.data,
@@ -6911,7 +7090,9 @@
     // Apply active theme colors right away
     applyThemeToPlotlyCharts(initialThemeId);
 
-    // Dynamic Album Art Background Provider for Treemap Album Cells
+    const albumsGalleryData = {{ albums_gallery_json|safe }};
+
+    // Dynamic Album Art Background Provider for Vinyl Album Wall & Inspector
     const albumArtCache = {};
 
     function fetchDeezerAlbumArt(artist, album) {
@@ -6998,181 +7179,234 @@
       return null;
     }
 
-    function applyAlbumArtToTreemap() {
-      const treemapEl = document.getElementById('chart-treemap');
-      if (!treemapEl) return;
+    // Vinyl Album Wall & Inspector Controller
+    function initAlbumGalleryImages() {
+      const cards = document.querySelectorAll('.album-gallery-card');
+      cards.forEach((card, idx) => {
+        const img = document.getElementById(`album-cover-img-${idx}`);
+        const fallback = document.getElementById(`album-cover-fallback-${idx}`);
+        if (!img || img.dataset.loaded === 'true') return;
 
-      const svg = treemapEl.querySelector('svg');
-      if (!svg) return;
-
-      let defs = svg.querySelector('defs');
-      if (!defs) {
-        defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-        svg.insertBefore(defs, svg.firstChild);
-      }
-
-      const processedSlices = treemapEl.querySelectorAll('.slice, g.slice');
-      processedSlices.forEach(slice => {
-        const d = slice.__data__;
-        if (!d) return;
-
-        const nodeData = d.data || {};
-        const rawData = nodeData.data || {};
-        const cData = d.customdata || nodeData.customdata || rawData.customdata;
-        const id = String(d.id || nodeData.id || rawData.id || '');
-        const label = String(d.label || nodeData.label || rawData.label || '');
-
-        let isAlbum = (cData && cData.type === 'album') || id.startsWith('alb_');
-        let artist = (cData && cData.artist) || '';
-        let album = (cData && cData.album) || label;
-
-        if (!artist && id.startsWith('alb_')) {
-          const afterPrefix = id.slice(4);
-          const firstUnderscore = afterPrefix.indexOf('_');
-          if (firstUnderscore > 0) {
-            artist = afterPrefix.substring(0, firstUnderscore);
-            album = afterPrefix.substring(firstUnderscore + 1);
-          }
-        }
-
-        if (!isAlbum || !artist || !album) return;
-
-        const cleanAlbum = album.replace(/\s*\([^)]*\)/g, '').trim();
-        if (!cleanAlbum || cleanAlbum.toLowerCase().includes('non-album') || cleanAlbum.toLowerCase().includes('singles')) {
-          return;
-        }
+        const artist = img.dataset.artist;
+        const album = img.dataset.album;
+        if (!artist || !album) return;
 
         getAlbumArtUrl(artist, album).then(artUrl => {
-          if (!artUrl) return;
-
-          const surfacePath = slice.querySelector('path.surface') || slice.querySelector('path');
-          if (!surfacePath) return;
-
-          let bbox;
-          try {
-            bbox = surfacePath.getBBox();
-          } catch (e) {
-            return;
+          if (artUrl) {
+            img.src = artUrl;
+            img.dataset.loaded = 'true';
+            img.onload = () => {
+              img.classList.remove('opacity-0');
+              if (fallback) fallback.classList.add('opacity-0');
+            };
           }
-
-          if (!bbox || bbox.width <= 0 || bbox.height <= 0) return;
-
-          const w = Math.max(10, Math.round(bbox.width));
-          const h = Math.max(10, Math.round(bbox.height));
-          const patId = 'pat-' + btoa(unescape(encodeURIComponent(`${artist}_${cleanAlbum}`))).replace(/[^a-zA-Z0-9]/g, '_');
-
-          let pattern = defs.querySelector(`#${patId}`);
-          if (!pattern) {
-            pattern = document.createElementNS('http://www.w3.org/2000/svg', 'pattern');
-            pattern.setAttribute('id', patId);
-            pattern.setAttribute('patternUnits', 'objectBoundingBox');
-            pattern.setAttribute('width', '1');
-            pattern.setAttribute('height', '1');
-            pattern.setAttribute('x', '0');
-            pattern.setAttribute('y', '0');
-            pattern.setAttribute('viewBox', `0 0 ${w} ${h}`);
-            pattern.setAttribute('preserveAspectRatio', 'none');
-
-            const img = document.createElementNS('http://www.w3.org/2000/svg', 'image');
-            img.setAttributeNS('http://www.w3.org/1999/xlink', 'href', artUrl);
-            img.setAttribute('href', artUrl);
-            img.setAttribute('x', '0');
-            img.setAttribute('y', '0');
-            img.setAttribute('width', w);
-            img.setAttribute('height', h);
-            img.setAttribute('preserveAspectRatio', 'xMidYMid slice');
-
-            pattern.appendChild(img);
-            defs.appendChild(pattern);
-          } else {
-            pattern.setAttribute('viewBox', `0 0 ${w} ${h}`);
-            const img = pattern.querySelector('image');
-            if (img) {
-              img.setAttribute('width', w);
-              img.setAttribute('height', h);
-            }
-            const overlay = pattern.querySelector('rect');
-            if (overlay) {
-              overlay.remove();
-            }
-          }
-
-          const paths = slice.querySelectorAll('path.surface, path');
-          paths.forEach(p => {
-            p.style.setProperty('fill', `url(#${patId})`, 'important');
-            p.style.setProperty('fill-opacity', '1', 'important');
-            p.style.stroke = '#334155';
-            p.style.strokeWidth = '1.5px';
-          });
-
-          const texts = slice.querySelectorAll('text');
-          texts.forEach(t => {
-            t.style.setProperty('fill', '#ffffff', 'important');
-            t.style.setProperty('stroke', '#090d16', 'important');
-            t.style.setProperty('stroke-width', '3.5px', 'important');
-            t.style.setProperty('stroke-linejoin', 'round', 'important');
-            t.style.setProperty('paint-order', 'stroke fill', 'important');
-            t.style.setProperty('font-weight', '800', 'important');
-            t.style.setProperty('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.85))', 'important');
-          });
         });
       });
     }
 
-    function resetTreemapZoom() {
-      const el = document.getElementById('chart-treemap');
-      if (el) {
-        Plotly.restyle(el, { level: '' }).catch(() => {
-          if (typeof treemapData !== 'undefined') {
-            Plotly.newPlot(
-              el,
-              treemapData.data,
-              Object.assign({}, layoutDefaults, treemapData.layout, { dragmode: false }),
-              { responsive: true, displayModeBar: false, scrollZoom: false, doubleClick: false }
-            ).then(applyAlbumArtToTreemap);
-          }
-        });
-        setTimeout(applyAlbumArtToTreemap, 50);
-        setTimeout(applyAlbumArtToTreemap, 200);
-        setTimeout(applyAlbumArtToTreemap, 400);
+    let currentGalleryDecade = 'all';
+
+    function setAlbumGalleryDecade(decade) {
+      currentGalleryDecade = decade;
+      document.querySelectorAll('.album-decade-btn').forEach(btn => {
+        if (btn.id === `album-decade-btn-${decade}`) {
+          btn.className = 'album-decade-btn px-3 py-1.5 rounded-lg bg-indigo-600 text-white font-bold transition shrink-0 cursor-pointer shadow-sm';
+        } else {
+          btn.className = 'album-decade-btn px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 font-semibold transition shrink-0 cursor-pointer';
+        }
+      });
+      filterAlbumGallery();
+    }
+
+    function clearAlbumGallerySearch() {
+      const input = document.getElementById('album-gallery-search');
+      if (input) input.value = '';
+      const clearBtn = document.getElementById('album-gallery-search-clear');
+      if (clearBtn) clearBtn.classList.add('hidden');
+      filterAlbumGallery();
+    }
+
+    function filterAlbumGallery() {
+      const input = document.getElementById('album-gallery-search');
+      const q = (input ? input.value : '').toLowerCase().trim();
+      const clearBtn = document.getElementById('album-gallery-search-clear');
+      if (clearBtn) clearBtn.classList.toggle('hidden', !q);
+
+      let visibleCount = 0;
+      document.querySelectorAll('.album-gallery-card').forEach(card => {
+        const searchData = card.getAttribute('data-search') || '';
+        const decadeData = card.getAttribute('data-decade') || '';
+        const matchSearch = !q || searchData.includes(q);
+        const matchDecade = currentGalleryDecade === 'all' || decadeData === currentGalleryDecade;
+
+        if (matchSearch && matchDecade) {
+          card.style.display = 'flex';
+          visibleCount++;
+        } else {
+          card.style.display = 'none';
+        }
+      });
+
+      const noResults = document.getElementById('album-gallery-no-results');
+      if (noResults) {
+        noResults.classList.toggle('hidden', visibleCount > 0);
       }
     }
 
-    const treemapEl = document.getElementById('chart-treemap');
-    if (treemapEl) {
-      treemapEl.on('plotly_afterplot', function() {
-        applyAlbumArtToTreemap();
-        setTimeout(applyAlbumArtToTreemap, 150);
-      });
-      treemapEl.on('plotly_treemapclick', function() {
-        setTimeout(applyAlbumArtToTreemap, 50);
-        setTimeout(applyAlbumArtToTreemap, 200);
-        setTimeout(applyAlbumArtToTreemap, 450);
-      });
-      treemapEl.on('plotly_animated', function() {
-        applyAlbumArtToTreemap();
-      });
-      treemapEl.on('plotly_relayout', function() {
-        applyAlbumArtToTreemap();
-        setTimeout(applyAlbumArtToTreemap, 150);
-      });
-      setTimeout(applyAlbumArtToTreemap, 100);
-      setTimeout(applyAlbumArtToTreemap, 300);
+    function sortAlbumGallery() {
+      const sortSelect = document.getElementById('album-gallery-sort');
+      const sortBy = sortSelect ? sortSelect.value : 'plays-desc';
+      const grid = document.getElementById('album-gallery-grid');
+      if (!grid) return;
 
-      treemapEl.on('plotly_click', function(data) {
-        if (data.points && data.points.length > 0) {
-          const pt = data.points[0];
-          const cData = pt.customdata;
-          if (cData && typeof cData === 'object') {
-            if (cData.type === 'song' && cData.artist && cData.song) {
-              jumpToSongInDrilldown(cData.artist, cData.song);
-            }
-          } else if (cData && typeof cData === 'string' && cData.startsWith('http')) {
-            window.open(cData, '_blank');
-          }
+      const cards = Array.from(grid.querySelectorAll('.album-gallery-card'));
+      cards.sort((a, b) => {
+        if (sortBy === 'plays-desc') {
+          return parseInt(b.getAttribute('data-plays') || '0', 10) - parseInt(a.getAttribute('data-plays') || '0', 10);
+        } else if (sortBy === 'year-desc') {
+          return parseInt(b.getAttribute('data-year') || '0', 10) - parseInt(a.getAttribute('data-year') || '0', 10);
+        } else if (sortBy === 'year-asc') {
+          const yA = parseInt(a.getAttribute('data-year') || '9999', 10) || 9999;
+          const yB = parseInt(b.getAttribute('data-year') || '9999', 10) || 9999;
+          return yA - yB;
+        } else if (sortBy === 'artist-asc') {
+          return (a.getAttribute('data-artist') || '').localeCompare(b.getAttribute('data-artist') || '');
+        } else if (sortBy === 'album-asc') {
+          return (a.getAttribute('data-album') || '').localeCompare(b.getAttribute('data-album') || '');
         }
+        return 0;
+      });
+
+      cards.forEach(card => grid.appendChild(card));
+    }
+
+    function openAlbumModal(idx) {
+      if (!albumsGalleryData || !albumsGalleryData[idx]) return;
+      const alb = albumsGalleryData[idx];
+      const modal = document.getElementById('album-inspector-modal');
+      if (!modal) return;
+
+      const titleEl = document.getElementById('modal-album-title');
+      const yearEl = document.getElementById('modal-album-year');
+      const artistEl = document.getElementById('modal-album-artist');
+      const statsEl = document.getElementById('modal-album-stats');
+      const countEl = document.getElementById('modal-album-track-count');
+      const coverImg = document.getElementById('modal-album-cover-img');
+      const coverFallback = document.getElementById('modal-album-cover-fallback');
+      const songsList = document.getElementById('modal-album-songs-list');
+      const actionsEl = document.getElementById('modal-album-actions');
+
+      if (titleEl) titleEl.innerText = alb.album;
+      if (yearEl) {
+        yearEl.innerText = alb.release_year ? `${alb.release_year}` : (alb.decade || 'Album');
+        yearEl.style.display = alb.release_year || alb.decade ? 'inline-block' : 'none';
+      }
+      if (artistEl) artistEl.innerText = alb.artist;
+      if (statsEl) {
+        const firstSeenStr = alb.first_seen_date ? `First heard: ${alb.first_seen_date}` : '';
+        const lastSeenStr = alb.last_seen_date ? `Last: ${alb.last_seen_date}` : '';
+        const dateRange = [firstSeenStr, lastSeenStr].filter(Boolean).join(' • ');
+        statsEl.innerText = `${alb.plays_heard} total play${alb.plays_heard === 1 ? '' : 's'} across ${alb.unique_songs} song${alb.unique_songs === 1 ? '' : 's'}${dateRange ? ' • ' + dateRange : ''}`;
+      }
+      if (countEl) {
+        countEl.innerText = `${alb.unique_songs} song${alb.unique_songs === 1 ? '' : 's'} heard`;
+      }
+
+      // Cover Art
+      if (coverImg && coverFallback) {
+        coverImg.src = '';
+        coverImg.classList.add('opacity-0');
+        coverFallback.classList.remove('opacity-0');
+        getAlbumArtUrl(alb.artist, alb.album).then(artUrl => {
+          if (artUrl) {
+            coverImg.src = artUrl;
+            coverImg.onload = () => {
+              coverImg.classList.remove('opacity-0');
+              coverFallback.classList.add('opacity-0');
+            };
+          }
+        });
+      }
+
+      // Songs List
+      if (songsList) {
+        const safeArtist = (alb.artist || '').replace(/'/g, "\\'");
+        songsList.innerHTML = (alb.songs || []).map((s, sIdx) => {
+          const occCount = s.plays || (s.occurrences ? s.occurrences.length : 1);
+          const firstDate = s.first_heard || (s.occurrences && s.occurrences.length > 0 ? s.occurrences[0].date : '');
+          const lastDate = s.last_heard || (s.occurrences && s.occurrences.length > 0 ? s.occurrences[s.occurrences.length - 1].date : '');
+          const safeSong = (s.song || '').replace(/'/g, "\\'");
+          return `
+            <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/80 hover:bg-slate-800/80 border border-slate-800 transition group">
+              <div class="flex items-center gap-2.5 min-w-0">
+                <span class="text-xs font-mono text-slate-500 w-5">#${sIdx + 1}</span>
+                <div class="min-w-0">
+                  <p class="text-xs font-bold text-white group-hover:text-indigo-300 transition truncate">${escapeHtml(s.song)}</p>
+                  <p class="text-[10px] text-slate-400 truncate">
+                    ${firstDate ? `First: <span class="font-mono text-slate-300">${firstDate}</span>` : ''}
+                    ${lastDate && lastDate !== firstDate ? ` • Last: <span class="font-mono text-slate-300">${lastDate}</span>` : ''}
+                  </p>
+                </div>
+              </div>
+              <div class="flex items-center gap-2 shrink-0">
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  ${occCount}x
+                </span>
+                <button onclick="closeAlbumModal(); jumpToSongInDrilldown('${safeArtist}', '${safeSong}');"
+                        title="View song performances in Drilldown"
+                        class="px-2 py-1 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/40 text-indigo-300 hover:text-white border border-indigo-500/30 text-[10px] font-semibold transition cursor-pointer">
+                  <i class="fa-solid fa-arrow-right text-[9px]"></i>
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      // Modal Actions
+      if (actionsEl) {
+        const ytQuery = encodeURIComponent(`${alb.artist} ${alb.album}`);
+        const safeArtist = (alb.artist || '').replace(/'/g, "\\'");
+        actionsEl.innerHTML = `
+          <button onclick="closeAlbumModal(); jumpToSongInDrilldown('${safeArtist}', '');" class="px-3 py-1.5 rounded-xl bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 hover:text-white border border-indigo-500/40 font-semibold transition cursor-pointer flex items-center gap-1.5 text-xs">
+            <i class="fa-solid fa-magnifying-glass-chart"></i> View ${escapeHtml(alb.artist)} Songs
+          </button>
+          <button onclick="closeAlbumModal(); jumpToArtistInConcerts('${safeArtist}')" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold transition cursor-pointer flex items-center gap-1.5 text-xs">
+            <i class="fa-solid fa-ticket"></i> View Shows
+          </button>
+          <a href="https://www.youtube.com/results?search_query=${ytQuery}" target="_blank" rel="noopener noreferrer" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-red-500/20 text-slate-300 hover:text-red-300 border border-slate-700 hover:border-red-500/40 font-semibold transition flex items-center gap-1.5 text-xs">
+            <i class="fa-brands fa-youtube text-red-400"></i> YouTube
+          </a>
+        `;
+      }
+
+      modal.classList.remove('hidden');
+    }
+
+    function closeAlbumModal() {
+      const modal = document.getElementById('album-inspector-modal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    // Modal listeners
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeAlbumModal();
+    });
+    const albumModalBackdrop = document.getElementById('album-inspector-modal');
+    if (albumModalBackdrop) {
+      albumModalBackdrop.addEventListener('click', (e) => {
+        if (e.target === albumModalBackdrop) closeAlbumModal();
       });
     }
+
+    // Trigger initial album cover loading once DOM is ready
+    window.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => {
+        if (typeof initAlbumGalleryImages === 'function') {
+          initAlbumGalleryImages();
+        }
+      }, 500);
+    });
 
     const topArtistsEl = document.getElementById('chart-top-artists');
     if (topArtistsEl) {

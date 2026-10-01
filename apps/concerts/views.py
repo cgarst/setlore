@@ -232,6 +232,63 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
             albums_set.add(album_title)
         art_data["albums_list"] = sorted(list(albums_set))
 
+    # Build comprehensive albums gallery dataset for Vinyl Album Wall
+    albums_dict = {}
+    for artist_name, art_data in drilldown.items():
+        for s in art_data.get("songs", []):
+            album_title = s.get("album", "Non-Album / Singles")
+            rel_year = s.get("release_year")
+            song_name = s.get("song")
+            song_count = s.get("count", len(s.get("occurrences", [])))
+            occurrences = s.get("occurrences", [])
+
+            album_key = f"{artist_name}:::{album_title}"
+            if album_key not in albums_dict:
+                decade = f"{(rel_year // 10) * 10}s" if rel_year else ("Covers" if album_title == "Covers" else "Other")
+                albums_dict[album_key] = {
+                    "id": f"album_{len(albums_dict) + 1}",
+                    "artist": artist_name,
+                    "album": album_title,
+                    "release_year": rel_year,
+                    "decade": decade,
+                    "album_display": s.get("album_display", album_title),
+                    "plays_heard": 0,
+                    "unique_songs": 0,
+                    "songs": [],
+                    "first_seen_date": None,
+                    "first_seen_venue": None,
+                    "last_seen_date": None,
+                    "last_seen_venue": None,
+                }
+            alb_entry = albums_dict[album_key]
+            alb_entry["plays_heard"] += song_count
+            alb_entry["unique_songs"] += 1
+            alb_entry["songs"].append({
+                "song": song_name,
+                "count": song_count,
+                "occurrences": occurrences
+            })
+            for occ in occurrences:
+                dt = occ.get("date")
+                vn = occ.get("venue")
+                if dt:
+                    if not alb_entry["first_seen_date"] or dt < alb_entry["first_seen_date"]:
+                        alb_entry["first_seen_date"] = dt
+                        alb_entry["first_seen_venue"] = vn
+                    if not alb_entry["last_seen_date"] or dt > alb_entry["last_seen_date"]:
+                        alb_entry["last_seen_date"] = dt
+                        alb_entry["last_seen_venue"] = vn
+
+    albums_gallery = list(albums_dict.values())
+    for alb in albums_gallery:
+        alb["songs"].sort(key=lambda x: x["count"], reverse=True)
+    albums_gallery.sort(key=lambda x: x["plays_heard"], reverse=True)
+
+    for idx, alb in enumerate(albums_gallery):
+        alb["rank"] = idx + 1
+
+    stats["albums_gallery"] = albums_gallery
+
     artist_drilldown_json = json.dumps(drilldown)
     venue_map_json = json.dumps(stats.get("venue_map", {}))
     musicians_json = json.dumps(stats.get("musicians", {}).get("top_musicians", []))
@@ -459,6 +516,7 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
         'gap': gap_results,
         'stats': stats,
         'artist_drilldown_json': artist_drilldown_json,
+        'albums_gallery_json': json.dumps(stats.get('albums_gallery', [])),
         'venue_map_json': venue_map_json,
         'musicians_json': musicians_json,
         'upcoming_shows': upcoming_shows,
