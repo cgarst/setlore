@@ -2503,7 +2503,7 @@
                   <span>Top Artists Seen Live</span>
                 </h3>
               </div>
-              <p class="text-xs text-slate-400">You've seen <span class="text-white font-semibold">{{ stats.total_unique_artists|intcomma }}</span> artists, which have you seen the most?</p>
+              <p class="text-xs text-slate-400">{% if is_public_view %}{{ profile_user.username }} has seen <span class="text-white font-semibold">{{ stats.total_unique_artists|intcomma }}</span> artists, which have they seen the most?{% else %}You've seen <span class="text-white font-semibold">{{ stats.total_unique_artists|intcomma }}</span> artists, which have you seen the most?{% endif %}</p>
             </div>
             <button onclick="switchTab('drilldown')" class="px-2.5 py-1 rounded-lg bg-pink-500/15 hover:bg-pink-500/25 text-pink-300 border border-pink-500/30 text-xs font-semibold flex items-center gap-1.5 transition shrink-0">
               Artist Drilldown <i class="fa-solid fa-arrow-right text-[10px]"></i>
@@ -2530,7 +2530,11 @@
               </button>
             </div>
             <p class="text-xs text-slate-400">
-              You have <span id="upcoming-overview-count" class="text-white font-semibold">{{ upcoming_shows|length|intcomma }}</span> upcoming show{{ upcoming_shows|length|pluralize }} near you, which will you catch next?
+              {% if is_public_view %}
+                {{ profile_user.username }} has <span id="upcoming-overview-count" class="text-white font-semibold">{{ upcoming_shows|length|intcomma }}</span> upcoming show{{ upcoming_shows|length|pluralize }} near them, which will they catch next?
+              {% else %}
+                You have <span id="upcoming-overview-count" class="text-white font-semibold">{{ upcoming_shows|length|intcomma }}</span> upcoming show{{ upcoming_shows|length|pluralize }} near you, which will you catch next?
+              {% endif %}
             </p>
           </div>
 
@@ -2736,7 +2740,7 @@
                   <span>Most Heard Songs Live</span>
                 </h3>
               </div>
-              <p class="text-xs text-slate-400">You've heard <span class="text-white font-semibold">{{ stats.unique_songs_heard|intcomma }}</span> unique songs, which track have you heard the most?</p>
+              <p class="text-xs text-slate-400">{% if is_public_view %}{{ profile_user.username }} has heard <span class="text-white font-semibold">{{ stats.unique_songs_heard|intcomma }}</span> unique songs, which track have they heard the most?{% else %}You've heard <span class="text-white font-semibold">{{ stats.unique_songs_heard|intcomma }}</span> unique songs, which track have you heard the most?{% endif %}</p>
             </div>
             <button onclick="switchTab('drilldown')" class="px-2.5 py-1.5 rounded-lg bg-purple-500/15 hover:bg-purple-500/25 text-purple-300 border border-purple-500/30 text-xs font-semibold flex items-center gap-1.5 transition shrink-0">
               Song Drilldown <i class="fa-solid fa-arrow-right text-[10px]"></i>
@@ -2796,7 +2800,7 @@
                   <span>Top Venues Visited</span>
                 </h3>
               </div>
-              <p class="text-xs text-slate-400">You've visited <span class="text-white font-semibold">{{ stats.total_venues|intcomma }}</span> venues, which stage is your favorite stop?</p>
+              <p class="text-xs text-slate-400">{% if is_public_view %}{{ profile_user.username }} has visited <span class="text-white font-semibold">{{ stats.total_venues|intcomma }}</span> venues, which stage is their favorite stop?{% else %}You've visited <span class="text-white font-semibold">{{ stats.total_venues|intcomma }}</span> venues, which stage is your favorite stop?{% endif %}</p>
             </div>
             <button onclick="switchTab('map')" class="px-2.5 py-1.5 rounded-lg bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 border border-indigo-500/30 text-xs font-semibold flex items-center gap-1.5 transition shrink-0">
               Venue Map <i class="fa-solid fa-arrow-right text-[10px]"></i>
