@@ -168,25 +168,31 @@ class OnboardingAndImpersonationTests(TestCase):
         self.assertTrue(SiteSetting.is_registration_enabled())
 
     def test_friends_api_toggle_and_list(self):
+        # Friends are mutual — pre-create rocker_jane's side so when concert_fan adds her,
+        # the friendship immediately becomes mutual (both directions present).
+        Friendship.objects.create(user=self.second_user, friend=self.regular_user)
+
         self.client.login(username='concert_fan', password='FanPassword123!')
 
-        # Add rocker_jane as friend
+        # Toggle friend: concert_fan → rocker_jane. With rocker_jane already friended back,
+        # this creates a mutual connection — friends_count should be 1.
         res_add = self.client.post(reverse('api_toggle_friend'), {
             'friend_id': self.second_user.id
         }, content_type='application/json')
         self.assertEqual(res_add.status_code, 200)
         self.assertTrue(res_add.json()['is_friend'])
+        self.assertTrue(res_add.json()['is_mutual'])
         self.assertEqual(res_add.json()['friends_count'], 1)
         self.assertTrue(Friendship.objects.filter(user=self.regular_user, friend=self.second_user).exists())
 
-        # Query list
+        # Query list — only mutual friends are returned in 'friends'
         res_list = self.client.get(reverse('api_list_friends'))
         self.assertEqual(res_list.status_code, 200)
         data = res_list.json()
         self.assertEqual(data['total_friends'], 1)
         self.assertEqual(data['friends'][0]['username'], 'rocker_jane')
 
-        # Toggle again to remove friend
+        # Toggle again to remove concert_fan's side. Friendship is no longer mutual.
         res_remove = self.client.post(reverse('api_toggle_friend'), {
             'friend_id': self.second_user.id
         }, content_type='application/json')
