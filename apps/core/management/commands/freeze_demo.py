@@ -410,18 +410,18 @@ class Command(BaseCommand):
                     "secure": False,
                 }])
 
-                def _new_page(tab_name="overview", scroll_below_nav=True):
-                    page = context.new_page()
-                    page.goto(f"{base_url}/overview/", wait_until="domcontentloaded", timeout=60000)
-                    try:
-                        page.wait_for_function("() => typeof switchTab === 'function'", timeout=30000)
-                    except Exception:
-                        page.wait_for_timeout(2000)
+                page = context.new_page()
+                page.goto(f"{base_url}/overview/", wait_until="domcontentloaded", timeout=60000)
+                try:
+                    page.wait_for_function("() => typeof switchTab === 'function'", timeout=30000)
+                except Exception:
+                    page.wait_for_timeout(2000)
+                page.evaluate(FORCE_DEFAULT_THEME_JS)
+
+                def _show_tab(tab_name="overview", scroll_below_nav=True):
+                    page.evaluate(f"switchTab('{tab_name}')")
+                    page.wait_for_timeout(600)
                     page.evaluate(FORCE_DEFAULT_THEME_JS)
-                    if tab_name != "overview":
-                        page.evaluate(f"switchTab('{tab_name}')")
-                        page.wait_for_timeout(600)
-                    page.wait_for_timeout(300)
                     if scroll_below_nav:
                         page.evaluate("""
                             () => {
@@ -433,132 +433,109 @@ class Command(BaseCommand):
                                 }
                             }
                         """)
-                        page.wait_for_timeout(300)
-                    return page
+                    else:
+                        page.evaluate("() => window.scrollTo({ top: 0, behavior: 'instant' })")
+                    page.wait_for_timeout(300)
 
                 # ── overview.png (full view with nav bar) ──────────────────────
-                page = _new_page("overview", scroll_below_nav=False)
-                try:
-                    page.wait_for_timeout(400)
-                    _save(page, "overview.png")
-                    self.stdout.write("  [screenshot] Captured overview.png")
-                finally:
-                    page.close()
+                _show_tab("overview", scroll_below_nav=False)
+                page.wait_for_timeout(400)
+                _save(page, "overview.png")
+                self.stdout.write("  [screenshot] Captured overview.png")
 
                 # ── concerts.png: expand first card + wait for album art ──────
-                page = _new_page("concerts", scroll_below_nav=True)
-                try:
-                    first_card_id = page.evaluate("""
-                        () => {
-                            const details = document.querySelector('[id^="concert-details-"]');
-                            if (details) return details.id.replace('concert-details-', '');
-                            const card = document.querySelector('.concert-card[id^="concert-card-"]');
-                            if (card) return card.id.replace('concert-card-', '');
-                            return null;
-                        }
+                _show_tab("concerts", scroll_below_nav=True)
+                first_card_id = page.evaluate("""
+                    () => {
+                        const details = document.querySelector('[id^="concert-details-"]');
+                        if (details) return details.id.replace('concert-details-', '');
+                        const card = document.querySelector('.concert-card[id^="concert-card-"]');
+                        if (card) return card.id.replace('concert-card-', '');
+                        return null;
+                    }
+                """)
+                if first_card_id:
+                    page.evaluate(f"toggleConcertDetails('{first_card_id}')")
+                    page.wait_for_timeout(600)
+                    page.evaluate(f"""
+                        (() => {{
+                            const el = document.getElementById('concert-details-{first_card_id}');
+                            if (el && typeof initLazyAlbumThumbnails === 'function') {{
+                                initLazyAlbumThumbnails(el);
+                            }}
+                        }})()
                     """)
-                    if first_card_id:
-                        page.evaluate(f"toggleConcertDetails('{first_card_id}')")
-                        page.wait_for_timeout(600)
-                        page.evaluate(f"""
-                            (() => {{
-                                const el = document.getElementById('concert-details-{first_card_id}');
-                                if (el && typeof initLazyAlbumThumbnails === 'function') {{
-                                    initLazyAlbumThumbnails(el);
-                                }}
-                            }})()
-                        """)
-                        _wait_for_album_art(
-                            page,
-                            selector=f"#concert-details-{first_card_id} img.lazy-album-art",
-                            min_loaded=1,
-                            timeout_ms=8000,
-                        )
-                    _save(page, "concerts.png")
-                    self.stdout.write(f"  [screenshot] Captured concerts.png (card {first_card_id} expanded)")
-                finally:
-                    page.close()
+                    _wait_for_album_art(
+                        page,
+                        selector=f"#concert-details-{first_card_id} img.lazy-album-art",
+                        min_loaded=1,
+                        timeout_ms=8000,
+                    )
+                _save(page, "concerts.png")
+                self.stdout.write(f"  [screenshot] Captured concerts.png (card {first_card_id} expanded)")
 
                 # ── songs.png: select Primus artist + wait for album art ──────
-                page = _new_page("songs", scroll_below_nav=True)
-                try:
-                    selected_artist = page.evaluate("""
-                        () => {
-                            const btns = Array.from(document.querySelectorAll('#artist-button-grid .artist-btn, .artist-btn'));
-                            const primusBtn = btns.find(b => (b.dataset.name || b.textContent).toLowerCase().includes('primus'));
-                            const targetBtn = primusBtn || btns[1] || btns[0];
-                            if (!targetBtn) return null;
-                            const span = targetBtn.querySelector('span:first-child');
-                            return span ? span.textContent.trim() : (targetBtn.dataset.name || targetBtn.textContent.trim());
-                        }
-                    """)
-                    if selected_artist:
-                        page.evaluate(f"selectArtist({repr(selected_artist)})")
-                        page.wait_for_timeout(800)
-                        _wait_for_album_art(page, selector="img.lazy-album-art", min_loaded=1, timeout_ms=8000)
-                    _save(page, "songs.png")
-                    self.stdout.write(f"  [screenshot] Captured songs.png (artist '{selected_artist}' selected)")
-                finally:
-                    page.close()
+                _show_tab("songs", scroll_below_nav=True)
+                selected_artist = page.evaluate("""
+                    () => {
+                        const btns = Array.from(document.querySelectorAll('#artist-button-grid .artist-btn, .artist-btn'));
+                        const primusBtn = btns.find(b => (b.dataset.name || b.textContent).toLowerCase().includes('primus'));
+                        const targetBtn = primusBtn || btns[1] || btns[0];
+                        if (!targetBtn) return null;
+                        const span = targetBtn.querySelector('span:first-child');
+                        return span ? span.textContent.trim() : (targetBtn.dataset.name || targetBtn.textContent.trim());
+                    }
+                """)
+                if selected_artist:
+                    page.evaluate(f"selectArtist({repr(selected_artist)})")
+                    page.wait_for_timeout(800)
+                    _wait_for_album_art(page, selector="img.lazy-album-art", min_loaded=1, timeout_ms=8000)
+                _save(page, "songs.png")
+                self.stdout.write(f"  [screenshot] Captured songs.png (artist '{selected_artist}' selected)")
 
                 # ── albums.png ────────────────────────────────────────────────
-                page = _new_page("albums", scroll_below_nav=True)
-                try:
-                    _wait_for_album_art(page, selector=".album-cover-img", min_loaded=3, timeout_ms=8000)
-                    _save(page, "albums.png")
-                    self.stdout.write("  [screenshot] Captured albums.png")
-                finally:
-                    page.close()
+                _show_tab("albums", scroll_below_nav=True)
+                _wait_for_album_art(page, selector=".album-cover-img", min_loaded=3, timeout_ms=8000)
+                _save(page, "albums.png")
+                self.stdout.write("  [screenshot] Captured albums.png")
 
                 # ── musicians.png ─────────────────────────────────────────────
-                page = _new_page("musicians", scroll_below_nav=True)
-                try:
-                    _save(page, "musicians.png")
-                    self.stdout.write("  [screenshot] Captured musicians.png")
-                finally:
-                    page.close()
+                _show_tab("musicians", scroll_below_nav=True)
+                _save(page, "musicians.png")
+                self.stdout.write("  [screenshot] Captured musicians.png")
 
                 # ── map.png ───────────────────────────────────────────────────
-                page = _new_page("map", scroll_below_nav=True)
-                try:
-                    page.wait_for_timeout(1500)
-                    _save(page, "map.png")
-                    self.stdout.write("  [screenshot] Captured map.png")
-                finally:
-                    page.close()
+                _show_tab("map", scroll_below_nav=True)
+                page.wait_for_timeout(1500)
+                _save(page, "map.png")
+                self.stdout.write("  [screenshot] Captured map.png")
 
                 # ── freshness.png ─────────────────────────────────────────────
-                page = _new_page("freshness", scroll_below_nav=True)
-                try:
-                    _save(page, "freshness.png")
-                    self.stdout.write("  [screenshot] Captured freshness.png")
-                finally:
-                    page.close()
+                _show_tab("freshness", scroll_below_nav=True)
+                _save(page, "freshness.png")
+                self.stdout.write("  [screenshot] Captured freshness.png")
 
                 # ── theme_palettes.png: open theme modal and crop to dialog ───
-                page = _new_page("overview", scroll_below_nav=False)
-                try:
-                    page.evaluate("""
-                        () => {
-                            if (typeof openThemeModal === 'function') {
-                                openThemeModal();
-                            } else {
-                                const btn = document.getElementById('theme-menu-btn') || document.querySelector('[onclick*="openThemeModal"]');
-                                if (btn) btn.click();
-                            }
+                _show_tab("overview", scroll_below_nav=False)
+                page.evaluate("""
+                    () => {
+                        if (typeof openThemeModal === 'function') {
+                            openThemeModal();
+                        } else {
+                            const btn = document.getElementById('theme-menu-btn') || document.querySelector('[onclick*="openThemeModal"]');
+                            if (btn) btn.click();
                         }
-                    """)
-                    page.wait_for_timeout(600)
-                    modal_card = page.query_selector("#theme-modal > div")
-                    target = src_dir / "theme_palettes.png"
-                    if modal_card:
-                        modal_card.screenshot(path=str(target))
-                        shutil.copy2(target, dst_dir / "theme_palettes.png")
-                    else:
-                        _save(page, "theme_palettes.png")
-                    self.stdout.write("  [screenshot] Captured theme_palettes.png (cropped to modal)")
-                finally:
-                    page.close()
+                    }
+                """)
+                page.wait_for_timeout(600)
+                modal_card = page.query_selector("#theme-modal > div")
+                target = src_dir / "theme_palettes.png"
+                if modal_card:
+                    modal_card.screenshot(path=str(target))
+                    shutil.copy2(target, dst_dir / "theme_palettes.png")
+                else:
+                    _save(page, "theme_palettes.png")
+                self.stdout.write("  [screenshot] Captured theme_palettes.png (cropped to modal)")
 
                 browser.close()
 

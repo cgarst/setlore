@@ -238,6 +238,8 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
     for artist_name, art_data in drilldown.items():
         for s in art_data.get("songs", []):
             album_title = s.get("album", "Non-Album / Singles")
+            if not album_title or album_title == "Non-Album / Singles" or album_title.lower() == "non-album / singles":
+                continue
             rel_year = s.get("release_year")
             song_name = s.get("song")
             song_count = s.get("count", len(s.get("occurrences", [])))
