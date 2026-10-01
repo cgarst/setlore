@@ -6406,15 +6406,15 @@
         }).catch(() => {});
       }
 
-      // 2. Top Artists Chart
+      // 2. Top Artists Chart (Packed Bubble Chart)
       const topArtistsEl = document.getElementById('chart-top-artists');
       if (topArtistsEl && topArtistsEl.data) {
         Plotly.restyle(topArtistsEl, {
           'marker.colorscale': themeObj.topArtistsScale
         }, [0]).catch(() => {});
         Plotly.relayout(topArtistsEl, {
-          'xaxis.gridcolor': themeObj.gridColor,
-          'yaxis.gridcolor': themeObj.gridColor,
+          'paper_bgcolor': 'transparent',
+          'plot_bgcolor': 'transparent',
           'font.color': themeObj.textColor
         }).catch(() => {});
       }
@@ -6602,7 +6602,7 @@
       topArtistsEl.on('plotly_click', function(data) {
         if (data.points && data.points.length > 0) {
           const pt = data.points[0];
-          const artistName = pt.y || pt.label || (pt.customdata ? (pt.customdata.artist || pt.customdata) : null);
+          const artistName = (typeof pt.customdata === 'string' ? pt.customdata : (pt.customdata ? pt.customdata.artist || pt.customdata : null)) || pt.y || pt.label || (pt.text ? pt.text.split('<br>')[0] : null);
           if (artistName) {
             jumpToArtistInConcerts(artistName);
           }

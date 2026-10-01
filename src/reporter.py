@@ -1,4 +1,5 @@
 import json
+import math
 import urllib.parse
 from pathlib import Path
 from typing import Dict, Any
@@ -49,27 +50,115 @@ def generate_plotly_charts(stats: Dict[str, Any], album_enrichments: Dict[str, A
         }
     }
 
-    # 2. Top Artists Bar Chart (Top 12)
-    top_artists = stats["top_artists"][:12]
-    art_names = [a["artist"] for a in reversed(top_artists)]
-    art_counts = [a["concert_count"] for a in reversed(top_artists)]
+    # 2. Top Artists Packed Bubble Chart (Top 25)
+    top_artists = stats["top_artists"][:25]
+    
+    bubble_x = []
+    bubble_y = []
+    bubble_diameters = []
+    bubble_names = []
+    bubble_counts = []
+    bubble_texts = []
+    bubble_font_sizes = []
+    
+    if top_artists:
+        counts = [a["concert_count"] for a in top_artists]
+        max_c = max(counts) if counts else 1
+        min_c = min(counts) if counts else 1
+        
+        circles = []
+        for a in top_artists:
+            c = a["concert_count"]
+            name = a["artist"]
+            if max_c == min_c:
+                r = 32.0
+            else:
+                r = 18.0 + 34.0 * ((c ** 0.5) / (max_c ** 0.5))
+            circles.append({"artist": name, "count": c, "r": r, "x": 0.0, "y": 0.0})
+            
+        placed = []
+        for i, c in enumerate(circles):
+            if i == 0:
+                c["x"] = 0.0
+                c["y"] = 0.0
+                placed.append(c)
+                continue
+            angle = 0.0
+            step = 0.08
+            placed_circle = False
+            while angle < 200.0:
+                r_search = 1.2 * angle
+                x = r_search * math.cos(angle)
+                y = r_search * math.sin(angle)
+                overlap = False
+                for p in placed:
+                    if math.hypot(x - p["x"], y - p["y"]) < (c["r"] + p["r"] + 3.0):
+                        overlap = True
+                        break
+                if not overlap:
+                    c["x"] = x
+                    c["y"] = y
+                    placed.append(c)
+                    placed_circle = True
+                    break
+                angle += step
+            if not placed_circle:
+                c["x"] = (c["r"] + 20) * i
+                c["y"] = 0.0
+                placed.append(c)
+                
+        bubble_x = [round(c["x"], 2) for c in placed]
+        bubble_y = [round(c["y"], 2) for c in placed]
+        bubble_diameters = [round(c["r"] * 2, 2) for c in placed]
+        bubble_names = [c["artist"] for c in placed]
+        bubble_counts = [c["count"] for c in placed]
+        
+        for c in placed:
+            nm = c["artist"]
+            if len(nm) > 13 and c["r"] < 26:
+                short_nm = nm[:11] + ".."
+            elif len(nm) > 18:
+                short_nm = nm[:16] + ".."
+            else:
+                short_nm = nm
+            bubble_texts.append(f"{short_nm}<br><b>{c['count']}</b>")
+            fs = max(9, min(13, int(c["r"] / 3.4)))
+            bubble_font_sizes.append(fs)
 
     top_artists_chart = {
         "data": [{
-            "x": art_counts,
-            "y": art_names,
-            "type": "bar",
-            "orientation": "h",
+            "x": bubble_x,
+            "y": bubble_y,
+            "text": bubble_texts,
+            "customdata": bubble_names,
+            "type": "scatter",
+            "mode": "markers+text",
+            "textposition": "middle center",
+            "textfont": {
+                "family": "Inter, sans-serif",
+                "size": bubble_font_sizes,
+                "color": "#ffffff"
+            },
+            "hovertemplate": "<b>%{customdata}</b><br>%{marker.color} shows attended<extra></extra>",
             "marker": {
-                "color": art_counts,
-                "colorscale": "Purples"
+                "size": bubble_diameters,
+                "sizemode": "diameter",
+                "color": bubble_counts,
+                "colorscale": "Purples",
+                "showscale": False,
+                "line": {
+                    "width": 1.5,
+                    "color": "rgba(255, 255, 255, 0.25)"
+                }
             }
         }],
         "layout": {
             "title": "",
             "dragmode": False,
-            "xaxis": {"title": "Times Seen Live", "gridcolor": "#1e293b", "fixedrange": True},
-            "yaxis": {"automargin": True, "gridcolor": "#1e293b", "fixedrange": True}
+            "hovermode": "closest",
+            "margin": {"l": 10, "r": 10, "t": 10, "b": 10},
+            "xaxis": {"visible": False, "showgrid": False, "zeroline": False, "showticklabels": False, "fixedrange": True},
+            "yaxis": {"visible": False, "showgrid": False, "zeroline": False, "showticklabels": False, "fixedrange": True, "scaleanchor": "x", "scaleratio": 1}
         }
     }
 
