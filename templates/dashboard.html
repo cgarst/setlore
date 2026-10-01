@@ -7057,21 +7057,21 @@
 
           if (!bbox || bbox.width <= 0 || bbox.height <= 0) return;
 
-          const w = Math.round(bbox.width);
-          const h = Math.round(bbox.height);
-          const x = Math.round(bbox.x);
-          const y = Math.round(bbox.y);
-          const patId = 'pat-' + btoa(unescape(encodeURIComponent(`${artist}_${cleanAlbum}_${x}_${y}_${w}_${h}`))).replace(/[^a-zA-Z0-9]/g, '_');
+          const w = Math.max(10, Math.round(bbox.width));
+          const h = Math.max(10, Math.round(bbox.height));
+          const patId = 'pat-' + btoa(unescape(encodeURIComponent(`${artist}_${cleanAlbum}`))).replace(/[^a-zA-Z0-9]/g, '_');
 
           let pattern = defs.querySelector(`#${patId}`);
           if (!pattern) {
             pattern = document.createElementNS('http://www.w3.org/2000/svg', 'pattern');
             pattern.setAttribute('id', patId);
-            pattern.setAttribute('patternUnits', 'userSpaceOnUse');
-            pattern.setAttribute('x', x);
-            pattern.setAttribute('y', y);
-            pattern.setAttribute('width', w);
-            pattern.setAttribute('height', h);
+            pattern.setAttribute('patternUnits', 'objectBoundingBox');
+            pattern.setAttribute('width', '1');
+            pattern.setAttribute('height', '1');
+            pattern.setAttribute('x', '0');
+            pattern.setAttribute('y', '0');
+            pattern.setAttribute('viewBox', `0 0 ${w} ${h}`);
+            pattern.setAttribute('preserveAspectRatio', 'none');
 
             const img = document.createElementNS('http://www.w3.org/2000/svg', 'image');
             img.setAttributeNS('http://www.w3.org/1999/xlink', 'href', artUrl);
@@ -7085,10 +7085,7 @@
             pattern.appendChild(img);
             defs.appendChild(pattern);
           } else {
-            pattern.setAttribute('x', x);
-            pattern.setAttribute('y', y);
-            pattern.setAttribute('width', w);
-            pattern.setAttribute('height', h);
+            pattern.setAttribute('viewBox', `0 0 ${w} ${h}`);
             const img = pattern.querySelector('image');
             if (img) {
               img.setAttribute('width', w);
@@ -7135,25 +7132,32 @@
             ).then(applyAlbumArtToTreemap);
           }
         });
-        setTimeout(applyAlbumArtToTreemap, 100);
-        setTimeout(applyAlbumArtToTreemap, 300);
+        setTimeout(applyAlbumArtToTreemap, 50);
+        setTimeout(applyAlbumArtToTreemap, 200);
+        setTimeout(applyAlbumArtToTreemap, 400);
       }
     }
 
     const treemapEl = document.getElementById('chart-treemap');
     if (treemapEl) {
       treemapEl.on('plotly_afterplot', function() {
-        setTimeout(applyAlbumArtToTreemap, 50);
-        setTimeout(applyAlbumArtToTreemap, 250);
+        applyAlbumArtToTreemap();
+        setTimeout(applyAlbumArtToTreemap, 150);
       });
       treemapEl.on('plotly_treemapclick', function() {
-        setTimeout(applyAlbumArtToTreemap, 100);
-        setTimeout(applyAlbumArtToTreemap, 350);
+        setTimeout(applyAlbumArtToTreemap, 50);
+        setTimeout(applyAlbumArtToTreemap, 200);
+        setTimeout(applyAlbumArtToTreemap, 450);
+      });
+      treemapEl.on('plotly_animated', function() {
+        applyAlbumArtToTreemap();
       });
       treemapEl.on('plotly_relayout', function() {
-        setTimeout(applyAlbumArtToTreemap, 100);
+        applyAlbumArtToTreemap();
+        setTimeout(applyAlbumArtToTreemap, 150);
       });
-      setTimeout(applyAlbumArtToTreemap, 200);
+      setTimeout(applyAlbumArtToTreemap, 100);
+      setTimeout(applyAlbumArtToTreemap, 300);
 
       treemapEl.on('plotly_click', function(data) {
         if (data.points && data.points.length > 0) {
