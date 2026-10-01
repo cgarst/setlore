@@ -755,6 +755,56 @@ class UpcomingShowsTests(TestCase):
         self.assertEqual(untrack_data['action'], 'untracked')
         self.assertEqual(Concert.objects.filter(user=self.user).count(), 2)
 
+    def test_mike_dawes_upcoming_shows_discovery(self):
+        """Ensure non-top-40 artists like Mike Dawes are discovered and correctly filtered by location."""
+        from src.upcoming_events import parse_event_item, haversine_distance_miles
+
+        # User in Washington, DC area
+        dc_lat, dc_lon = 38.8951, -77.0364
+
+        # Mike Dawes at Rams Head On Stage (Annapolis, MD)
+        rams_head_event = {
+            'id': '107486045',
+            'datetime': '2026-10-27T20:00:00',
+            'venue': {
+                'name': 'Annapolis, MD - Rescheduled Date',
+                'location': 'Annapolis, MD',
+                'street_address': '33 West St',
+                'city': 'Annapolis',
+                'region': 'MD',
+                'country': 'United States',
+                'latitude': '38.9782728',
+                'longitude': '-76.4942838'
+            },
+            'url': 'https://www.bandsintown.com/e/107486045'
+        }
+        # Mike Dawes at Jammin Java (Vienna, VA)
+        jammin_java_event = {
+            'id': '1037848338',
+            'datetime': '2026-10-30T20:00:00',
+            'venue': {
+                'name': 'Vienna, VA - Rescheduled Date',
+                'location': 'Vienna, VA',
+                'street_address': '227 Maple Ave E',
+                'city': 'Vienna',
+                'region': 'VA',
+                'country': 'United States',
+                'latitude': '38.9041378',
+                'longitude': '-77.2611259'
+            },
+            'url': 'https://www.bandsintown.com/e/1037848338'
+        }
+
+        parsed_rh = parse_event_item(rams_head_event, 'Mike Dawes', user_lat=dc_lat, user_lon=dc_lon)
+        parsed_jj = parse_event_item(jammin_java_event, 'Mike Dawes', user_lat=dc_lat, user_lon=dc_lon)
+
+        self.assertIsNotNone(parsed_rh)
+        self.assertIsNotNone(parsed_jj)
+        self.assertLess(parsed_rh['distance_miles'], 40.0)  # Annapolis is ~30 miles from DC
+        self.assertLess(parsed_jj['distance_miles'], 20.0)  # Vienna is ~15 miles from DC
+        self.assertEqual(parsed_rh['city'], 'Annapolis')
+        self.assertEqual(parsed_jj['city'], 'Vienna')
+
 
 
 
