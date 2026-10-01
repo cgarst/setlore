@@ -2289,11 +2289,8 @@
                   <i class="fa-solid fa-chart-line text-indigo-400"></i>
                   <span>Concerts & Songs Over Time</span>
                 </h3>
-                <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                  {{ stats.total_concerts|intcomma }} Concerts
-                </span>
               </div>
-              <p class="text-xs text-slate-400">Historical concert count and songs heard by year</p>
+              <p class="text-xs text-slate-400">You've attended <span class="text-white font-semibold">{{ stats.total_concerts|intcomma }}</span> concerts, how has your live music evolved over time?</p>
             </div>
             <button onclick="switchTab('concerts')" class="px-2.5 py-1 rounded-lg bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 border border-indigo-500/30 text-xs font-semibold flex items-center gap-1.5 transition shrink-0">
               Concert History <i class="fa-solid fa-arrow-right text-[10px]"></i>
@@ -2310,11 +2307,8 @@
                   <i class="fa-solid fa-ranking-star text-pink-400"></i>
                   <span>Top Artists Seen Live</span>
                 </h3>
-                <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                  {{ stats.total_unique_artists|intcomma }} Artists
-                </span>
               </div>
-              <p class="text-xs text-slate-400">Total concerts attended per artist</p>
+              <p class="text-xs text-slate-400">You've seen <span class="text-white font-semibold">{{ stats.total_unique_artists|intcomma }}</span> artists, which have you seen the most?</p>
             </div>
             <button onclick="switchTab('drilldown')" class="px-2.5 py-1 rounded-lg bg-pink-500/15 hover:bg-pink-500/25 text-pink-300 border border-pink-500/30 text-xs font-semibold flex items-center gap-1.5 transition shrink-0">
               Artist Drilldown <i class="fa-solid fa-arrow-right text-[10px]"></i>
@@ -2333,9 +2327,6 @@
                 <i class="fa-solid fa-calendar-days text-amber-400"></i>
                 <span>Upcoming Shows</span>
               </h3>
-              <span id="upcoming-overview-count-badge" class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                {{ upcoming_shows|length|intcomma }} show{{ upcoming_shows|length|pluralize }}
-              </span>
               <button id="upcoming-overview-location-btn" onclick="openUpcomingConfigModal()" class="{% if not upcoming_location %}hidden{% endif %} px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/25 transition flex items-center gap-1 cursor-pointer" title="Click to change location or search radius">
                 <i class="fa-solid fa-location-crosshairs text-[10px]"></i> <span id="upcoming-overview-location-text">{% if upcoming_radius_miles %}Within {{ upcoming_radius_miles|intcomma }} mi of {{ upcoming_location }}{% else %}{{ upcoming_location }}{% endif %}</span>
               </button>
@@ -2344,7 +2335,7 @@
               </button>
             </div>
             <p class="text-xs text-slate-400">
-              Tour dates for bands in your concert log
+              You have <span id="upcoming-overview-count" class="text-white font-semibold">{{ upcoming_shows|length|intcomma }}</span> upcoming show{{ upcoming_shows|length|pluralize }} near you, which will you catch next?
             </p>
           </div>
 
@@ -2528,11 +2519,8 @@
                   <i class="fa-solid fa-music text-purple-400"></i>
                   <span>Most Heard Songs Live</span>
                 </h3>
-                <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-pink-500/20 text-pink-300 border border-pink-500/30">
-                  {{ stats.unique_songs_heard|intcomma }} Unique Songs
-                </span>
               </div>
-              <p class="text-xs text-slate-400">Ranked by times experienced in setlists</p>
+              <p class="text-xs text-slate-400">You've heard <span class="text-white font-semibold">{{ stats.unique_songs_heard|intcomma }}</span> unique songs, which track have you heard the most?</p>
             </div>
             <button onclick="switchTab('drilldown')" class="px-2.5 py-1.5 rounded-lg bg-purple-500/15 hover:bg-purple-500/25 text-purple-300 border border-purple-500/30 text-xs font-semibold flex items-center gap-1.5 transition shrink-0">
               Song Drilldown <i class="fa-solid fa-arrow-right text-[10px]"></i>
@@ -2591,11 +2579,8 @@
                   <i class="fa-solid fa-location-dot text-indigo-400"></i>
                   <span>Top Venues Visited</span>
                 </h3>
-                <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                  {{ stats.total_venues|intcomma }} Venues
-                </span>
               </div>
-              <p class="text-xs text-slate-400">Venues hosted the most attended concerts</p>
+              <p class="text-xs text-slate-400">You've visited <span class="text-white font-semibold">{{ stats.total_venues|intcomma }}</span> venues, which stage is your favorite stop?</p>
             </div>
             <button onclick="switchTab('map')" class="px-2.5 py-1.5 rounded-lg bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 border border-indigo-500/30 text-xs font-semibold flex items-center gap-1.5 transition shrink-0">
               Venue Map <i class="fa-solid fa-arrow-right text-[10px]"></i>
@@ -9434,6 +9419,10 @@
       if (countBadge) {
         countBadge.innerText = `${(visibleCount || 0).toLocaleString()} show${visibleCount === 1 ? '' : 's'}`;
       }
+      const countOverview = document.getElementById('upcoming-overview-count');
+      if (countOverview) {
+        countOverview.innerText = (visibleCount || 0).toLocaleString();
+      }
     }
 
     async function refreshUpcomingShows() {
@@ -9682,6 +9671,10 @@
 
       if (countBadge) {
         countBadge.innerText = `${(activeShows.length || 0).toLocaleString()} show${activeShows.length === 1 ? '' : 's'}`;
+      }
+      const countOverview = document.getElementById('upcoming-overview-count');
+      if (countOverview) {
+        countOverview.innerText = (activeShows.length || 0).toLocaleString();
       }
       if (viewAllCount) {
         viewAllCount.innerText = `(${(activeShows.length || 0).toLocaleString()})`;
