@@ -32,7 +32,7 @@ urlpatterns = [
     path('', core_views.home_view, name='home'),
 
     # Concert Dashboard & API
-    path('dashboard/', concerts_views.dashboard_view, name='dashboard'),
+    path('overview/', concerts_views.dashboard_view, {'tab_name': 'overview'}, name='dashboard'),
     path('overview/', concerts_views.dashboard_view, {'tab_name': 'overview'}, name='dashboard_overview'),
     path('concerts/', concerts_views.dashboard_view, {'tab_name': 'concerts'}, name='dashboard_concerts'),
     path('drilldown/', concerts_views.dashboard_view, {'tab_name': 'drilldown'}, name='dashboard_drilldown'),
