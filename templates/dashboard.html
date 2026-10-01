@@ -1691,7 +1691,7 @@
             </div>
             <div>
               <h3 class="text-base sm:text-lg font-bold text-white tracking-tight">Welcome to Setlore!</h3>
-              <p class="text-xs text-slate-400">Quick onboarding guide &bull; Step <span id="onboarding-step-num">1</span> of 4</p>
+              <p class="text-xs text-slate-400">Quick onboarding guide &bull; Step <span id="onboarding-step-num">1</span> of 5</p>
             </div>
           </div>
           <button type="button" onclick="closeOnboardingModal()" class="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition cursor-pointer" title="Close guide">
@@ -1700,14 +1700,14 @@
         </div>
 
         <!-- Step Indicator Pills -->
-        <div class="grid grid-cols-4 gap-1.5 text-center">
+        <div class="grid grid-cols-5 gap-1.5 text-center">
           <button type="button" onclick="goToOnboardingStep(1)" id="step-pill-1" class="py-1.5 px-1 rounded-lg text-[11px] font-semibold transition flex items-center justify-center gap-1 bg-indigo-600 text-white cursor-pointer">
             <span class="w-4 h-4 rounded-full bg-white/20 text-[10px] flex items-center justify-center">1</span>
             <span class="hidden sm:inline">Setlist.fm</span>
           </button>
           <button type="button" onclick="goToOnboardingStep(2)" id="step-pill-2" class="py-1.5 px-1 rounded-lg text-[11px] font-semibold transition flex items-center justify-center gap-1 bg-slate-800 text-slate-400 hover:text-slate-200 cursor-pointer">
             <span class="w-4 h-4 rounded-full bg-slate-700 text-[10px] flex items-center justify-center">2</span>
-            <span class="hidden sm:inline">Import CSV</span>
+            <span class="hidden sm:inline">CSV</span>
           </button>
           <button type="button" onclick="goToOnboardingStep(3)" id="step-pill-3" class="py-1.5 px-1 rounded-lg text-[11px] font-semibold transition flex items-center justify-center gap-1 bg-slate-800 text-slate-400 hover:text-slate-200 cursor-pointer">
             <span class="w-4 h-4 rounded-full bg-slate-700 text-[10px] flex items-center justify-center">3</span>
@@ -1715,6 +1715,10 @@
           </button>
           <button type="button" onclick="goToOnboardingStep(4)" id="step-pill-4" class="py-1.5 px-1 rounded-lg text-[11px] font-semibold transition flex items-center justify-center gap-1 bg-slate-800 text-slate-400 hover:text-slate-200 cursor-pointer">
             <span class="w-4 h-4 rounded-full bg-slate-700 text-[10px] flex items-center justify-center">4</span>
+            <span class="hidden sm:inline">Area</span>
+          </button>
+          <button type="button" onclick="goToOnboardingStep(5)" id="step-pill-5" class="py-1.5 px-1 rounded-lg text-[11px] font-semibold transition flex items-center justify-center gap-1 bg-slate-800 text-slate-400 hover:text-slate-200 cursor-pointer">
+            <span class="w-4 h-4 rounded-full bg-slate-700 text-[10px] flex items-center justify-center">5</span>
             <span class="hidden sm:inline">Friends</span>
           </button>
         </div>
@@ -1881,8 +1885,66 @@
           </div>
         </div>
 
-        <!-- STEP 4: Connect with Friends & Community -->
+        <!-- STEP 4: Upcoming Shows Discovery Area -->
         <div id="onboarding-step-4" class="hidden space-y-4">
+          <div class="p-3.5 rounded-xl bg-indigo-500/10 border border-indigo-500/30 flex items-start gap-3">
+            <div class="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center shrink-0 mt-0.5">
+              <i class="fa-solid fa-location-dot text-base"></i>
+            </div>
+            <div>
+              <h4 class="text-xs font-bold text-white">Upcoming Shows Discovery Area (Optional)</h4>
+              <p class="text-[11px] text-slate-300 mt-0.5 leading-relaxed">
+                Set your home city or zip code and search radius to discover when artists in your concert log are playing near you.
+              </p>
+            </div>
+          </div>
+
+          <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-3.5">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label for="onboarding-location-input" class="block text-xs font-semibold text-slate-300 mb-1">
+                  City, Region, or Zip Code
+                </label>
+                <div class="relative">
+                  <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-indigo-400/70 text-xs">
+                    <i class="fa-solid fa-city"></i>
+                  </span>
+                  <input type="text" id="onboarding-location-input" placeholder="e.g. Washington, DC or 21701" value="{{ upcoming_location|default:'' }}"
+                    class="w-full pl-8 pr-3 py-2 text-xs rounded-xl bg-slate-900/90 border border-slate-700/80 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
+                </div>
+              </div>
+
+              <div>
+                <label for="onboarding-radius-select" class="block text-xs font-semibold text-slate-300 mb-1">
+                  Search Radius
+                </label>
+                <div class="relative">
+                  <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-indigo-400/70 text-xs">
+                    <i class="fa-solid fa-arrows-left-right"></i>
+                  </span>
+                  <select id="onboarding-radius-select"
+                    class="w-full pl-8 pr-3 py-2 text-xs rounded-xl bg-slate-900/90 border border-slate-700/80 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 cursor-pointer">
+                    <option value="" {% if not upcoming_radius_miles %}selected{% endif %}>Any Distance (Worldwide)</option>
+                    <option value="25" {% if upcoming_radius_miles == 25 %}selected{% endif %}>Within 25 miles</option>
+                    <option value="50" {% if upcoming_radius_miles == 50 %}selected{% endif %}>Within 50 miles</option>
+                    <option value="100" {% if upcoming_radius_miles == 100 or upcoming_radius_miles is None %}selected{% endif %}>Within 100 miles</option>
+                    <option value="250" {% if upcoming_radius_miles == 250 %}selected{% endif %}>Within 250 miles</option>
+                    <option value="500" {% if upcoming_radius_miles == 500 %}selected{% endif %}>Within 500 miles</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <p class="text-[11px] text-slate-400">
+              <i class="fa-solid fa-circle-info text-indigo-400 mr-1"></i> Saves your area settings without running a live search right now.
+            </p>
+
+            <div id="onboarding-step4-alert" class="hidden p-3 rounded-xl text-xs"></div>
+          </div>
+        </div>
+
+        <!-- STEP 5: Connect with Friends & Community -->
+        <div id="onboarding-step-5" class="hidden space-y-4">
           <div class="p-3.5 rounded-xl bg-purple-950/40 border border-purple-500/30 flex items-start gap-3">
             <div class="w-8 h-8 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center shrink-0 mt-0.5">
               <i class="fa-solid fa-user-group text-base"></i>
@@ -1953,6 +2015,202 @@
     </div>
   </div>
   {% endif %}
+
+  <!-- Upcoming Shows Configuration Modal -->
+  <div id="upcoming-config-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 hidden">
+    <div class="max-w-lg w-full glass-card p-6 shadow-2xl space-y-4 border border-slate-700 max-h-[90vh] flex flex-col">
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3 shrink-0">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+            <i class="fa-solid fa-sliders text-sm"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-white">Upcoming Shows Settings</h3>
+            <p class="text-[11px] text-slate-400">Configure search location, radius, and artist visibility</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeUpcomingConfigModal()" class="text-slate-400 hover:text-white p-1 cursor-pointer">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <!-- Alert / Status -->
+      <div id="upcoming-modal-alert" class="hidden p-3 rounded-xl text-xs shrink-0"></div>
+
+      <!-- Area & Range (Location & Radius) Section -->
+      <div class="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-3 shrink-0">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <i class="fa-solid fa-location-crosshairs text-indigo-400 text-xs"></i>
+            <span class="text-xs font-bold text-white">Area & Search Range</span>
+          </div>
+          <button type="button" onclick="clearUpcomingLocation()" class="text-[10px] text-slate-400 hover:text-rose-300 transition cursor-pointer">
+            Clear Location
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <div>
+            <label for="upcoming-location-input" class="block text-[11px] font-semibold text-slate-300 mb-1">
+              City, Region, or Zip Code
+            </label>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 flex items-center pl-2.5 text-slate-500 text-xs">
+                <i class="fa-solid fa-city"></i>
+              </span>
+              <input type="text" id="upcoming-location-input" placeholder="e.g. Washington, DC or 10001" value="{{ upcoming_location|default:'' }}"
+                class="w-full pl-7 pr-3 py-1.5 text-xs rounded-xl bg-slate-950 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+            </div>
+          </div>
+
+          <div>
+            <label for="upcoming-range-select" class="block text-[11px] font-semibold text-slate-300 mb-1">
+              Search Radius
+            </label>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 flex items-center pl-2.5 text-slate-500 text-xs">
+                <i class="fa-solid fa-arrows-left-right"></i>
+              </span>
+              <select id="upcoming-range-select"
+                class="w-full pl-7 pr-3 py-1.5 text-xs rounded-xl bg-slate-950 border border-slate-700 text-white focus:outline-none focus:border-indigo-500 cursor-pointer">
+                <option value="" {% if not upcoming_radius_miles %}selected{% endif %}>Any Distance (Worldwide)</option>
+                <option value="25" {% if upcoming_radius_miles == 25 %}selected{% endif %}>Within 25 miles</option>
+                <option value="50" {% if upcoming_radius_miles == 50 %}selected{% endif %}>Within 50 miles</option>
+                <option value="100" {% if upcoming_radius_miles == 100 %}selected{% endif %}>Within 100 miles</option>
+                <option value="250" {% if upcoming_radius_miles == 250 %}selected{% endif %}>Within 250 miles</option>
+                <option value="500" {% if upcoming_radius_miles == 500 %}selected{% endif %}>Within 500 miles</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Search & Filters Toolbar -->
+      <div class="space-y-2.5 shrink-0">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold text-white flex items-center gap-1.5">
+            <i class="fa-solid fa-users text-indigo-400 text-xs"></i> Artist Visibility
+          </span>
+          <span class="text-[10px] text-slate-400">Toggle artists to hide from overview</span>
+        </div>
+
+        <div class="relative">
+          <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500 text-xs">
+            <i class="fa-solid fa-magnifying-glass"></i>
+          </span>
+          <input type="text" id="upcoming-modal-search" oninput="filterUpcomingModalArtists()" placeholder="Search your seen artists..."
+            class="w-full pl-8 pr-3 py-2 text-xs rounded-xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
+        </div>
+
+        <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
+          <!-- View filter pills -->
+          <div class="flex items-center gap-1 bg-slate-900/80 p-1 rounded-lg border border-slate-800 text-[11px]">
+            <button type="button" onclick="setUpcomingModalFilter('all')" id="upcoming-filter-all-btn" class="px-2.5 py-0.5 rounded-md font-semibold bg-indigo-600 text-white transition">All (<span id="upcoming-modal-total-count">{{ upcoming_total_artists }}</span>)</button>
+            <button type="button" onclick="setUpcomingModalFilter('visible')" id="upcoming-filter-visible-btn" class="px-2.5 py-0.5 rounded-md font-medium text-slate-400 hover:text-slate-200 transition">Visible (<span id="upcoming-modal-visible-count">0</span>)</button>
+            <button type="button" onclick="setUpcomingModalFilter('hidden')" id="upcoming-filter-hidden-btn" class="px-2.5 py-0.5 rounded-md font-medium text-slate-400 hover:text-slate-200 transition">Hidden (<span id="upcoming-modal-hidden-count">{{ upcoming_hidden_count }}</span>)</button>
+          </div>
+
+          <!-- Bulk actions -->
+          <div class="flex items-center gap-1.5">
+            <button type="button" onclick="bulkSetUpcomingVisibility(false)" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[11px] font-medium text-slate-300 transition cursor-pointer" title="Show all artists">
+              <i class="fa-solid fa-eye text-emerald-400 mr-1"></i> Show All
+            </button>
+            <button type="button" onclick="bulkSetUpcomingVisibility(true)" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[11px] font-medium text-slate-300 transition cursor-pointer" title="Hide all artists">
+              <i class="fa-solid fa-eye-slash text-rose-400 mr-1"></i> Hide All
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Artist List -->
+      <div id="upcoming-modal-artist-list" class="overflow-y-auto flex-1 space-y-1.5 pr-1 min-h-[180px] max-h-[300px] custom-scrollbar divide-y divide-slate-800/40">
+        <!-- Dynamically populated by JS -->
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="flex items-center justify-between border-t border-slate-800 pt-3 shrink-0">
+        <div class="text-[11px] text-slate-400">
+          <span id="upcoming-modal-footer-stats">Loading preferences...</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <button type="button" onclick="saveUpcomingModalSettings()" id="upcoming-modal-save-btn" class="px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-xs font-bold text-white shadow-md shadow-indigo-600/30 transition cursor-pointer flex items-center gap-1.5">
+            <i class="fa-solid fa-check text-[11px]"></i>
+            <span>Save & Apply</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Upcoming Shows Full Table Modal -->
+  <div id="upcoming-table-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 hidden">
+    <div class="max-w-5xl w-full glass-card p-6 shadow-2xl space-y-4 border border-slate-700 max-h-[90vh] flex flex-col">
+      <!-- Modal Header -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3 shrink-0">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
+            <i class="fa-solid fa-calendar-days text-base"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="text-base font-bold text-white">Upcoming Shows</h3>
+              <span id="upcoming-table-modal-count" class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                0 shows
+              </span>
+            </div>
+            <p class="text-[11px] text-slate-400">All discovered tour dates for your seen artists</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 shrink-0">
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 flex items-center pl-2.5 text-slate-500 text-xs">
+              <i class="fa-solid fa-magnifying-glass"></i>
+            </span>
+            <input type="text" id="upcoming-table-search" oninput="filterUpcomingTableRows()" placeholder="Filter table..."
+              class="pl-7 pr-2.5 py-1.5 text-xs rounded-lg bg-slate-900 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 w-36 sm:w-48">
+          </div>
+          {% if not is_public_view and user.is_authenticated and is_owner %}
+          <button type="button" onclick="closeUpcomingTableModal(); openUpcomingConfigModal();" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-semibold flex items-center gap-1 transition cursor-pointer" title="Settings & Filters">
+            <i class="fa-solid fa-sliders text-indigo-400 text-xs"></i>
+            <span class="hidden sm:inline">Filters</span>
+          </button>
+          {% endif %}
+          <button type="button" onclick="closeUpcomingTableModal()" class="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition cursor-pointer">
+            <i class="fa-solid fa-xmark text-lg"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Table Container -->
+      <div class="overflow-x-auto overflow-y-auto flex-1 custom-scrollbar min-h-[260px]">
+        <table class="w-full text-left border-collapse">
+          <thead class="sticky top-0 bg-slate-900/95 backdrop-blur z-10">
+            <tr class="border-b border-slate-800 text-slate-400 text-xs font-semibold uppercase tracking-wider">
+              <th class="px-3 py-2.5">Date & Time</th>
+              <th class="px-3 py-2.5">Artist</th>
+              <th class="px-3 py-2.5">Venue & Location</th>
+              <th class="px-3 py-2.5">Distance</th>
+              <th class="px-3 py-2.5">Lineup / Details</th>
+              <th class="px-3 py-2.5 text-right">Tickets</th>
+            </tr>
+          </thead>
+          <tbody id="upcoming-table-tbody" class="divide-y divide-slate-800/50 text-xs">
+            <!-- Dynamically populated by JS -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="flex items-center justify-between border-t border-slate-800 pt-3 shrink-0 text-xs text-slate-400">
+        <span id="upcoming-table-modal-footer">Showing 0 shows</span>
+        <button type="button" onclick="closeUpcomingTableModal()" class="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold transition cursor-pointer">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
 
   <div class="max-w-7xl mx-auto mb-6 flex flex-wrap gap-2 items-center justify-between">
     <div class="flex flex-wrap gap-2 items-center">
@@ -2026,7 +2284,7 @@
         <div class="glass-card p-6 flex flex-col justify-between">
           <div class="flex items-start justify-between gap-3 mb-4">
             <div>
-              <h3 class="text-lg font-bold text-white mb-1"><i class="fa-solid fa-calendar-days text-indigo-400 mr-2"></i>Concerts & Songs Over Time</h3>
+              <h3 class="text-lg font-bold text-white mb-1"><i class="fa-solid fa-chart-line text-indigo-400 mr-2"></i>Concerts & Songs Over Time</h3>
               <p class="text-xs text-slate-400">Historical concert count and songs heard by year</p>
             </div>
             <button onclick="switchTab('concerts')" class="px-2.5 py-1 rounded-lg bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 border border-indigo-500/30 text-xs font-semibold flex items-center gap-1.5 transition shrink-0">
@@ -2047,6 +2305,210 @@
             </button>
           </div>
           <div id="chart-top-artists" class="w-full h-80"></div>
+        </div>
+      </div>
+
+      <!-- Upcoming Shows Section (Powered by Bandsintown API) -->
+      <div class="glass-card p-6 flex flex-col space-y-4 border border-slate-800/90 shadow-xl">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/70 pb-4">
+          <div>
+            <div class="flex flex-wrap items-center gap-2 mb-1">
+              <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-calendar-days text-amber-400"></i>
+                <span>Upcoming Shows</span>
+              </h3>
+              <span id="upcoming-overview-count-badge" class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                {{ upcoming_shows|length }} shows
+              </span>
+              <button id="upcoming-overview-location-btn" onclick="openUpcomingConfigModal()" class="{% if not upcoming_location %}hidden{% endif %} px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/25 transition flex items-center gap-1 cursor-pointer" title="Click to change location or search radius">
+                <i class="fa-solid fa-location-crosshairs text-[10px]"></i> <span id="upcoming-overview-location-text">{% if upcoming_radius_miles %}Within {{ upcoming_radius_miles }} mi of {{ upcoming_location }}{% else %}{{ upcoming_location }}{% endif %}</span>
+              </button>
+              <button id="upcoming-overview-hidden-btn" onclick="openUpcomingConfigModal()" class="{% if upcoming_hidden_count == 0 %}hidden{% endif %} px-2 py-0.5 rounded-full text-[11px] font-semibold bg-rose-500/15 text-rose-300 border border-rose-500/30 hover:bg-rose-500/25 transition flex items-center gap-1 cursor-pointer" title="Click to manage hidden artists">
+                <i class="fa-solid fa-eye-slash text-[10px]"></i> <span id="upcoming-overview-hidden-count">{{ upcoming_hidden_count }}</span> hidden
+              </button>
+            </div>
+            <p class="text-xs text-slate-400">
+              Tour dates for bands in your concert log
+            </p>
+          </div>
+
+          <div id="upcoming-overview-toolbar" class="{% if not upcoming_location %}hidden{% endif %} flex flex-wrap items-center gap-2 shrink-0">
+            <!-- Search Filter -->
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 flex items-center pl-2.5 text-slate-500 text-[11px]">
+                <i class="fa-solid fa-magnifying-glass"></i>
+              </span>
+              <input type="text" id="upcoming-overview-search" oninput="filterUpcomingOverviewCards()" placeholder="Filter shows..."
+                class="pl-7 pr-2.5 py-1.5 text-xs rounded-lg bg-slate-900 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 w-36 sm:w-44">
+            </div>
+
+            <!-- View All in Table Button -->
+            <button type="button" onclick="openUpcomingTableModal()" class="px-3 py-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-sm" title="View all tour dates in a detailed table">
+              <i class="fa-solid fa-table-list text-amber-400"></i>
+              <span>View All <span id="upcoming-view-all-count" class="hidden sm:inline">({{ upcoming_shows|length }})</span></span>
+            </button>
+
+            {% if not is_public_view and user.is_authenticated and is_owner %}
+            <!-- Configure Modal Trigger Button -->
+            <button type="button" onclick="openUpcomingConfigModal()" class="px-3 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-sm">
+              <i class="fa-solid fa-sliders text-indigo-400"></i>
+              <span>Area & Filters</span>
+            </button>
+            {% endif %}
+
+            <!-- Refresh Button -->
+            <button type="button" onclick="refreshUpcomingShows()" id="upcoming-refresh-btn" class="p-1.5 px-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer" title="Refresh upcoming tour dates">
+              <i id="upcoming-refresh-icon" class="fa-solid fa-arrows-rotate text-[11px]"></i>
+              <span class="hidden sm:inline">Refresh</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Shows Grid / List Container (Max 1 Row = 3 Cards) -->
+        <div id="upcoming-shows-container" class="space-y-3">
+          <div id="upcoming-shows-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {% for show in upcoming_shows|slice:":3" %}
+            <div class="upcoming-show-card p-4 rounded-xl bg-slate-900/70 border border-slate-800/80 hover:border-indigo-500/40 hover:bg-slate-800/50 transition-all flex flex-col justify-between space-y-3 group"
+                 data-artist="{{ show.artist|lower }}" data-venue="{{ show.venue|lower }}" data-city="{{ show.city|lower }}" data-country="{{ show.country|lower }}">
+              
+              <div class="space-y-2">
+                <div class="flex items-start justify-between gap-2">
+                  <div class="min-w-0">
+                    <button onclick="jumpToSongInDrilldown('{{ show.artist|escapejs }}', '');" class="text-sm font-bold text-white hover:text-indigo-300 text-left truncate block max-w-full">
+                      {{ show.artist }}
+                    </button>
+                    <div class="flex flex-wrap items-center gap-1.5 mt-0.5">
+                      <span class="px-1.5 py-0.5 rounded-md bg-indigo-500/20 text-indigo-300 text-[10px] font-bold border border-indigo-500/30">
+                        Seen {{ show.times_seen }}x live
+                      </span>
+                      {% if show.rel_badge %}
+                      <span class="px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-300 text-[10px] font-semibold border border-amber-500/30">
+                        {{ show.rel_badge }}
+                      </span>
+                      {% endif %}
+                      {% if show.distance_display %}
+                      <span class="px-1.5 py-0.5 rounded-md bg-emerald-500/15 text-emerald-300 text-[10px] font-semibold border border-emerald-500/30">
+                        <i class="fa-solid fa-route text-[9px] mr-0.5"></i>{{ show.distance_display }}
+                      </span>
+                      {% endif %}
+                    </div>
+                  </div>
+
+                  {% if not is_public_view and user.is_authenticated and is_owner %}
+                  <button type="button" onclick="inlineHideUpcomingArtist('{{ show.artist|escapejs }}')" class="opacity-0 group-hover:opacity-100 transition p-1 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg text-xs cursor-pointer" title="Hide this artist from upcoming shows">
+                    <i class="fa-solid fa-eye-slash"></i>
+                  </button>
+                  {% endif %}
+                </div>
+
+                <div class="text-xs text-slate-300 space-y-1">
+                  <div class="flex items-center gap-1.5 font-medium text-slate-200">
+                    <i class="fa-solid fa-calendar-day text-indigo-400 text-[11px] w-3.5"></i>
+                    <span>{{ show.date_display }}{% if show.time_display %} • {{ show.time_display }}{% endif %}</span>
+                  </div>
+                  <div class="flex items-start gap-1.5 text-slate-400">
+                    <i class="fa-solid fa-location-dot text-indigo-400 text-[11px] w-3.5 mt-0.5"></i>
+                    <span class="truncate">{{ show.venue }} — {{ show.location_display }}</span>
+                  </div>
+                </div>
+
+                {% if show.other_lineup %}
+                <div class="text-[11px] text-slate-400 flex items-center gap-1 truncate pt-0.5">
+                  <i class="fa-solid fa-users text-[10px] text-slate-500"></i>
+                  <span class="truncate">With: {{ show.other_lineup|join:", " }}</span>
+                </div>
+                {% endif %}
+              </div>
+
+              <div class="pt-2 border-t border-slate-800/60 flex items-center justify-between gap-2">
+                <a href="{{ show.ticket_url }}" target="_blank" rel="noopener noreferrer" class="flex-1 py-1.5 px-3 rounded-lg bg-indigo-600/30 hover:bg-indigo-600/50 border border-indigo-500/40 text-indigo-200 hover:text-white text-xs font-semibold transition flex items-center justify-center gap-1.5">
+                  <i class="fa-solid fa-ticket text-[11px]"></i>
+                  <span>Get Tickets / Info</span>
+                  <i class="fa-solid fa-arrow-up-right-from-square text-[9px] opacity-70"></i>
+                </a>
+              </div>
+            </div>
+            {% empty %}
+            {% if not upcoming_location %}
+            <div id="upcoming-shows-setup-card" class="col-span-full p-6 sm:p-8 rounded-2xl glass-card shadow-xl space-y-4 text-center border">
+              <div class="w-12 h-12 mx-auto rounded-full bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shadow-sm">
+                <i class="fa-solid fa-location-dot text-xl"></i>
+              </div>
+              <div class="space-y-1.5 max-w-lg mx-auto">
+                <h4 class="text-base font-bold text-white">Set Your Discovery Area</h4>
+                <p class="text-xs text-slate-300 leading-relaxed">
+                  Enter your home city or zip code and search radius to discover upcoming concerts from artists you've seen live.
+                </p>
+              </div>
+              {% if not is_public_view and user.is_authenticated and is_owner %}
+              <div class="max-w-2xl mx-auto pt-2 flex flex-col sm:flex-row items-center gap-3">
+                <div class="relative w-full sm:flex-1 min-w-0 sm:min-w-[260px]">
+                  <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-indigo-400/70 text-xs pointer-events-none">
+                    <i class="fa-solid fa-location-crosshairs"></i>
+                  </span>
+                  <input type="text" id="upcoming-inline-location-input" placeholder="e.g. Washington, DC or 21701"
+                    class="w-full pl-8 pr-3 py-2 text-xs rounded-xl bg-slate-900/90 border border-slate-700/80 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition">
+                </div>
+                <div class="w-full sm:w-44 shrink-0">
+                  <select id="upcoming-inline-range-select"
+                    class="w-full px-3 py-2 text-xs rounded-xl bg-slate-900/90 border border-slate-700/80 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition cursor-pointer">
+                    <option value="">Any Distance</option>
+                    <option value="25">Within 25 miles</option>
+                    <option value="50">Within 50 miles</option>
+                    <option value="100" selected>Within 100 miles</option>
+                    <option value="250">Within 250 miles</option>
+                    <option value="500">Within 500 miles</option>
+                  </select>
+                </div>
+                <button type="button" onclick="saveInlineUpcomingArea()" id="upcoming-inline-save-btn"
+                  class="w-full sm:w-auto px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-bold shadow-md shadow-indigo-600/30 transition cursor-pointer flex items-center justify-center gap-1.5 shrink-0">
+                  <i class="fa-solid fa-arrows-rotate text-[11px]" id="upcoming-inline-save-icon"></i>
+                  <span>Save & Refresh</span>
+                </button>
+              </div>
+              {% else %}
+              <p class="text-xs text-slate-500 italic">No discovery location configured.</p>
+              {% endif %}
+            </div>
+            {% else %}
+            <div id="upcoming-shows-empty-state" class="col-span-full py-10 px-4 text-center rounded-2xl bg-slate-900/40 border border-dashed border-slate-800 space-y-3">
+              <div class="w-12 h-12 mx-auto rounded-full bg-slate-800/80 border border-slate-700 flex items-center justify-center text-slate-400">
+                <i class="fa-solid fa-calendar-xmark text-lg"></i>
+              </div>
+              <div class="space-y-1">
+                <h4 class="text-sm font-bold text-slate-200">No Upcoming Tour Dates Found</h4>
+                <p class="text-xs text-slate-400 max-w-md mx-auto">
+                  {% if upcoming_hidden_count > 0 %}
+                  You currently have {{ upcoming_hidden_count }} artist{% if upcoming_hidden_count > 1 %}s{% endif %} hidden from this view. Check your hidden artists configuration to unhide them.
+                  {% else %}
+                  We couldn't find any upcoming tour dates right now for your attended artists. Check back soon or click Refresh to re-query Bandsintown!
+                  {% endif %}
+                </p>
+              </div>
+              {% if not is_public_view and user.is_authenticated and is_owner %}
+              <div class="flex items-center justify-center gap-2 pt-1">
+                <button type="button" onclick="refreshUpcomingShows()" class="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer">
+                  <i class="fa-solid fa-arrows-rotate"></i>
+                  <span>Refresh Tour Dates</span>
+                </button>
+              </div>
+              {% endif %}
+            </div>
+            {% endif %}
+            {% endfor %}
+          </div>
+
+          <!-- Bottom View All Bar (when more than 3 shows exist) -->
+          <div id="upcoming-more-shows-bar" class="{% if upcoming_shows|length <= 3 %}hidden{% endif %} flex items-center justify-between p-3 rounded-xl bg-slate-900/50 border border-slate-800 text-xs">
+            <span class="text-slate-400 flex items-center gap-2">
+              <i class="fa-solid fa-circle-info text-indigo-400"></i>
+              <span>Showing first 3 shows. <strong class="text-slate-200"><span id="upcoming-more-count">{{ upcoming_shows|length|add:"-3" }}</span> more show{% if upcoming_shows|length > 4 %}s{% endif %}</strong> available.</span>
+            </span>
+            <button type="button" onclick="openUpcomingTableModal()" class="px-3 py-1.5 rounded-lg bg-indigo-600/30 hover:bg-indigo-600/50 border border-indigo-500/40 text-indigo-200 hover:text-white font-semibold transition flex items-center gap-1.5 cursor-pointer">
+              <i class="fa-solid fa-table-list text-xs"></i>
+              <span>Open Full Table</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -7912,13 +8374,13 @@
 
     function goToOnboardingStep(step) {
       if (step < 1) step = 1;
-      if (step > 4) step = 4;
+      if (step > 5) step = 5;
       currentOnboardingStep = step;
 
       const stepNumEl = document.getElementById('onboarding-step-num');
       if (stepNumEl) stepNumEl.innerText = step;
 
-      for (let i = 1; i <= 4; i++) {
+      for (let i = 1; i <= 5; i++) {
         const pane = document.getElementById(`onboarding-step-${i}`);
         const pill = document.getElementById(`step-pill-${i}`);
         if (pane) {
@@ -7949,7 +8411,7 @@
       }
 
       if (skipBtn) {
-        if (step === 4) skipBtn.classList.add('hidden');
+        if (step === 5) skipBtn.classList.add('hidden');
         else {
           skipBtn.classList.remove('hidden');
           skipBtn.innerText = 'Skip Step';
@@ -7959,16 +8421,16 @@
       if (nextBtn) {
         if (step === 1) {
           nextBtn.innerHTML = '<span>Save & Next</span><i class="fa-solid fa-chevron-right text-[10px]"></i>';
-        } else if (step === 2) {
-          nextBtn.innerHTML = '<span>Next Step</span><i class="fa-solid fa-chevron-right text-[10px]"></i>';
-        } else if (step === 3) {
+        } else if (step === 2 || step === 3) {
           nextBtn.innerHTML = '<span>Next Step</span><i class="fa-solid fa-chevron-right text-[10px]"></i>';
         } else if (step === 4) {
+          nextBtn.innerHTML = '<span>Save & Next</span><i class="fa-solid fa-chevron-right text-[10px]"></i>';
+        } else if (step === 5) {
           nextBtn.innerHTML = '<i class="fa-solid fa-circle-check text-xs mr-1"></i><span>Finish & View Overview</span>';
         }
       }
 
-      if (step === 4) {
+      if (step === 5) {
         loadOnboardingFriends();
       }
     }
@@ -7980,7 +8442,7 @@
     }
 
     function onboardingSkipStep() {
-      if (currentOnboardingStep < 4) {
+      if (currentOnboardingStep < 5) {
         goToOnboardingStep(currentOnboardingStep + 1);
       } else {
         closeOnboardingModal();
@@ -7995,7 +8457,62 @@
       } else if (currentOnboardingStep === 3) {
         goToOnboardingStep(4);
       } else if (currentOnboardingStep === 4) {
+        await saveOnboardingStep4();
+      } else if (currentOnboardingStep === 5) {
         closeOnboardingModal();
+      }
+    }
+
+    async function saveOnboardingStep4() {
+      const locInput = document.getElementById('onboarding-location-input');
+      const radiusSelect = document.getElementById('onboarding-radius-select');
+      const alertBox = document.getElementById('onboarding-step4-alert');
+      const nextBtn = document.getElementById('onboarding-next-btn');
+
+      const location = locInput ? locInput.value.trim() : '';
+      const radius = radiusSelect ? radiusSelect.value : '';
+
+      const originalHtml = nextBtn ? nextBtn.innerHTML : '';
+      if (nextBtn) {
+        nextBtn.disabled = true;
+        nextBtn.innerHTML = '<i class="fa-solid fa-spinner animate-spin text-xs"></i> Saving...';
+      }
+
+      try {
+        const res = await fetch('/api/profile/update/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+          },
+          body: JSON.stringify({
+            upcoming_location: location,
+            upcoming_radius_miles: radius
+          })
+        });
+        const data = await res.json();
+        if (res.ok && data.status === 'ok') {
+          // Sync with dashboard config modal inputs
+          const dashLoc = document.getElementById('upcoming-location-input');
+          const dashRad = document.getElementById('upcoming-range-select');
+          if (dashLoc) dashLoc.value = location;
+          if (dashRad) dashRad.value = radius;
+          updateUpcomingLocationBadge(location, radius);
+          goToOnboardingStep(5);
+        } else {
+          if (alertBox) {
+            alertBox.className = 'p-3 rounded-xl text-xs bg-rose-500/20 border border-rose-500/30 text-rose-300';
+            alertBox.innerText = data.error || 'Failed to save area preferences.';
+            alertBox.classList.remove('hidden');
+          }
+        }
+      } catch (err) {
+        goToOnboardingStep(5);
+      } finally {
+        if (nextBtn) {
+          nextBtn.disabled = false;
+          nextBtn.innerHTML = originalHtml;
+        }
       }
     }
 
@@ -8532,6 +9049,744 @@
           }
         }
       }
+    }
+
+    // -------------------------------------------------------------
+    // UPCOMING SHOWS & CONFIGURATION MODAL
+    // -------------------------------------------------------------
+    let upcomingShowsData = {{ upcoming_shows_json|default:'[]'|safe }};
+    let upcomingSeenArtists = {{ upcoming_seen_artists_json|default:'[]'|safe }};
+    let currentUpcomingLocation = "{{ upcoming_location|default:''|escapejs }}";
+    let currentUpcomingRadius = "{{ upcoming_radius_miles|default:''|escapejs }}";
+    const isUpcomingOwner = {% if not is_public_view and user.is_authenticated and is_owner %}true{% else %}false{% endif %};
+    let upcomingModalFilter = 'all';
+
+    function openUpcomingConfigModal() {
+      const modal = document.getElementById('upcoming-config-modal');
+      if (!modal) return;
+      modal.classList.remove('hidden');
+      renderUpcomingModalArtistList();
+      const searchInput = document.getElementById('upcoming-modal-search');
+      if (searchInput) {
+        searchInput.value = '';
+        searchInput.focus();
+      }
+    }
+
+    function closeUpcomingConfigModal() {
+      const modal = document.getElementById('upcoming-config-modal');
+      if (!modal) return;
+      modal.classList.add('hidden');
+    }
+
+    function setUpcomingModalFilter(type) {
+      upcomingModalFilter = type;
+      const allBtn = document.getElementById('upcoming-filter-all-btn');
+      const visBtn = document.getElementById('upcoming-filter-visible-btn');
+      const hidBtn = document.getElementById('upcoming-filter-hidden-btn');
+
+      const activeClass = 'px-2.5 py-0.5 rounded-md font-semibold bg-indigo-600 text-white transition';
+      const inactiveClass = 'px-2.5 py-0.5 rounded-md font-medium text-slate-400 hover:text-slate-200 transition';
+
+      if (allBtn) allBtn.className = type === 'all' ? activeClass : inactiveClass;
+      if (visBtn) visBtn.className = type === 'visible' ? activeClass : inactiveClass;
+      if (hidBtn) hidBtn.className = type === 'hidden' ? activeClass : inactiveClass;
+
+      renderUpcomingModalArtistList();
+    }
+
+    function renderUpcomingModalArtistList() {
+      const listEl = document.getElementById('upcoming-modal-artist-list');
+      if (!listEl) return;
+
+      const q = (document.getElementById('upcoming-modal-search')?.value || '').toLowerCase().trim();
+      
+      const totalCount = upcomingSeenArtists.length;
+      const hiddenCount = upcomingSeenArtists.filter(a => a.is_hidden).length;
+      const visibleCount = totalCount - hiddenCount;
+
+      const totalEl = document.getElementById('upcoming-modal-total-count');
+      const visEl = document.getElementById('upcoming-modal-visible-count');
+      const hidEl = document.getElementById('upcoming-modal-hidden-count');
+      const footerStats = document.getElementById('upcoming-modal-footer-stats');
+
+      if (totalEl) totalEl.innerText = totalCount;
+      if (visEl) visEl.innerText = visibleCount;
+      if (hidEl) hidEl.innerText = hiddenCount;
+      if (footerStats) {
+        footerStats.innerHTML = `<span class="text-emerald-400 font-semibold">${visibleCount} visible</span> &bull; <span class="text-rose-400 font-semibold">${hiddenCount} hidden</span> of ${totalCount} total artists`;
+      }
+
+      // Filter artists
+      const filtered = upcomingSeenArtists.filter(a => {
+        const matchesQuery = !q || a.name.toLowerCase().includes(q);
+        if (!matchesQuery) return false;
+        if (upcomingModalFilter === 'visible') return !a.is_hidden;
+        if (upcomingModalFilter === 'hidden') return !!a.is_hidden;
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        listEl.innerHTML = `
+          <div class="py-8 text-center text-xs text-slate-500 italic">
+            ${upcomingSeenArtists.length === 0 ? 'No artists recorded in concert history yet.' : 'No artists match your search/filter.'}
+          </div>
+        `;
+        return;
+      }
+
+      let html = '';
+      filtered.forEach(a => {
+        const isHidden = !!a.is_hidden;
+        const escName = a.name.replace(/'/g, "\\'");
+        html += `
+          <div class="flex items-center justify-between py-2 px-1 hover:bg-slate-800/30 rounded-lg transition group">
+            <div class="min-w-0 pr-2">
+              <span class="text-xs font-bold text-white block truncate">${escapeHtml(a.name)}</span>
+              <span class="text-[10px] text-slate-400 font-mono">Seen ${a.count}x live</span>
+            </div>
+            <button type="button" onclick="toggleModalArtistVisibility('${escName}')"
+              class="px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shrink-0 ${isHidden ? 'bg-rose-500/15 border border-rose-500/30 text-rose-300 hover:bg-rose-500/25' : 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/25'}">
+              <i class="fa-solid ${isHidden ? 'fa-eye-slash text-[11px]' : 'fa-eye text-[11px]'}"></i>
+              <span>${isHidden ? 'Hidden' : 'Visible'}</span>
+            </button>
+          </div>
+        `;
+      });
+      listEl.innerHTML = html;
+    }
+
+    function filterUpcomingModalArtists() {
+      renderUpcomingModalArtistList();
+    }
+
+    function clearUpcomingLocation() {
+      const locInput = document.getElementById('upcoming-location-input');
+      const rangeSelect = document.getElementById('upcoming-range-select');
+      if (locInput) locInput.value = '';
+      if (rangeSelect) rangeSelect.value = '';
+    }
+
+    async function saveUpcomingModalSettings() {
+      const saveBtn = document.getElementById('upcoming-modal-save-btn');
+      const locInput = document.getElementById('upcoming-location-input');
+      const rangeSelect = document.getElementById('upcoming-range-select');
+      
+      const loc = (locInput?.value || '').trim();
+      const radius = rangeSelect?.value || '';
+      const hiddenArtists = upcomingSeenArtists.filter(a => a.is_hidden).map(a => a.name);
+
+      if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<i class="fa-solid fa-spinner animate-spin text-[11px]"></i><span>Saving...</span>';
+      }
+
+      try {
+        const res = await fetch('/api/upcoming/settings/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+          },
+          body: JSON.stringify({
+            location: loc,
+            radius_miles: radius,
+            hidden_artists: hiddenArtists
+          })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          currentUpcomingLocation = data.location !== undefined ? data.location : loc;
+          currentUpcomingRadius = data.radius_miles !== undefined ? data.radius_miles : radius;
+          upcomingShowsData = data.upcoming_shows || [];
+          upcomingSeenArtists = data.seen_artists || [];
+          renderUpcomingShowsGrid(upcomingShowsData);
+          updateUpcomingOverviewStats();
+          updateUpcomingLocationBadge(currentUpcomingLocation, currentUpcomingRadius);
+          showUpcomingModalAlert('Preferences saved successfully!', 'success');
+          setTimeout(() => closeUpcomingConfigModal(), 700);
+        } else {
+          showUpcomingModalAlert(data.error || 'Failed to save settings', 'error');
+        }
+      } catch (err) {
+        console.error(err);
+        showUpcomingModalAlert('Network error saving settings', 'error');
+      } finally {
+        if (saveBtn) {
+          saveBtn.disabled = false;
+          saveBtn.innerHTML = '<i class="fa-solid fa-check text-[11px]"></i><span>Save & Apply</span>';
+        }
+      }
+    }
+
+    function updateUpcomingLocationBadge(loc, radius) {
+      const locBtn = document.getElementById('upcoming-overview-location-btn');
+      const locText = document.getElementById('upcoming-overview-location-text');
+      if (locBtn && locText) {
+        if (loc) {
+          locText.innerText = radius ? `Within ${radius} mi of ${loc}` : loc;
+          locBtn.classList.remove('hidden');
+        } else {
+          locBtn.classList.add('hidden');
+        }
+      }
+    }
+
+    async function toggleModalArtistVisibility(artistName) {
+      const artObj = upcomingSeenArtists.find(a => a.name.toLowerCase() === artistName.toLowerCase());
+      const newHiddenState = artObj ? !artObj.is_hidden : true;
+      
+      // Optimistic update
+      if (artObj) {
+        artObj.is_hidden = newHiddenState;
+        renderUpcomingModalArtistList();
+        updateUpcomingOverviewStats();
+      }
+
+      try {
+        const res = await fetch('/api/upcoming/toggle-hidden/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+          },
+          body: JSON.stringify({ artist: artistName, is_hidden: newHiddenState })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          refreshUpcomingShowsListInMemory();
+        } else {
+          showUpcomingModalAlert(data.error || 'Failed to update visibility', 'error');
+        }
+      } catch (err) {
+        console.error(err);
+        showUpcomingModalAlert('Network error saving preference', 'error');
+      }
+    }
+
+    async function bulkSetUpcomingVisibility(hideAll) {
+      upcomingSeenArtists.forEach(a => {
+        a.is_hidden = hideAll;
+      });
+      renderUpcomingModalArtistList();
+      updateUpcomingOverviewStats();
+
+      const hiddenNames = hideAll ? upcomingSeenArtists.map(a => a.name) : [];
+      const locInput = document.getElementById('upcoming-location-input');
+      const rangeSelect = document.getElementById('upcoming-range-select');
+
+      try {
+        const res = await fetch('/api/upcoming/settings/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+          },
+          body: JSON.stringify({
+            hidden_artists: hiddenNames,
+            location: (locInput?.value || '').trim(),
+            radius_miles: rangeSelect?.value || ''
+          })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          upcomingShowsData = data.upcoming_shows || [];
+          renderUpcomingShowsGrid(upcomingShowsData);
+        } else {
+          showUpcomingModalAlert(data.error || 'Failed to bulk update', 'error');
+        }
+      } catch (err) {
+        console.error(err);
+        showUpcomingModalAlert('Network error saving bulk preferences', 'error');
+      }
+    }
+
+    async function inlineHideUpcomingArtist(artistName) {
+      const artObj = upcomingSeenArtists.find(a => a.name.toLowerCase() === artistName.toLowerCase());
+      if (artObj) artObj.is_hidden = true;
+      
+      // Animate card slide out
+      const cards = document.querySelectorAll(`.upcoming-show-card[data-artist="${artistName.toLowerCase()}"]`);
+      cards.forEach(c => {
+        c.style.transition = 'all 0.3s ease';
+        c.style.opacity = '0';
+        c.style.transform = 'scale(0.95)';
+        setTimeout(() => c.remove(), 300);
+      });
+
+      updateUpcomingOverviewStats();
+
+      try {
+        await fetch('/api/upcoming/toggle-hidden/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+          },
+          body: JSON.stringify({ artist: artistName, is_hidden: true })
+        });
+        refreshUpcomingShowsListInMemory();
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    function showUpcomingModalAlert(msg, type = 'info') {
+      const el = document.getElementById('upcoming-modal-alert');
+      if (!el) return;
+      el.className = `p-3 rounded-xl text-xs ${type === 'error' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'}`;
+      el.innerText = msg;
+      el.classList.remove('hidden');
+      setTimeout(() => el.classList.add('hidden'), 3500);
+    }
+
+    function updateUpcomingOverviewStats() {
+      const hiddenCount = upcomingSeenArtists.filter(a => a.is_hidden).length;
+      const hiddenBtn = document.getElementById('upcoming-overview-hidden-btn');
+      const hiddenCountEl = document.getElementById('upcoming-overview-hidden-count');
+
+      if (hiddenBtn && hiddenCountEl) {
+        hiddenCountEl.innerText = hiddenCount;
+        if (hiddenCount > 0) {
+          hiddenBtn.classList.remove('hidden');
+        } else {
+          hiddenBtn.classList.add('hidden');
+        }
+      }
+    }
+
+    function filterUpcomingOverviewCards() {
+      const q = (document.getElementById('upcoming-overview-search')?.value || '').toLowerCase().trim();
+      const cards = document.querySelectorAll('.upcoming-show-card');
+      let visibleCount = 0;
+
+      cards.forEach(card => {
+        const artist = card.getAttribute('data-artist') || '';
+        const venue = card.getAttribute('data-venue') || '';
+        const city = card.getAttribute('data-city') || '';
+        const country = card.getAttribute('data-country') || '';
+
+        const matches = !q || artist.includes(q) || venue.includes(q) || city.includes(q) || country.includes(q);
+        if (matches) {
+          card.classList.remove('hidden');
+          visibleCount++;
+        } else {
+          card.classList.add('hidden');
+        }
+      });
+
+      const countBadge = document.getElementById('upcoming-overview-count-badge');
+      if (countBadge) {
+        countBadge.innerText = `${visibleCount} shows`;
+      }
+    }
+
+    async function refreshUpcomingShows() {
+      const icon = document.getElementById('upcoming-refresh-icon');
+      if (icon) icon.classList.add('animate-spin');
+
+      try {
+        const res = await fetch('/api/upcoming/shows/?refresh=true');
+        const data = await res.json();
+        if (res.ok && data.success) {
+          if (data.user_location !== undefined) {
+            currentUpcomingLocation = data.user_location;
+            currentUpcomingRadius = data.user_radius_miles;
+          } else if (data.location !== undefined) {
+            currentUpcomingLocation = data.location;
+            currentUpcomingRadius = data.radius_miles;
+          }
+          upcomingShowsData = data.upcoming_shows || [];
+          upcomingSeenArtists = data.seen_artists || [];
+          renderUpcomingShowsGrid(upcomingShowsData);
+          updateUpcomingOverviewStats();
+          updateUpcomingLocationBadge(currentUpcomingLocation, currentUpcomingRadius);
+        }
+      } catch (e) {
+        console.error('Failed to refresh upcoming shows:', e);
+      } finally {
+        if (icon) icon.classList.remove('animate-spin');
+      }
+    }
+
+    async function saveInlineUpcomingArea() {
+      const locInput = document.getElementById('upcoming-inline-location-input');
+      const rangeSelect = document.getElementById('upcoming-inline-range-select');
+      const saveBtn = document.getElementById('upcoming-inline-save-btn');
+      const icon = document.getElementById('upcoming-inline-save-icon');
+
+      const loc = (locInput?.value || '').trim();
+      const radius = rangeSelect?.value || '';
+
+      if (!loc) {
+        if (locInput) {
+          locInput.focus();
+          locInput.classList.add('border-rose-500');
+          setTimeout(() => locInput.classList.remove('border-rose-500'), 1500);
+        }
+        return;
+      }
+
+      if (saveBtn) {
+        saveBtn.disabled = true;
+        if (icon) icon.className = 'fa-solid fa-spinner animate-spin text-[11px]';
+      }
+
+      try {
+        const hiddenArtists = upcomingSeenArtists.filter(a => a.is_hidden).map(a => a.name);
+        const res = await fetch('/api/upcoming/settings/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+          },
+          body: JSON.stringify({
+            location: loc,
+            radius_miles: radius,
+            hidden_artists: hiddenArtists
+          })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          currentUpcomingLocation = data.location !== undefined ? data.location : loc;
+          currentUpcomingRadius = data.radius_miles !== undefined ? data.radius_miles : radius;
+          upcomingShowsData = data.upcoming_shows || [];
+          upcomingSeenArtists = data.seen_artists || [];
+          
+          // Sync modal inputs as well
+          const modalLoc = document.getElementById('upcoming-location-input');
+          const modalRange = document.getElementById('upcoming-range-select');
+          if (modalLoc) modalLoc.value = currentUpcomingLocation;
+          if (modalRange) modalRange.value = currentUpcomingRadius;
+
+          updateUpcomingLocationBadge(currentUpcomingLocation, currentUpcomingRadius);
+          renderUpcomingShowsGrid(upcomingShowsData);
+          updateUpcomingOverviewStats();
+        } else {
+          alert(data.error || 'Failed to save location');
+        }
+      } catch (err) {
+        console.error('Error saving upcoming area:', err);
+        alert('Network error saving discovery location.');
+      } finally {
+        if (saveBtn) {
+          saveBtn.disabled = false;
+          if (icon) icon.className = 'fa-solid fa-arrows-rotate text-[11px]';
+        }
+      }
+    }
+
+    function refreshUpcomingShowsListInMemory() {
+      const hiddenSet = new Set(upcomingSeenArtists.filter(a => a.is_hidden).map(a => a.name.toLowerCase()));
+      const filteredShows = upcomingShowsData.filter(s => !hiddenSet.has(s.artist.toLowerCase()));
+      renderUpcomingShowsGrid(filteredShows);
+      renderUpcomingShowsTable(filteredShows);
+    }
+
+    function openUpcomingTableModal() {
+      const modal = document.getElementById('upcoming-table-modal');
+      if (!modal) return;
+      modal.classList.remove('hidden');
+      renderUpcomingShowsTable(upcomingShowsData);
+      const searchInput = document.getElementById('upcoming-table-search');
+      if (searchInput) {
+        searchInput.value = '';
+        searchInput.focus();
+      }
+    }
+
+    function closeUpcomingTableModal() {
+      const modal = document.getElementById('upcoming-table-modal');
+      if (!modal) return;
+      modal.classList.add('hidden');
+    }
+
+    function filterUpcomingTableRows() {
+      const q = (document.getElementById('upcoming-table-search')?.value || '').toLowerCase().trim();
+      const rows = document.querySelectorAll('.upcoming-table-row');
+      let visibleCount = 0;
+
+      rows.forEach(row => {
+        const text = (row.getAttribute('data-search') || '').toLowerCase();
+        const matches = !q || text.includes(q);
+        if (matches) {
+          row.classList.remove('hidden');
+          visibleCount++;
+        } else {
+          row.classList.add('hidden');
+        }
+      });
+
+      const footer = document.getElementById('upcoming-table-modal-footer');
+      if (footer) {
+        footer.innerText = `Showing ${visibleCount} show${visibleCount === 1 ? '' : 's'}`;
+      }
+    }
+
+    function renderUpcomingShowsTable(shows) {
+      const tbody = document.getElementById('upcoming-table-tbody');
+      const countEl = document.getElementById('upcoming-table-modal-count');
+      const footer = document.getElementById('upcoming-table-modal-footer');
+      
+      const hiddenSet = new Set(upcomingSeenArtists.filter(a => a.is_hidden).map(a => a.name.toLowerCase()));
+      const activeShows = (shows || []).filter(s => !hiddenSet.has(s.artist.toLowerCase()));
+
+      if (countEl) countEl.innerText = `${activeShows.length} show${activeShows.length === 1 ? '' : 's'}`;
+      if (footer) footer.innerText = `Showing ${activeShows.length} show${activeShows.length === 1 ? '' : 's'}`;
+      if (!tbody) return;
+
+      if (!activeShows || activeShows.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6" class="py-12 text-center text-slate-400">
+              <div class="space-y-2">
+                <i class="fa-solid fa-calendar-xmark text-2xl text-slate-500"></i>
+                <p class="font-medium text-slate-300">No upcoming tour dates found</p>
+                <p class="text-xs text-slate-500">Try adjusting your location, search radius, or unhiding artists.</p>
+              </div>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      let html = '';
+      activeShows.forEach(show => {
+        const escArtist = show.artist.replace(/'/g, "\\'");
+        const searchStr = `${show.artist} ${show.venue} ${show.city} ${show.region} ${show.country} ${show.date_display} ${(show.other_lineup || []).join(' ')}`.toLowerCase();
+        html += `
+          <tr class="upcoming-table-row hover:bg-slate-800/40 transition" data-search="${escapeHtml(searchStr)}">
+            <td class="px-3 py-3 font-medium text-slate-200 whitespace-nowrap">
+              <div class="flex items-center gap-1.5">
+                <i class="fa-solid fa-calendar-day text-indigo-400 text-[11px]"></i>
+                <span>${escapeHtml(show.date_display)}</span>
+              </div>
+              ${show.time_display ? `<div class="text-[11px] text-slate-400 pl-4">${escapeHtml(show.time_display)}</div>` : ''}
+              ${show.rel_badge ? `
+                <span class="inline-block mt-1 px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-300 text-[10px] font-semibold border border-amber-500/30">
+                  ${escapeHtml(show.rel_badge)}
+                </span>` : ''}
+            </td>
+            <td class="px-3 py-3">
+              <button onclick="closeUpcomingTableModal(); jumpToSongInDrilldown('${escArtist}', '');" class="font-bold text-white hover:text-indigo-300 text-left transition block">
+                ${escapeHtml(show.artist)}
+              </button>
+              <span class="inline-block mt-0.5 px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 text-[10px] font-bold border border-indigo-500/30">
+                Seen ${show.times_seen}x live
+              </span>
+            </td>
+            <td class="px-3 py-3 text-slate-300">
+              <div class="font-medium text-slate-200">${escapeHtml(show.venue || 'TBA')}</div>
+              <div class="text-[11px] text-slate-400 flex items-center gap-1 mt-0.5">
+                <i class="fa-solid fa-location-dot text-[10px] text-slate-500"></i>
+                <span>${escapeHtml(show.location_display)}</span>
+              </div>
+            </td>
+            <td class="px-3 py-3 whitespace-nowrap">
+              ${show.distance_display ? `
+                <span class="px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-300 text-[11px] font-semibold border border-emerald-500/30">
+                  <i class="fa-solid fa-route text-[9px] mr-1"></i>${escapeHtml(show.distance_display)}
+                </span>` : '<span class="text-slate-500 text-xs">—</span>'}
+            </td>
+            <td class="px-3 py-3 text-slate-400 max-w-xs">
+              ${show.other_lineup && show.other_lineup.length ? `
+                <div class="text-[11px] truncate" title="Lineup: ${escapeHtml(show.other_lineup.join(', '))}">
+                  <strong class="text-slate-300">With:</strong> ${escapeHtml(show.other_lineup.join(', '))}
+                </div>` : '<span class="text-slate-500 text-xs">Headliner</span>'}
+            </td>
+            <td class="px-3 py-3 text-right whitespace-nowrap">
+              <a href="${show.ticket_url || show.event_url}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 py-1 px-2.5 rounded-lg bg-indigo-600/30 hover:bg-indigo-600/50 border border-indigo-500/40 text-indigo-200 hover:text-white text-xs font-semibold transition shadow-sm">
+                <i class="fa-solid fa-ticket text-[10px]"></i>
+                <span>Tickets</span>
+                <i class="fa-solid fa-arrow-up-right-from-square text-[9px] opacity-70"></i>
+              </a>
+            </td>
+          </tr>
+        `;
+      });
+      tbody.innerHTML = html;
+    }
+
+    function renderUpcomingShowsGrid(shows) {
+      const grid = document.getElementById('upcoming-shows-grid');
+      const countBadge = document.getElementById('upcoming-overview-count-badge');
+      const viewAllCount = document.getElementById('upcoming-view-all-count');
+      const moreBar = document.getElementById('upcoming-more-shows-bar');
+      const moreCountEl = document.getElementById('upcoming-more-count');
+      const toolbar = document.getElementById('upcoming-overview-toolbar');
+
+      const hiddenSet = new Set(upcomingSeenArtists.filter(a => a.is_hidden).map(a => a.name.toLowerCase()));
+      const activeShows = (shows || []).filter(s => !hiddenSet.has(s.artist.toLowerCase()));
+
+      if (countBadge) {
+        countBadge.innerText = `${activeShows.length} show${activeShows.length === 1 ? '' : 's'}`;
+      }
+      if (viewAllCount) {
+        viewAllCount.innerText = `(${activeShows.length})`;
+      }
+
+      if (toolbar) {
+        if (!currentUpcomingLocation) {
+          toolbar.classList.add('hidden');
+        } else {
+          toolbar.classList.remove('hidden');
+        }
+      }
+
+      if (moreBar && moreCountEl) {
+        if (activeShows.length > 3) {
+          moreCountEl.innerText = `${activeShows.length - 3}`;
+          moreBar.classList.remove('hidden');
+        } else {
+          moreBar.classList.add('hidden');
+        }
+      }
+
+      if (!grid) return;
+
+      if (!currentUpcomingLocation) {
+        if (!isUpcomingOwner) {
+          grid.innerHTML = `
+            <div id="upcoming-shows-setup-card" class="col-span-full py-10 px-4 text-center rounded-2xl bg-slate-900/40 border border-dashed border-slate-800 space-y-2">
+              <div class="w-12 h-12 mx-auto rounded-full bg-slate-800/80 border border-slate-700 flex items-center justify-center text-slate-400">
+                <i class="fa-solid fa-location-dot text-lg"></i>
+              </div>
+              <h4 class="text-sm font-bold text-slate-200">No Discovery Location Set</h4>
+              <p class="text-xs text-slate-400 max-w-md mx-auto">No location has been configured for upcoming tour dates.</p>
+            </div>
+          `;
+          return;
+        }
+        grid.innerHTML = `
+          <div id="upcoming-shows-setup-card" class="col-span-full p-6 sm:p-8 rounded-2xl glass-card shadow-xl space-y-4 text-center border">
+            <div class="w-12 h-12 mx-auto rounded-full bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shadow-sm">
+              <i class="fa-solid fa-location-dot text-xl"></i>
+            </div>
+            <div class="space-y-1.5 max-w-lg mx-auto">
+              <h4 class="text-base font-bold text-white">Set Your Discovery Area</h4>
+              <p class="text-xs text-slate-300 leading-relaxed">
+                Enter your home city or zip code and search radius to discover upcoming concerts from artists you've seen live.
+              </p>
+            </div>
+            <div class="max-w-2xl mx-auto pt-2 flex flex-col sm:flex-row items-center gap-3">
+              <div class="relative w-full sm:flex-1 min-w-0 sm:min-w-[260px]">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-indigo-400/70 text-xs pointer-events-none">
+                  <i class="fa-solid fa-location-crosshairs"></i>
+                </span>
+                <input type="text" id="upcoming-inline-location-input" placeholder="e.g. Washington, DC or 21701"
+                  class="w-full pl-8 pr-3 py-2 text-xs rounded-xl bg-slate-900/90 border border-slate-700/80 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition">
+              </div>
+              <div class="w-full sm:w-44 shrink-0">
+                <select id="upcoming-inline-range-select"
+                  class="w-full px-3 py-2 text-xs rounded-xl bg-slate-900/90 border border-slate-700/80 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition cursor-pointer">
+                  <option value="">Any Distance</option>
+                  <option value="25">Within 25 miles</option>
+                  <option value="50">Within 50 miles</option>
+                  <option value="100" selected>Within 100 miles</option>
+                  <option value="250">Within 250 miles</option>
+                  <option value="500">Within 500 miles</option>
+                </select>
+              </div>
+              <button type="button" onclick="saveInlineUpcomingArea()" id="upcoming-inline-save-btn"
+                class="w-full sm:w-auto px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-bold shadow-md shadow-indigo-600/30 transition cursor-pointer flex items-center justify-center gap-1.5 shrink-0">
+                <i class="fa-solid fa-arrows-rotate text-[11px]" id="upcoming-inline-save-icon"></i>
+                <span>Save & Refresh</span>
+              </button>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      if (!activeShows || activeShows.length === 0) {
+        const hiddenCount = upcomingSeenArtists.filter(a => a.is_hidden).length;
+        grid.innerHTML = `
+          <div id="upcoming-shows-empty-state" class="col-span-full py-10 px-4 text-center rounded-2xl bg-slate-900/40 border border-dashed border-slate-800 space-y-3">
+            <div class="w-12 h-12 mx-auto rounded-full bg-slate-800/80 border border-slate-700 flex items-center justify-center text-slate-400">
+              <i class="fa-solid fa-calendar-xmark text-lg"></i>
+            </div>
+            <div class="space-y-1">
+              <h4 class="text-sm font-bold text-slate-200">No Upcoming Tour Dates Found</h4>
+              <p class="text-xs text-slate-400 max-w-md mx-auto">
+                ${hiddenCount > 0 ? `You currently have ${hiddenCount} artist${hiddenCount > 1 ? 's' : ''} hidden from this view. Check your hidden artists configuration to unhide them.` : 'We couldn\'t find any upcoming tour dates right now for your attended artists. Check back soon or click Refresh to re-query Bandsintown!'}
+              </p>
+            </div>
+            ${isUpcomingOwner ? `
+            <div class="flex items-center justify-center gap-2 pt-1">
+              <button type="button" onclick="refreshUpcomingShows()" class="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer">
+                <i class="fa-solid fa-arrows-rotate"></i>
+                <span>Refresh Tour Dates</span>
+              </button>
+            </div>` : ''}
+          </div>
+        `;
+        return;
+      }
+
+      // Render top 3 shows only (1 row max on 3-col grid)
+      const displayShows = activeShows.slice(0, 3);
+      let html = '';
+      displayShows.forEach(show => {
+        const escArtist = show.artist.replace(/'/g, "\\'");
+        html += `
+          <div class="upcoming-show-card p-4 rounded-xl bg-slate-900/70 border border-slate-800/80 hover:border-indigo-500/40 hover:bg-slate-800/50 transition-all flex flex-col justify-between space-y-3 group"
+               data-artist="${show.artist.toLowerCase()}" data-venue="${(show.venue || '').toLowerCase()}" data-city="${(show.city || '').toLowerCase()}" data-country="${(show.country || '').toLowerCase()}">
+            
+            <div class="space-y-2">
+              <div class="flex items-start justify-between gap-2">
+                <div class="min-w-0">
+                  <button onclick="jumpToSongInDrilldown('${escArtist}', '');" class="text-sm font-bold text-white hover:text-indigo-300 text-left truncate block max-w-full">
+                    ${escapeHtml(show.artist)}
+                  </button>
+                  <div class="flex flex-wrap items-center gap-1.5 mt-0.5">
+                    <span class="px-1.5 py-0.5 rounded-md bg-indigo-500/20 text-indigo-300 text-[10px] font-bold border border-indigo-500/30">
+                      Seen ${show.times_seen}x live
+                    </span>
+                    ${show.rel_badge ? `
+                    <span class="px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-300 text-[10px] font-semibold border border-amber-500/30">
+                      ${escapeHtml(show.rel_badge)}
+                    </span>` : ''}
+                    ${show.distance_display ? `
+                    <span class="px-1.5 py-0.5 rounded-md bg-emerald-500/15 text-emerald-300 text-[10px] font-semibold border border-emerald-500/30">
+                      <i class="fa-solid fa-route text-[9px] mr-0.5"></i>${escapeHtml(show.distance_display)}
+                    </span>` : ''}
+                  </div>
+                </div>
+
+                <button type="button" onclick="inlineHideUpcomingArtist('${escArtist}')" class="opacity-0 group-hover:opacity-100 transition p-1 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg text-xs cursor-pointer" title="Hide this artist from upcoming shows">
+                  <i class="fa-solid fa-eye-slash"></i>
+                </button>
+              </div>
+
+              <div class="text-xs text-slate-300 space-y-1">
+                <div class="flex items-center gap-1.5 font-medium text-slate-200">
+                  <i class="fa-solid fa-calendar-day text-indigo-400 text-[11px] w-3.5"></i>
+                  <span>${escapeHtml(show.date_display)}${show.time_display ? ' • ' + escapeHtml(show.time_display) : ''}</span>
+                </div>
+                <div class="flex items-start gap-1.5 text-slate-400">
+                  <i class="fa-solid fa-location-dot text-indigo-400 text-[11px] w-3.5 mt-0.5"></i>
+                  <span class="truncate">${escapeHtml(show.venue)} — ${escapeHtml(show.location_display)}</span>
+                </div>
+              </div>
+
+              ${show.other_lineup && show.other_lineup.length ? `
+              <div class="text-[11px] text-slate-400 flex items-center gap-1 truncate pt-0.5">
+                <i class="fa-solid fa-users text-[10px] text-slate-500"></i>
+                <span class="truncate">With: ${escapeHtml(show.other_lineup.join(', '))}</span>
+              </div>` : ''}
+            </div>
+
+            <div class="pt-2 border-t border-slate-800/60 flex items-center justify-between gap-2">
+              <a href="${show.ticket_url || show.event_url}" target="_blank" rel="noopener noreferrer" class="flex-1 py-1.5 px-3 rounded-lg bg-indigo-600/30 hover:bg-indigo-600/50 border border-indigo-500/40 text-indigo-200 hover:text-white text-xs font-semibold transition flex items-center justify-center gap-1.5">
+                <i class="fa-solid fa-ticket text-[11px]"></i>
+                <span>Get Tickets / Info</span>
+                <i class="fa-solid fa-arrow-up-right-from-square text-[9px] opacity-70"></i>
+              </a>
+            </div>
+          </div>
+        `;
+      });
+      grid.innerHTML = html;
     }
 
     document.addEventListener('DOMContentLoaded', () => {

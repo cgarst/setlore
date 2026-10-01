@@ -414,5 +414,204 @@ class AutocompleteAndCSVTests(TestCase):
         self.assertTrue(data['online_fallback'])
 
 
+class UpcomingShowsTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='progfan', password='password123')
+        self.client = Client()
+        self.client.login(username='progfan', password='password123')
+
+        self.art_rush = Artist.objects.create(name='Rush', normalized_name='rush')
+        self.art_yes = Artist.objects.create(name='Yes', normalized_name='yes')
+        self.art_genesis = Artist.objects.create(name='Genesis', normalized_name='genesis')
+
+        self.venue = Venue.objects.create(name='Madison Square Garden', city='New York', state='NY')
+
+        # Create concert for Rush (2x) and Yes (1x)
+        c1 = Concert.objects.create(
+            user=self.user,
+            date=date(2023, 6, 1),
+            raw_date='06-01-2023',
+            year=2023,
+            venue=self.venue,
+            primary_artist='Rush',
+            raw_artists='Rush'
+        )
+        ConcertArtist.objects.create(concert=c1, artist=self.art_rush, billing_order=0)
+
+        c2 = Concert.objects.create(
+            user=self.user,
+            date=date(2024, 8, 15),
+            raw_date='08-15-2024',
+            year=2024,
+            venue=self.venue,
+            primary_artist='Rush',
+            raw_artists='Rush, Yes'
+        )
+        ConcertArtist.objects.create(concert=c2, artist=self.art_rush, billing_order=0)
+        ConcertArtist.objects.create(concert=c2, artist=self.art_yes, billing_order=1)
+
+    def test_user_seen_artists_summary(self):
+        from src.upcoming_events import get_user_seen_artists_summary
+        summary = get_user_seen_artists_summary(self.user)
+        self.assertEqual(len(summary), 2)
+        rush_item = next(a for a in summary if a['name'] == 'Rush')
+        yes_item = next(a for a in summary if a['name'] == 'Yes')
+        self.assertEqual(rush_item['count'], 2)
+        self.assertEqual(yes_item['count'], 1)
+        self.assertFalse(rush_item['is_hidden'])
+        self.assertFalse(yes_item['is_hidden'])
+
+    def test_toggle_hidden_artist_api(self):
+        # Hide Rush
+        res = self.client.post('/api/upcoming/toggle-hidden/', data=json.dumps({
+            'artist': 'Rush',
+            'is_hidden': True
+        }), content_type='application/json')
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertTrue(data['success'])
+        self.assertTrue(data['is_hidden'])
+
+        self.user.profile.refresh_from_db()
+        self.assertIn('Rush', self.user.profile.hidden_upcoming_artists)
+
+        # Toggle Rush back to visible
+        res2 = self.client.post('/api/upcoming/toggle-hidden/', data=json.dumps({
+            'artist': 'Rush'
+        }), content_type='application/json')
+        self.assertEqual(res2.status_code, 200)
+        data2 = res2.json()
+        self.assertFalse(data2['is_hidden'])
+
+        self.user.profile.refresh_from_db()
+        self.assertNotIn('Rush', self.user.profile.hidden_upcoming_artists)
+
+    def test_save_upcoming_settings_bulk_api(self):
+        res = self.client.post('/api/upcoming/settings/', data=json.dumps({
+            'hidden_artists': ['Rush', 'Yes']
+        }), content_type='application/json')
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertTrue(data['success'])
+        self.assertEqual(data['hidden_count'], 2)
+
+        self.user.profile.refresh_from_db()
+        self.assertEqual(sorted(self.user.profile.hidden_upcoming_artists), ['Rush', 'Yes'])
+
+    def test_api_upcoming_shows_view(self):
+        res = self.client.get('/api/upcoming/shows/')
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertTrue(data['success'])
+        self.assertIn('seen_artists', data)
+        self.assertIn('upcoming_shows', data)
+        self.assertEqual(data['total_artists'], 2)
+
+    def test_profile_update_hidden_upcoming_artists(self):
+        res = self.client.post('/api/profile/update/', data=json.dumps({
+            'hidden_upcoming_artists': ['Rush']
+        }), content_type='application/json')
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data['status'], 'ok')
+        self.assertEqual(data['profile']['hidden_upcoming_artists'], ['Rush'])
+
+    def test_onboarding_step4_profile_update_location(self):
+        res = self.client.post('/api/profile/update/', data=json.dumps({
+            'upcoming_location': 'Washington, DC',
+            'upcoming_radius_miles': 100
+        }), content_type='application/json')
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data['status'], 'ok')
+        self.assertEqual(data['profile']['upcoming_location'], 'Washington, DC')
+        self.assertEqual(data['profile']['upcoming_radius_miles'], 100)
+
+    def test_overview_tab_contains_upcoming_shows_and_modal(self):
+        res = self.client.get('/overview/')
+        self.assertEqual(res.status_code, 200)
+        self.assertIn('upcoming_shows', res.context)
+        self.assertIn('upcoming_seen_artists', res.context)
+        content = res.content.decode('utf-8')
+        self.assertIn('id="upcoming-config-modal"', content)
+        self.assertIn('Upcoming Shows', content)
+        self.assertIn('id="upcoming-shows-grid"', content)
+        self.assertIn('id="upcoming-overview-toolbar"', content)
+        self.assertIn('id="upcoming-shows-setup-card"', content)
+
+    def test_event_parser_and_relative_date(self):
+        from src.upcoming_events import parse_event_item, format_relative_date
+        from datetime import datetime, timezone, timedelta
+
+        future_dt = datetime.now(timezone.utc) + timedelta(days=10)
+        raw_event = {
+            'id': '101',
+            'datetime': future_dt.isoformat(),
+            'venue': {
+                'name': 'The Anthem',
+                'city': 'Washington',
+                'region': 'DC',
+                'country': 'United States'
+            },
+            'url': 'https://bandsintown.com/e/101',
+            'offers': [{'url': 'https://tickets.example.com/101'}],
+            'lineup': ['Rush', 'Crown Lands']
+        }
+        parsed = parse_event_item(raw_event, 'Rush', times_seen=2)
+        self.assertIsNotNone(parsed)
+        self.assertEqual(parsed['artist'], 'Rush')
+        self.assertEqual(parsed['venue'], 'The Anthem')
+        self.assertEqual(parsed['ticket_url'], 'https://tickets.example.com/101')
+        self.assertEqual(parsed['other_lineup'], ['Crown Lands'])
+        self.assertIn('In 10 days', parsed['rel_badge'])
+
+    def test_save_upcoming_settings_location_and_range(self):
+        res = self.client.post('/api/upcoming/settings/', data=json.dumps({
+            'location': 'Washington, DC',
+            'radius_miles': 50,
+            'hidden_artists': ['Yes']
+        }), content_type='application/json')
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertTrue(data['success'])
+        self.assertEqual(data['location'], 'Washington, DC')
+        self.assertEqual(data['radius_miles'], 50)
+        self.assertEqual(data['hidden_artists'], ['Yes'])
+
+        self.user.profile.refresh_from_db()
+        self.assertEqual(self.user.profile.upcoming_location, 'Washington, DC')
+        self.assertEqual(self.user.profile.upcoming_radius_miles, 50)
+        self.assertEqual(self.user.profile.hidden_upcoming_artists, ['Yes'])
+
+    def test_haversine_distance_and_range_filtering(self):
+        from src.upcoming_events import haversine_distance_miles, parse_event_item
+        from datetime import datetime, timezone, timedelta
+
+        # DC to Baltimore (~35 miles)
+        dc_lat, dc_lon = 38.8951, -77.0364
+        balt_lat, balt_lon = 39.2904, -76.6122
+        dist = haversine_distance_miles(dc_lat, dc_lon, balt_lat, balt_lon)
+        self.assertAlmostEqual(dist, 35.0, delta=10.0)
+
+        future_dt = datetime.now(timezone.utc) + timedelta(days=5)
+        event_near = {
+            'id': 'near_1',
+            'datetime': future_dt.isoformat(),
+            'venue': {
+                'name': 'CFG Bank Arena',
+                'city': 'Baltimore',
+                'region': 'MD',
+                'country': 'United States',
+                'latitude': balt_lat,
+                'longitude': balt_lon,
+            }
+        }
+        parsed_near = parse_event_item(event_near, 'Rush', times_seen=1, user_lat=dc_lat, user_lon=dc_lon)
+        self.assertIsNotNone(parsed_near['distance_miles'])
+        self.assertIn('mi away', parsed_near['distance_display'])
+
+
+
+
 
 

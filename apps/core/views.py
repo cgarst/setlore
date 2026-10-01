@@ -256,6 +256,45 @@ def update_profile_view(request):
             profile.ignored_artists = ign_list
             update_fields.append('ignored_artists')
 
+        if 'hidden_upcoming_artists' in data:
+            raw_hidden = data.get('hidden_upcoming_artists')
+            if isinstance(raw_hidden, str):
+                hidden_list = [a.strip() for a in raw_hidden.split(',') if a.strip()]
+            elif isinstance(raw_hidden, (list, tuple)):
+                hidden_list = [str(a).strip() for a in raw_hidden if str(a).strip()]
+            else:
+                hidden_list = []
+            profile.hidden_upcoming_artists = hidden_list
+            update_fields.append('hidden_upcoming_artists')
+        if 'upcoming_location' in data or 'location' in data:
+            raw_loc = data.get('upcoming_location', data.get('location'))
+            new_loc = str(raw_loc or '').strip()
+            if new_loc != profile.upcoming_location:
+                profile.upcoming_location = new_loc
+                update_fields.append('upcoming_location')
+                if new_loc:
+                    from apps.concerts.utils import resolve_venue_coordinates
+                    lat, lon, _ = resolve_venue_coordinates(new_loc)
+                    profile.upcoming_latitude = lat
+                    profile.upcoming_longitude = lon
+                    update_fields.extend(['upcoming_latitude', 'upcoming_longitude'])
+                else:
+                    profile.upcoming_latitude = None
+                    profile.upcoming_longitude = None
+                    update_fields.extend(['upcoming_latitude', 'upcoming_longitude'])
+
+        if 'upcoming_radius_miles' in data or 'radius_miles' in data:
+            raw_rad = data.get('upcoming_radius_miles', data.get('radius_miles'))
+            if raw_rad in (None, '', 'null', 'any', '0', 0):
+                radius_val = None
+            else:
+                try:
+                    radius_val = int(raw_rad)
+                except (ValueError, TypeError):
+                    radius_val = None
+            profile.upcoming_radius_miles = radius_val
+            update_fields.append('upcoming_radius_miles')
+
         if 'theme' in data:
             theme_val = str(data.get('theme', '')).strip()
             valid_themes = [t[0] for t in UserProfile.THEME_CHOICES]
@@ -287,6 +326,9 @@ def update_profile_view(request):
                 "is_public": profile.is_public,
                 "theme": profile.theme,
                 "ignored_artists": profile.ignored_artists,
+                "hidden_upcoming_artists": profile.hidden_upcoming_artists,
+                "upcoming_location": profile.upcoming_location,
+                "upcoming_radius_miles": profile.upcoming_radius_miles,
                 "has_custom_api_key": bool(profile.setlistfm_api_key),
                 "has_google_linked": bool(profile.google_id),
                 "google_email": profile.google_email,

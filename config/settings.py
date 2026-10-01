@@ -118,6 +118,7 @@ LOGOUT_REDIRECT_URL = 'login'
 SETLISTFM_API_KEY = os.getenv("SETLISTFM_KEY") or os.getenv("setlistfm_key", "").strip()
 SETLISTFM_USER = os.getenv("SETLISTFM_USER") or os.getenv("setlistfm_user", "").strip()
 CARTO_API_KEY = os.getenv("CARTO_API_KEY") or os.getenv("carto_api_key", "").strip()
+BANDSINTOWN_APP_ID = os.getenv("BANDSINTOWN_APP_ID", "12345").strip()
 CONTACT_EMAIL = os.getenv("CONTACT_EMAIL", "admin@localhost").strip()
 APP_URL = os.getenv("APP_URL") or (CSRF_TRUSTED_ORIGINS[0] if CSRF_TRUSTED_ORIGINS else "")
 DEFAULT_CSV_PATH = Path(os.getenv("DEFAULT_CSV_PATH", BASE_DIR / "concerts.csv"))

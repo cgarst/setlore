@@ -83,6 +83,11 @@ urlpatterns = [
     path('api/ticketmaster/preview/', concerts_views.parse_ticketmaster_preview, name='api_ticketmaster_preview'),
     path('api/ticketmaster/confirm/', concerts_views.confirm_ticketmaster_import, name='api_ticketmaster_confirm'),
 
+    # Upcoming Shows & Settings API
+    path('api/upcoming/shows/', concerts_views.api_upcoming_shows, name='api_upcoming_shows'),
+    path('api/upcoming/toggle-hidden/', concerts_views.toggle_upcoming_hidden_artist, name='api_toggle_upcoming_hidden_artist'),
+    path('api/upcoming/settings/', concerts_views.save_upcoming_settings, name='api_save_upcoming_settings'),
+
     # MusicBrainz Dump Management API
     path('api/admin/musicbrainz-dump/status/', catalog_views.api_musicbrainz_dump_status, name='api_mb_dump_status'),
     path('api/admin/musicbrainz-dump/download/', catalog_views.api_musicbrainz_dump_download, name='api_mb_dump_download'),

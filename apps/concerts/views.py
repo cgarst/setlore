@@ -26,6 +26,7 @@ from src.musician_enricher import MusicianEnricher
 from src.venue_mapper import generate_venue_map_data
 from src.musician_tracker import analyze_musicians_live, consolidate_musician_bands
 from src.config import SETLISTFM_API_KEY, CARTO_API_KEY, USER_CACHE_DIR
+from src.upcoming_events import get_upcoming_shows_for_user, get_user_seen_artists_summary
 from .services.sync_worker import sync_worker
 
 def get_or_create_artist(name: str):
@@ -469,6 +470,14 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
                     'co_attended_concerts': co_shows,
                 })
 
+    # Fetch upcoming shows based on artists seen before
+    upcoming_data = get_upcoming_shows_for_user(target_user)
+    upcoming_shows = upcoming_data.get('upcoming_shows', [])
+    upcoming_seen_artists = upcoming_data.get('seen_artists', [])
+    upcoming_hidden_count = upcoming_data.get('hidden_artists_count', 0)
+    upcoming_total_artists = upcoming_data.get('total_artists', 0)
+    upcoming_has_shows = upcoming_data.get('has_shows', False)
+
     return {
         'initial_tab': initial_tab,
         'profile_user': target_user,
@@ -479,6 +488,15 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
         'artist_drilldown_json': artist_drilldown_json,
         'venue_map_json': venue_map_json,
         'musicians_json': musicians_json,
+        'upcoming_shows': upcoming_shows,
+        'upcoming_shows_json': json.dumps(upcoming_shows),
+        'upcoming_seen_artists': upcoming_seen_artists,
+        'upcoming_seen_artists_json': json.dumps(upcoming_seen_artists),
+        'upcoming_hidden_count': upcoming_hidden_count,
+        'upcoming_total_artists': upcoming_total_artists,
+        'upcoming_has_shows': upcoming_has_shows,
+        'upcoming_location': profile.upcoming_location,
+        'upcoming_radius_miles': profile.upcoming_radius_miles,
         'all_venues': list(Venue.objects.order_by('name').values_list('name', flat=True).distinct()),
         'all_artists': list(Artist.objects.order_by('name').values_list('name', flat=True).distinct()),
         'is_public_view': is_public_view,
@@ -2288,6 +2306,149 @@ def save_setlist(request):
         })
     except Exception as e:
         return JsonResponse({'error': f"Failed to save setlist: {str(e)}"}, status=500)
+
+
+@login_required
+@require_POST
+def toggle_upcoming_hidden_artist(request):
+    """Toggle or set whether a specific artist is hidden from the upcoming shows overview."""
+    try:
+        if request.content_type == 'application/json':
+            data = json.loads(request.body)
+        else:
+            data = request.POST
+
+        artist_name = str(data.get('artist', '')).strip()
+        is_hidden_param = data.get('is_hidden')
+
+        if not artist_name:
+            return JsonResponse({'error': 'Artist name is required'}, status=400)
+
+        profile = request.user.profile
+        hidden_list = list(profile.hidden_upcoming_artists or [])
+
+        # Case-insensitive search
+        matched_idx = -1
+        for idx, a in enumerate(hidden_list):
+            if a.lower().strip() == artist_name.lower().strip():
+                matched_idx = idx
+                break
+
+        if is_hidden_param is None:
+            # Toggle
+            if matched_idx >= 0:
+                hidden_list.pop(matched_idx)
+                now_hidden = False
+            else:
+                hidden_list.append(artist_name)
+                now_hidden = True
+        else:
+            target_hidden = bool(is_hidden_param)
+            if target_hidden and matched_idx < 0:
+                hidden_list.append(artist_name)
+            elif not target_hidden and matched_idx >= 0:
+                hidden_list.pop(matched_idx)
+            now_hidden = target_hidden
+
+        profile.hidden_upcoming_artists = hidden_list
+        profile.save(update_fields=['hidden_upcoming_artists', 'updated_at'])
+
+        # Invalidate cached dashboard bundle
+        ApiCache.objects.filter(cache_key=f"user_dashboard_bundle_{request.user.id}").delete()
+
+        return JsonResponse({
+            'success': True,
+            'artist': artist_name,
+            'is_hidden': now_hidden,
+            'hidden_count': len(hidden_list),
+            'hidden_artists': hidden_list
+        })
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required
+@require_POST
+def save_upcoming_settings(request):
+    """Save upcoming shows preferences including area (location), range (radius miles), and hidden artists."""
+    try:
+        if request.content_type == 'application/json':
+            data = json.loads(request.body)
+        else:
+            data = request.POST
+
+        profile = request.user.profile
+        update_fields = []
+
+        if 'hidden_artists' in data:
+            hidden_artists = data.get('hidden_artists', [])
+            if isinstance(hidden_artists, str):
+                hidden_artists = [a.strip() for a in hidden_artists.split(',') if a.strip()]
+            elif not isinstance(hidden_artists, list):
+                hidden_artists = []
+            cleaned_list = [str(a).strip() for a in hidden_artists if str(a).strip()]
+            profile.hidden_upcoming_artists = cleaned_list
+            update_fields.append('hidden_upcoming_artists')
+
+        if 'location' in data or 'upcoming_location' in data:
+            raw_loc = str(data.get('location', data.get('upcoming_location', ''))).strip()
+            if raw_loc != profile.upcoming_location:
+                profile.upcoming_location = raw_loc
+                update_fields.append('upcoming_location')
+                # Resolve coordinates
+                if raw_loc:
+                    res_lat, res_lon, _ = resolve_venue_coordinates(raw_loc)
+                    profile.upcoming_latitude = res_lat
+                    profile.upcoming_longitude = res_lon
+                    update_fields.extend(['upcoming_latitude', 'upcoming_longitude'])
+                else:
+                    profile.upcoming_latitude = None
+                    profile.upcoming_longitude = None
+                    update_fields.extend(['upcoming_latitude', 'upcoming_longitude'])
+
+        if 'radius_miles' in data or 'upcoming_radius_miles' in data:
+            raw_rad = data.get('radius_miles', data.get('upcoming_radius_miles'))
+            if raw_rad in (None, '', 'null', 'any', '0', 0):
+                radius_val = None
+            else:
+                try:
+                    radius_val = int(raw_rad)
+                except (ValueError, TypeError):
+                    radius_val = None
+            profile.upcoming_radius_miles = radius_val
+            update_fields.append('upcoming_radius_miles')
+
+        if update_fields:
+            update_fields.append('updated_at')
+            profile.save(update_fields=update_fields)
+
+        # Invalidate cached dashboard bundle
+        ApiCache.objects.filter(cache_key=f"user_dashboard_bundle_{request.user.id}").delete()
+
+        # Return fresh upcoming shows payload
+        upcoming_data = get_upcoming_shows_for_user(request.user)
+
+        return JsonResponse({
+            'success': True,
+            'location': profile.upcoming_location,
+            'radius_miles': profile.upcoming_radius_miles,
+            'hidden_count': len(profile.hidden_upcoming_artists),
+            'hidden_artists': profile.hidden_upcoming_artists,
+            **upcoming_data
+        })
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required
+def api_upcoming_shows(request):
+    """Fetch updated upcoming shows and seen artists metadata for current user."""
+    force_refresh = request.GET.get('refresh', '').lower() in ('true', '1', 'yes')
+    upcoming_data = get_upcoming_shows_for_user(request.user, force_refresh=force_refresh)
+    return JsonResponse({
+        'success': True,
+        **upcoming_data
+    })
 
 
 

@@ -282,11 +282,9 @@ def resolve_venue_coordinates(venue_name: str, city: str = "", state: str = "", 
         query_str = ", ".join(query_parts)
         try:
             url = f"https://nominatim.openstreetmap.org/search?q={urllib.parse.quote(query_str)}&format=json&limit=1"
-            from django.conf import settings
-            contact = getattr(settings, 'CONTACT_EMAIL', 'admin@localhost')
             req = urllib.request.Request(
                 url,
-                headers={"User-Agent": f"SetloreConcertAnalytics/1.0 ({contact})"}
+                headers={"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
             )
             with urllib.request.urlopen(req, timeout=2.5) as response:
                 if response.status == 200:

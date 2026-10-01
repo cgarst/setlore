@@ -19,6 +19,7 @@ for d in [SETLIST_CACHE_DIR, USER_CACHE_DIR, MB_CACHE_DIR, MB_DUMP_DIR]:
 SETLISTFM_API_KEY = os.getenv("SETLISTFM_KEY") or os.getenv("setlistfm_key", "").strip()
 SETLISTFM_USER = os.getenv("SETLISTFM_USER") or os.getenv("setlistfm_user", "").strip()
 CARTO_API_KEY = os.getenv("CARTO_API_KEY") or os.getenv("carto_api_key", "").strip()
+BANDSINTOWN_APP_ID = os.getenv("BANDSINTOWN_APP_ID", "12345").strip()
 CONTACT_EMAIL = os.getenv("CONTACT_EMAIL", "admin@localhost").strip()
 APP_URL = os.getenv("APP_URL") or (os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",")[0].strip() if os.getenv("CSRF_TRUSTED_ORIGINS") else "")
 
