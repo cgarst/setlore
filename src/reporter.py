@@ -50,8 +50,8 @@ def generate_plotly_charts(stats: Dict[str, Any], album_enrichments: Dict[str, A
         }
     }
 
-    # 2. Top Artists Packed Bubble Chart (Top 25)
-    top_artists = stats["top_artists"][:25]
+    # 2. Top Artists Packed Bubble Chart (Top 30, Aspect-Weighted Landscape Packing)
+    top_artists = stats["top_artists"][:30]
     
     bubble_x = []
     bubble_y = []
@@ -70,6 +70,7 @@ def generate_plotly_charts(stats: Dict[str, Any], album_enrichments: Dict[str, A
         max_c = max(counts) if counts else 1
         min_c = min(counts) if counts else 1
         gap = 2.0
+        aspect_ratio = 2.15  # Matches the ~2:1 landscape aspect ratio of the card container
         
         # Color interpolation helper for default theme (#6366f1 -> #c084fc)
         def calc_theme_hex(t_val):
@@ -89,7 +90,7 @@ def generate_plotly_charts(stats: Dict[str, Any], album_enrichments: Dict[str, A
             if max_c == min_c:
                 r = 30.0
             else:
-                r = 15.0 + 35.0 * (math.sqrt(c) / math.sqrt(max_c))
+                r = 14.0 + 36.0 * (math.sqrt(c) / math.sqrt(max_c))
             
             fill_col = calc_theme_hex(t_norm)
             
@@ -157,7 +158,8 @@ def generate_plotly_charts(stats: Dict[str, Any], album_enrichments: Dict[str, A
                         ]
                         for cand_x, cand_y in candidates:
                             if is_valid_pos(cand_x, cand_y, r, placed):
-                                d_orig = math.hypot(cand_x, cand_y)
+                                # Aspect-weighted distance so circles fill landscape space
+                                d_orig = math.hypot(cand_x / aspect_ratio, cand_y)
                                 if d_orig < best_dist:
                                     best_dist = d_orig
                                     best_pos = (cand_x, cand_y)
@@ -165,7 +167,7 @@ def generate_plotly_charts(stats: Dict[str, Any], album_enrichments: Dict[str, A
                     angle = 0.0
                     while angle < 100.0:
                         rad = 1.0 * angle
-                        cand_x = rad * math.cos(angle)
+                        cand_x = rad * aspect_ratio * math.cos(angle)
                         cand_y = rad * math.sin(angle)
                         if is_valid_pos(cand_x, cand_y, r, placed):
                             best_pos = (cand_x, cand_y)
@@ -175,7 +177,7 @@ def generate_plotly_charts(stats: Dict[str, Any], album_enrichments: Dict[str, A
                     c["x"] = best_pos[0]
                     c["y"] = best_pos[1]
                 else:
-                    c["x"] = (r + 50) * i
+                    c["x"] = (r + 50) * i * aspect_ratio
                     c["y"] = 0.0
                 placed.append(c)
                 

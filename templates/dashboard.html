@@ -6573,8 +6573,9 @@
       topArtistsData.data,
       Object.assign({}, layoutDefaults, topArtistsData.layout, {
         dragmode: false,
-        xaxis: Object.assign({}, layoutDefaults.xaxis || {}, topArtistsData.layout.xaxis || {}, { fixedrange: true, gridcolor: activeThemeConfig.gridColor }),
-        yaxis: Object.assign({}, layoutDefaults.yaxis || {}, topArtistsData.layout.yaxis || {}, { fixedrange: true, gridcolor: activeThemeConfig.gridColor })
+        margin: { t: 10, b: 10, l: 10, r: 10 },
+        xaxis: Object.assign({}, topArtistsData.layout.xaxis || {}, { fixedrange: true }),
+        yaxis: Object.assign({}, topArtistsData.layout.yaxis || {}, { fixedrange: true })
       }),
       { responsive: true, displayModeBar: false, scrollZoom: false, doubleClick: false }
     );
