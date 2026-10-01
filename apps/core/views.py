@@ -302,6 +302,12 @@ def update_profile_view(request):
                 profile.theme = theme_val
                 update_fields.append('theme')
 
+        if 'time_format' in data:
+            tf_val = str(data.get('time_format', '')).strip()
+            if tf_val in ('12', '24'):
+                profile.time_format = tf_val
+                update_fields.append('time_format')
+
         if update_fields:
             update_fields.append('updated_at')
             profile.save(update_fields=update_fields)
@@ -325,6 +331,7 @@ def update_profile_view(request):
                 "prompt_setlistfm": profile.prompt_setlistfm,
                 "is_public": profile.is_public,
                 "theme": profile.theme,
+                "time_format": profile.time_format,
                 "ignored_artists": profile.ignored_artists,
                 "hidden_upcoming_artists": profile.hidden_upcoming_artists,
                 "upcoming_location": profile.upcoming_location,

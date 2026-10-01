@@ -42,6 +42,16 @@ class UserProfile(models.Model):
         choices=THEME_CHOICES,
         help_text="UI color theme homage to guitar finish"
     )
+    TIME_FORMAT_CHOICES = [
+        ('12', '12-Hour (e.g. 8:00 PM)'),
+        ('24', '24-Hour (e.g. 20:00)'),
+    ]
+    time_format = models.CharField(
+        max_length=5,
+        default='12',
+        choices=TIME_FORMAT_CHOICES,
+        help_text="Time format preference for displaying times"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

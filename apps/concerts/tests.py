@@ -610,6 +610,35 @@ class UpcomingShowsTests(TestCase):
         self.assertIsNotNone(parsed_near['distance_miles'])
         self.assertIn('mi away', parsed_near['distance_display'])
 
+    def test_time_format_toggle_and_parsing(self):
+        from src.upcoming_events import parse_event_item
+        # Default 12h
+        self.assertEqual(self.user.profile.time_format, '12')
+
+        # Update profile to 24h
+        res = self.client.post('/api/profile/update/', data=json.dumps({
+            'time_format': '24'
+        }), content_type='application/json')
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.json()['profile']['time_format'], '24')
+        self.user.profile.refresh_from_db()
+        self.assertEqual(self.user.profile.time_format, '24')
+
+        # Test parsing with 12h vs 24h
+        sample_event = {
+            'id': 'ev_time_1',
+            'datetime': '2026-10-20T20:30:00Z',
+            'venue': {'name': '9:30 Club', 'city': 'Washington', 'region': 'DC'}
+        }
+        parsed_12 = parse_event_item(sample_event, 'Rush', time_format='12')
+        self.assertEqual(parsed_12['time_display'], '8:30 PM')
+        self.assertEqual(parsed_12['time_12'], '8:30 PM')
+        self.assertEqual(parsed_12['time_24'], '20:30')
+
+        parsed_24 = parse_event_item(sample_event, 'Rush', time_format='24')
+        self.assertEqual(parsed_24['time_display'], '20:30')
+
+
 
 
 

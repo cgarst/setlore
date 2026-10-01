@@ -127,7 +127,7 @@ def fetch_bandsintown_events(artist_name: str, app_id: Optional[str] = None, for
 
 def parse_event_item(event: Dict[str, Any], artist_name: str, times_seen: int = 1,
                      user_lat: Optional[float] = None, user_lon: Optional[float] = None,
-                     user_loc_query: str = "") -> Optional[Dict[str, Any]]:
+                     user_loc_query: str = "", time_format: str = "12") -> Optional[Dict[str, Any]]:
     """Parse raw Bandsintown event object into a clean structured display dict."""
     if not isinstance(event, dict):
         return None
@@ -136,6 +136,8 @@ def parse_event_item(event: Dict[str, Any], artist_name: str, times_seen: int = 
     dt_obj = None
     date_display = ''
     time_display = ''
+    time_12 = ''
+    time_24 = ''
     days_until = 999
     rel_badge = ''
     
@@ -147,7 +149,9 @@ def parse_event_item(event: Dict[str, Any], artist_name: str, times_seen: int = 
             if dt_obj.tzinfo is None:
                 dt_obj = dt_obj.replace(tzinfo=timezone.utc)
             date_display = dt_obj.strftime("%b %d, %Y")
-            time_display = dt_obj.strftime("%I:%M %p").lstrip('0')
+            time_12 = dt_obj.strftime("%I:%M %p").lstrip('0')
+            time_24 = dt_obj.strftime("%H:%M")
+            time_display = time_24 if time_format == "24" else time_12
             rel_badge = format_relative_date(dt_obj)
             now = datetime.now(timezone.utc)
             diff_sec = (dt_obj - now).total_seconds()
@@ -212,6 +216,8 @@ def parse_event_item(event: Dict[str, Any], artist_name: str, times_seen: int = 
         'datetime': dt_raw,
         'date_display': date_display,
         'time_display': time_display,
+        'time_12': time_12,
+        'time_24': time_24,
         'rel_badge': rel_badge,
         'days_until': days_until,
         'venue': venue_name,
@@ -320,6 +326,10 @@ def get_upcoming_shows_for_user(user, force_refresh: bool = False, limit: int = 
     
     upcoming_events = []
     
+    user_time_format = '12'
+    if user and hasattr(user, 'profile') and hasattr(user.profile, 'time_format'):
+        user_time_format = user.profile.time_format or '12'
+
     # Query/fetch events for top seen artists
     for art_info in eligible_artists[:40]:
         artist_name = art_info['name']
@@ -333,7 +343,8 @@ def get_upcoming_shows_for_user(user, force_refresh: bool = False, limit: int = 
                 times_seen=times_seen,
                 user_lat=user_lat,
                 user_lon=user_lon,
-                user_loc_query=user_loc
+                user_loc_query=user_loc,
+                time_format=user_time_format
             )
             if parsed and parsed['days_until'] >= 0:
                 # Apply range filtering if specified
