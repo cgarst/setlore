@@ -2340,10 +2340,10 @@
                 class="pl-7 pr-2.5 py-1.5 text-xs rounded-lg bg-slate-900 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 w-36 sm:w-44">
             </div>
 
-            <!-- View All in Table Button -->
+            <!-- See All in Table Button -->
             <button type="button" onclick="openUpcomingTableModal()" class="px-3 py-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-sm" title="View all tour dates in a detailed table">
               <i class="fa-solid fa-table-list text-amber-400"></i>
-              <span>View All <span id="upcoming-view-all-count" class="hidden sm:inline">({{ upcoming_shows|length|intcomma }})</span></span>
+              <span>See All <span id="upcoming-view-all-count" class="hidden sm:inline">({{ upcoming_shows|length|intcomma }})</span></span>
             </button>
 
             {% if not is_public_view and user.is_authenticated and is_owner %}
@@ -2494,18 +2494,6 @@
             </div>
             {% endif %}
             {% endfor %}
-          </div>
-
-          <!-- Bottom View All Bar (when more than 3 shows exist) -->
-          <div id="upcoming-more-shows-bar" class="{% if upcoming_shows|length <= 3 %}hidden{% endif %} flex items-center justify-between p-3 rounded-xl bg-slate-900/50 border border-slate-800 text-xs">
-            <span class="text-slate-400 flex items-center gap-2">
-              <i class="fa-solid fa-circle-info text-indigo-400"></i>
-              <span>Showing first 3 shows. <strong class="text-slate-200"><span id="upcoming-more-count">{{ upcoming_shows|length|add:"-3" }}</span> more show{% if upcoming_shows|length > 4 %}s{% endif %}</strong> available.</span>
-            </span>
-            <button type="button" onclick="openUpcomingTableModal()" class="px-3 py-1.5 rounded-lg bg-indigo-600/30 hover:bg-indigo-600/50 border border-indigo-500/40 text-indigo-200 hover:text-white font-semibold transition flex items-center gap-1.5 cursor-pointer">
-              <i class="fa-solid fa-table-list text-xs"></i>
-              <span>Open Full Table</span>
-            </button>
           </div>
         </div>
       </div>
@@ -9620,8 +9608,6 @@
       const grid = document.getElementById('upcoming-shows-grid');
       const countBadge = document.getElementById('upcoming-overview-count-badge');
       const viewAllCount = document.getElementById('upcoming-view-all-count');
-      const moreBar = document.getElementById('upcoming-more-shows-bar');
-      const moreCountEl = document.getElementById('upcoming-more-count');
       const toolbar = document.getElementById('upcoming-overview-toolbar');
 
       const hiddenSet = new Set(upcomingSeenArtists.filter(a => a.is_hidden).map(a => a.name.toLowerCase()));
@@ -9639,15 +9625,6 @@
           toolbar.classList.add('hidden');
         } else {
           toolbar.classList.remove('hidden');
-        }
-      }
-
-      if (moreBar && moreCountEl) {
-        if (activeShows.length > 3) {
-          moreCountEl.innerText = `${(activeShows.length - 3).toLocaleString()}`;
-          moreBar.classList.remove('hidden');
-        } else {
-          moreBar.classList.add('hidden');
         }
       }
 
