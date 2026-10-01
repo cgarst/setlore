@@ -182,6 +182,30 @@ def api_musicbrainz_dump_set_online_fallback(request):
     })
 
 @require_http_methods(["POST"])
+def api_musicbrainz_dump_set_schedule(request):
+    """API endpoint to set scheduled dump update interval and auto cleanup settings."""
+    if not _is_staff_or_admin(request):
+        return HttpResponseForbidden(json.dumps({'error': 'Admin access required'}), content_type='application/json')
+    
+    try:
+        data = json.loads(request.body or '{}')
+    except Exception:
+        data = {}
+
+    interval = data.get('interval', 'off').lower().strip()
+    auto_delete_raw = bool(data.get('auto_delete_raw', False))
+
+    manager = MusicBrainzDumpManager.get_instance()
+    manager.set_schedule(interval, auto_delete_raw=auto_delete_raw)
+
+    return JsonResponse({
+        'status': 'success',
+        'schedule': interval,
+        'auto_delete_raw': auto_delete_raw,
+        'dump_status': manager.get_status()
+    })
+
+@require_http_methods(["POST"])
 def api_musicbrainz_dump_delete_raw(request):
     """API endpoint to delete raw .tar.xz and .part archives while keeping the indexed SQLite database."""
     if not _is_staff_or_admin(request):

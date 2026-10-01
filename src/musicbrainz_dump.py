@@ -76,11 +76,18 @@ class MusicBrainzDumpManager:
     def _get_read_conn(self) -> Optional[sqlite3.Connection]:
         if not self.db_path.exists():
             return None
+        cached_path = getattr(self._local, "db_path", None)
         conn = getattr(self._local, "conn", None)
-        if conn is None:
+        if conn is None or cached_path != str(self.db_path):
+            if conn:
+                try:
+                    conn.close()
+                except Exception:
+                    pass
             try:
                 conn = sqlite3.connect(f"file:{self.db_path}?mode=ro", uri=True, check_same_thread=False)
                 self._local.conn = conn
+                self._local.db_path = str(self.db_path)
             except Exception:
                 return None
         return conn

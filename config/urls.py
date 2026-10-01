@@ -98,6 +98,7 @@ urlpatterns = [
     path('api/admin/musicbrainz-dump/delete-raw/', catalog_views.api_musicbrainz_dump_delete_raw, name='api_mb_dump_delete_raw'),
     path('api/admin/musicbrainz-dump/set-mode/', catalog_views.api_musicbrainz_dump_set_mode, name='api_mb_dump_set_mode'),
     path('api/admin/musicbrainz-dump/set-online-fallback/', catalog_views.api_musicbrainz_dump_set_online_fallback, name='api_mb_dump_set_online_fallback'),
+    path('api/admin/musicbrainz-dump/set-schedule/', catalog_views.api_musicbrainz_dump_set_schedule, name='api_mb_dump_set_schedule'),
     path('api/admin/musicbrainz-dump/test-lookup/', catalog_views.api_musicbrainz_dump_test_lookup, name='api_mb_dump_test_lookup'),
     path('api/admin/catalog/refresh-lineup/', catalog_views.api_refresh_musician_lineup, name='api_refresh_musician_lineup'),
     path('api/admin/catalog/purge-cache/', catalog_views.api_purge_dashboard_cache, name='api_purge_dashboard_cache'),

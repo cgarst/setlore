@@ -14,6 +14,8 @@ class MusicBrainzDumpTests(TestCase):
         self.client = Client()
 
         self.manager = MusicBrainzDumpManager.get_instance()
+        self.manager._current_task_thread = None
+        self.manager._cancel_requested = False
         self.test_dump_dir = Path('/tmp/test_mb_dump')
         self.test_dump_dir.mkdir(parents=True, exist_ok=True)
         self.manager.dump_dir = self.test_dump_dir
@@ -22,6 +24,17 @@ class MusicBrainzDumpTests(TestCase):
         self.manager.status_file = self.test_dump_dir / 'status.json'
 
     def tearDown(self):
+        self.manager._cancel_requested = True
+        self.manager._current_task_thread = None
+        conn = getattr(self.manager._local, "conn", None)
+        if conn:
+            try:
+                conn.close()
+            except Exception:
+                pass
+            self.manager._local.conn = None
+            self.manager._local.db_path = None
+        self.manager.get_latest_upstream_version = MusicBrainzDumpManager.get_latest_upstream_version.__get__(self.manager, MusicBrainzDumpManager)
         if self.test_dump_dir.exists():
             shutil.rmtree(self.test_dump_dir, ignore_errors=True)
 
@@ -140,4 +153,51 @@ class MusicBrainzDumpTests(TestCase):
         self.assertEqual(self.manager.get_mode(), 'off')
         status = self.manager.get_status()
         self.assertEqual(status['mode'], 'off')
+
+    def test_schedule_management_and_skipping(self):
+        # Default schedule is off
+        sched = self.manager.get_schedule()
+        self.assertEqual(sched['interval'], 'off')
+        self.assertFalse(sched['auto_delete_raw'])
+
+        # Set weekly schedule with auto_delete_raw
+        self.manager.set_schedule('weekly', auto_delete_raw=True)
+        sched = self.manager.get_schedule()
+        self.assertEqual(sched['interval'], 'weekly')
+        self.assertTrue(sched['auto_delete_raw'])
+
+        # Check API endpoint for setting schedule
+        self.client.login(username='adminuser', password='password123')
+        res = self.client.post(
+            '/api/admin/musicbrainz-dump/set-schedule/',
+            data=json.dumps({'interval': 'daily', 'auto_delete_raw': False}),
+            content_type='application/json'
+        )
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data['status'], 'success')
+        self.assertEqual(data['schedule'], 'daily')
+        self.assertFalse(data['auto_delete_raw'])
+
+        # Mock local dump matching upstream version
+        conn = sqlite3.connect(str(self.manager.db_path))
+        self.manager._init_db(conn)
+        cur = conn.cursor()
+        cur.execute("""
+            INSERT INTO recordings (
+                artist_name, clean_artist, song_title, clean_title,
+                album_title, release_year, primary_type, score
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, ('Artist', 'artist', 'Song', 'song', 'Album', 2020, 'Recording', 100))
+        conn.commit()
+        conn.close()
+
+        self.manager.latest_file.write_text('20261001-000000', encoding='utf-8')
+        self.manager.get_latest_upstream_version = lambda: '20261001-000000'
+
+        # Check that check_and_run_scheduled_update skips when already current
+        success, msg = self.manager.check_and_run_scheduled_update(force=False)
+        self.assertFalse(success)
+        self.assertIn('already current', msg)
+
 

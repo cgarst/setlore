@@ -249,6 +249,47 @@
     </div>
   </div>
 
+  <!-- Scheduled Updates & Automation Card -->
+  <div class="mb-dump-card">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+      <div>
+        <h2 style="font-size: 1.15rem; font-weight: 700; margin: 0; color: #ffffff; display: flex; align-items: center; gap: 0.5rem;">
+          <i class="fa-solid fa-clock-rotate-left" style="color: #34d399;"></i> Scheduled Updates &amp; Automation
+        </h2>
+        <p style="color: #94a3b8; font-size: 0.85rem; margin: 0.25rem 0 0 0;">
+          Automatically check upstream MetaBrainz servers for new dumps and index them. Updates are skipped if the local dump is already current.
+        </p>
+      </div>
+      <span id="schedule-status-badge" class="mb-badge" style="background: rgba(52, 211, 153, 0.12); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.3);">
+        <i class="fa-solid fa-calendar-check"></i> <span id="schedule-badge-text">{% if status.schedule and status.schedule != 'off' %}Schedule: {{ status.schedule|capfirst }}{% else %}Scheduled Updates Disabled{% endif %}</span>
+      </span>
+    </div>
+
+    <div style="margin-top: 1.25rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; align-items: center; background: #0f172a; border: 1px solid #334155; border-radius: 0.5rem; padding: 1rem;">
+      <div>
+        <label for="schedule-interval-select" style="display: block; font-size: 0.75rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; margin-bottom: 0.35rem;">
+          Automatic Update Interval
+        </label>
+        <select id="schedule-interval-select" class="input-text-mb" onchange="saveScheduleSettings()">
+          <option value="off" {% if status.schedule == 'off' or not status.schedule %}selected{% endif %}>Disabled (Manual Only)</option>
+          <option value="daily" {% if status.schedule == 'daily' %}selected{% endif %}>Daily (Check for new daily dump)</option>
+          <option value="weekly" {% if status.schedule == 'weekly' %}selected{% endif %}>Weekly (Check once per week)</option>
+          <option value="monthly" {% if status.schedule == 'monthly' %}selected{% endif %}>Monthly (Check once per month)</option>
+        </select>
+      </div>
+
+      <div>
+        <label style="display: flex; align-items: center; gap: 0.6rem; cursor: pointer; color: #f1f5f9; font-size: 0.875rem; margin-top: 0.5rem;">
+          <input type="checkbox" id="schedule-auto-delete-raw" onchange="saveScheduleSettings()" {% if status.auto_delete_raw %}checked{% endif %} style="accent-color: #6366f1; width: 1.1rem; height: 1.1rem;">
+          <span>
+            <strong>Auto-delete raw archives (.tar.xz)</strong> after indexing
+            <span style="display: block; font-size: 0.75rem; color: #94a3b8;">Keeps fast SQLite database on disk while freeing ~24 GB storage</span>
+          </span>
+        </label>
+      </div>
+    </div>
+  </div>
+
   <!-- Active Job Progress Box (Visible when downloading/extracting) -->
   <div id="progress-box" class="mb-dump-card" style="{% if not status.is_running %}display: none;{% endif %} border-color: #6366f1;">
     <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -539,12 +580,59 @@
     }
   }
 
+  async function saveScheduleSettings() {
+    const schedSelect = document.getElementById('schedule-interval-select');
+    const autoDelCheck = document.getElementById('schedule-auto-delete-raw');
+    const interval = schedSelect ? schedSelect.value : 'off';
+    const autoDeleteRaw = autoDelCheck ? autoDelCheck.checked : false;
+
+    try {
+      const res = await fetch('/api/admin/musicbrainz-dump/set-schedule/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken'),
+        },
+        body: JSON.stringify({
+          interval: interval,
+          auto_delete_raw: autoDeleteRaw
+        })
+      });
+      const data = await res.json();
+      if (data.status === 'success') {
+        const badgeText = document.getElementById('schedule-badge-text');
+        if (badgeText) {
+          badgeText.textContent = interval === 'off' ? 'Scheduled Updates Disabled' : `Schedule: ${interval.charAt(0).toUpperCase() + interval.slice(1)}`;
+        }
+      } else {
+        alert(data.message || 'Failed to update schedule settings.');
+      }
+    } catch (e) {
+      alert('Error updating schedule settings: ' + e);
+    }
+  }
+
   function updateUI(status) {
     const isReady = status.is_available;
     const isReadyOnDisk = status.is_ready_on_disk;
     const isRunning = status.is_running;
     const mode = status.mode || 'auto';
     const onlineFallback = status.online_fallback !== false;
+
+    // Schedule settings
+    const schedSelect = document.getElementById('schedule-interval-select');
+    const autoDelCheck = document.getElementById('schedule-auto-delete-raw');
+    const schedBadgeText = document.getElementById('schedule-badge-text');
+    if (schedSelect && !schedSelect.matches(':focus')) {
+      schedSelect.value = status.schedule || 'off';
+    }
+    if (autoDelCheck && !autoDelCheck.matches(':focus')) {
+      autoDelCheck.checked = Boolean(status.auto_delete_raw);
+    }
+    if (schedBadgeText) {
+      const curSched = status.schedule || 'off';
+      schedBadgeText.textContent = curSched === 'off' ? 'Scheduled Updates Disabled' : `Schedule: ${curSched.charAt(0).toUpperCase() + curSched.slice(1)}`;
+    }
 
     // Mode Buttons
     const btnAuto = document.getElementById('btn-mode-auto');
