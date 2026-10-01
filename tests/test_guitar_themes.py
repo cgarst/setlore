@@ -87,8 +87,8 @@ class GuitarThemesTestCase(TestCase):
         self.assertIn('grayscale(100%)', content)
 
         # Check theme menus in authenticated dashboard
-        self.assertIn('id="modal-theme-grid"', content)
-        self.assertIn('id="mobile-sheet-theme-grid"', content)
+        self.assertIn('id="theme-modal-grid"', content)
+        self.assertIn('id="theme-modal"', content)
 
         # Check anonymous public profile header theme selector
         self.client.logout()
@@ -96,4 +96,4 @@ class GuitarThemesTestCase(TestCase):
         self.assertEqual(res_anon.status_code, 200)
         anon_content = res_anon.content.decode('utf-8')
         self.assertIn('id="theme-menu-btn"', anon_content)
-        self.assertIn('id="theme-dropdown-menu"', anon_content)
+        self.assertIn('id="theme-modal"', anon_content)
