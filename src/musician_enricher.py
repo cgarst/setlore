@@ -107,6 +107,7 @@ class MusicianEnricher:
                 local_mbid = mb_dump.lookup_artist_mbid(artist_name)
                 if local_mbid:
                     return local_mbid
+                return None
         except Exception:
             pass
 
@@ -165,6 +166,7 @@ class MusicianEnricher:
                 local_rels = mb_dump.lookup_artist_relations(mbid)
                 if local_rels:
                     return local_rels
+                return None
         except Exception:
             pass
 

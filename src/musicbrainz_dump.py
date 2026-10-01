@@ -60,9 +60,21 @@ class MusicBrainzDumpManager:
         self.dump_dir.mkdir(parents=True, exist_ok=True)
         self.db_path = self.dump_dir / "mb_dump.db"
         self.status_file = self.dump_dir / "status.json"
-        self.latest_file = self.dump_dir / "LATEST"
         self._current_task_thread = None
         self._cancel_requested = False
+        self._local = threading.local()
+
+    def _get_read_conn(self) -> Optional[sqlite3.Connection]:
+        if not self.db_path.exists():
+            return None
+        conn = getattr(self._local, "conn", None)
+        if conn is None:
+            try:
+                conn = sqlite3.connect(f"file:{self.db_path}?mode=ro", uri=True, check_same_thread=False)
+                self._local.conn = conn
+            except Exception:
+                return None
+        return conn
 
     @classmethod
     def get_instance(cls) -> "MusicBrainzDumpManager":
@@ -688,34 +700,36 @@ class MusicBrainzDumpManager:
             return None, None
 
         try:
-            with sqlite3.connect(f"file:{self.db_path}?mode=ro", uri=True) as conn:
-                cur = conn.cursor()
-                # 1. Exact clean match
+            conn = self._get_read_conn()
+            if not conn:
+                return None, None
+            cur = conn.cursor()
+            # 1. Exact clean match (instant index lookup)
+            cur.execute("""
+                SELECT album_title, release_year, score
+                FROM recordings
+                WHERE clean_artist = ? AND clean_title = ?
+                ORDER BY score DESC, release_year ASC
+                LIMIT 1
+            """, (clean_art, clean_song))
+            row = cur.fetchone()
+            if row:
+                album, yr, _ = row
+                return album, yr
+
+            # 2. Substring / Prefix match on title
+            if len(clean_song) >= 4:
                 cur.execute("""
                     SELECT album_title, release_year, score
                     FROM recordings
-                    WHERE clean_artist = ? AND clean_title = ?
+                    WHERE clean_artist = ? AND clean_title LIKE ?
                     ORDER BY score DESC, release_year ASC
                     LIMIT 1
-                """, (clean_art, clean_song))
+                """, (clean_art, f"{clean_song}%"))
                 row = cur.fetchone()
                 if row:
                     album, yr, _ = row
                     return album, yr
-
-                # 2. Substring / Prefix match on title
-                if len(clean_song) >= 4:
-                    cur.execute("""
-                        SELECT album_title, release_year, score
-                        FROM recordings
-                        WHERE clean_artist = ? AND clean_title LIKE ?
-                        ORDER BY score DESC, release_year ASC
-                        LIMIT 1
-                    """, (clean_art, f"{clean_song}%"))
-                    row = cur.fetchone()
-                    if row:
-                        album, yr, _ = row
-                        return album, yr
         except Exception as e:
             print(f"[MusicBrainzDump] Lookup error: {e}")
 
@@ -731,12 +745,14 @@ class MusicBrainzDumpManager:
             return None
 
         try:
-            with sqlite3.connect(f"file:{self.db_path}?mode=ro", uri=True) as conn:
-                cur = conn.cursor()
-                cur.execute("SELECT mbid FROM artists WHERE clean_name = ? LIMIT 1", (clean_art,))
-                row = cur.fetchone()
-                if row:
-                    return row[0]
+            conn = self._get_read_conn()
+            if not conn:
+                return None
+            cur = conn.cursor()
+            cur.execute("SELECT mbid FROM artists WHERE clean_name = ? LIMIT 1", (clean_art,))
+            row = cur.fetchone()
+            if row:
+                return row[0]
         except Exception as e:
             print(f"[MusicBrainzDump] Artist MBID lookup error: {e}")
 
@@ -748,12 +764,14 @@ class MusicBrainzDumpManager:
             return None
 
         try:
-            with sqlite3.connect(f"file:{self.db_path}?mode=ro", uri=True) as conn:
-                cur = conn.cursor()
-                cur.execute("SELECT relations_json FROM artists WHERE mbid = ? LIMIT 1", (mbid,))
-                row = cur.fetchone()
-                if row and row[0]:
-                    return json.loads(row[0])
+            conn = self._get_read_conn()
+            if not conn:
+                return None
+            cur = conn.cursor()
+            cur.execute("SELECT relations_json FROM artists WHERE mbid = ? LIMIT 1", (mbid,))
+            row = cur.fetchone()
+            if row and row[0]:
+                return json.loads(row[0])
         except Exception as e:
             print(f"[MusicBrainzDump] Artist relations lookup error: {e}")
 

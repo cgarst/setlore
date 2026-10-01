@@ -194,6 +194,15 @@ class AlbumEnricher:
                 local_album, local_yr = mb_dump.lookup_studio_album(artist_name, song_name)
                 if local_album or local_yr:
                     return local_album, local_yr
+                # Check variations locally in SQLite (instant)
+                queries = self._generate_query_variations(song_name)
+                for q_song in queries:
+                    if q_song != song_name:
+                        local_album, local_yr = mb_dump.lookup_studio_album(artist_name, q_song)
+                        if local_album or local_yr:
+                            return local_album, local_yr
+                # Complete offline dump is active; song not found in 54M records
+                return None, None
         except Exception:
             pass
 
