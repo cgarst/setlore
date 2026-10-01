@@ -2473,9 +2473,9 @@
                   data-country="{{ show.country }}"
                   data-url="{{ show.ticket_url }}"
                   data-tracked="{% if show.is_tracked %}true{% else %}false{% endif %}"
-                  title="{% if show.is_tracked %}Tracked (I'll be there) - Click to untrack{% else %}Track show - Pre-add to your database{% endif %}">
+                  title="{% if show.is_tracked %}Going (I'll be there) - Click to remove{% else %}I'm going - Pre-add to your concert list{% endif %}">
                   <i class="{% if show.is_tracked %}fa-solid fa-circle-check text-emerald-400{% else %}fa-regular fa-calendar-plus text-slate-400{% endif %} text-[11px]"></i>
-                  <span>{% if show.is_tracked %}Going{% else %}Track{% endif %}</span>
+                  <span>{% if show.is_tracked %}Going{% else %}I'm going{% endif %}</span>
                 </button>
                 {% endif %}
               </div>
@@ -9731,9 +9731,9 @@
                   data-country="${escapeHtml(show.country || '')}"
                   data-url="${escapeHtml(show.ticket_url || show.event_url || '')}"
                   data-tracked="${show.is_tracked ? 'true' : 'false'}"
-                  title="${show.is_tracked ? "Tracked (I'll be there) - Click to untrack" : "Track show - Pre-add to your database"}">
+                  title="${show.is_tracked ? "Going (I'll be there) - Click to remove" : "I'm going - Pre-add to your concert list"}">
                   <i class="${show.is_tracked ? 'fa-solid fa-circle-check text-emerald-400' : 'fa-regular fa-calendar-plus text-slate-400'} text-[10px]"></i>
-                  <span>${show.is_tracked ? 'Going' : 'Track'}</span>
+                  <span>${show.is_tracked ? 'Going' : "I'm going"}</span>
                 </button>` : ''}
               </div>
             </td>
