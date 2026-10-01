@@ -129,3 +129,108 @@ Then visit:
      - Select **Folder**: `/docs`.
    - Click **Save**.
 4. GitHub Pages will publish your static demo at `https://<username>.github.io/<repo-name>/`.
+
+---
+
+## 🗄️ Demo User Cache
+
+The static demo is populated from a **real user's concert history**. Because this data can be large and is user-specific, the cache file (`data/cache/demo_user_cache.json`) is **gitignored** and must be generated locally before running `freeze_demo`.
+
+> [!NOTE]
+> The cache is a portable, ID-collision-safe JSON snapshot. It can be safely loaded into any database — blank or production mirror — without conflicting with existing records.
+
+### Generating the Cache
+
+Export a user's full concert history into the cache file:
+
+```bash
+# Export 'demouser' (the default) to the default cache path
+python manage.py dump_demo_cache
+
+# Export a specific user
+python manage.py dump_demo_cache --user Zathu
+
+# Export to a custom path
+python manage.py dump_demo_cache --user Zathu --output /path/to/my_cache.json
+
+# Export from a non-default database alias
+python manage.py dump_demo_cache --user demouser --database replica
+```
+
+#### `dump_demo_cache` Options
+
+| Flag | Long Option | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `-u` | `--user`, `--username` | `demouser` | Username whose data to export. |
+| `-o` | `--output` | `data/cache/demo_user_cache.json` | Output path for the JSON cache file. |
+| | `--database` | `default` | Source Django database alias to read from. |
+
+---
+
+### Seeding the Cache into a Database
+
+Use `populate_demo_user` to load a cache file into any target database. This is useful for:
+
+- **Blank-slate testing**: Start with a fresh DB and instantly have a fully populated demo user.
+- **Production mirror testing**: Load demo data into a staging DB alongside real users without collisions.
+- **CI/CD seeding**: Populate a test environment with known fixture data.
+
+```bash
+# Populate demouser from the default cache (creates user if missing)
+python manage.py populate_demo_user
+
+# Populate into a different username
+python manage.py populate_demo_user --target-user testdemo
+
+# Load from a custom cache file
+python manage.py populate_demo_user --input /path/to/my_cache.json
+
+# Populate and grant staff/superuser access
+python manage.py populate_demo_user --superuser
+
+# Set the user's password (used if user is newly created)
+python manage.py populate_demo_user --password mypassword123
+
+# Overwrite existing concert data for the target user
+python manage.py populate_demo_user --overwrite
+
+# Populate into a non-default database
+python manage.py populate_demo_user --database staging
+```
+
+#### `populate_demo_user` Options
+
+| Flag | Long Option | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `-i` | `--input` | `data/cache/demo_user_cache.json` | Path to the cache file to load. |
+| | `--target-user` | *(username from cache)* | Target username to populate into. |
+| | `--database` | `default` | Target Django database alias. |
+| | `--overwrite` | `False` | Replace existing concerts for the target user. |
+| | `--superuser` | `False` | Grant superuser + staff permissions to the user. |
+| | `--password` | `demopassword123` | Password if the user is newly created. |
+
+---
+
+### Typical Workflow
+
+```bash
+# 1. Export your local demouser's data to the cache
+python manage.py dump_demo_cache --user demouser
+
+# 2. (Optional) Verify the export
+cat data/cache/demo_user_cache.json | python -m json.tool | head -30
+
+# 3. Generate the static demo using that user's data
+python manage.py freeze_demo --user demouser
+```
+
+To quickly spin up a populated test environment from scratch:
+
+```bash
+# On a fresh database (after migrations):
+python manage.py populate_demo_user --password demopassword123
+
+# Then generate the static demo:
+python manage.py freeze_demo --user demouser
+```
+
