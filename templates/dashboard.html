@@ -269,7 +269,11 @@
     }
 
     /* Core Document & Typography */
-    html, body {
+    html {
+      min-height: 100%;
+      background-color: var(--bg-body);
+    }
+    body {
       background-color: var(--bg-body) !important;
       background-image: radial-gradient(circle at 50% 0%, var(--bg-ambient-1) 0%, transparent 60%), radial-gradient(circle at 85% 20%, var(--bg-ambient-2) 0%, transparent 45%);
       background-attachment: fixed;
@@ -279,13 +283,13 @@
       -webkit-touch-callout: none;
       -webkit-text-size-adjust: 100%;
       transition: background-color 0.25s ease, color 0.25s ease;
-      padding-top: env(safe-area-inset-top, 0.5rem) !important;
+      padding-top: max(0.5rem, env(safe-area-inset-top, 0px)) !important;
       padding-left: max(0.75rem, env(safe-area-inset-left, 0px)) !important;
       padding-right: max(0.75rem, env(safe-area-inset-right, 0px)) !important;
       padding-bottom: max(5.5rem, calc(env(safe-area-inset-bottom, 0px) + 4.5rem)) !important;
     }
     @media (min-width: 768px) {
-      html, body {
+      body {
         padding: 2rem !important;
         padding-top: max(1.5rem, env(safe-area-inset-top, 0px)) !important;
       }

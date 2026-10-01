@@ -30,13 +30,27 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
-    html, body {
+    html {
+      min-height: 100%;
+      background-color: #0f172a;
+    }
+    body {
       background-color: #0f172a;
       color: #f8fafc;
       font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
       touch-action: manipulation;
       -webkit-touch-callout: none;
       -webkit-text-size-adjust: 100%;
+      padding-top: max(0.5rem, env(safe-area-inset-top, 0px)) !important;
+      padding-left: max(0.75rem, env(safe-area-inset-left, 0px)) !important;
+      padding-right: max(0.75rem, env(safe-area-inset-right, 0px)) !important;
+      padding-bottom: max(5.5rem, calc(env(safe-area-inset-bottom, 0px) + 4.5rem)) !important;
+    }
+    @media (min-width: 768px) {
+      body {
+        padding: 2rem !important;
+        padding-top: max(1.5rem, env(safe-area-inset-top, 0px)) !important;
+      }
     }
     button, a, input, select, textarea {
       touch-action: manipulation;
@@ -84,10 +98,10 @@
     }
   </style>
 </head>
-<body class="min-h-screen p-4 md:p-8 pb-24 md:pb-8">
+<body class="min-h-screen">
 
   <!-- Header -->
-  <header class="max-w-7xl mx-auto mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+  <header class="max-w-7xl mx-auto mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
     <div>
       <button onclick="switchTab('overview')" class="flex items-center text-left group focus:outline-none transition cursor-pointer" title="Setlore - Overview">
         <img src="{% static 'img/setlore_banner.png' %}" alt="Setlore" class="h-10 md:h-12 w-auto object-contain rounded-xl group-hover:scale-105 transition-all">
