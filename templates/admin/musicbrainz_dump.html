@@ -219,7 +219,7 @@
     <div class="stat-box">
       <div class="stat-label">Total Disk Footprint</div>
       <div class="stat-value" id="stat-disk-size">
-        {{ status.total_disk_size_mb }} MB
+        {{ status.total_disk_size_human|default:"0 B" }}
       </div>
     </div>
   </div>
@@ -427,7 +427,7 @@
       document.getElementById('stat-upstream-version').textContent = status.upstream_version;
     }
     document.getElementById('stat-records-count').textContent = (status.record_count || 0).toLocaleString();
-    document.getElementById('stat-disk-size').textContent = (status.total_disk_size_mb || 0) + ' MB';
+    document.getElementById('stat-disk-size').textContent = status.total_disk_size_human || ((status.total_disk_size_mb || 0) + ' MB');
 
     // Progress Box
     const progressBox = document.getElementById('progress-box');

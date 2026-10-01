@@ -45,6 +45,20 @@ def _normalize_key(text: str) -> str:
     """Strips all non-alphanumeric characters and lowercases for fuzzy/clean DB index lookup."""
     return re.sub(r'[^a-z0-9]', '', (text or '').lower())
 
+def format_bytes(num_bytes: int) -> str:
+    """Formats bytes into human-readable B / KB / MB / GB / TB."""
+    if not num_bytes or num_bytes <= 0:
+        return "0 B"
+    val = float(num_bytes)
+    for unit in ['B', 'KB', 'MB', 'GB', 'TB', 'PB']:
+        if abs(val) < 1024.0:
+            if unit == 'B':
+                return f"{int(val)} {unit}"
+            formatted = f"{val:.2f}".rstrip('0').rstrip('.')
+            return f"{formatted} {unit}"
+        val /= 1024.0
+    return f"{val:.2f} PB"
+
 class MusicBrainzDumpManager:
     _instance = None
     _lock = threading.Lock()
@@ -112,7 +126,7 @@ class MusicBrainzDumpManager:
                     files_on_disk.append({
                         "name": item.name,
                         "size_bytes": size,
-                        "size_human": f"{size / (1024*1024):.1f} MB" if size >= 1024*1024 else f"{size / 1024:.1f} KB",
+                        "size_human": format_bytes(size),
                         "modified": item.stat().st_mtime
                     })
 
@@ -159,6 +173,8 @@ class MusicBrainzDumpManager:
             "local_version": local_version,
             "upstream_version": task_data.get("upstream_version"),
             "record_count": record_count,
+            "total_disk_size_bytes": total_bytes,
+            "total_disk_size_human": format_bytes(total_bytes),
             "total_disk_size_mb": round(total_bytes / (1024 * 1024), 2),
             "files": files_on_disk,
             "components": AVAILABLE_COMPONENTS,
