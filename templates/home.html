@@ -1,4 +1,4 @@
-{% load static %}
+{% load static humanize %}
 <!DOCTYPE html>
 <html lang="en" class="scroll-smooth">
 <head>
@@ -224,14 +224,14 @@
                 </div>
 
                 <span class="badge bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 font-mono font-bold text-xs shrink-0">
-                  {{ u.concert_count }} {% if u.concert_count == 1 %}Show{% else %}Shows{% endif %}
+                  {{ u.concert_count|intcomma }} {% if u.concert_count == 1 %}Show{% else %}Shows{% endif %}
                 </span>
               </div>
 
               <div class="border-t border-slate-800/80 pt-2.5 flex items-center justify-between text-[11px] text-slate-400">
                 <div class="truncate mr-2">
                   {% if u.top_artist %}
-                    <span class="text-slate-500">Top:</span> <strong class="text-slate-200 font-semibold truncate">{{ u.top_artist }}</strong> <span class="text-indigo-400 font-mono">({{ u.top_artist_shows }})</span>
+                    <span class="text-slate-500">Top:</span> <strong class="text-slate-200 font-semibold truncate">{{ u.top_artist }}</strong> <span class="text-indigo-400 font-mono">({{ u.top_artist_shows|intcomma }})</span>
                   {% else %}
                     <span class="text-slate-500">Active Profile</span>
                   {% endif %}

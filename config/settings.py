@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.humanize',
     # Setlore Apps
     'apps.core.apps.CoreConfig',
     'apps.catalog.apps.CatalogConfig',
