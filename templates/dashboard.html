@@ -7102,7 +7102,7 @@
         const cbName = 'dz_cb_' + Math.random().toString(36).substring(2, 10);
         const q = encodeURIComponent(`${artist} ${album}`);
         const script = document.createElement('script');
-        script.src = `https://api.deezer.com/search/album?q=${q}&limit=1&output=jsonp&callback=${cbName}`;
+        script.src = `https://api.deezer.com/search/album?q=${q}&limit=5&output=jsonp&callback=${cbName}`;
 
         const timer = setTimeout(() => {
           try { delete window[cbName]; } catch (e) {}
@@ -7115,11 +7115,29 @@
           try { delete window[cbName]; } catch (e) {}
           if (script.parentNode) script.parentNode.removeChild(script);
           if (data && data.data && data.data.length > 0) {
-            const r = data.data[0];
-            resolve(r.cover_big || r.cover_medium || r.cover_xl || null);
-          } else {
-            resolve(null);
+            const artLow = artist.toLowerCase().trim();
+            const albLow = album.toLowerCase().trim();
+            // 1. Exact artist + exact title
+            let match = data.data.find(r => (r.artist && r.artist.name ? r.artist.name.toLowerCase().trim() : '') === artLow && (r.title || '').toLowerCase().trim() === albLow);
+            // 2. Exact artist + clean standard title (preferring non-special/non-deluxe)
+            if (!match) {
+              match = data.data.find(r => {
+                const rArt = (r.artist && r.artist.name ? r.artist.name.toLowerCase().trim() : '');
+                const rTitle = (r.title || '').toLowerCase().trim();
+                return rArt === artLow && !rTitle.includes('special') && !rTitle.includes('deluxe') && !rTitle.includes('remaster');
+              });
+            }
+            // 3. Exact artist match
+            if (!match) {
+              match = data.data.find(r => (r.artist && r.artist.name ? r.artist.name.toLowerCase().trim() : '') === artLow);
+            }
+            if (!match) match = data.data[0];
+            if (match) {
+              resolve(match.cover_big || match.cover_medium || match.cover_xl || null);
+              return;
+            }
           }
+          resolve(null);
         };
 
         script.onerror = function() {
@@ -7136,11 +7154,22 @@
     async function fetchItunesAlbumArt(artist, album) {
       try {
         const q = encodeURIComponent(`${artist} ${album}`);
-        const res = await fetch(`https://itunes.apple.com/search?term=${q}&media=music&entity=album&limit=1`);
+        const res = await fetch(`https://itunes.apple.com/search?term=${q}&media=music&entity=album&limit=5`);
         if (res.ok) {
           const json = await res.json();
-          if (json.results && json.results.length > 0 && json.results[0].artworkUrl100) {
-            return json.results[0].artworkUrl100.replace('100x100bb', '500x500bb');
+          if (json.results && json.results.length > 0) {
+            const artLow = artist.toLowerCase().trim();
+            const albLow = album.toLowerCase().trim();
+            // 1. Exact artist + exact album
+            let match = json.results.find(r => (r.artistName || '').toLowerCase().trim() === artLow && (r.collectionName || '').toLowerCase().trim() === albLow);
+            // 2. Exact artist match
+            if (!match) {
+              match = json.results.find(r => (r.artistName || '').toLowerCase().trim() === artLow);
+            }
+            if (!match) match = json.results[0];
+            if (match && match.artworkUrl100) {
+              return match.artworkUrl100.replace('100x100bb', '500x500bb');
+            }
           }
         }
       } catch (e) {}
