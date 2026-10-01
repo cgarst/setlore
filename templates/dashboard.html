@@ -3020,6 +3020,7 @@
             <div class="artist-set-card rounded-xl bg-slate-900/40 border border-slate-800/80 p-4 space-y-3"
                  id="artist-set-{{ c.id }}-{{ forloop.counter }}"
                  data-artist="{{ a.artist }}"
+                 data-musicians="{% for m in a.musicians %} {{ m.musician|lower }} {% endfor %}"
                  data-is-favorite="{{ a.is_favorite|yesno:'true,false' }}">
               
               <!-- Artist Subheader -->
@@ -5550,29 +5551,48 @@
           card.style.display = 'block';
           visibleCount++;
 
-          // In favorite filtered view, filter inner artist set blocks to show only favorited bands
           const artistBlocks = card.querySelectorAll('.artist-set-card');
-          const favArtistNames = [];
+          const matchingArtistNames = [];
+
           artistBlocks.forEach(artistBlock => {
             const isArtFav = artistBlock.getAttribute('data-is-favorite') === 'true';
-            if (showOnlyFavorites) {
-              artistBlock.style.display = isArtFav ? 'block' : 'none';
-              if (isArtFav) {
-                const artName = artistBlock.getAttribute('data-artist') || '';
-                if (artName) favArtistNames.push(artName);
+            const artName = (artistBlock.getAttribute('data-artist') || '').toLowerCase();
+            const artMusicians = (artistBlock.getAttribute('data-musicians') || '').toLowerCase();
+
+            // When searching/filtering by a specific artist or musician, check if this specific band set contains it
+            let matchesSetQuery = true;
+            if (q) {
+              const venueDateSearch = ((card.getAttribute('data-venue') || '') + ' ' + (card.getAttribute('data-date') || '') + ' ' + (card.getAttribute('data-city') || '')).toLowerCase();
+              const isVenueDateSearch = venueDateSearch.includes(q);
+
+              if (!isVenueDateSearch) {
+                matchesSetQuery = artName.includes(q) || artMusicians.includes(q);
               }
-            } else {
-              artistBlock.style.display = 'block';
+            }
+
+            const shouldShow = (!showOnlyFavorites || isArtFav) && matchesSetQuery;
+            artistBlock.style.display = shouldShow ? 'block' : 'none';
+            if (shouldShow) {
+              const displayArtName = artistBlock.getAttribute('data-artist') || '';
+              if (displayArtName) matchingArtistNames.push(displayArtName);
             }
           });
 
-          // Update header subtitle when filtered by favorites to show only the favorited band(s)
-          const headerArtistsSpan = card.querySelector('.concert-header-artists');
-          if (headerArtistsSpan) {
-            if (showOnlyFavorites && favArtistNames.length > 0) {
-              headerArtistsSpan.textContent = '— ' + favArtistNames.join(', ');
-            } else {
-              headerArtistsSpan.textContent = headerArtistsSpan.getAttribute('data-full-artists') || '';
+          // If all inner artist blocks were excluded by the filter, hide the entire card
+          if (matchingArtistNames.length === 0 && artistBlocks.length > 0) {
+            card.style.display = 'none';
+            visibleCount--;
+          } else {
+            // Update header subtitle to reflect only the matching band(s)
+            const headerArtistsSpan = card.querySelector('.concert-header-artists');
+            if (headerArtistsSpan) {
+              if (matchingArtistNames.length > 0 && matchingArtistNames.length < artistBlocks.length) {
+                headerArtistsSpan.textContent = '— ' + matchingArtistNames.join(', ');
+              } else if (showOnlyFavorites && matchingArtistNames.length > 0) {
+                headerArtistsSpan.textContent = '— ' + matchingArtistNames.join(', ');
+              } else {
+                headerArtistsSpan.textContent = headerArtistsSpan.getAttribute('data-full-artists') || '';
+              }
             }
           }
         } else {
