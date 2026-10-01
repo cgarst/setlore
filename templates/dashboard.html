@@ -6413,6 +6413,21 @@
       }
     }
 
+    function interpolateHexColor(hex1, hex2, t) {
+      try {
+        const c1 = parseInt(hex1.replace('#', ''), 16);
+        const c2 = parseInt(hex2.replace('#', ''), 16);
+        const r1 = (c1 >> 16) & 255, g1 = (c1 >> 8) & 255, b1 = c1 & 255;
+        const r2 = (c2 >> 16) & 255, g2 = (c2 >> 8) & 255, b2 = c2 & 255;
+        const r = Math.round(r1 + (r2 - r1) * t);
+        const g = Math.round(g1 + (g2 - g1) * t);
+        const b = Math.round(b1 + (b2 - b1) * t);
+        return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+      } catch (e) {
+        return hex2;
+      }
+    }
+
     function applyThemeToPlotlyCharts(themeName) {
       const themeObj = THEMES.find(t => t.id === themeName) || THEMES[0];
 
@@ -6432,11 +6447,26 @@
 
       // 2. Top Artists Chart (Packed Bubble Chart)
       const topArtistsEl = document.getElementById('chart-top-artists');
-      if (topArtistsEl && topArtistsEl.data) {
-        Plotly.restyle(topArtistsEl, {
-          'marker.colorscale': themeObj.topArtistsScale
-        }, [0]).catch(() => {});
+      if (topArtistsEl && topArtistsEl.layout && topArtistsEl.layout.shapes) {
+        const shapes = JSON.parse(JSON.stringify(topArtistsEl.layout.shapes));
+        let startColor = themeObj.accent || '#6366f1';
+        let endColor = themeObj.secondary || '#a855f7';
+        if (themeObj.gradient) {
+          const hexes = themeObj.gradient.match(/#[0-9a-fA-F]{6}/g);
+          if (hexes && hexes.length >= 2) {
+            startColor = hexes[0];
+            endColor = hexes[1];
+          }
+        }
+        const n = shapes.length;
+        shapes.forEach((s, idx) => {
+          if (s.type === 'circle') {
+            const t = n > 1 ? (n - 1 - idx) / (n - 1) : 1.0;
+            s.fillcolor = interpolateHexColor(startColor, endColor, t);
+          }
+        });
         Plotly.relayout(topArtistsEl, {
+          'shapes': shapes,
           'paper_bgcolor': 'transparent',
           'plot_bgcolor': 'transparent',
           'font.color': themeObj.textColor

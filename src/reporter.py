@@ -55,76 +55,161 @@ def generate_plotly_charts(stats: Dict[str, Any], album_enrichments: Dict[str, A
     
     bubble_x = []
     bubble_y = []
-    bubble_diameters = []
     bubble_names = []
     bubble_counts = []
     bubble_texts = []
     bubble_font_sizes = []
+    bubble_hovertexts = []
+    bubble_shapes = []
+    
+    min_x, max_x, min_y, max_y = -50.0, 50.0, -50.0, 50.0
     
     if top_artists:
-        counts = [a["concert_count"] for a in top_artists]
+        sorted_artists = sorted(top_artists, key=lambda x: x["concert_count"], reverse=True)
+        counts = [a["concert_count"] for a in sorted_artists]
         max_c = max(counts) if counts else 1
         min_c = min(counts) if counts else 1
+        gap = 2.0
+        
+        # Color interpolation helper for default theme (#6366f1 -> #c084fc)
+        def calc_theme_hex(t_val):
+            # t_val from 0.0 (lowest count) to 1.0 (highest count)
+            r1, g1, b1 = 99, 102, 241   # #6366f1 (Indigo)
+            r2, g2, b2 = 192, 132, 252  # #c084fc (Purple/Violet)
+            r = int(r1 + (r2 - r1) * t_val)
+            g = int(g1 + (g2 - g1) * t_val)
+            b = int(b1 + (b2 - b1) * t_val)
+            return f"#{r:02x}{g:02x}{b:02x}"
         
         circles = []
-        for a in top_artists:
+        for a in sorted_artists:
             c = a["concert_count"]
             name = a["artist"]
+            t_norm = (c - min_c) / (max_c - min_c) if (max_c > min_c) else 1.0
             if max_c == min_c:
-                r = 32.0
+                r = 30.0
             else:
-                r = 18.0 + 34.0 * ((c ** 0.5) / (max_c ** 0.5))
-            circles.append({"artist": name, "count": c, "r": r, "x": 0.0, "y": 0.0})
+                r = 15.0 + 35.0 * (math.sqrt(c) / math.sqrt(max_c))
             
-        placed = []
-        for i, c in enumerate(circles):
-            if i == 0:
-                c["x"] = 0.0
-                c["y"] = 0.0
-                placed.append(c)
-                continue
-            angle = 0.0
-            step = 0.08
-            placed_circle = False
-            while angle < 200.0:
-                r_search = 1.2 * angle
-                x = r_search * math.cos(angle)
-                y = r_search * math.sin(angle)
-                overlap = False
-                for p in placed:
-                    if math.hypot(x - p["x"], y - p["y"]) < (c["r"] + p["r"] + 3.0):
-                        overlap = True
-                        break
-                if not overlap:
-                    c["x"] = x
-                    c["y"] = y
-                    placed.append(c)
-                    placed_circle = True
-                    break
-                angle += step
-            if not placed_circle:
-                c["x"] = (c["r"] + 20) * i
-                c["y"] = 0.0
-                placed.append(c)
-                
-        bubble_x = [round(c["x"], 2) for c in placed]
-        bubble_y = [round(c["y"], 2) for c in placed]
-        bubble_diameters = [round(c["r"] * 2, 2) for c in placed]
-        bubble_names = [c["artist"] for c in placed]
-        bubble_counts = [c["count"] for c in placed]
-        
-        for c in placed:
-            nm = c["artist"]
-            if len(nm) > 13 and c["r"] < 26:
+            fill_col = calc_theme_hex(t_norm)
+            
+            nm = name
+            if len(nm) > 13 and r < 24:
                 short_nm = nm[:11] + ".."
             elif len(nm) > 18:
                 short_nm = nm[:16] + ".."
             else:
                 short_nm = nm
-            bubble_texts.append(f"{short_nm}<br><b>{c['count']}</b>")
-            fs = max(9, min(13, int(c["r"] / 3.4)))
-            bubble_font_sizes.append(fs)
+            display_text = f"{short_nm}<br><b>{c}</b>"
+            font_size = max(9, min(14, int(r / 3.2)))
+            
+            circles.append({
+                "artist": name,
+                "count": c,
+                "r": r,
+                "x": 0.0,
+                "y": 0.0,
+                "fill_color": fill_col,
+                "display_text": display_text,
+                "font_size": font_size
+            })
+            
+        placed = []
+        def dist(x1, y1, x2, y2):
+            return math.hypot(x1 - x2, y1 - y2)
+        def is_valid_pos(cx, cy, cr, placed_circles):
+            for p in placed_circles:
+                if dist(cx, cy, p["x"], p["y"]) < (cr + p["r"] + gap - 1e-4):
+                    return False
+            return True
 
+        for i, c in enumerate(circles):
+            r = c["r"]
+            if i == 0:
+                c["x"] = 0.0
+                c["y"] = 0.0
+                placed.append(c)
+            elif i == 1:
+                c["x"] = placed[0]["r"] + r + gap
+                c["y"] = 0.0
+                placed.append(c)
+            else:
+                best_pos = None
+                best_dist = float("inf")
+                for j in range(len(placed)):
+                    for k in range(j + 1, len(placed)):
+                        c1, c2 = placed[j], placed[k]
+                        d1, d2 = c1["r"] + r + gap, c2["r"] + r + gap
+                        dx, dy = c2["x"] - c1["x"], c2["y"] - c1["y"]
+                        d = math.hypot(dx, dy)
+                        if d > (d1 + d2) or d < abs(d1 - d2) or d == 0:
+                            continue
+                        a_dist = (d1*d1 - d2*d2 + d*d) / (2.0 * d)
+                        h2 = d1*d1 - a_dist*a_dist
+                        if h2 < 0:
+                            continue
+                        h_dist = math.sqrt(h2)
+                        x2 = c1["x"] + (dx * a_dist) / d
+                        y2 = c1["y"] + (dy * a_dist) / d
+                        candidates = [
+                            (x2 + (dy * h_dist) / d, y2 - (dx * h_dist) / d),
+                            (x2 - (dy * h_dist) / d, y2 + (dx * h_dist) / d)
+                        ]
+                        for cand_x, cand_y in candidates:
+                            if is_valid_pos(cand_x, cand_y, r, placed):
+                                d_orig = math.hypot(cand_x, cand_y)
+                                if d_orig < best_dist:
+                                    best_dist = d_orig
+                                    best_pos = (cand_x, cand_y)
+                if best_pos is None:
+                    angle = 0.0
+                    while angle < 100.0:
+                        rad = 1.0 * angle
+                        cand_x = rad * math.cos(angle)
+                        cand_y = rad * math.sin(angle)
+                        if is_valid_pos(cand_x, cand_y, r, placed):
+                            best_pos = (cand_x, cand_y)
+                            break
+                        angle += 0.05
+                if best_pos:
+                    c["x"] = best_pos[0]
+                    c["y"] = best_pos[1]
+                else:
+                    c["x"] = (r + 50) * i
+                    c["y"] = 0.0
+                placed.append(c)
+                
+        min_x = min(c["x"] - c["r"] for c in placed)
+        max_x = max(c["x"] + c["r"] for c in placed)
+        min_y = min(c["y"] - c["r"] for c in placed)
+        max_y = max(c["y"] + c["r"] for c in placed)
+        
+        bubble_x = [round(c["x"], 2) for c in placed]
+        bubble_y = [round(c["y"], 2) for c in placed]
+        bubble_names = [c["artist"] for c in placed]
+        bubble_counts = [c["count"] for c in placed]
+        bubble_texts = [c["display_text"] for c in placed]
+        bubble_font_sizes = [c["font_size"] for c in placed]
+        bubble_hovertexts = [f"<b>{c['artist']}</b><br>{c['count']} shows attended" for c in placed]
+        
+        for c in placed:
+            bubble_shapes.append({
+                "type": "circle",
+                "xref": "x",
+                "yref": "y",
+                "x0": round(c["x"] - c["r"], 2),
+                "y0": round(c["y"] - c["r"], 2),
+                "x1": round(c["x"] + c["r"], 2),
+                "y1": round(c["y"] + c["r"], 2),
+                "fillcolor": c["fill_color"],
+                "line": {
+                    "color": "rgba(255, 255, 255, 0.3)",
+                    "width": 1.5
+                },
+                "layer": "below"
+            })
+
+    pad = 8.0
     top_artists_chart = {
         "data": [{
             "x": bubble_x,
@@ -133,32 +218,47 @@ def generate_plotly_charts(stats: Dict[str, Any], album_enrichments: Dict[str, A
             "customdata": bubble_names,
             "type": "scatter",
             "mode": "markers+text",
+            "marker": {
+                "size": [max(20, min(80, int(fs * 4))) for fs in bubble_font_sizes] if bubble_font_sizes else [],
+                "color": "rgba(0,0,0,0.001)",
+                "opacity": 0.01,
+                "showscale": False
+            },
             "textposition": "middle center",
             "textfont": {
                 "family": "Inter, sans-serif",
                 "size": bubble_font_sizes,
                 "color": "#ffffff"
             },
-            "hovertemplate": "<b>%{customdata}</b><br>%{marker.color} shows attended<extra></extra>",
-            "marker": {
-                "size": bubble_diameters,
-                "sizemode": "diameter",
-                "color": bubble_counts,
-                "colorscale": "Purples",
-                "showscale": False,
-                "line": {
-                    "width": 1.5,
-                    "color": "rgba(255, 255, 255, 0.25)"
-                }
-            }
+            "hoverinfo": "text",
+            "hovertext": bubble_hovertexts
         }],
         "layout": {
             "title": "",
             "dragmode": False,
             "hovermode": "closest",
+            "shapes": bubble_shapes,
             "margin": {"l": 10, "r": 10, "t": 10, "b": 10},
-            "xaxis": {"visible": False, "showgrid": False, "zeroline": False, "showticklabels": False, "fixedrange": True},
-            "yaxis": {"visible": False, "showgrid": False, "zeroline": False, "showticklabels": False, "fixedrange": True, "scaleanchor": "x", "scaleratio": 1}
+            "xaxis": {
+                "visible": False,
+                "showgrid": False,
+                "zeroline": False,
+                "showticklabels": False,
+                "range": [round(min_x - pad, 2), round(max_x + pad, 2)],
+                "fixedrange": True
+            },
+            "yaxis": {
+                "visible": False,
+                "showgrid": False,
+                "zeroline": False,
+                "showticklabels": False,
+                "range": [round(min_y - pad, 2), round(max_y + pad, 2)],
+                "scaleanchor": "x",
+                "scaleratio": 1,
+                "fixedrange": True
+            },
+            "plot_bgcolor": "rgba(0,0,0,0)",
+            "paper_bgcolor": "rgba(0,0,0,0)"
         }
     }
 
