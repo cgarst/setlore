@@ -2367,7 +2367,14 @@
             </p>
           </div>
 
-          <div id="upcoming-overview-toolbar" class="{% if not upcoming_location %}hidden{% endif %} flex flex-wrap items-center gap-2 shrink-0">
+          <div class="flex items-center gap-2 shrink-0">
+            <!-- See All in Table Button — always visible -->
+            <button type="button" onclick="openUpcomingTableModal()" class="px-3 py-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-sm" title="View all tour dates in a detailed table">
+              <i class="fa-solid fa-table-list text-amber-400"></i>
+              <span>See All <span id="upcoming-view-all-count" class="hidden sm:inline">({{ upcoming_shows|length|intcomma }})</span></span>
+            </button>
+
+            <div id="upcoming-overview-toolbar" class="{% if not upcoming_location %}hidden{% endif %} flex flex-wrap items-center gap-2">
             <!-- Search Filter -->
             <div class="relative">
               <span class="absolute inset-y-0 left-0 flex items-center pl-2.5 text-slate-500 text-[11px]">
@@ -2376,12 +2383,6 @@
               <input type="text" id="upcoming-overview-search" oninput="filterUpcomingOverviewCards()" placeholder="Filter shows..."
                 class="pl-7 pr-2.5 py-1.5 text-xs rounded-lg bg-slate-900 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 w-36 sm:w-44">
             </div>
-
-            <!-- See All in Table Button -->
-            <button type="button" onclick="openUpcomingTableModal()" class="px-3 py-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-sm" title="View all tour dates in a detailed table">
-              <i class="fa-solid fa-table-list text-amber-400"></i>
-              <span>See All <span id="upcoming-view-all-count" class="hidden sm:inline">({{ upcoming_shows|length|intcomma }})</span></span>
-            </button>
 
             {% if not is_public_view and user.is_authenticated and is_owner %}
             <!-- Configure Modal Trigger Button -->
@@ -2396,6 +2397,7 @@
               <i id="upcoming-refresh-icon" class="fa-solid fa-arrows-rotate text-[11px]"></i>
               <span class="hidden sm:inline">Refresh</span>
             </button>
+          </div>
           </div>
         </div>
 
