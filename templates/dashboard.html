@@ -2479,7 +2479,7 @@
         <button onclick="switchTab('concerts')" id="tab-concerts-btn" class="nav-tab-btn px-3.5 py-2 rounded-xl text-xs {% if initial_tab == 'concerts' %}font-bold bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-500/25{% else %}font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/60{% endif %} flex items-center gap-2 transition-all">
           <i class="fa-solid fa-ticket text-purple-400"></i> Concerts
         </button>
-        <button onclick="switchTab('drilldown')" id="tab-drilldown-btn" class="nav-tab-btn px-3.5 py-2 rounded-xl text-xs {% if initial_tab == 'drilldown' %}font-bold bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-500/25{% else %}font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/60{% endif %} flex items-center gap-2 transition-all">
+        <button onclick="switchTab('songs')" id="tab-songs-btn" class="nav-tab-btn px-3.5 py-2 rounded-xl text-xs {% if initial_tab == 'songs' %}font-bold bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-500/25{% else %}font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/60{% endif %} flex items-center gap-2 transition-all">
           <i class="fa-solid fa-magnifying-glass-chart text-pink-400"></i> Artists & Songs
         </button>
         <button onclick="switchTab('albums')" id="tab-albums-btn" class="nav-tab-btn px-3.5 py-2 rounded-xl text-xs {% if initial_tab == 'albums' %}font-bold bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-500/25{% else %}font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/60{% endif %} flex items-center gap-2 transition-all">
@@ -2491,7 +2491,7 @@
         <button onclick="switchTab('map')" id="tab-map-btn" class="nav-tab-btn px-3.5 py-2 rounded-xl text-xs {% if initial_tab == 'map' %}font-bold bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-500/25{% else %}font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/60{% endif %} flex items-center gap-2 transition-all">
           <i class="fa-solid fa-map-location-dot text-emerald-400"></i> Venue Map
         </button>
-        <button onclick="switchTab('setlists')" id="tab-setlists-btn" class="nav-tab-btn px-3.5 py-2 rounded-xl text-xs {% if initial_tab == 'setlists' %}font-bold bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-500/25{% else %}font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/60{% endif %} flex items-center gap-2 transition-all">
+        <button onclick="switchTab('freshness')" id="tab-freshness-btn" class="nav-tab-btn px-3.5 py-2 rounded-xl text-xs {% if initial_tab == 'freshness' %}font-bold bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-500/25{% else %}font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/60{% endif %} flex items-center gap-2 transition-all">
           <i class="fa-solid fa-leaf text-emerald-400"></i> Freshness
         </button>
         {% if not is_public_view %}
@@ -2549,7 +2549,7 @@
               </div>
               <p class="text-xs text-slate-400">{% if is_public_view %}{{ profile_user.username }} has seen <span class="text-white font-semibold">{{ stats.total_unique_artists|intcomma }}</span> artists, which have they seen the most?{% else %}You've seen <span class="text-white font-semibold">{{ stats.total_unique_artists|intcomma }}</span> artists, which have you seen the most?{% endif %}</p>
             </div>
-            <button onclick="switchTab('drilldown')" class="px-2.5 py-1 rounded-lg bg-pink-500/15 hover:bg-pink-500/25 text-pink-300 border border-pink-500/30 text-xs font-semibold flex items-center gap-1.5 transition shrink-0">
+            <button onclick="switchTab('songs')" class="px-2.5 py-1 rounded-lg bg-pink-500/15 hover:bg-pink-500/25 text-pink-300 border border-pink-500/30 text-xs font-semibold flex items-center gap-1.5 transition shrink-0">
               Artist Drilldown <i class="fa-solid fa-arrow-right text-[10px]"></i>
             </button>
           </div>
@@ -2786,7 +2786,7 @@
               </div>
               <p class="text-xs text-slate-400">{% if is_public_view %}{{ profile_user.username }} has heard <span class="text-white font-semibold">{{ stats.unique_songs_heard|intcomma }}</span> unique songs, which track have they heard the most?{% else %}You've heard <span class="text-white font-semibold">{{ stats.unique_songs_heard|intcomma }}</span> unique songs, which track have you heard the most?{% endif %}</p>
             </div>
-            <button onclick="switchTab('drilldown')" class="px-2.5 py-1.5 rounded-lg bg-purple-500/15 hover:bg-purple-500/25 text-purple-300 border border-purple-500/30 text-xs font-semibold flex items-center gap-1.5 transition shrink-0">
+            <button onclick="switchTab('songs')" class="px-2.5 py-1.5 rounded-lg bg-purple-500/15 hover:bg-purple-500/25 text-purple-300 border border-purple-500/30 text-xs font-semibold flex items-center gap-1.5 transition shrink-0">
               Song Drilldown <i class="fa-solid fa-arrow-right text-[10px]"></i>
             </button>
           </div>
@@ -3306,7 +3306,7 @@
     </div>
 
     <!-- 3. ARTIST & SONG DRILLDOWN TAB -->
-    <div id="tab-drilldown" class="{% if initial_tab != 'drilldown' %}hidden {% endif %}space-y-6">
+    <div id="tab-songs" class="{% if initial_tab != 'songs' %}hidden {% endif %}space-y-6">
       
       <!-- Artist Selection Cards -->
       <div class="glass-card p-6">
@@ -3855,7 +3855,7 @@
     </div>
 
     <!-- 7. SETLIST VARIATION & FRESHNESS TAB -->
-    <div id="tab-setlists" class="{% if initial_tab != 'setlists' %}hidden {% endif %}space-y-6">
+    <div id="tab-freshness" class="{% if initial_tab != 'freshness' %}hidden {% endif %}space-y-6">
       
       <div class="glass-card p-6">
         <div class="flex items-center justify-between mb-4">
@@ -4790,7 +4790,7 @@
       {% endif %}
 
       <!-- 4. Artists & Songs -->
-      <button onclick="switchTab('drilldown')" id="mobile-tab-drilldown-btn" class="mobile-nav-tab flex flex-col items-center justify-center py-1 px-1 rounded-xl {% if initial_tab == 'drilldown' %}text-indigo-400 font-bold scale-105{% else %}text-slate-400 hover:text-slate-200 font-medium{% endif %} transition-all group" title="Artists & Songs">
+      <button onclick="switchTab('songs')" id="mobile-tab-songs-btn" class="mobile-nav-tab flex flex-col items-center justify-center py-1 px-1 rounded-xl {% if initial_tab == 'songs' %}text-indigo-400 font-bold scale-105{% else %}text-slate-400 hover:text-slate-200 font-medium{% endif %} transition-all group" title="Artists & Songs">
         <div class="w-8 h-7 flex items-center justify-center rounded-lg transition">
           <i class="fa-solid fa-magnifying-glass-chart text-lg transition-transform group-active:scale-90"></i>
         </div>
@@ -4798,10 +4798,10 @@
       </button>
 
       <!-- 5. More & Profile Menu -->
-      <button onclick="toggleMobileMoreMenu()" id="mobile-tab-more-btn" class="mobile-nav-tab relative flex flex-col items-center justify-center py-1 px-1 rounded-xl {% if initial_tab == 'map' or initial_tab == 'albums' or initial_tab == 'musicians' or initial_tab == 'setlists' or initial_tab == 'friends' or initial_tab == 'gap' %}text-indigo-400 font-bold scale-105{% else %}text-slate-400 hover:text-slate-200 font-medium{% endif %} transition-all group cursor-pointer" title="More sections & profile">
+      <button onclick="toggleMobileMoreMenu()" id="mobile-tab-more-btn" class="mobile-nav-tab relative flex flex-col items-center justify-center py-1 px-1 rounded-xl {% if initial_tab == 'map' or initial_tab == 'albums' or initial_tab == 'musicians' or initial_tab == 'freshness' or initial_tab == 'friends' or initial_tab == 'gap' %}text-indigo-400 font-bold scale-105{% else %}text-slate-400 hover:text-slate-200 font-medium{% endif %} transition-all group cursor-pointer" title="More sections & profile">
         <div class="w-8 h-7 flex items-center justify-center rounded-lg transition relative">
           <i id="mobile-more-icon" class="fa-solid fa-ellipsis text-lg transition-transform group-active:scale-90"></i>
-          <span id="mobile-more-active-dot" class="{% if initial_tab != 'map' and initial_tab != 'albums' and initial_tab != 'musicians' and initial_tab != 'setlists' and initial_tab != 'friends' and initial_tab != 'gap' %}hidden {% endif %}absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
+          <span id="mobile-more-active-dot" class="{% if initial_tab != 'map' and initial_tab != 'albums' and initial_tab != 'musicians' and initial_tab != 'freshness' and initial_tab != 'friends' and initial_tab != 'gap' %}hidden {% endif %}absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
         </div>
         <span id="mobile-more-label" class="text-[10px] tracking-tight truncate mt-0.5">More</span>
       </button>
@@ -4899,7 +4899,7 @@
           </button>
 
           <!-- Freshness -->
-          <button onclick="switchTab('setlists'); closeMobileMoreMenu();" id="mobile-sheet-tab-setlists-btn" class="w-full flex items-center justify-between p-2.5 rounded-xl {% if initial_tab == 'setlists' %}bg-indigo-600/20 border border-indigo-500/50 shadow-md shadow-indigo-500/10{% else %}bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600{% endif %} transition text-left group cursor-pointer">
+          <button onclick="switchTab('freshness'); closeMobileMoreMenu();" id="mobile-sheet-tab-freshness-btn" class="w-full flex items-center justify-between p-2.5 rounded-xl {% if initial_tab == 'freshness' %}bg-indigo-600/20 border border-indigo-500/50 shadow-md shadow-indigo-500/10{% else %}bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600{% endif %} transition text-left group cursor-pointer">
             <div class="flex items-center gap-3">
               <div class="w-8 h-8 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 group-hover:scale-105 transition shrink-0">
                 <i class="fa-solid fa-leaf text-sm"></i>
@@ -5196,15 +5196,16 @@
         '': 'overview',
         'overview': 'overview',
         'concerts': 'concerts',
-        'drilldown': 'drilldown',
-        'artists': 'drilldown',
+        'songs': 'songs',
+        'drilldown': 'songs',
+        'artists': 'songs',
         'musicians': 'musicians',
         'map': 'map',
         'venues': 'map',
         'albums': 'albums',
         'advanced': 'albums',
-        'setlists': 'setlists',
-        'freshness': 'setlists',
+        'freshness': 'freshness',
+        'setlists': 'freshness',
         'gap': 'gap',
         'audit': 'gap',
         'friends': 'friends'
@@ -5217,7 +5218,7 @@
       if (tabId === 'friends' && window.isPublicView) {
         tabId = 'overview';
       }
-      const validTabs = ['overview', 'concerts', 'drilldown', 'albums', 'musicians', 'map', 'setlists', 'gap', 'friends'];
+      const validTabs = ['overview', 'concerts', 'songs', 'albums', 'musicians', 'map', 'freshness', 'gap', 'friends'];
 
       validTabs.forEach(t => {
         const tabEl = document.getElementById('tab-' + t);
@@ -5243,7 +5244,7 @@
       }
 
       // Sync Mobile Bottom Tab Navigator & More Sheet
-      const primaryTabs = ['overview', 'concerts', 'drilldown'];
+      const primaryTabs = ['overview', 'concerts', 'songs'];
       primaryTabs.forEach(t => {
         const mBtn = document.getElementById('mobile-tab-' + t + '-btn');
         if (mBtn) {
@@ -5255,7 +5256,7 @@
         }
       });
 
-      const secondaryTabs = ['map', 'musicians', 'albums', 'setlists', 'gap', 'friends'];
+      const secondaryTabs = ['map', 'musicians', 'albums', 'freshness', 'gap', 'friends'];
       const isSecondary = secondaryTabs.includes(tabId);
       const moreBtn = document.getElementById('mobile-tab-more-btn');
       const moreDot = document.getElementById('mobile-more-active-dot');
@@ -5316,7 +5317,7 @@
             if (el) Plotly.Plots.resize(el);
           });
         });
-      } else if (tabId === 'drilldown') {
+      } else if (tabId === 'songs' || tabId === 'drilldown') {
         if (typeof initLazyAlbumThumbnails === 'function') {
           initLazyAlbumThumbnails(document.getElementById('drilldown-songs-container'));
         }
@@ -6221,7 +6222,7 @@
     }
 
     function jumpToMusicianInDrilldown(musicianName) {
-      switchTab('drilldown');
+      switchTab('songs');
       if (!musicianName) return;
 
       const select = document.getElementById('drilldown-musician-filter');
@@ -6251,7 +6252,7 @@
     let allExpanded = false;
 
     function jumpToSongInDrilldown(artistName, songName = '') {
-      switchTab('drilldown');
+      switchTab('songs');
       if (!artistName) return;
 
       // Clear musician filter if jumping directly to a specific artist

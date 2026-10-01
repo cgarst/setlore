@@ -139,15 +139,16 @@ class DjangoAppTests(TestCase):
         tabs = [
             ('/overview/', 'overview'),
             ('/concerts/', 'concerts'),
-            ('/drilldown/', 'drilldown'),
-            ('/artists/', 'drilldown'),
+            ('/songs/', 'songs'),
+            ('/drilldown/', 'songs'),
+            ('/artists/', 'songs'),
             ('/musicians/', 'musicians'),
             ('/map/', 'map'),
             ('/venues/', 'map'),
             ('/advanced/', 'albums'),
             ('/albums/', 'albums'),
-            ('/setlists/', 'setlists'),
-            ('/freshness/', 'setlists'),
+            ('/freshness/', 'freshness'),
+            ('/setlists/', 'freshness'),
             ('/gap/', 'gap'),
             ('/audit/', 'gap'),
         ]
@@ -307,16 +308,17 @@ class DjangoAppTests(TestCase):
         self.assertIn('User Not Found', content)
 
     def test_public_profile_tab_urls(self):
-        tabs = ['overview', 'concerts', 'drilldown', 'musicians', 'map', 'albums', 'setlists', 'gap']
+        tabs = ['overview', 'concerts', 'songs', 'musicians', 'map', 'albums', 'freshness', 'gap']
         for t in tabs:
             res = self.client.get(f'/u/{self.user.username}/{t}/')
             self.assertEqual(res.status_code, 200)
             self.assertEqual(res.context['initial_tab'], t)
             self.assertTrue(res.context['is_public_view'])
-        # Verify legacy alias
-        res_alias = self.client.get(f'/u/{self.user.username}/advanced/')
-        self.assertEqual(res_alias.status_code, 200)
-        self.assertEqual(res_alias.context['initial_tab'], 'albums')
+        # Verify legacy aliases
+        for alias, expected in [('advanced', 'albums'), ('drilldown', 'songs'), ('artists', 'songs'), ('setlists', 'freshness')]:
+            res_alias = self.client.get(f'/u/{self.user.username}/{alias}/')
+            self.assertEqual(res_alias.status_code, 200)
+            self.assertEqual(res_alias.context['initial_tab'], expected)
 
     def test_public_profile_i_was_there_button_and_attendance_toggle(self):
         # Setup target user's concert
@@ -581,7 +583,21 @@ class DjangoAppTests(TestCase):
         self.assertIn('id="tab-albums" class="space-y-6"', content_albums)
         self.assertIn('id="tab-overview" class="hidden space-y-6"', content_albums)
 
-        # 3. /overview/ (or /) should render tab-overview without hidden and tab-concerts with hidden
+        # 3. /songs/ should render tab-songs without hidden and tab-overview with hidden
+        res_songs = self.client.get('/songs/')
+        self.assertEqual(res_songs.status_code, 200)
+        content_songs = res_songs.content.decode('utf-8')
+        self.assertIn('id="tab-songs" class="space-y-6"', content_songs)
+        self.assertIn('id="tab-overview" class="hidden space-y-6"', content_songs)
+
+        # 4. /freshness/ should render tab-freshness without hidden and tab-overview with hidden
+        res_freshness = self.client.get('/freshness/')
+        self.assertEqual(res_freshness.status_code, 200)
+        content_freshness = res_freshness.content.decode('utf-8')
+        self.assertIn('id="tab-freshness" class="space-y-6"', content_freshness)
+        self.assertIn('id="tab-overview" class="hidden space-y-6"', content_freshness)
+
+        # 5. /overview/ (or /) should render tab-overview without hidden and tab-concerts with hidden
         res_overview = self.client.get('/overview/')
         self.assertEqual(res_overview.status_code, 200)
         content_overview = res_overview.content.decode('utf-8')
