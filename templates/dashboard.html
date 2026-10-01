@@ -3563,11 +3563,11 @@
                     <div class="min-w-0">
                       {% if ps.is_public %}
                         <a href="{% url 'public_profile' username=ps.username %}" class="text-sm font-bold text-white hover:text-amber-300 transition truncate block">
-                          @{{ ps.username }}
+                          {{ ps.username }}
                         </a>
                       {% else %}
                         <span class="text-sm font-bold text-slate-300 truncate block cursor-default select-none">
-                          @{{ ps.username }}
+                          {{ ps.username }}
                         </span>
                       {% endif %}
                     </div>
@@ -3681,11 +3681,11 @@
                     <div class="min-w-0">
                       {% if fb.is_public %}
                         <a href="{% url 'public_profile' username=fb.username %}" class="text-sm font-bold text-white hover:text-indigo-300 transition truncate block">
-                          @{{ fb.username }}
+                          {{ fb.username }}
                         </a>
                       {% else %}
                         <span class="text-sm font-bold text-slate-300 truncate block cursor-default select-none">
-                          @{{ fb.username }}
+                          {{ fb.username }}
                         </span>
                       {% endif %}
                     </div>
@@ -3801,7 +3801,7 @@
                         </div>
                         <div class="min-w-0 flex items-center gap-1.5 flex-wrap">
                           <a href="{% url 'public_profile' username=f.username %}" class="font-bold text-white hover:text-indigo-300 transition truncate">
-                            @{{ f.username }}
+                            {{ f.username }}
                           </a>
                           {% if not f.is_public %}
                             <span class="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 inline-flex items-center gap-1 shrink-0" title="Private profile (viewable because you are mutual friends)">
@@ -3869,7 +3869,7 @@
                       <td colspan="5" class="px-4 py-3">
                         <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2">
                           <div class="flex items-center justify-between text-xs font-bold text-pink-300">
-                            <span class="flex items-center gap-1.5"><i class="fa-solid fa-sparkles text-xs"></i> Co-Attended Concerts with @{{ f.username }}</span>
+                            <span class="flex items-center gap-1.5"><i class="fa-solid fa-sparkles text-xs"></i> Co-Attended Concerts with {{ f.username }}</span>
                             <button type="button" onclick="jumpToCoAttendedConcerts('{{ f.username|escapejs }}', [{% for c in f.co_attended_concerts %}'{{ c.date }}'{% if not forloop.last %},{% endif %}{% endfor %}])" class="text-xs text-indigo-300 hover:text-white hover:underline flex items-center gap-1 cursor-pointer font-normal normal-case">
                               <span>Filter all in /concerts &rarr;</span>
                             </button>
@@ -4013,11 +4013,11 @@
                   <div class="min-w-0">
                     {% if s.is_public %}
                       <a href="{% url 'public_profile' username=s.username %}" class="text-sm font-bold text-white hover:text-indigo-300 transition truncate block">
-                        @{{ s.username }}
+                        {{ s.username }}
                       </a>
                     {% else %}
                       <span class="text-sm font-bold text-slate-300 truncate block cursor-default select-none">
-                        @{{ s.username }}
+                        {{ s.username }}
                       </span>
                     {% endif %}
                   </div>
