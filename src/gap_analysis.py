@@ -200,6 +200,14 @@ def reconcile_history(csv_records: List[Dict[str, Any]], user_attended_setlists:
                         "url": None,
                         "search_url": f"https://www.setlist.fm/search?query={art}+{venue}"
                     })
+                elif not client:
+                    missing_bands_info.append({
+                        "artist": art,
+                        "status": "unmatched_no_key",
+                        "status_label": "N/A (API Key Required to Check)",
+                        "url": None,
+                        "search_url": f"https://www.setlist.fm/search?query={art}+{venue}"
+                    })
                 else:
                     missing_bands_info.append({
                         "artist": art,

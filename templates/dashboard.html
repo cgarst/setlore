@@ -4410,6 +4410,10 @@
                             <span class="badge bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 text-[10px]">
                               <i class="fa-solid fa-circle-check mr-1"></i> On Setlist.fm
                             </span>
+                          {% elif b.status == 'unmatched_no_key' %}
+                            <span class="badge bg-slate-800 text-slate-400 border border-slate-700 text-[10px]" title="Setlist.fm API key not configured to verify global existence">
+                              <i class="fa-solid fa-circle-info mr-1"></i> N/A (Key Required)
+                            </span>
                           {% else %}
                             <span class="badge bg-slate-800 text-slate-400 border border-slate-700 text-[10px]">
                               <i class="fa-solid fa-circle-question mr-1"></i> Not on Setlist.fm
