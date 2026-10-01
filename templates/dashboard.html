@@ -129,19 +129,47 @@
     }
 
     [data-theme="Dark Side"] {
-      --bg-body: #09090b;
-      --bg-ambient-1: rgba(225, 29, 72, 0.08);
+      --bg-body: #000000;
+      --bg-ambient-1: rgba(255, 255, 255, 0.04);
       --bg-ambient-2: rgba(39, 39, 42, 0.3);
-      --bg-card: rgba(22, 22, 27, 0.85);
-      --bg-card-solid: #18181f;
-      --bg-card-hover: #292934;
-      --bg-elevated: #0f0f13;
-      --bg-modal: #0c0c0f;
-      --border-subtle: rgba(255, 255, 255, 0.1);
-      --border-prominent: rgba(225, 29, 72, 0.35);
-      --text-primary: #f4f4f5;
+      --bg-card: rgba(18, 18, 18, 0.9);
+      --bg-card-solid: #141414;
+      --bg-card-hover: #242424;
+      --bg-elevated: #0a0a0a;
+      --bg-modal: #050505;
+      --border-subtle: rgba(255, 255, 255, 0.12);
+      --border-prominent: rgba(255, 255, 255, 0.35);
+      --text-primary: #ffffff;
       --text-muted: #a1a1aa;
       --text-dim: #52525b;
+      --accent-primary: #f4f4f5;
+      --accent-secondary: #71717a;
+      --accent-gradient: linear-gradient(135deg, #ffffff, #52525b);
+      --accent-gradient-hover: linear-gradient(135deg, #e4e4e7, #3f3f46);
+      --accent-glow: rgba(255, 255, 255, 0.3);
+      --accent-primary-alpha: rgba(255, 255, 255, 0.15);
+      --accent-border-alpha: rgba(255, 255, 255, 0.35);
+      --accent-text: #ffffff;
+      --logo-filter: grayscale(100%);
+      --logo-overlay-bg: transparent;
+      --logo-tint-opacity: 0;
+      --logo-blend-mode: normal;
+    }
+
+    [data-theme="Red Nebula"] {
+      --bg-body: #100508;
+      --bg-ambient-1: rgba(225, 29, 72, 0.14);
+      --bg-ambient-2: rgba(71, 85, 105, 0.25);
+      --bg-card: rgba(28, 12, 17, 0.85);
+      --bg-card-solid: #1e0d13;
+      --bg-card-hover: #321620;
+      --bg-elevated: #16070b;
+      --bg-modal: #110407;
+      --border-subtle: rgba(225, 29, 72, 0.18);
+      --border-prominent: rgba(225, 29, 72, 0.4);
+      --text-primary: #fdf2f4;
+      --text-muted: #b99ca3;
+      --text-dim: #6c4e56;
       --accent-primary: #e11d48;
       --accent-secondary: #475569;
       --accent-gradient: linear-gradient(135deg, #e11d48, #475569);
@@ -6126,21 +6154,21 @@
       {
         id: 'Dark Side',
         name: 'Dark Side',
-        subtitle: 'Stealth Matte & Titanium',
-        gradient: 'linear-gradient(135deg, #e11d48, #475569)',
-        bg: '#09090b',
-        accent: '#e11d48',
-        secondary: '#475569',
-        colorway: ['#e11d48', '#94a3b8', '#f43f5e', '#64748b', '#cbd5e1', '#be123c'],
-        timelineBar: '#e11d48',
-        timelineLine: '#94a3b8',
-        topArtistsScale: 'Reds',
+        subtitle: 'Pure Monochromatic Blackout',
+        gradient: 'linear-gradient(135deg, #ffffff, #52525b)',
+        bg: '#000000',
+        accent: '#ffffff',
+        secondary: '#52525b',
+        colorway: ['#ffffff', '#d4d4d8', '#a1a1aa', '#71717a', '#52525b', '#3f3f46'],
+        timelineBar: '#ffffff',
+        timelineLine: '#a1a1aa',
+        topArtistsScale: 'Greys',
         treemapScale: 'Greys',
-        sunburstScale: 'Reds',
-        eraBar: '#e11d48',
-        eraLine: '#475569',
-        songAgeBar: '#f43f5e',
-        gridColor: '#24242c',
+        sunburstScale: 'Greys',
+        eraBar: '#ffffff',
+        eraLine: '#52525b',
+        songAgeBar: '#d4d4d8',
+        gridColor: '#1c1c1f',
         textColor: '#a1a1aa'
       },
       {
@@ -6202,6 +6230,26 @@
         songAgeBar: '#e879f9',
         gridColor: '#2c1240',
         textColor: '#b997c4'
+      },
+      {
+        id: 'Red Nebula',
+        name: 'Red Nebula',
+        subtitle: 'Galactic Crimson & Slate',
+        gradient: 'linear-gradient(135deg, #e11d48, #475569)',
+        bg: '#100508',
+        accent: '#e11d48',
+        secondary: '#475569',
+        colorway: ['#e11d48', '#94a3b8', '#f43f5e', '#64748b', '#cbd5e1', '#be123c'],
+        timelineBar: '#e11d48',
+        timelineLine: '#94a3b8',
+        topArtistsScale: 'Reds',
+        treemapScale: 'Greys',
+        sunburstScale: 'Reds',
+        eraBar: '#e11d48',
+        eraLine: '#475569',
+        songAgeBar: '#f43f5e',
+        gridColor: '#2d141c',
+        textColor: '#b99ca3'
       },
       {
         id: 'Red Pearl Burst',

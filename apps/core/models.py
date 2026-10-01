@@ -33,6 +33,7 @@ class UserProfile(models.Model):
         ('Ember Glow', 'Ember Glow'),
         ('Mystic Dream', 'Mystic Dream'),
         ('Purple Nebula', 'Purple Nebula'),
+        ('Red Nebula', 'Red Nebula'),
         ('Red Pearl Burst', 'Red Pearl Burst'),
     ]
 

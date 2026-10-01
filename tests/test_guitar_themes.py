@@ -19,6 +19,7 @@ class GuitarThemesTestCase(TestCase):
             'Ember Glow',
             'Mystic Dream',
             'Purple Nebula',
+            'Red Nebula',
             'Red Pearl Burst'
         ]
         available_choices = [c[0] for c in UserProfile.THEME_CHOICES]
@@ -30,7 +31,7 @@ class GuitarThemesTestCase(TestCase):
         """Ensure /api/theme/ persists theme to user profile when authenticated."""
         self.client.login(username='petruccifan', password='password123')
         
-        for theme_name in ['Mystic Dream', 'Purple Nebula', 'Cerulean Paradise', 'Blue Pearl', 'Dark Side', 'Ember Glow', 'Red Pearl Burst']:
+        for theme_name in ['Mystic Dream', 'Purple Nebula', 'Red Nebula', 'Cerulean Paradise', 'Blue Pearl', 'Dark Side', 'Ember Glow', 'Red Pearl Burst']:
             res = self.client.post('/api/theme/', data=json.dumps({'theme': theme_name}), content_type='application/json')
             self.assertEqual(res.status_code, 200)
             data = res.json()
@@ -77,6 +78,7 @@ class GuitarThemesTestCase(TestCase):
         self.assertIn('[data-theme="Ember Glow"]', content)
         self.assertIn('[data-theme="Mystic Dream"]', content)
         self.assertIn('[data-theme="Purple Nebula"]', content)
+        self.assertIn('[data-theme="Red Nebula"]', content)
         self.assertIn('[data-theme="Red Pearl Burst"]', content)
 
         # Check logo wrapper, img, and monochrome filter
