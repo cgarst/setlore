@@ -811,9 +811,9 @@
         {% else %}
           {% if request.user.is_authenticated and not is_owner %}
             <button type="button" id="public-profile-friend-btn" onclick="togglePublicProfileFriend({{ profile_user.id }})"
-              class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-md {% if is_friend %}bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300{% else %}bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-600/30{% endif %}">
-              <i id="public-profile-friend-icon" class="fa-solid {% if is_friend %}fa-user-check{% else %}fa-user-plus{% endif %}"></i>
-              <span id="public-profile-friend-text">{% if is_friend %}Friended{% else %}Add Friend{% endif %}</span>
+              class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-md {% if is_mutual_friend %}bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300{% elif is_friend %}bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300{% else %}bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-600/30{% endif %}">
+              <i id="public-profile-friend-icon" class="fa-solid {% if is_mutual_friend %}fa-user-check{% elif is_friend %}fa-clock{% else %}fa-user-plus{% endif %}"></i>
+              <span id="public-profile-friend-text">{% if is_mutual_friend %}Friends{% elif is_friend %}Request Sent{% elif has_friended_you %}Accept Request{% else %}Add Friend{% endif %}</span>
             </button>
           {% endif %}
 
@@ -3025,19 +3025,132 @@
         </div>
       </div>
 
+      {% if pending_sent_list %}
+        <!-- Pending Requests Sent Section -->
+        <div class="glass-card p-6 space-y-4 border border-amber-500/30">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div class="flex items-center gap-2">
+              <h3 class="text-base font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-clock text-amber-400"></i> Pending Requests Sent
+              </h3>
+              <span id="pending-sent-header-count" class="badge bg-amber-500/20 text-amber-300 border border-amber-500/40 font-mono text-xs">
+                {{ pending_sent_list|length }}
+              </span>
+            </div>
+            <span class="text-[11px] text-slate-400">Awaiting confirmation &bull; Mutual approval required to view private profiles</span>
+          </div>
+
+          <div id="pending-sent-list-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {% for ps in pending_sent_list %}
+              <div class="pending-sent-card p-4 rounded-xl bg-slate-900/80 border border-amber-500/30 hover:border-amber-500/60 transition flex flex-col justify-between space-y-3" data-username="{{ ps.username|lower }}">
+                <div class="flex items-start justify-between gap-2.5">
+                  <div class="flex items-center gap-3 min-w-0">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-600 flex items-center justify-center text-white text-sm font-bold shadow-sm shrink-0">
+                      {{ ps.username|slice:":1"|upper }}
+                    </div>
+                    <div class="min-w-0">
+                      {% if ps.is_public %}
+                        <a href="{% url 'public_profile' username=ps.username %}" class="text-sm font-bold text-white hover:text-amber-300 transition truncate block">
+                          @{{ ps.username }}
+                        </a>
+                      {% else %}
+                        <span class="text-sm font-bold text-slate-300 truncate block cursor-default select-none">
+                          @{{ ps.username }}
+                        </span>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1 shrink-0">
+                    <i class="fa-solid fa-clock text-[9px]"></i> Pending
+                  </span>
+                </div>
+
+                <div class="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400 flex-wrap gap-1">
+                  <div>
+                    {% if ps.is_public %}
+                      <span class="font-bold text-white font-mono">{{ ps.concert_count }}</span> concerts
+                      {% if ps.top_artist %}
+                        &bull; <span class="text-slate-300">{{ ps.top_artist }}</span>
+                      {% endif %}
+                    {% else %}
+                      <span class="text-slate-500 italic text-[11px] flex items-center gap-1">
+                        <i class="fa-solid fa-user-lock text-[10px]"></i> Private profile
+                      </span>
+                    {% endif %}
+                  </div>
+                  <div>
+                    {% if ps.is_public and ps.co_attended_count > 0 %}
+                      <button type="button" onclick="toggleCoAttendedDetails('ps-co-{{ ps.id }}')" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-pink-500/20 hover:bg-pink-500/30 text-pink-300 border border-pink-500/40 flex items-center gap-1 transition cursor-pointer" title="Click to view shared concerts">
+                        <i class="fa-solid fa-users text-[9px]"></i>
+                        <span>{{ ps.co_attended_count }} Shared Show{{ ps.co_attended_count|pluralize }}</span>
+                        <i class="fa-solid fa-chevron-down text-[8px] transition-transform" id="icon-ps-co-{{ ps.id }}"></i>
+                      </button>
+                    {% elif not ps.is_public %}
+                      <span class="text-[10px] text-slate-500 flex items-center gap-1"><i class="fa-solid fa-lock text-[9px]"></i> Hidden</span>
+                    {% else %}
+                      <span class="text-[10px] text-slate-500 flex items-center gap-1"><i class="fa-solid fa-users-slash text-[9px]"></i> 0 shared</span>
+                    {% endif %}
+                  </div>
+                </div>
+
+                {% if ps.is_public and ps.co_attended_count > 0 %}
+                  <div id="ps-co-{{ ps.id }}" class="hidden p-2.5 rounded-xl bg-slate-950/90 border border-slate-800 space-y-1.5 text-xs">
+                    <div class="flex items-center justify-between text-[10px] font-bold text-pink-300 uppercase tracking-wider">
+                      <span class="flex items-center gap-1"><i class="fa-solid fa-sparkles text-[9px]"></i> Co-Attended Concerts</span>
+                      <span class="font-mono">{{ ps.co_attended_count }} show{{ ps.co_attended_count|pluralize }}</span>
+                    </div>
+                    <div class="max-h-36 overflow-y-auto space-y-1 custom-scrollbar pr-1">
+                      {% for c in ps.co_attended_concerts %}
+                        <div class="p-1.5 rounded-lg bg-slate-900/90 border border-slate-800/80 flex items-center justify-between gap-2 text-[11px]">
+                          <div class="min-w-0 flex-1">
+                            <span class="font-bold text-white truncate block">{{ c.artist }}</span>
+                            <span class="text-[10px] text-slate-400 truncate block">{{ c.venue }}{% if c.city %}, {{ c.city }}{% endif %}</span>
+                          </div>
+                          <span class="font-mono text-[10px] text-indigo-300 shrink-0">{{ c.date }}</span>
+                        </div>
+                      {% endfor %}
+                    </div>
+                  </div>
+                {% endif %}
+
+                <div class="flex items-center gap-2 pt-1">
+                  {% if ps.is_public %}
+                    <a href="{% url 'public_profile' username=ps.username %}" class="flex-1 py-1.5 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 hover:text-white text-xs font-semibold text-center transition flex items-center justify-center gap-1.5">
+                      <i class="fa-solid fa-eye text-[11px]"></i>
+                      <span>Profile</span>
+                    </a>
+                  {% else %}
+                    <div class="flex-1 py-1.5 px-3 rounded-lg bg-slate-900/60 border border-slate-800 text-slate-500 text-xs font-medium text-center flex items-center justify-center gap-1.5 select-none" title="Private profile">
+                      <i class="fa-solid fa-lock text-[10px]"></i>
+                      <span>Private</span>
+                    </div>
+                  {% endif %}
+                  <button type="button" onclick="toggleFriendsPageFriend({{ ps.id }}, this)" class="py-1.5 px-3 rounded-lg bg-amber-500/20 hover:bg-rose-500/20 border border-amber-500/30 hover:border-rose-500/40 text-amber-300 hover:text-rose-300 text-xs font-semibold transition cursor-pointer flex items-center gap-1 shrink-0 group">
+                    <i class="fa-solid fa-clock group-hover:hidden text-[10px]"></i>
+                    <i class="fa-solid fa-xmark hidden group-hover:inline text-[10px]"></i>
+                    <span class="group-hover:hidden">Pending</span>
+                    <span class="hidden group-hover:inline">Cancel</span>
+                  </button>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+
       {% if friended_by_list %}
-        <!-- Friended You / Pending Friend Back Section -->
+        <!-- Friend Requests Received Section -->
         <div class="glass-card p-6 space-y-4 border border-indigo-500/30">
           <div class="flex items-center justify-between border-b border-slate-800 pb-3">
             <div class="flex items-center gap-2">
               <h3 class="text-base font-bold text-white flex items-center gap-2">
-                <i class="fa-solid fa-user-plus text-indigo-400"></i> Friended You
+                <i class="fa-solid fa-user-plus text-indigo-400"></i> Friend Requests Received
               </h3>
               <span id="friended-by-header-count" class="badge bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 font-mono text-xs">
                 {{ friended_by_list|length }}
               </span>
             </div>
-            <span class="text-[11px] text-slate-400">These users added you as a friend &bull; Friend them back for shared access</span>
+            <span class="text-[11px] text-slate-400">These users sent you a friend request &bull; Accept to establish a two-way friendship</span>
           </div>
 
           <div id="friended-by-list-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -3058,15 +3171,10 @@
                           @{{ fb.username }}
                         </span>
                       {% endif %}
-                      {% if fb.setlistfm_username %}
-                        <p class="text-[11px] text-slate-400 truncate flex items-center gap-1">
-                          <i class="fa-brands fa-lastfm text-amber-400 text-[10px]"></i> {{ fb.setlistfm_username }}
-                        </p>
-                      {% endif %}
                     </div>
                   </div>
                   <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 flex items-center gap-1 shrink-0">
-                    <i class="fa-solid fa-heart text-[9px] text-rose-400"></i> Friended You
+                    <i class="fa-solid fa-heart text-[9px] text-rose-400"></i> Request Received
                   </span>
                 </div>
 
@@ -3122,9 +3230,13 @@
                       <span>Private</span>
                     </div>
                   {% endif %}
-                  <button type="button" onclick="toggleFriendsPageFriend({{ fb.id }}, this)" class="py-1.5 px-3.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 shrink-0 shadow-md shadow-indigo-600/25">
-                    <i class="fa-solid fa-user-plus text-[10px]"></i>
-                    <span>Friend Back</span>
+                  <button type="button" onclick="respondFriendRequest({{ fb.id }}, 'decline', this)" class="py-1.5 px-2.5 rounded-lg bg-slate-800 hover:bg-rose-500/20 border border-slate-700 hover:border-rose-500/40 text-slate-400 hover:text-rose-300 text-xs font-semibold transition cursor-pointer flex items-center gap-1 shrink-0" title="Decline request">
+                    <i class="fa-solid fa-xmark text-[10px]"></i>
+                    <span>Decline</span>
+                  </button>
+                  <button type="button" onclick="respondFriendRequest({{ fb.id }}, 'accept', this)" class="py-1.5 px-3.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 shrink-0 shadow-md shadow-emerald-600/25" title="Accept request and connect as two-way friends">
+                    <i class="fa-solid fa-user-check text-[10px]"></i>
+                    <span>Accept</span>
                   </button>
                 </div>
               </div>
@@ -3157,11 +3269,6 @@
                     <a href="{% url 'public_profile' username=f.username %}" class="text-sm font-bold text-white hover:text-indigo-300 transition truncate block">
                       @{{ f.username }}
                     </a>
-                    {% if f.setlistfm_username %}
-                      <p class="text-[11px] text-slate-400 truncate flex items-center gap-1">
-                        <i class="fa-brands fa-lastfm text-amber-400 text-[10px]"></i> {{ f.setlistfm_username }}
-                      </p>
-                    {% endif %}
                   </div>
                 </div>
                 {% if not f.is_public %}
@@ -3346,25 +3453,21 @@
                         @{{ s.username }}
                       </span>
                     {% endif %}
-                    {% if s.setlistfm_username %}
-                      <p class="text-[11px] text-slate-400 truncate flex items-center gap-1">
-                        <i class="fa-brands fa-lastfm text-amber-400 text-[10px]"></i> {{ s.setlistfm_username }}
-                      </p>
-                    {% endif %}
                   </div>
                 </div>
-                {% if not s.is_public %}
-                  <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-400 border border-slate-700 flex items-center gap-1 shrink-0" title="Private profile">
-                    <i class="fa-solid fa-lock text-[9px]"></i> Private
-                  </span>
-                {% endif %}
               </div>
 
               <div class="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400 flex-wrap gap-1">
                 <div>
-                  <span class="font-bold text-white font-mono">{{ s.concert_count }}</span> concerts
-                  {% if s.top_artist %}
-                    &bull; <span class="text-slate-300">{{ s.top_artist }}</span>
+                  {% if s.is_public %}
+                    <span class="font-bold text-white font-mono">{{ s.concert_count }}</span> concerts
+                    {% if s.top_artist %}
+                      &bull; <span class="text-slate-300">{{ s.top_artist }}</span>
+                    {% endif %}
+                  {% else %}
+                    <span class="text-slate-500 italic text-[11px] flex items-center gap-1">
+                      <i class="fa-solid fa-user-lock text-[10px]"></i> Private activity
+                    </span>
                   {% endif %}
                 </div>
                 <div>
@@ -8109,14 +8212,21 @@
         });
         const data = await res.json();
         if (res.ok && data.status === 'ok') {
-          if (data.is_friend) {
+          if (data.is_mutual) {
             btn.className = 'px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-md bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300';
             if (icon) icon.className = 'fa-solid fa-user-check';
-            if (text) text.innerText = 'Friended';
+            if (text) text.innerText = 'Friends';
+          } else if (data.has_sent) {
+            btn.className = 'px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-md bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300';
+            if (icon) icon.className = 'fa-solid fa-clock';
+            if (text) text.innerText = 'Request Sent';
           } else {
             btn.className = 'px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-md bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-600/30';
             if (icon) icon.className = 'fa-solid fa-user-plus';
             if (text) text.innerText = 'Add Friend';
+          }
+          if (typeof showToast === 'function' && data.message) {
+            showToast(data.message, 'success');
           }
         }
       } catch (err) {
@@ -8141,9 +8251,12 @@
         });
         const data = await res.json();
         if (res.ok && data.status === 'ok') {
-          if (data.is_friend) {
+          if (data.is_mutual) {
             btn.className = 'py-1.5 px-3 rounded-lg bg-emerald-500/20 hover:bg-rose-500/20 border border-emerald-500/30 hover:border-rose-500/40 text-emerald-300 hover:text-rose-300 text-xs font-semibold transition cursor-pointer flex items-center gap-1 shrink-0 group';
             btn.innerHTML = '<i class="fa-solid fa-check group-hover:hidden text-[10px]"></i><i class="fa-solid fa-user-xmark hidden group-hover:inline text-[10px]"></i><span class="group-hover:hidden">Friended</span><span class="hidden group-hover:inline">Remove</span>';
+          } else if (data.has_sent) {
+            btn.className = 'py-1.5 px-3 rounded-lg bg-amber-500/20 hover:bg-rose-500/20 border border-amber-500/30 hover:border-rose-500/40 text-amber-300 hover:text-rose-300 text-xs font-semibold transition cursor-pointer flex items-center gap-1 shrink-0 group';
+            btn.innerHTML = '<i class="fa-solid fa-clock group-hover:hidden text-[10px]"></i><i class="fa-solid fa-xmark hidden group-hover:inline text-[10px]"></i><span class="group-hover:hidden">Pending</span><span class="hidden group-hover:inline">Cancel</span>';
           } else {
             btn.className = 'py-1.5 px-3.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition cursor-pointer flex items-center gap-1 shrink-0 shadow-md shadow-indigo-600/25';
             btn.innerHTML = '<i class="fa-solid fa-user-plus text-[10px]"></i><span>Add Friend</span>';
@@ -8154,10 +8267,46 @@
             if (badge) badge.innerText = `${data.friends_count} Friends`;
             if (headerCount) headerCount.innerText = `(${data.friends_count})`;
           }
+          if (typeof showToast === 'function' && data.message) {
+            showToast(data.message, 'success');
+          }
         }
       } catch (err) {
         console.error('Error toggling friend:', err);
       } finally {
+        btn.disabled = false;
+      }
+    }
+
+    async function respondFriendRequest(friendId, action, btn) {
+      if (!btn) return;
+      btn.disabled = true;
+
+      try {
+        const res = await fetch('/api/friends/toggle/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+          },
+          body: JSON.stringify({ friend_id: friendId, action: action })
+        });
+        const data = await res.json();
+        if (res.ok && data.status === 'ok') {
+          if (typeof showToast === 'function' && data.message) {
+            showToast(data.message, 'success');
+          }
+          setTimeout(() => {
+            window.location.reload();
+          }, 600);
+        } else {
+          if (typeof showToast === 'function') {
+            showToast(data.error || 'Failed to update friend request.', 'error');
+          }
+          btn.disabled = false;
+        }
+      } catch (err) {
+        console.error('Error responding to friend request:', err);
         btn.disabled = false;
       }
     }
@@ -8206,10 +8355,20 @@
     function filterFriendsPage(query) {
       const q = String(query || '').toLowerCase().trim();
       const friendCards = document.querySelectorAll('.friend-card');
+      const pendingSentCards = document.querySelectorAll('.pending-sent-card');
       const friendedByCards = document.querySelectorAll('.friended-by-card');
       const discoverCards = document.querySelectorAll('.discover-card');
 
       friendCards.forEach(c => {
+        const username = c.getAttribute('data-username') || '';
+        if (!q || username.includes(q)) {
+          c.classList.remove('hidden');
+        } else {
+          c.classList.add('hidden');
+        }
+      });
+
+      pendingSentCards.forEach(c => {
         const username = c.getAttribute('data-username') || '';
         if (!q || username.includes(q)) {
           c.classList.remove('hidden');

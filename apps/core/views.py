@@ -411,7 +411,7 @@ def toggle_registration_view(request):
 @login_required
 @require_POST
 def toggle_friend_view(request):
-    """Adds or removes a user from friends list."""
+    """Adds, accepts, declines, or removes a friend / friend request."""
     try:
         if request.content_type == 'application/json':
             data = json.loads(request.body.decode('utf-8'))
@@ -420,6 +420,7 @@ def toggle_friend_view(request):
 
         friend_id = data.get('friend_id')
         friend_username = data.get('username')
+        action = data.get('action')  # 'accept', 'decline', 'remove', 'cancel', or None
 
         target_user = None
         if friend_id:
@@ -433,20 +434,68 @@ def toggle_friend_view(request):
         if target_user.id == request.user.id:
             return JsonResponse({"status": "error", "error": "You cannot add yourself as a friend."}, status=400)
 
-        existing = Friendship.objects.filter(user=request.user, friend=target_user).first()
-        if existing:
-            existing.delete()
-            is_friend = False
-            msg = f"Removed @{target_user.username} from friends."
-        else:
-            Friendship.objects.create(user=request.user, friend=target_user)
-            is_friend = True
-            msg = f"Added @{target_user.username} as friend!"
+        sent_record = Friendship.objects.filter(user=request.user, friend=target_user).first()
+        incoming_record = Friendship.objects.filter(user=target_user, friend=request.user).first()
 
-        friends_count = Friendship.objects.filter(user=request.user).count()
+        if action == 'decline':
+            if incoming_record:
+                incoming_record.delete()
+            if sent_record:
+                sent_record.delete()
+            has_sent = False
+            is_mutual = False
+            msg = f"Declined friend request from @{target_user.username}."
+        elif action == 'cancel':
+            if sent_record:
+                sent_record.delete()
+            has_sent = False
+            is_mutual = False
+            msg = f"Cancelled friend request to @{target_user.username}."
+        elif action == 'remove':
+            if sent_record:
+                sent_record.delete()
+            if incoming_record:
+                incoming_record.delete()
+            has_sent = False
+            is_mutual = False
+            msg = f"Removed @{target_user.username} from your friends."
+        elif action == 'accept':
+            if not sent_record:
+                Friendship.objects.create(user=request.user, friend=target_user)
+            has_sent = True
+            is_mutual = True
+            msg = f"Connected with @{target_user.username} as friends!"
+        else:
+            # Default toggle
+            if sent_record:
+                sent_record.delete()
+                # Cleanly un-friend in both directions if mutual
+                if incoming_record:
+                    incoming_record.delete()
+                has_sent = False
+                is_mutual = False
+                msg = f"Removed @{target_user.username} from your friends."
+            else:
+                Friendship.objects.create(user=request.user, friend=target_user)
+                has_sent = True
+                is_mutual = bool(incoming_record)
+                if is_mutual:
+                    msg = f"Connected with @{target_user.username} as friends!"
+                elif getattr(target_user, 'profile', None) and target_user.profile.is_public:
+                    msg = f"Friended @{target_user.username} (Pending confirmation)!"
+                else:
+                    msg = f"Friend request sent to @{target_user.username}!"
+
+        sent_ids = set(Friendship.objects.filter(user=request.user).values_list('friend_id', flat=True))
+        incoming_ids = set(Friendship.objects.filter(friend=request.user).values_list('user_id', flat=True))
+        mutual_ids = sent_ids & incoming_ids
+        friends_count = len(mutual_ids)
+
         return JsonResponse({
             "status": "ok",
-            "is_friend": is_friend,
+            "is_friend": has_sent,
+            "has_sent": has_sent,
+            "is_mutual": is_mutual,
             "friend_id": target_user.id,
             "friend_username": target_user.username,
             "friends_count": friends_count,
@@ -458,21 +507,40 @@ def toggle_friend_view(request):
 
 @login_required
 def list_friends_view(request):
-    """Returns the authenticated user's friends, pending friended-by users, and community suggestions."""
-    friend_ids = list(Friendship.objects.filter(user=request.user).values_list('friend_id', flat=True))
-    friends = list(User.objects.filter(id__in=friend_ids).order_by('username').values('id', 'username', 'email'))
+    """Returns the authenticated user's mutual friends, pending requests, and suggestions."""
+    sent_ids = set(Friendship.objects.filter(user=request.user).values_list('friend_id', flat=True))
+    incoming_ids = set(Friendship.objects.filter(friend=request.user).values_list('user_id', flat=True))
+
+    mutual_ids = sent_ids & incoming_ids
+    pending_sent_ids = sent_ids - incoming_ids
+    friended_by_ids = incoming_ids - sent_ids
+
+    friends = list(User.objects.filter(id__in=mutual_ids).order_by('username').values('id', 'username', 'email'))
     for f in friends:
         f['concert_count'] = Concert.objects.filter(user_id=f['id']).count()
         f['is_friend'] = True
+        f['is_mutual'] = True
 
-    friended_by_ids = list(Friendship.objects.filter(friend=request.user).exclude(user_id__in=friend_ids).values_list('user_id', flat=True))
+    pending_sent = list(User.objects.filter(id__in=pending_sent_ids).order_by('username').values('id', 'username', 'email'))
+    for p in pending_sent:
+        p_user = User.objects.filter(id=p['id']).select_related('profile').first()
+        is_pub = p_user.profile.is_public if p_user and hasattr(p_user, 'profile') else False
+        p['concert_count'] = Concert.objects.filter(user_id=p['id']).count() if is_pub else 0
+        p['is_friend'] = True
+        p['is_mutual'] = False
+        p['is_pending'] = True
+        p['is_public'] = is_pub
+
     friended_by = list(User.objects.filter(id__in=friended_by_ids).order_by('username').values('id', 'username', 'email'))
     for fb in friended_by:
-        fb['concert_count'] = Concert.objects.filter(user_id=fb['id']).count()
+        fb_user = User.objects.filter(id=fb['id']).select_related('profile').first()
+        is_pub = fb_user.profile.is_public if fb_user and hasattr(fb_user, 'profile') else False
+        fb['concert_count'] = Concert.objects.filter(user_id=fb['id']).count() if is_pub else 0
         fb['is_friend'] = False
         fb['has_friended_you'] = True
+        fb['is_public'] = is_pub
 
-    excluded_ids = set(friend_ids) | set(friended_by_ids)
+    excluded_ids = sent_ids | incoming_ids
     other_users = list(
         User.objects.exclude(id=request.user.id)
         .exclude(id__in=excluded_ids)
@@ -480,15 +548,20 @@ def list_friends_view(request):
         .values('id', 'username')
     )
     for u in other_users:
-        u['concert_count'] = Concert.objects.filter(user_id=u['id']).count()
+        u_user = User.objects.filter(id=u['id']).select_related('profile').first()
+        is_pub = u_user.profile.is_public if u_user and hasattr(u_user, 'profile') else False
+        u['concert_count'] = Concert.objects.filter(user_id=u['id']).count() if is_pub else 0
         u['is_friend'] = False
         u['has_friended_you'] = False
+        u['is_public'] = is_pub
 
     return JsonResponse({
         "status": "ok",
         "friends": friends,
+        "pending_sent": pending_sent,
         "friended_by": friended_by,
         "suggestions": other_users[:20],
         "total_friends": len(friends),
+        "total_pending_sent": len(pending_sent),
         "total_friended_by": len(friended_by),
     })

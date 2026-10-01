@@ -277,13 +277,18 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
         stats = stats_copy
 
     is_friend = False
+    is_mutual_friend = False
+    has_friended_you = False
     friends_list = []
+    pending_sent_list = []
     friended_by_list = []
     friend_suggestions = []
 
     if request.user.is_authenticated:
         if is_public_view and not is_owner:
             is_friend = Friendship.objects.filter(user=request.user, friend=target_user).exists()
+            has_friended_you = Friendship.objects.filter(user=target_user, friend=request.user).exists()
+            is_mutual_friend = is_friend and has_friended_you
         elif not is_public_view:
             viewer_concerts = list(
                 Concert.objects.filter(user=request.user)
@@ -375,12 +380,15 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
                         })
                 return co_list
 
-            friends_list = []
-            friended_by_list = []
-            friend_suggestions = []
+            sent_ids = set(Friendship.objects.filter(user=request.user).values_list('friend_id', flat=True))
+            incoming_ids = set(Friendship.objects.filter(friend=request.user).values_list('user_id', flat=True))
 
-            friend_ids = list(Friendship.objects.filter(user=request.user).values_list('friend_id', flat=True))
-            friends_qs = User.objects.filter(id__in=friend_ids).select_related('profile').order_by('username')
+            mutual_ids = sent_ids & incoming_ids
+            pending_sent_ids = sent_ids - incoming_ids
+            friended_by_ids = incoming_ids - sent_ids
+
+            # Mutual Friends
+            friends_qs = User.objects.filter(id__in=mutual_ids).select_related('profile').order_by('username')
             for f in friends_qs:
                 c_count = Concert.objects.filter(user=f).count()
                 top_art = Concert.objects.filter(user=f).values('primary_artist').annotate(shows=Count('id')).order_by('-shows').first()
@@ -394,17 +402,38 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
                     'top_artist': top_art['primary_artist'] if top_art else None,
                     'top_artist_shows': top_art['shows'] if top_art else 0,
                     'is_friend': True,
+                    'is_mutual': True,
+                    'co_attended_count': len(co_shows),
+                    'co_attended_concerts': co_shows,
+                })
+
+            # Pending Requests Sent (User friended them, but not yet mutually confirmed)
+            pending_sent_qs = User.objects.filter(id__in=pending_sent_ids).select_related('profile').order_by('username')
+            for ps in pending_sent_qs:
+                c_count = Concert.objects.filter(user=ps).count()
+                top_art = Concert.objects.filter(user=ps).values('primary_artist').annotate(shows=Count('id')).order_by('-shows').first()
+                co_shows = find_co_attended(ps) if ps.profile.is_public else []
+                pending_sent_list.append({
+                    'id': ps.id,
+                    'username': ps.username,
+                    'is_public': ps.profile.is_public,
+                    'setlistfm_username': ps.profile.setlistfm_username,
+                    'concert_count': c_count,
+                    'top_artist': top_art['primary_artist'] if top_art else None,
+                    'top_artist_shows': top_art['shows'] if top_art else 0,
+                    'is_friend': True,
+                    'is_mutual': False,
+                    'is_pending_sent': True,
                     'co_attended_count': len(co_shows),
                     'co_attended_concerts': co_shows,
                 })
 
             # People who friended request.user but request.user hasn't friended back yet
-            friended_by_ids = list(Friendship.objects.filter(friend=request.user).exclude(user_id__in=friend_ids).values_list('user_id', flat=True))
             friended_by_qs = User.objects.filter(id__in=friended_by_ids).select_related('profile').order_by('username')
             for fb in friended_by_qs:
                 c_count = Concert.objects.filter(user=fb).count()
                 top_art = Concert.objects.filter(user=fb).values('primary_artist').annotate(shows=Count('id')).order_by('-shows').first()
-                co_shows = find_co_attended(fb)
+                co_shows = find_co_attended(fb) if fb.profile.is_public else []
                 friended_by_list.append({
                     'id': fb.id,
                     'username': fb.username,
@@ -414,17 +443,18 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
                     'top_artist': top_art['primary_artist'] if top_art else None,
                     'top_artist_shows': top_art['shows'] if top_art else 0,
                     'is_friend': False,
+                    'is_mutual': False,
                     'has_friended_you': True,
                     'co_attended_count': len(co_shows),
                     'co_attended_concerts': co_shows,
                 })
 
-            excluded_suggestion_ids = set(friend_ids) | set(friended_by_ids)
+            excluded_suggestion_ids = sent_ids | incoming_ids
             sugg_qs = User.objects.exclude(id=request.user.id).exclude(id__in=excluded_suggestion_ids).select_related('profile').order_by('username')[:30]
             for s in sugg_qs:
                 c_count = Concert.objects.filter(user=s).count()
                 top_art = Concert.objects.filter(user=s).values('primary_artist').annotate(shows=Count('id')).order_by('-shows').first()
-                co_shows = find_co_attended(s)
+                co_shows = find_co_attended(s) if s.profile.is_public else []
                 friend_suggestions.append({
                     'id': s.id,
                     'username': s.username,
@@ -454,7 +484,10 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
         'is_public_view': is_public_view,
         'is_owner': is_owner,
         'is_friend': is_friend,
+        'is_mutual_friend': is_mutual_friend,
+        'has_friended_you': has_friended_you,
         'friends_list': friends_list,
+        'pending_sent_list': pending_sent_list,
         'friended_by_list': friended_by_list,
         'friend_suggestions': friend_suggestions,
         'is_profile_private': not profile.is_public,
@@ -481,20 +514,18 @@ def public_profile_view(request, username, tab_name='overview'):
 
     is_owner = request.user.is_authenticated and (request.user.id == target_user.id)
     is_staff = request.user.is_authenticated and request.user.is_staff
-    is_friend = False
+    is_mutual_friend = False
     if request.user.is_authenticated:
-        is_friend = Friendship.objects.filter(
-            user=target_user, friend=request.user
-        ).exists() or Friendship.objects.filter(
-            user=request.user, friend=target_user
-        ).exists()
+        has_friended = Friendship.objects.filter(user=request.user, friend=target_user).exists()
+        is_friended_by = Friendship.objects.filter(user=target_user, friend=request.user).exists()
+        is_mutual_friend = has_friended and is_friended_by
 
     target_profile = getattr(target_user, 'profile', None)
     if not target_profile:
         from apps.core.models import UserProfile
         target_profile, _ = UserProfile.objects.get_or_create(user=target_user)
 
-    if not target_profile.is_public and not is_owner and not is_staff and not is_friend:
+    if not target_profile.is_public and not is_owner and not is_staff and not is_mutual_friend:
         return render(request, 'public_profile_message.html', {
             'title': 'Private Profile',
             'message_type': 'private',

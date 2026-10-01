@@ -304,7 +304,8 @@ class AutocompleteAndCSVTests(TestCase):
         self.assertEqual(self.user.profile.sync_status, 'idle')
         self.assertEqual(self.user.profile.sync_progress, 'Sync cancelled')
 
-    def test_public_profile_private_returns_403(self):
+    def test_public_profile_private_requires_mutual_friendship(self):
+        from apps.core.models import Friendship
         other_user = User.objects.create_user(username='privateuser', password='password123')
         other_user.profile.is_public = False
         other_user.profile.save()
@@ -314,15 +315,80 @@ class AutocompleteAndCSVTests(TestCase):
         response = anon_client.get(f'/u/{other_user.username}/')
         self.assertEqual(response.status_code, 403)
 
-        # Logged-in user who is not friends attempting to view private profile
+        # Logged-in user who has not sent request
         response = self.client.get(f'/u/{other_user.username}/')
         self.assertEqual(response.status_code, 403)
 
-        # Public profile should return 200
-        other_user.profile.is_public = True
-        other_user.profile.save()
-        response = anon_client.get(f'/u/{other_user.username}/')
+        # Logged-in user sends friend request (pending) -> still 403 because private profile requires mutual acceptance
+        Friendship.objects.create(user=self.user, friend=other_user)
+        response = self.client.get(f'/u/{other_user.username}/')
+        self.assertEqual(response.status_code, 403)
+
+        # Private user confirms / friends back (mutual friendship) -> 200
+        Friendship.objects.create(user=other_user, friend=self.user)
+        response = self.client.get(f'/u/{other_user.username}/')
         self.assertEqual(response.status_code, 200)
+
+    def test_friend_request_pending_sent_lists(self):
+        from apps.core.models import Friendship
+        private_user = User.objects.create_user(username='private_buddy', password='password123')
+        private_user.profile.is_public = False
+        private_user.profile.save()
+
+        public_user = User.objects.create_user(username='public_buddy', password='password123')
+        public_user.profile.is_public = True
+        public_user.profile.save()
+
+        # User friends both
+        self.client.post('/api/friends/toggle/', data=json.dumps({"friend_id": private_user.id}), content_type='application/json')
+        self.client.post('/api/friends/toggle/', data=json.dumps({"friend_id": public_user.id}), content_type='application/json')
+
+        # Check dashboard friends tab
+        res = self.client.get('/friends/')
+        self.assertEqual(res.status_code, 200)
+        pending_sent = res.context['pending_sent_list']
+        mutual_friends = res.context['friends_list']
+
+        self.assertEqual(len(mutual_friends), 0)
+        self.assertEqual(len(pending_sent), 2)
+        pending_usernames = [p['username'] for p in pending_sent]
+        self.assertIn('private_buddy', pending_usernames)
+        self.assertIn('public_buddy', pending_usernames)
+
+        # Public user is viewable even when request is pending
+        res_pub = self.client.get(f'/u/{public_user.username}/')
+        self.assertEqual(res_pub.status_code, 200)
+
+        # Private user is NOT viewable while request is pending
+        res_priv = self.client.get(f'/u/{private_user.username}/')
+        self.assertEqual(res_priv.status_code, 403)
+
+        # Private user logs in and accepts the request
+        priv_client = Client()
+        priv_client.force_login(private_user)
+
+        # Check private user's friends tab -> has incoming request from self.user
+        res_priv_tab = priv_client.get('/friends/')
+        self.assertEqual(len(res_priv_tab.context['friended_by_list']), 1)
+        self.assertEqual(res_priv_tab.context['friended_by_list'][0]['username'], self.user.username)
+
+        # Accept the request -> automatically establishes mutual two-way friendship
+        accept_res = priv_client.post('/api/friends/toggle/', data=json.dumps({"friend_id": self.user.id, "action": "accept"}), content_type='application/json')
+        self.assertEqual(accept_res.status_code, 200)
+        self.assertTrue(accept_res.json()['is_mutual'])
+
+        # Now both users have each other in their friends_list
+        res_user = self.client.get('/friends/')
+        self.assertEqual(len(res_user.context['friends_list']), 1)
+        self.assertEqual(res_user.context['friends_list'][0]['username'], private_user.username)
+
+        res_priv_user = priv_client.get('/friends/')
+        self.assertEqual(len(res_priv_user.context['friends_list']), 1)
+        self.assertEqual(res_priv_user.context['friends_list'][0]['username'], self.user.username)
+
+        # Private user's profile is now viewable by self.user
+        res_priv_view = self.client.get(f'/u/{private_user.username}/')
+        self.assertEqual(res_priv_view.status_code, 200)
 
     def test_musicbrainz_dump_online_fallback_toggle(self):
         # Staff user toggle
