@@ -60,6 +60,7 @@ class MusicBrainzDumpManager:
         self.dump_dir.mkdir(parents=True, exist_ok=True)
         self.db_path = self.dump_dir / "mb_dump.db"
         self.status_file = self.dump_dir / "status.json"
+        self.latest_file = self.dump_dir / "LATEST"
         self._current_task_thread = None
         self._cancel_requested = False
         self._local = threading.local()
