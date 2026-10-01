@@ -1,8 +1,28 @@
 import re
+from datetime import datetime, date
 from collections import defaultdict, Counter
 from typing import List, Dict, Any
 from src.config import IGNORED_ARTISTS
 from src.musician_tracker import get_effective_band_tenures
+
+def record_has_occurred(rec: Dict[str, Any]) -> bool:
+    """Returns True if the concert record has already occurred (date <= today)."""
+    today = date.today()
+    dt = rec.get("date_obj")
+    if dt:
+        if isinstance(dt, datetime):
+            return dt.date() <= today
+        elif isinstance(dt, date):
+            return dt <= today
+    date_str = rec.get("date") or rec.get("raw_date")
+    if date_str:
+        for fmt in ("%d-%m-%Y", "%Y-%m-%d", "%m/%d/%Y", "%m-%d-%Y", "%b %d, %Y"):
+            try:
+                parsed_d = datetime.strptime(str(date_str).strip()[:10], fmt).date()
+                return parsed_d <= today
+            except ValueError:
+                pass
+    return True
 
 class ConcertAnalytics:
     def __init__(self, matched_setlists: List[Dict[str, Any]], all_csv_records: List[Dict[str, Any]], ignored_artists: List[str] = None):
@@ -66,9 +86,11 @@ class ConcertAnalytics:
         artist_setlists = defaultdict(list)
         all_artists_seen = set()
 
-        effective_tenures = get_effective_band_tenures()
+        effective_tenures = get_effective_band_tenures() or {}
 
-        for rec in self.all_csv_records:
+        occurred_records = [r for r in self.all_csv_records if record_has_occurred(r)]
+
+        for rec in occurred_records:
             if rec.get("year"):
                 yearly_concerts[rec["year"]] += 1
             if rec.get("venue"):
@@ -84,7 +106,7 @@ class ConcertAnalytics:
         total_songs_played = 0
 
         sorted_pairs = sorted(
-            [p for p in self.matched_setlists if p.get("setlist")],
+            [p for p in self.matched_setlists if p.get("setlist") and record_has_occurred(p.get("csv", {}))],
             key=lambda p: str(p["csv"].get("date_obj") or "")
         )
 
@@ -357,7 +379,7 @@ class ConcertAnalytics:
         setlist_variation.sort(key=lambda x: x["shows_analyzed"], reverse=True)
 
         return {
-            "total_concerts": len(self.all_csv_records),
+            "total_concerts": len(occurred_records),
             "total_unique_artists": len(all_artists_seen),
             "total_songs_heard": total_songs_played,
             "unique_songs_heard": len(song_counter),
@@ -401,10 +423,11 @@ class ConcertAnalytics:
         artist_show_counter = defaultdict(int)
         artist_song_counter = defaultdict(lambda: defaultdict(int))
         concerts_drilldown = []
-        effective_tenures = get_effective_band_tenures()
+        effective_tenures = get_effective_band_tenures() or {}
 
         for rec in sorted_records:
             c_id = rec["id"]
+            is_occurred = record_has_occurred(rec)
             date_str = rec.get("display_date", rec.get("raw_date", ""))
             venue = rec.get("venue", "")
             year = rec.get("year")
@@ -415,8 +438,11 @@ class ConcertAnalytics:
 
             for raw_art in artists:
                 can_art = self._canonical_name(raw_art)
-                artist_show_counter[can_art] += 1
-                artist_seen_nth = artist_show_counter[can_art]
+                if is_occurred:
+                    artist_show_counter[can_art] += 1
+                    artist_seen_nth = artist_show_counter[can_art]
+                else:
+                    artist_seen_nth = artist_show_counter[can_art]
 
                 # Identify active musicians for this artist at the time of the concert
                 art_tenures = effective_tenures.get(can_art.lower().strip(), [])

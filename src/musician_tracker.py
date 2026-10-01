@@ -49,6 +49,26 @@ def get_effective_band_tenures() -> Dict[str, List[Dict[str, Any]]]:
 
     return tenure_map
 
+from datetime import datetime, date
+
+def _record_has_occurred(rec: Dict[str, Any]) -> bool:
+    today = date.today()
+    dt = rec.get("date_obj")
+    if dt:
+        if isinstance(dt, datetime):
+            return dt.date() <= today
+        elif isinstance(dt, date):
+            return dt <= today
+    date_str = rec.get("date") or rec.get("raw_date")
+    if date_str:
+        for fmt in ("%d-%m-%Y", "%Y-%m-%d", "%m/%d/%Y", "%m-%d-%Y", "%b %d, %Y"):
+            try:
+                parsed_d = datetime.strptime(str(date_str).strip()[:10], fmt).date()
+                return parsed_d <= today
+            except ValueError:
+                pass
+    return True
+
 def analyze_musicians_live(all_csv_records: List[Dict[str, Any]]) -> Dict[str, Any]:
     """
     Cross-references every attended concert with band member tenures (by year)
@@ -62,9 +82,11 @@ def analyze_musicians_live(all_csv_records: List[Dict[str, Any]]) -> Dict[str, A
     musician_instruments = {}
     seen_show_keys = set()
 
-    effective_tenures = get_effective_band_tenures()
+    effective_tenures = get_effective_band_tenures() or {}
 
     for rec in all_csv_records:
+        if not _record_has_occurred(rec):
+            continue
         year = rec.get("year")
         date_str = rec.get("display_date", rec.get("raw_date", ""))
         venue = rec.get("venue", "")

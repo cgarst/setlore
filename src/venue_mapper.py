@@ -1,10 +1,28 @@
 from __future__ import annotations
-from datetime import datetime
+from datetime import datetime, date
 from collections import defaultdict, Counter
 from typing import List, Dict, Any, Optional, Tuple
 
 VENUE_COORDINATES: Dict[str, Tuple[float, float, str, str]] = {}
 CANONICAL_VENUE_NAMES: Dict[str, str] = {}
+
+def _record_has_occurred(rec: Dict[str, Any]) -> bool:
+    today = date.today()
+    dt = rec.get("date_obj")
+    if dt:
+        if isinstance(dt, datetime):
+            return dt.date() <= today
+        elif isinstance(dt, date):
+            return dt <= today
+    date_str = rec.get("date") or rec.get("raw_date")
+    if date_str:
+        for fmt in ("%d-%m-%Y", "%Y-%m-%d", "%m/%d/%Y", "%m-%d-%Y", "%b %d, %Y"):
+            try:
+                parsed_d = datetime.strptime(str(date_str).strip()[:10], fmt).date()
+                return parsed_d <= today
+            except ValueError:
+                pass
+    return True
 
 def generate_venue_map_data(all_csv_records: List[Dict[str, Any]],
                             matched_setlists: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -44,6 +62,8 @@ def generate_venue_map_data(all_csv_records: List[Dict[str, Any]],
     venue_artists = defaultdict(Counter)
 
     for rec in all_csv_records:
+        if not _record_has_occurred(rec):
+            continue
         raw_venue = rec.get('venue', '').strip()
         if not raw_venue:
             continue

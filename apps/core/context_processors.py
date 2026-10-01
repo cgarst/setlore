@@ -1,3 +1,5 @@
+from datetime import date
+from django.db.models import Q
 from django.contrib.auth.models import User
 from .models import SiteSetting
 from apps.concerts.models import Concert
@@ -15,7 +17,8 @@ def core_context(request):
     should_show_onboarding = False
 
     if hasattr(request, 'user') and request.user.is_authenticated:
-        user_concerts_count = Concert.objects.filter(user=request.user).count()
+        today = date.today()
+        user_concerts_count = Concert.objects.filter(user=request.user).filter(Q(date__isnull=True) | Q(date__lte=today)).count()
         sync_status = getattr(getattr(request.user, 'profile', None), 'sync_status', 'idle')
         should_show_onboarding = (user_concerts_count == 0 and sync_status != 'syncing')
 

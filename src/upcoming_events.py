@@ -254,9 +254,12 @@ def get_user_seen_artists_summary(user) -> List[Dict[str, Any]]:
     hidden_norm_set = {normalize_artist_name(a) for a in hidden_list if a} | {a.lower().strip() for a in hidden_list if a}
     ignored_norm_set = {normalize_artist_name(a) for a in ignored_list if a} | {a.lower().strip() for a in ignored_list if a}
     
-    # Tally artist appearances from Concert and ConcertArtist
+    # Tally artist appearances from Concert and ConcertArtist (only for concerts that have occurred)
+    from datetime import date
+    from django.db.models import Q
+    today = date.today()
     artist_counts: Dict[str, int] = {}
-    concerts = Concert.objects.filter(user=user).prefetch_related('artists__artist')
+    concerts = Concert.objects.filter(user=user).filter(Q(date__isnull=True) | Q(date__lte=today)).prefetch_related('artists__artist')
     
     for c in concerts:
         seen_in_concert = set()
@@ -293,7 +296,7 @@ def get_user_seen_artists_summary(user) -> List[Dict[str, Any]]:
 def get_upcoming_shows_for_user(user, force_refresh: bool = False, limit: int = 50) -> Dict[str, Any]:
     """
     Main function to get upcoming shows for all non-hidden artists seen before by the user,
-    with optional location & radius filtering.
+    with optional location & radius filtering and pre-added tracking status.
     """
     seen_artists_summary = get_user_seen_artists_summary(user)
     
@@ -324,6 +327,21 @@ def get_upcoming_shows_for_user(user, force_refresh: bool = False, limit: int = 
                 except Exception:
                     pass
     
+    # Pre-fetch user's tracked concerts to mark upcoming shows
+    tracked_set = set()
+    if user and user.is_authenticated:
+        tracked_concerts = Concert.objects.filter(user=user).prefetch_related('artists__artist')
+        for tc in tracked_concerts:
+            if tc.date:
+                d_iso = tc.date.strftime("%Y-%m-%d")
+                if tc.primary_artist:
+                    tracked_set.add((normalize_artist_name(tc.primary_artist), d_iso))
+                    tracked_set.add((tc.primary_artist.strip().lower(), d_iso))
+                for ca in tc.artists.all():
+                    if ca.artist and ca.artist.name:
+                        tracked_set.add((normalize_artist_name(ca.artist.name), d_iso))
+                        tracked_set.add((ca.artist.name.strip().lower(), d_iso))
+
     upcoming_events = []
     
     user_time_format = '12'
@@ -347,6 +365,11 @@ def get_upcoming_shows_for_user(user, force_refresh: bool = False, limit: int = 
                 time_format=user_time_format
             )
             if parsed and parsed['days_until'] >= 0:
+                ev_dt_str = (parsed.get('datetime') or '')[:10]
+                ev_art = parsed.get('artist', '')
+                is_tracked = (normalize_artist_name(ev_art), ev_dt_str) in tracked_set or (ev_art.strip().lower(), ev_dt_str) in tracked_set
+                parsed['is_tracked'] = is_tracked
+
                 # Apply range filtering if specified
                 if user_radius and user_radius > 0:
                     if parsed.get('distance_miles') is not None:

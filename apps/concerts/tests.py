@@ -638,6 +638,124 @@ class UpcomingShowsTests(TestCase):
         parsed_24 = parse_event_item(sample_event, 'Rush', time_format='24')
         self.assertEqual(parsed_24['time_display'], '20:30')
 
+    def test_track_upcoming_show_api_and_metrics_exclusion(self):
+        from apps.concerts.models import Concert, ConcertArtist
+        from src.analytics import ConcertAnalytics
+        from src.musician_tracker import analyze_musicians_live
+        from src.venue_mapper import generate_venue_map_data
+        from src.upcoming_events import get_upcoming_shows_for_user
+        from apps.core.context_processors import core_context
+        from unittest.mock import MagicMock
+        from datetime import date, timedelta
+
+        today = date.today()
+        future_date = (today + timedelta(days=30)).strftime("%Y-%m-%d")
+
+        # Initial state: 2 past shows exist from setUp
+        self.assertEqual(Concert.objects.filter(user=self.user).count(), 2)
+
+        # 1. Track upcoming show via API
+        res = self.client.post('/api/upcoming/track/', data=json.dumps({
+            'artist': 'Rush',
+            'date': future_date,
+            'venue': 'Madison Square Garden',
+            'city': 'New York',
+            'state': 'NY',
+            'country': 'United States',
+            'lineup': ['Rush', 'Primus'],
+            'event_url': 'https://example.com/event'
+        }), content_type='application/json')
+
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertTrue(data['success'])
+        self.assertTrue(data['is_tracked'])
+        self.assertEqual(data['action'], 'tracked')
+        self.assertEqual(Concert.objects.filter(user=self.user).count(), 3)
+
+        # Check pre-added Concert in DB
+        pre_added_concert = Concert.objects.get(id=data['concert_id'])
+        self.assertEqual(pre_added_concert.primary_artist, 'Rush')
+        self.assertEqual(pre_added_concert.source, 'setlistfm')
+        self.assertFalse(pre_added_concert.is_custom_offline)
+        self.assertEqual(pre_added_concert.date.strftime("%Y-%m-%d"), future_date)
+        self.assertEqual(pre_added_concert.artists.count(), 2)
+
+        # 2. Verify pre-added future show does NOT affect user_concerts_count in context processor
+        fake_req = MagicMock()
+        fake_req.user = self.user
+        fake_req.session = {}
+        ctx = core_context(fake_req)
+        self.assertEqual(ctx['user_concerts_count'], 2)  # Only the 2 past shows count
+
+        # 3. Verify analytics compute_all_metrics excludes future shows
+        csv_records = [
+            {
+                "id": "c_past",
+                "date": "2020-05-01",
+                "date_obj": date(2020, 5, 1),
+                "primary_artist": "Rush",
+                "artists": ["Rush"],
+                "venue": "Merriweather Post Pavilion",
+                "city": "Columbia",
+                "state": "MD",
+                "country": "United States",
+                "is_custom_offline": False,
+            },
+            {
+                "id": "c_future",
+                "date": future_date,
+                "date_obj": today + timedelta(days=30),
+                "primary_artist": "Rush",
+                "artists": ["Rush", "Primus"],
+                "venue": "Madison Square Garden",
+                "city": "New York",
+                "state": "NY",
+                "country": "United States",
+                "is_custom_offline": False,
+            }
+        ]
+        matched_sl = [
+            {
+                "csv": csv_records[0],
+                "artist": "Rush",
+                "setlist": {
+                    "url": "https://setlist.fm/1",
+                    "artist": {"name": "Rush"},
+                    "sets": {"set": [{"song": [{"name": "Tom Sawyer"}]}]}
+                }
+            }
+        ]
+        analytics = ConcertAnalytics(matched_sl, csv_records)
+        metrics = analytics.compute_all_metrics()
+        self.assertEqual(metrics["total_concerts"], 1)  # Future show excluded
+        self.assertEqual(metrics["total_unique_artists"], 1)  # Primus not counted yet
+        self.assertEqual(metrics["total_venues"], 1)  # MSG not counted yet
+
+        # 4. Verify analyze_musicians_live excludes future shows
+        musicians_data = analyze_musicians_live(csv_records)
+        # Only past concert included
+        for m in musicians_data.get("top_musicians", []):
+            self.assertEqual(m["count"], 1)
+
+        # 5. Verify generate_venue_map_data excludes future shows
+        map_data = generate_venue_map_data(csv_records, matched_sl)
+        self.assertEqual(map_data["total_venues"], 1)
+
+        # 6. Untrack upcoming show via API toggle
+        res_untrack = self.client.post('/api/upcoming/track/', data=json.dumps({
+            'artist': 'Rush',
+            'date': future_date,
+            'venue': 'Madison Square Garden'
+        }), content_type='application/json')
+        self.assertEqual(res_untrack.status_code, 200)
+        untrack_data = res_untrack.json()
+        self.assertTrue(untrack_data['success'])
+        self.assertFalse(untrack_data['is_tracked'])
+        self.assertEqual(untrack_data['action'], 'untracked')
+        self.assertEqual(Concert.objects.filter(user=self.user).count(), 2)
+
+
 
 
 

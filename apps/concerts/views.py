@@ -2424,6 +2424,164 @@ def api_upcoming_shows(request):
     })
 
 
+@login_required
+@require_POST
+def track_upcoming_show(request):
+    """
+    Tracks or pre-adds an upcoming concert to the user's database.
+    Pre-adds the show with source='setlistfm' and is_custom_offline=False so setlists can later be synced.
+    Toggles between tracked (pre-added) and untracked if already tracked.
+    Future concerts are excluded from metrics until they have occurred.
+    """
+    try:
+        if request.content_type == 'application/json':
+            data = json.loads(request.body)
+        else:
+            data = request.POST
+
+        artist_raw = str(data.get('artist') or data.get('artist_name') or '').strip()
+        date_str = str(data.get('date') or data.get('datetime') or '').strip()
+        venue_name_raw = str(data.get('venue') or data.get('venue_name') or '').strip()
+        city = str(data.get('city') or '').strip()
+        state = str(data.get('state') or data.get('region') or '').strip()
+        country = str(data.get('country') or '').strip() or 'United States'
+        action = str(data.get('action') or '').strip().lower()
+
+        if not artist_raw:
+            return JsonResponse({'error': 'Artist name is required'}, status=400)
+        if not date_str:
+            return JsonResponse({'error': 'Date is required'}, status=400)
+
+        dt = None
+        clean_date_str = date_str[:10]
+        for fmt in ("%Y-%m-%d", "%m/%d/%Y", "%m-%d-%Y", "%d-%m-%Y"):
+            try:
+                dt = datetime.strptime(clean_date_str, fmt)
+                break
+            except ValueError:
+                pass
+
+        if not dt:
+            return JsonResponse({'error': f'Invalid date format: {date_str}'}, status=400)
+
+        d_obj = dt.date()
+        raw_date = d_obj.strftime("%Y-%m-%d")
+        year = d_obj.year
+
+        can_artist = normalize_artist_name(artist_raw) or artist_raw
+
+        existing_concerts = Concert.objects.filter(
+            user=request.user,
+            date=d_obj
+        ).prefetch_related('artists__artist')
+
+        existing_match = None
+        for ec in existing_concerts:
+            art_names = {normalize_artist_name(ca.artist.name) for ca in ec.artists.all() if ca.artist}
+            if ec.primary_artist:
+                art_names.add(normalize_artist_name(ec.primary_artist))
+            if can_artist in art_names or artist_raw.lower().strip() in {a.lower().strip() for a in art_names if a}:
+                existing_match = ec
+                break
+
+        if existing_match and action != 'track':
+            existing_match.delete()
+            ApiCache.objects.filter(cache_key=f"user_dashboard_bundle_{request.user.id}").delete()
+            return JsonResponse({
+                'success': True,
+                'is_tracked': False,
+                'action': 'untracked',
+                'message': f"Removed upcoming show for '{can_artist}' on {raw_date}."
+            })
+
+        if existing_match:
+            return JsonResponse({
+                'success': True,
+                'is_tracked': True,
+                'action': 'already_tracked',
+                'concert_id': existing_match.id,
+                'message': f"Already tracking '{can_artist}' on {raw_date}."
+            })
+
+        with transaction.atomic():
+            venue_obj = None
+            if venue_name_raw:
+                venue_obj = Venue.objects.filter(name__iexact=venue_name_raw.lower()).first()
+                if not venue_obj:
+                    lat_val = data.get('latitude') or data.get('lat')
+                    lon_val = data.get('longitude') or data.get('lon')
+                    try:
+                        lat_val = float(lat_val) if lat_val is not None else None
+                        lon_val = float(lon_val) if lon_val is not None else None
+                    except (ValueError, TypeError):
+                        lat_val, lon_val = None, None
+
+                    if lat_val is None or lon_val is None:
+                        res_lat, res_lon, source_type = resolve_venue_coordinates(venue_name_raw, city, state, country)
+                    else:
+                        res_lat, res_lon, source_type = lat_val, lon_val, 'bandsintown'
+
+                    venue_obj = Venue.objects.create(
+                        name=venue_name_raw,
+                        city=city,
+                        state=state,
+                        country=country,
+                        latitude=res_lat,
+                        longitude=res_lon,
+                        geocode_source=source_type
+                    )
+
+            primary_art_obj, _ = get_or_create_artist(can_artist)
+
+            lineup = data.get('lineup') or []
+            if isinstance(lineup, str):
+                lineup = [x.strip() for x in lineup.split(',') if x.strip()]
+
+            all_lineup_names = [can_artist]
+            for supp in lineup:
+                supp_can = normalize_artist_name(supp) or supp
+                if supp_can.lower() != can_artist.lower() and supp_can not in all_lineup_names:
+                    all_lineup_names.append(supp_can)
+
+            new_concert = Concert.objects.create(
+                user=request.user,
+                date=d_obj,
+                raw_date=raw_date,
+                year=year,
+                venue=venue_obj,
+                raw_venue=venue_name_raw or (venue_obj.name if venue_obj else ''),
+                primary_artist=can_artist,
+                raw_artists=", ".join(all_lineup_names),
+                notes=f"Pre-added from upcoming shows ({data.get('event_url', '')})".strip(),
+                source='setlistfm',
+                is_custom_offline=False,
+                is_fully_matched=False,
+                is_partially_matched=False
+            )
+
+            for order, a_name in enumerate(all_lineup_names):
+                a_obj, _ = get_or_create_artist(a_name)
+                ConcertArtist.objects.create(
+                    concert=new_concert,
+                    artist=a_obj,
+                    billing_order=order,
+                    has_setlist=False
+                )
+
+        ApiCache.objects.filter(cache_key=f"user_dashboard_bundle_{request.user.id}").delete()
+
+        return JsonResponse({
+            'success': True,
+            'is_tracked': True,
+            'action': 'tracked',
+            'concert_id': new_concert.id,
+            'message': f"Tracking '{can_artist}' on {raw_date}! Pre-added to your database."
+        })
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+
 
 
 

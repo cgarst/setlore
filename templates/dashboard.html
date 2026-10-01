@@ -2211,7 +2211,7 @@
               <th class="px-3 py-2.5">Venue & Location</th>
               <th class="px-3 py-2.5">Distance</th>
               <th class="px-3 py-2.5">Lineup / Details</th>
-              <th class="px-3 py-2.5 text-right">Tickets</th>
+              <th class="px-3 py-2.5 text-right">Actions</th>
             </tr>
           </thead>
           <tbody id="upcoming-table-tbody" class="divide-y divide-slate-800/50 text-xs">
@@ -2433,6 +2433,23 @@
                   <span>Get Tickets / Info</span>
                   <i class="fa-solid fa-arrow-up-right-from-square text-[9px] opacity-70"></i>
                 </a>
+                {% if not is_public_view and user.is_authenticated and is_owner %}
+                <button type="button"
+                  onclick="toggleTrackUpcomingShow(this, '{{ show.artist|escapejs }}', '{{ show.datetime|escapejs }}', '{{ show.venue|escapejs }}', '{{ show.city|escapejs }}', '{{ show.region|escapejs }}', '{{ show.country|escapejs }}', '{{ show.ticket_url|escapejs }}')"
+                  class="upcoming-track-btn px-2.5 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 shrink-0 cursor-pointer border {% if show.is_tracked %}bg-emerald-600/25 border-emerald-500/50 text-emerald-300 hover:bg-emerald-600/35{% else %}bg-slate-800/80 border-slate-700/80 text-slate-300 hover:text-white hover:bg-slate-700{% endif %}"
+                  data-artist="{{ show.artist }}"
+                  data-date="{{ show.datetime }}"
+                  data-venue="{{ show.venue }}"
+                  data-city="{{ show.city }}"
+                  data-region="{{ show.region }}"
+                  data-country="{{ show.country }}"
+                  data-url="{{ show.ticket_url }}"
+                  data-tracked="{% if show.is_tracked %}true{% else %}false{% endif %}"
+                  title="{% if show.is_tracked %}Tracked (I'll be there) - Click to untrack{% else %}Track show - Pre-add to your database{% endif %}">
+                  <i class="{% if show.is_tracked %}fa-solid fa-circle-check text-emerald-400{% else %}fa-regular fa-calendar-plus text-slate-400{% endif %} text-[11px]"></i>
+                  <span>{% if show.is_tracked %}Going{% else %}Track{% endif %}</span>
+                </button>
+                {% endif %}
               </div>
             </div>
             {% empty %}
@@ -9648,11 +9665,29 @@
                 </div>` : '<span class="text-slate-500 text-xs">Headliner</span>'}
             </td>
             <td class="px-3 py-3 text-right whitespace-nowrap">
-              <a href="${show.ticket_url || show.event_url}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 py-1 px-2.5 rounded-lg bg-indigo-600/30 hover:bg-indigo-600/50 border border-indigo-500/40 text-indigo-200 hover:text-white text-xs font-semibold transition shadow-sm">
-                <i class="fa-solid fa-ticket text-[10px]"></i>
-                <span>Tickets</span>
-                <i class="fa-solid fa-arrow-up-right-from-square text-[9px] opacity-70"></i>
-              </a>
+              <div class="flex items-center justify-end gap-2">
+                <a href="${show.ticket_url || show.event_url}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 py-1 px-2.5 rounded-lg bg-indigo-600/30 hover:bg-indigo-600/50 border border-indigo-500/40 text-indigo-200 hover:text-white text-xs font-semibold transition shadow-sm">
+                  <i class="fa-solid fa-ticket text-[10px]"></i>
+                  <span>Tickets</span>
+                  <i class="fa-solid fa-arrow-up-right-from-square text-[9px] opacity-70"></i>
+                </a>
+                ${isUpcomingOwner ? `
+                <button type="button"
+                  onclick="toggleTrackUpcomingShow(this, '${escArtist}', '${escapeHtml(show.datetime || '')}', '${escapeHtml(show.venue || '')}', '${escapeHtml(show.city || '')}', '${escapeHtml(show.region || '')}', '${escapeHtml(show.country || '')}', '${escapeHtml(show.ticket_url || show.event_url || '')}')"
+                  class="upcoming-track-btn inline-flex items-center gap-1.5 py-1 px-2.5 rounded-lg text-xs font-semibold transition cursor-pointer border ${show.is_tracked ? 'bg-emerald-600/25 border-emerald-500/50 text-emerald-300 hover:bg-emerald-600/35' : 'bg-slate-800/80 border-slate-700/80 text-slate-300 hover:text-white hover:bg-slate-700'}"
+                  data-artist="${escapeHtml(show.artist)}"
+                  data-date="${escapeHtml(show.datetime || '')}"
+                  data-venue="${escapeHtml(show.venue || '')}"
+                  data-city="${escapeHtml(show.city || '')}"
+                  data-region="${escapeHtml(show.region || '')}"
+                  data-country="${escapeHtml(show.country || '')}"
+                  data-url="${escapeHtml(show.ticket_url || show.event_url || '')}"
+                  data-tracked="${show.is_tracked ? 'true' : 'false'}"
+                  title="${show.is_tracked ? "Tracked (I'll be there) - Click to untrack" : "Track show - Pre-add to your database"}">
+                  <i class="${show.is_tracked ? 'fa-solid fa-circle-check text-emerald-400' : 'fa-regular fa-calendar-plus text-slate-400'} text-[10px]"></i>
+                  <span>${show.is_tracked ? 'Going' : 'Track'}</span>
+                </button>` : ''}
+              </div>
             </td>
           </tr>
         `;
@@ -9829,11 +9864,97 @@
                 <span>Get Tickets / Info</span>
                 <i class="fa-solid fa-arrow-up-right-from-square text-[9px] opacity-70"></i>
               </a>
+              ${isUpcomingOwner ? `
+              <button type="button"
+                onclick="toggleTrackUpcomingShow(this, '${escArtist}', '${escapeHtml(show.datetime || '')}', '${escapeHtml(show.venue || '')}', '${escapeHtml(show.city || '')}', '${escapeHtml(show.region || '')}', '${escapeHtml(show.country || '')}', '${escapeHtml(show.ticket_url || show.event_url || '')}')"
+                class="upcoming-track-btn px-2.5 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 shrink-0 cursor-pointer border ${show.is_tracked ? 'bg-emerald-600/25 border-emerald-500/50 text-emerald-300 hover:bg-emerald-600/35' : 'bg-slate-800/80 border-slate-700/80 text-slate-300 hover:text-white hover:bg-slate-700'}"
+                data-artist="${escapeHtml(show.artist)}"
+                data-date="${escapeHtml(show.datetime || '')}"
+                data-venue="${escapeHtml(show.venue || '')}"
+                data-city="${escapeHtml(show.city || '')}"
+                data-region="${escapeHtml(show.region || '')}"
+                data-country="${escapeHtml(show.country || '')}"
+                data-url="${escapeHtml(show.ticket_url || show.event_url || '')}"
+                data-tracked="${show.is_tracked ? 'true' : 'false'}"
+                title="${show.is_tracked ? "Tracked (I'll be there) - Click to untrack" : "Track show - Pre-add to your database"}">
+                <i class="${show.is_tracked ? 'fa-solid fa-circle-check text-emerald-400' : 'fa-regular fa-calendar-plus text-slate-400'} text-[11px]"></i>
+                <span>${show.is_tracked ? 'Going' : 'Track'}</span>
+              </button>` : ''}
             </div>
           </div>
         `;
       });
       grid.innerHTML = html;
+    }
+
+    async function toggleTrackUpcomingShow(btn, artist, date, venue, city, region, country, eventUrl) {
+      if (!isUpcomingOwner) return;
+      const currentTracked = btn.getAttribute('data-tracked') === 'true';
+      const origContent = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-[11px]"></i> <span>Saving...</span>`;
+
+      try {
+        const res = await fetch('/api/upcoming/track/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken') || ''
+          },
+          body: JSON.stringify({
+            artist: artist,
+            date: date,
+            venue: venue,
+            city: city,
+            region: region,
+            country: country,
+            event_url: eventUrl,
+            action: currentTracked ? 'untrack' : 'track'
+          })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          const isTracked = !!data.is_tracked;
+          const normArtist = artist.toLowerCase().trim();
+          const cleanDate = (date || '').slice(0, 10);
+
+          // Update in-memory shows
+          upcomingShowsData.forEach(s => {
+            if (s.artist.toLowerCase().trim() === normArtist && (s.datetime || '').slice(0, 10) === cleanDate) {
+              s.is_tracked = isTracked;
+            }
+          });
+
+          // Sync all buttons across grid & table modals
+          document.querySelectorAll('.upcoming-track-btn').forEach(b => {
+            const bArtist = (b.getAttribute('data-artist') || '').toLowerCase().trim();
+            const bDate = (b.getAttribute('data-date') || '').slice(0, 10);
+            if (bArtist === normArtist && bDate === cleanDate) {
+              b.setAttribute('data-tracked', isTracked ? 'true' : 'false');
+              b.title = isTracked ? "Tracked (I'll be there) - Click to untrack" : "Track show - Pre-add to your database";
+              if (isTracked) {
+                b.className = b.className.replace(/bg-slate-800\/80|border-slate-700\/80|text-slate-300|hover:text-white|hover:bg-slate-700/g, '').trim();
+                b.classList.add('bg-emerald-600/25', 'border-emerald-500/50', 'text-emerald-300', 'hover:bg-emerald-600/35');
+                b.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 text-[11px]"></i> <span>Going</span>`;
+              } else {
+                b.className = b.className.replace(/bg-emerald-600\/25|border-emerald-500\/50|text-emerald-300|hover:bg-emerald-600\/35/g, '').trim();
+                b.classList.add('bg-slate-800/80', 'border-slate-700/80', 'text-slate-300', 'hover:text-white', 'hover:bg-slate-700');
+                b.innerHTML = `<i class="fa-regular fa-calendar-plus text-slate-400 text-[11px]"></i> <span>Track</span>`;
+              }
+            }
+          });
+
+          showToast(data.message || (isTracked ? 'Show tracked and pre-added to your database!' : 'Show removed from tracking.'), 'success');
+        } else {
+          btn.innerHTML = origContent;
+          showToast(data.error || 'Failed to update tracking state.', 'error');
+        }
+      } catch (err) {
+        btn.innerHTML = origContent;
+        showToast('Network error updating show tracking.', 'error');
+      } finally {
+        btn.disabled = false;
+      }
     }
 
     document.addEventListener('DOMContentLoaded', () => {

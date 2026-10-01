@@ -85,6 +85,7 @@ urlpatterns = [
 
     # Upcoming Shows & Settings API
     path('api/upcoming/shows/', concerts_views.api_upcoming_shows, name='api_upcoming_shows'),
+    path('api/upcoming/track/', concerts_views.track_upcoming_show, name='api_track_upcoming_show'),
     path('api/upcoming/toggle-hidden/', concerts_views.toggle_upcoming_hidden_artist, name='api_toggle_upcoming_hidden_artist'),
     path('api/upcoming/settings/', concerts_views.save_upcoming_settings, name='api_save_upcoming_settings'),
 
