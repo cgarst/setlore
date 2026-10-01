@@ -1,7 +1,7 @@
 services:
   web:
     build: .
-    container_name: concert-trakr
+    container_name: setlore
     restart: unless-stopped
     ports:
       - "3010:8000"

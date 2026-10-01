@@ -6,7 +6,7 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-concert-trakr-dev-secret-key-change-in-prod')
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-setlore-dev-secret-key-change-in-prod')
 
 DEBUG = os.getenv('DEBUG', 'True').lower() in ('true', '1', 't')
 
@@ -27,7 +27,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    # Concert Trakr Apps
+    # Setlore Apps
     'apps.core.apps.CoreConfig',
     'apps.catalog.apps.CatalogConfig',
     'apps.concerts.apps.ConcertsConfig',
@@ -114,7 +114,7 @@ LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'dashboard'
 LOGOUT_REDIRECT_URL = 'login'
 
-# Concert Trakr Settings
+# Setlore Settings
 SETLISTFM_API_KEY = os.getenv("SETLISTFM_KEY") or os.getenv("setlistfm_key", "").strip()
 SETLISTFM_USER = os.getenv("SETLISTFM_USER") or os.getenv("setlistfm_user", "").strip()
 CARTO_API_KEY = os.getenv("CARTO_API_KEY") or os.getenv("carto_api_key", "").strip()

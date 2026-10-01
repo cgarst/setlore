@@ -35,8 +35,8 @@ The quickest way to run Setlore is with **Docker Compose**:
 
 ### 1. Clone & Configure Environment
 ```bash
-git clone https://github.com/cgarst/concert-trakr.git
-cd concert-trakr
+git clone https://github.com/cgarst/setlore.git
+cd setlore
 cp .env.example .env
 ```
 

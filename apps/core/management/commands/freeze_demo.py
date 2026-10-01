@@ -41,7 +41,7 @@ class Command(BaseCommand):
             "-r",
             "--repo-url",
             dest="repo_url",
-            default="https://github.com/cgarst/concert-trakr",
+            default="https://github.com/cgarst/setlore",
             help="URL to the GitHub repository for installation and source links.",
         )
         parser.add_argument(
@@ -53,7 +53,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         username = options.get("username")
         output_dir_name = options.get("output_dir", "docs")
-        repo_url = options.get("repo_url", "https://github.com/cgarst/concert-trakr")
+        repo_url = options.get("repo_url", "https://github.com/cgarst/setlore")
         no_clean = options.get("no_clean", False)
 
         base_dir = Path(settings.BASE_DIR)

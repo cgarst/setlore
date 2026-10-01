@@ -44,7 +44,7 @@ class FreezeDemoCommandTests(TestCase):
             'freeze_demo',
             username='demomusicfan',
             output_dir=self.temp_dir,
-            repo_url='https://github.com/cgarst/concert-trakr',
+            repo_url='https://github.com/cgarst/setlore',
             verbosity=0
         )
 
@@ -64,7 +64,7 @@ class FreezeDemoCommandTests(TestCase):
             'freeze_demo',
             username='demomusicfan',
             output_dir=self.temp_dir,
-            repo_url='https://github.com/cgarst/concert-trakr',
+            repo_url='https://github.com/cgarst/setlore',
             verbosity=0
         )
 
@@ -73,7 +73,7 @@ class FreezeDemoCommandTests(TestCase):
         # Should have Demo and Install CTAs
         self.assertIn('Demo Setlore', landing_html)
         self.assertIn('Install via GitHub', landing_html)
-        self.assertIn('https://github.com/cgarst/concert-trakr', landing_html)
+        self.assertIn('https://github.com/cgarst/setlore', landing_html)
 
         # Should NOT link to login, register, open setlore, or have leaderboard
         self.assertNotIn('Sign In', landing_html)

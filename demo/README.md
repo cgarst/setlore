@@ -44,7 +44,7 @@ python manage.py freeze_demo
 | :--- | :--- | :--- | :--- |
 | `-u` | `--user`, `--username` | *(Auto)* | Username to freeze as the public demo. Defaults to the active user with the most concerts logged. |
 | `-o` | `--output-dir` | `docs` | Destination directory for generated static files. |
-| `-r` | `--repo-url` | `https://github.com/cgarst/concert-trakr` | GitHub repository URL used for "Install" and source links. |
+| `-r` | `--repo-url` | `https://github.com/cgarst/setlore` | GitHub repository URL used for "Install" and source links. |
 | | `--no-clean` | `False` | Do not wipe the output directory before generating files. |
 
 ---
