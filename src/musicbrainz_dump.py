@@ -108,13 +108,6 @@ class MusicBrainzDumpManager:
 
     def get_status(self) -> Dict[str, Any]:
         """Returns the current state of local MusicBrainz dump files and active jobs."""
-        local_version = None
-        if self.latest_file.exists():
-            try:
-                local_version = self.latest_file.read_text(encoding="utf-8").strip()
-            except Exception:
-                pass
-
         # Check existing files and compute disk usage
         files_on_disk = []
         total_bytes = 0
@@ -155,6 +148,15 @@ class MusicBrainzDumpManager:
                     task_data = json.load(f)
             except Exception:
                 pass
+
+        local_version = None
+        if self.latest_file.exists():
+            try:
+                local_version = self.latest_file.read_text(encoding="utf-8").strip()
+            except Exception:
+                pass
+        elif is_ready and task_data.get("upstream_version"):
+            local_version = task_data.get("upstream_version")
 
         task_status = task_data.get("status")
         is_running = (self._current_task_thread is not None and self._current_task_thread.is_alive()) or (task_status in ["downloading", "extracting"])

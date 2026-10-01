@@ -201,7 +201,7 @@
     <div class="stat-box">
       <div class="stat-label">Local Dump Version</div>
       <div class="stat-value" id="stat-local-version" style="font-family: monospace; font-size: 1.25rem;">
-        {{ status.local_version|default:"None (Not Downloaded)" }}
+        {{ status.local_version|default:"None" }}
       </div>
     </div>
     <div class="stat-box">
@@ -422,7 +422,7 @@
     }
 
     // Stats
-    document.getElementById('stat-local-version').textContent = status.local_version || 'None (Not Downloaded)';
+    document.getElementById('stat-local-version').textContent = status.local_version || 'None';
     if (status.upstream_version) {
       document.getElementById('stat-upstream-version').textContent = status.upstream_version;
     }
