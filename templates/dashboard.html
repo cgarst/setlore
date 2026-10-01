@@ -5037,15 +5037,22 @@
           if (venueMap) venueMap.invalidateSize();
         }, 150);
       } else if (tabId === 'advanced') {
-        setTimeout(() => {
+        ['chart-treemap', 'chart-era', 'chart-song-age', 'chart-sunburst'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) Plotly.Plots.resize(el);
+        });
+        if (typeof applyAlbumArtToTreemap === 'function') {
+          applyAlbumArtToTreemap();
+        }
+        requestAnimationFrame(() => {
           ['chart-treemap', 'chart-era', 'chart-song-age', 'chart-sunburst'].forEach(id => {
             const el = document.getElementById(id);
             if (el) Plotly.Plots.resize(el);
           });
           if (typeof applyAlbumArtToTreemap === 'function') {
-            setTimeout(applyAlbumArtToTreemap, 50);
+            applyAlbumArtToTreemap();
           }
-        }, 150);
+        });
       } else if (tabId === 'overview') {
         setTimeout(() => {
           ['chart-timeline', 'chart-top-artists'].forEach(id => {
@@ -6860,11 +6867,15 @@
       }),
       { responsive: true, displayModeBar: false, scrollZoom: false, doubleClick: false }
     );
+    const initContainerWidth = (document.querySelector('main') && document.querySelector('main').clientWidth) || (document.getElementById('tab-overview') && document.getElementById('tab-overview').clientWidth) || (window.innerWidth ? Math.min(1280, window.innerWidth - 32) : 1200);
+
     Plotly.newPlot(
       'chart-treemap',
       treemapData.data,
       Object.assign({}, layoutDefaults, treemapData.layout, {
-        dragmode: false
+        dragmode: false,
+        autosize: true,
+        width: initContainerWidth
       }),
       { responsive: true, displayModeBar: false, scrollZoom: false, doubleClick: false }
     );
