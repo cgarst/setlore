@@ -641,6 +641,11 @@
                 <span>Profile & Privacy</span>
               </button>
 
+              <button type="button" onclick="openPwaInstallModal(); closeUserMenu();" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-slate-200 hover:text-white hover:bg-indigo-600/20 transition text-left cursor-pointer">
+                <i class="fa-solid fa-mobile-screen-button text-indigo-400 w-4 text-center"></i>
+                <span>Save as App</span>
+              </button>
+
               {% if is_impersonating %}
                 <form method="post" action="{% url 'stop_impersonating' %}" class="block m-0">
                   {% csrf_token %}
@@ -730,6 +735,11 @@
                 <button type="button" onclick="openProfileModal(); closeUserMenu();" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-slate-200 hover:text-white hover:bg-amber-500/10 transition text-left cursor-pointer">
                   <i class="fa-solid fa-user-gear text-amber-400 w-4 text-center"></i>
                   <span>Profile & Privacy</span>
+                </button>
+
+                <button type="button" onclick="openPwaInstallModal(); closeUserMenu();" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-slate-200 hover:text-white hover:bg-indigo-600/20 transition text-left cursor-pointer">
+                  <i class="fa-solid fa-mobile-screen-button text-indigo-400 w-4 text-center"></i>
+                  <span>Save as App</span>
                 </button>
 
                 {% if is_impersonating %}
@@ -922,6 +932,131 @@
 
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1" id="theme-modal-grid">
         <!-- Populated by JavaScript with theme cards + color palettes -->
+      </div>
+    </div>
+  </div>
+
+  <!-- PWA Install Guide Modal -->
+  <div id="pwa-install-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 hidden" onclick="if(event.target === this) closePwaInstallModal();">
+    <div class="max-w-md w-full glass-card p-6 shadow-2xl space-y-4 border border-slate-700 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+            <i class="fa-solid fa-mobile-screen-button text-sm"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-white">Save Setlore as an App</h3>
+            <p class="text-[11px] text-slate-400">Install to your home screen for full-screen standalone mode</p>
+          </div>
+        </div>
+        <button type="button" onclick="closePwaInstallModal()" class="text-slate-400 hover:text-white p-1 cursor-pointer">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <!-- Device Platform Tabs -->
+      <div class="flex rounded-xl bg-slate-900/90 p-1 border border-slate-800 text-xs font-semibold">
+        <button type="button" id="pwa-tab-ios-btn" onclick="switchPwaTab('ios')" class="flex-1 py-1.5 rounded-lg text-center transition flex items-center justify-center gap-1.5 cursor-pointer bg-indigo-600 text-white shadow-sm">
+          <i class="fa-brands fa-apple text-sm"></i>
+          <span>iOS Safari</span>
+        </button>
+        <button type="button" id="pwa-tab-android-btn" onclick="switchPwaTab('android')" class="flex-1 py-1.5 rounded-lg text-center transition flex items-center justify-center gap-1.5 cursor-pointer text-slate-400 hover:text-slate-200">
+          <i class="fa-brands fa-android text-sm"></i>
+          <span>Android Chrome</span>
+        </button>
+      </div>
+
+      <!-- Native 1-Click Install Button if supported -->
+      <div id="pwa-native-install-section" class="hidden p-3 rounded-xl bg-indigo-950/40 border border-indigo-500/40 text-center space-y-2">
+        <p class="text-xs text-indigo-200 font-medium">Quick 1-Tap Installation Available!</p>
+        <button type="button" onclick="triggerPwaPromptInstall()" class="w-full py-2 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-bold text-white transition flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/30 cursor-pointer">
+          <i class="fa-solid fa-download"></i>
+          <span>Install Setlore App</span>
+        </button>
+      </div>
+
+      <!-- iOS Instructions -->
+      <div id="pwa-ios-instructions" class="space-y-3">
+        <div class="flex items-start gap-3 p-2.5 rounded-xl bg-slate-900/60 border border-slate-800/80">
+          <div class="w-6 h-6 rounded-full bg-indigo-600/20 text-indigo-400 font-bold text-xs flex items-center justify-center shrink-0 border border-indigo-500/30">1</div>
+          <div class="text-xs text-slate-300">
+            <p class="font-semibold text-white">Open in Safari</p>
+            <p class="text-[11px] text-slate-400 mt-0.5">Ensure you are browsing Setlore in Apple Safari on your iPhone or iPad.</p>
+          </div>
+        </div>
+
+        <div class="flex items-start gap-3 p-2.5 rounded-xl bg-slate-900/60 border border-slate-800/80">
+          <div class="w-6 h-6 rounded-full bg-indigo-600/20 text-indigo-400 font-bold text-xs flex items-center justify-center shrink-0 border border-indigo-500/30">2</div>
+          <div class="text-xs text-slate-300">
+            <p class="font-semibold text-white flex items-center gap-1.5">
+              Tap the <span class="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-indigo-400 font-mono text-[10px] inline-flex items-center gap-1"><i class="fa-solid fa-arrow-up-from-bracket"></i> Share</span> button
+            </p>
+            <p class="text-[11px] text-slate-400 mt-0.5">Located on the browser navigation bar at the bottom of the screen (or top right on iPad).</p>
+          </div>
+        </div>
+
+        <div class="flex items-start gap-3 p-2.5 rounded-xl bg-slate-900/60 border border-slate-800/80">
+          <div class="w-6 h-6 rounded-full bg-indigo-600/20 text-indigo-400 font-bold text-xs flex items-center justify-center shrink-0 border border-indigo-500/30">3</div>
+          <div class="text-xs text-slate-300">
+            <p class="font-semibold text-white flex items-center gap-1.5">
+              Select <span class="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-white font-mono text-[10px] inline-flex items-center gap-1"><i class="fa-regular fa-square-plus text-indigo-400"></i> Add to Home Screen</span>
+            </p>
+            <p class="text-[11px] text-slate-400 mt-0.5">Scroll down in the share sheet to locate this option.</p>
+          </div>
+        </div>
+
+        <div class="flex items-start gap-3 p-2.5 rounded-xl bg-slate-900/60 border border-slate-800/80">
+          <div class="w-6 h-6 rounded-full bg-indigo-600/20 text-indigo-400 font-bold text-xs flex items-center justify-center shrink-0 border border-indigo-500/30">4</div>
+          <div class="text-xs text-slate-300">
+            <p class="font-semibold text-white">Tap "Add"</p>
+            <p class="text-[11px] text-slate-400 mt-0.5">Tap "Add" in the top-right corner. Setlore will launch in standalone mode like a native app!</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Android Instructions -->
+      <div id="pwa-android-instructions" class="hidden space-y-3">
+        <div class="flex items-start gap-3 p-2.5 rounded-xl bg-slate-900/60 border border-slate-800/80">
+          <div class="w-6 h-6 rounded-full bg-emerald-600/20 text-emerald-400 font-bold text-xs flex items-center justify-center shrink-0 border border-emerald-500/30">1</div>
+          <div class="text-xs text-slate-300">
+            <p class="font-semibold text-white">Open in Google Chrome</p>
+            <p class="text-[11px] text-slate-400 mt-0.5">Browse to Setlore using Google Chrome on your Android device.</p>
+          </div>
+        </div>
+
+        <div class="flex items-start gap-3 p-2.5 rounded-xl bg-slate-900/60 border border-slate-800/80">
+          <div class="w-6 h-6 rounded-full bg-emerald-600/20 text-emerald-400 font-bold text-xs flex items-center justify-center shrink-0 border border-emerald-500/30">2</div>
+          <div class="text-xs text-slate-300">
+            <p class="font-semibold text-white flex items-center gap-1.5">
+              Tap the <span class="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-white font-mono text-[10px] inline-flex items-center gap-1"><i class="fa-solid fa-ellipsis-vertical"></i> More (3 dots)</span> menu
+            </p>
+            <p class="text-[11px] text-slate-400 mt-0.5">Located in the top-right corner of Chrome.</p>
+          </div>
+        </div>
+
+        <div class="flex items-start gap-3 p-2.5 rounded-xl bg-slate-900/60 border border-slate-800/80">
+          <div class="w-6 h-6 rounded-full bg-emerald-600/20 text-emerald-400 font-bold text-xs flex items-center justify-center shrink-0 border border-emerald-500/30">3</div>
+          <div class="text-xs text-slate-300">
+            <p class="font-semibold text-white flex items-center gap-1.5">
+              Select <span class="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-emerald-400 font-mono text-[10px] inline-flex items-center gap-1"><i class="fa-solid fa-download"></i> Install app</span> or <span class="text-slate-200">Add to Home screen</span>
+            </p>
+            <p class="text-[11px] text-slate-400 mt-0.5">Choose the install option from the menu list.</p>
+          </div>
+        </div>
+
+        <div class="flex items-start gap-3 p-2.5 rounded-xl bg-slate-900/60 border border-slate-800/80">
+          <div class="w-6 h-6 rounded-full bg-emerald-600/20 text-emerald-400 font-bold text-xs flex items-center justify-center shrink-0 border border-emerald-500/30">4</div>
+          <div class="text-xs text-slate-300">
+            <p class="font-semibold text-white">Confirm Installation</p>
+            <p class="text-[11px] text-slate-400 mt-0.5">Tap "Install" when prompted. Setlore will be installed to your home screen and app drawer!</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="pt-2 border-t border-slate-800 flex justify-end">
+        <button type="button" onclick="closePwaInstallModal()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 transition cursor-pointer">
+          Got it
+        </button>
       </div>
     </div>
   </div>
@@ -4665,6 +4800,14 @@
               <i class="fa-solid fa-chevron-right text-slate-500 text-[10px]"></i>
             </button>
 
+            <button type="button" onclick="openPwaInstallModal(); closeMobileMoreMenu();" class="w-full flex items-center justify-between p-2.5 rounded-xl bg-slate-800/50 hover:bg-slate-800 text-xs text-slate-300 hover:text-white transition cursor-pointer text-left">
+              <div class="flex items-center gap-2.5">
+                <i class="fa-solid fa-mobile-screen-button text-indigo-400 w-4 text-center"></i>
+                <span>Save as App (PWA)</span>
+              </div>
+              <span class="badge bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[10px]">Guide</span>
+            </button>
+
             {% if is_impersonating %}
               <form method="post" action="{% url 'stop_impersonating' %}" class="block m-0">
                 {% csrf_token %}
@@ -8244,6 +8387,83 @@
       }
     }
 
+    /* ==========================================================================
+       PWA INSTALLATION PROMPT & GUIDE
+       ========================================================================== */
+    let deferredPwaPrompt = null;
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPwaPrompt = e;
+      const nativeSection = document.getElementById('pwa-native-install-section');
+      if (nativeSection) nativeSection.classList.remove('hidden');
+    });
+
+    function openPwaInstallModal() {
+      closeAllHeaderMenus();
+      const modal = document.getElementById('pwa-install-modal');
+      if (!modal) return;
+
+      // Auto-select tab based on user agent
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      const isAndroid = /Android/.test(navigator.userAgent);
+
+      if (isAndroid && !isIOS) {
+        switchPwaTab('android');
+      } else {
+        switchPwaTab('ios');
+      }
+
+      const nativeSection = document.getElementById('pwa-native-install-section');
+      if (nativeSection) {
+        if (deferredPwaPrompt) {
+          nativeSection.classList.remove('hidden');
+        } else {
+          nativeSection.classList.add('hidden');
+        }
+      }
+
+      modal.classList.remove('hidden');
+    }
+
+    function closePwaInstallModal() {
+      const modal = document.getElementById('pwa-install-modal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function switchPwaTab(platform) {
+      const iosTabBtn = document.getElementById('pwa-tab-ios-btn');
+      const androidTabBtn = document.getElementById('pwa-tab-android-btn');
+      const iosInst = document.getElementById('pwa-ios-instructions');
+      const androidInst = document.getElementById('pwa-android-instructions');
+
+      if (platform === 'android') {
+        if (iosTabBtn) iosTabBtn.className = 'flex-1 py-1.5 rounded-lg text-center transition flex items-center justify-center gap-1.5 cursor-pointer text-slate-400 hover:text-slate-200';
+        if (androidTabBtn) androidTabBtn.className = 'flex-1 py-1.5 rounded-lg text-center transition flex items-center justify-center gap-1.5 cursor-pointer bg-emerald-600 text-white shadow-sm';
+        if (iosInst) iosInst.classList.add('hidden');
+        if (androidInst) androidInst.classList.remove('hidden');
+      } else {
+        if (iosTabBtn) iosTabBtn.className = 'flex-1 py-1.5 rounded-lg text-center transition flex items-center justify-center gap-1.5 cursor-pointer bg-indigo-600 text-white shadow-sm';
+        if (androidTabBtn) androidTabBtn.className = 'flex-1 py-1.5 rounded-lg text-center transition flex items-center justify-center gap-1.5 cursor-pointer text-slate-400 hover:text-slate-200';
+        if (iosInst) iosInst.classList.remove('hidden');
+        if (androidInst) androidInst.classList.add('hidden');
+      }
+    }
+
+    function triggerPwaPromptInstall() {
+      if (deferredPwaPrompt) {
+        deferredPwaPrompt.prompt();
+        deferredPwaPrompt.userChoice.then((choiceResult) => {
+          if (choiceResult.outcome === 'accepted') {
+            closePwaInstallModal();
+          }
+          deferredPwaPrompt = null;
+          const nativeSection = document.getElementById('pwa-native-install-section');
+          if (nativeSection) nativeSection.classList.add('hidden');
+        });
+      }
+    }
+
     document.addEventListener('click', function(event) {
       const userContainer = document.getElementById('user-menu-container');
       const themeContainer = document.getElementById('theme-menu-container');
@@ -8276,6 +8496,7 @@
         closeAllHeaderMenus();
         closeMobileMoreMenu();
         closeThemeModal();
+        closePwaInstallModal();
       }
     });
 
