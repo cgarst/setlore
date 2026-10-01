@@ -3598,6 +3598,21 @@
     <!-- 5. ADVANCED & ALBUM VISUALS TAB -->
     <div id="tab-advanced" class="hidden space-y-6">
       
+      <!-- Album Era & Catalog Age Analysis (Top of Tab) -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="glass-card p-6">
+          <h3 class="text-lg font-bold text-white mb-1"><i class="fa-solid fa-clock-rotate-left text-emerald-400 mr-2"></i>Song Release Era Distribution</h3>
+          <p class="text-xs text-slate-400 mb-4">Distribution of original album release years for all songs heard live</p>
+          <div id="chart-era" class="w-full h-80"></div>
+        </div>
+
+        <div class="glass-card p-6">
+          <h3 class="text-lg font-bold text-white mb-1"><i class="fa-solid fa-hourglass-half text-purple-400 mr-2"></i>Song Age at Performance</h3>
+          <p class="text-xs text-slate-400 mb-4">How old was each song when you heard it live (Concert Year - Album Release Year)?</p>
+          <div id="chart-song-age" class="w-full h-80"></div>
+        </div>
+      </div>
+
       <!-- Live Albums & Vinyl Wall Gallery -->
       <div class="glass-card p-6 space-y-5">
         <!-- Section Header -->
@@ -3770,28 +3785,6 @@
           <p class="text-sm font-bold text-slate-300">No matching albums found</p>
           <p class="text-xs text-slate-500">Try searching for a different album, artist, or decade.</p>
         </div>
-      </div>
-
-      <!-- Album Era & Catalog Age Analysis -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div class="glass-card p-6">
-          <h3 class="text-lg font-bold text-white mb-1"><i class="fa-solid fa-clock-rotate-left text-emerald-400 mr-2"></i>Song Release Era Distribution</h3>
-          <p class="text-xs text-slate-400 mb-4">Distribution of original album release years for all songs heard live</p>
-          <div id="chart-era" class="w-full h-80"></div>
-        </div>
-
-        <div class="glass-card p-6">
-          <h3 class="text-lg font-bold text-white mb-1"><i class="fa-solid fa-hourglass-half text-purple-400 mr-2"></i>Song Age at Performance</h3>
-          <p class="text-xs text-slate-400 mb-4">How old was each song when you heard it live (Concert Year - Album Release Year)?</p>
-          <div id="chart-song-age" class="w-full h-80"></div>
-        </div>
-      </div>
-
-      <!-- Sunburst -->
-      <div class="glass-card p-6">
-        <h3 class="text-lg font-bold text-white mb-1"><i class="fa-solid fa-chart-pie text-pink-400 mr-2"></i>Top Artists Share of Live Songs</h3>
-        <p class="text-xs text-slate-400 mb-4">Relative share of total songs experienced across top artists</p>
-        <div id="chart-sunburst" class="w-full h-80"></div>
       </div>
 
     </div>
@@ -5242,7 +5235,7 @@
           if (venueMap) venueMap.invalidateSize();
         }, 150);
       } else if (tabId === 'advanced') {
-        ['chart-era', 'chart-song-age', 'chart-sunburst'].forEach(id => {
+        ['chart-era', 'chart-song-age'].forEach(id => {
           const el = document.getElementById(id);
           if (el) Plotly.Plots.resize(el);
         });
@@ -5250,7 +5243,7 @@
           initAlbumGalleryImages();
         }
         requestAnimationFrame(() => {
-          ['chart-era', 'chart-song-age', 'chart-sunburst'].forEach(id => {
+          ['chart-era', 'chart-song-age'].forEach(id => {
             const el = document.getElementById(id);
             if (el) Plotly.Plots.resize(el);
           });
@@ -6951,17 +6944,6 @@
         }).catch(() => {});
       }
 
-      // 4. Sunburst Chart
-      const sunburstEl = document.getElementById('chart-sunburst');
-      if (sunburstEl && sunburstEl.data) {
-        Plotly.restyle(sunburstEl, {
-          'marker.colorscale': themeObj.sunburstScale
-        }, [0]).catch(() => {});
-        Plotly.relayout(sunburstEl, {
-          'font.color': themeObj.textColor
-        }).catch(() => {});
-      }
-
       // 5. Era Chart
       const eraEl = document.getElementById('chart-era');
       if (eraEl && eraEl.data) {
@@ -6993,7 +6975,6 @@
     // Chart Inits
     const timelineData = {{ plotly_timeline|safe }};
     const topArtistsData = {{ plotly_top_artists|safe }};
-    const sunburstData = {{ plotly_sunburst|safe }};
     const eraData = {{ plotly_era|safe }};
     const songAgeData = {{ plotly_song_age|safe }};
 
@@ -7055,14 +7036,6 @@
         margin: { t: 10, b: 10, l: 10, r: 10 },
         xaxis: Object.assign({}, topArtistsData.layout.xaxis || {}, { fixedrange: true }),
         yaxis: Object.assign({}, topArtistsData.layout.yaxis || {}, { fixedrange: true })
-      }),
-      { responsive: true, displayModeBar: false, scrollZoom: false, doubleClick: false }
-    );
-    Plotly.newPlot(
-      'chart-sunburst',
-      sunburstData.data,
-      Object.assign({}, layoutDefaults, sunburstData.layout, {
-        dragmode: false
       }),
       { responsive: true, displayModeBar: false, scrollZoom: false, doubleClick: false }
     );
@@ -7522,19 +7495,6 @@
           const text = tick.textContent.trim();
           if (text && !text.match(/^\d+$/) && text.length > 1) {
             jumpToArtistInConcerts(text);
-          }
-        }
-      });
-    }
-
-    const sunburstEl = document.getElementById('chart-sunburst');
-    if (sunburstEl) {
-      sunburstEl.on('plotly_click', function(data) {
-        if (data.points && data.points.length > 0) {
-          const pt = data.points[0];
-          const artistName = pt.label || pt.id;
-          if (artistName && artistName !== 'All Artists' && !artistName.includes('(')) {
-            jumpToSongInDrilldown(artistName, '');
           }
         }
       });
