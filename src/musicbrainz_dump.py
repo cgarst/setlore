@@ -229,9 +229,70 @@ class MusicBrainzDumpManager:
             self._run_download_and_build(components)
             return True, "Download and build completed."
 
+    def _is_cancel_requested(self) -> bool:
+        """Returns True if cancellation was requested in-memory or in status.json."""
+        if self._cancel_requested:
+            return True
+        if self.status_file.exists():
+            try:
+                with open(self.status_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    if data.get("cancel_requested") or data.get("status") == "cancelled":
+                        self._cancel_requested = True
+                        return True
+            except Exception:
+                pass
+        return False
+
     def cancel_task(self):
-        """Signals active background job to cancel."""
+        """Signals active background job to cancel and resets status."""
         self._cancel_requested = True
+
+        status_data = {}
+        if self.status_file.exists():
+            try:
+                with open(self.status_file, "r", encoding="utf-8") as f:
+                    status_data = json.load(f)
+            except Exception:
+                pass
+
+        status_data["cancel_requested"] = True
+        status_data["status"] = "cancelled"
+        status_data["progress"] = {"step": "Cancelling task...", "percent": 0}
+        status_data["last_updated"] = time.strftime("%Y-%m-%d %H:%M:%S")
+        self._update_status_file(status_data)
+
+        if self._current_task_thread and self._current_task_thread.is_alive():
+            try:
+                self._current_task_thread.join(timeout=1.5)
+            except Exception:
+                pass
+
+        temp_db = self.dump_dir / "mb_dump_building.db"
+        if temp_db.exists():
+            try:
+                temp_db.unlink()
+            except Exception:
+                pass
+
+        for part in self.dump_dir.glob("*.part"):
+            try:
+                part.unlink()
+            except Exception:
+                pass
+
+        # Finalize status based on whether a valid dump database is ready on disk
+        if self.is_dump_available():
+            final_status = "ready"
+        else:
+            final_status = "not_downloaded"
+
+        status_data["status"] = final_status
+        status_data["progress"] = {}
+        status_data["error"] = None
+        status_data["cancel_requested"] = False
+        status_data["last_updated"] = time.strftime("%Y-%m-%d %H:%M:%S")
+        self._update_status_file(status_data)
 
     def delete_dump(self):
         """Deletes all local dump files and index database from disk."""
@@ -326,11 +387,12 @@ class MusicBrainzDumpManager:
 
         try:
             for comp in components:
-                if self._cancel_requested:
+                if self._is_cancel_requested():
                     raise Exception("Task was cancelled by user.")
 
                 comp_url = f"{BASE_URL}/{upstream_version}/{comp}"
                 dest_file = self.dump_dir / comp
+                temp_dest = self.dump_dir / f"{comp}.part"
                 if dest_file.exists() and dest_file.stat().st_size > 10000000:
                     status_state["status"] = "downloading"
                     status_state["progress"]["step"] = f"Using existing archive: {comp} ({round(dest_file.stat().st_size / (1024*1024), 1)} MB)"
@@ -353,7 +415,7 @@ class MusicBrainzDumpManager:
 
                     with open(temp_dest, "wb") as out_f:
                         while True:
-                            if self._cancel_requested:
+                            if self._is_cancel_requested():
                                 raise Exception("Task was cancelled by user.")
 
                             chunk = resp.read(64 * 1024)
@@ -411,7 +473,7 @@ class MusicBrainzDumpManager:
                             inserted_count = 0
 
                             for line in f:
-                                if self._cancel_requested:
+                                if line_count % 1000 == 0 and self._is_cancel_requested():
                                     conn.close()
                                     if temp_db.exists():
                                         temp_db.unlink()
@@ -611,13 +673,14 @@ class MusicBrainzDumpManager:
                             f = tar.extractfile(m)
                             if not f:
                                 continue
-                            batch = []
+                            line_count = 0
                             for line in f:
-                                if self._cancel_requested:
+                                if line_count % 1000 == 0 and self._is_cancel_requested():
                                     conn.close()
                                     if temp_db.exists():
                                         temp_db.unlink()
                                     raise Exception("Task was cancelled by user.")
+                                line_count += 1
                                 try:
                                     obj = json.loads(line.decode("utf-8"))
                                     mbid = obj.get("id")
@@ -696,12 +759,20 @@ class MusicBrainzDumpManager:
                 "percent": 100
             }
             status_state["last_updated"] = time.strftime("%Y-%m-%d %H:%M:%S")
-            self._update_status_file(status_state)
-
         except Exception as e:
-            print(f"[MusicBrainzDump] Build error: {e}")
-            status_state["status"] = "error"
-            status_state["error"] = str(e)
+            msg = str(e)
+            if "cancelled" in msg.lower() or self._is_cancel_requested():
+                print("[MusicBrainzDump] Task cancelled by user.")
+                if self.is_dump_available():
+                    status_state["status"] = "ready"
+                else:
+                    status_state["status"] = "not_downloaded"
+                status_state["progress"] = {}
+                status_state["error"] = None
+            else:
+                print(f"[MusicBrainzDump] Build error: {e}")
+                status_state["status"] = "error"
+                status_state["error"] = msg
             status_state["last_updated"] = time.strftime("%Y-%m-%d %H:%M:%S")
             self._update_status_file(status_state)
 

@@ -65,7 +65,11 @@ def api_musicbrainz_dump_cancel(request):
     
     manager = MusicBrainzDumpManager.get_instance()
     manager.cancel_task()
-    return JsonResponse({'status': 'success', 'message': 'Cancellation requested.'})
+    return JsonResponse({
+        'status': 'success',
+        'message': 'Task cancelled.',
+        'dump_status': manager.get_status()
+    })
 
 @require_http_methods(["POST"])
 def api_musicbrainz_dump_delete(request):

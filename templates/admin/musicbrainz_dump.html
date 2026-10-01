@@ -510,14 +510,28 @@
   }
 
   async function cancelDumpJob() {
+    const btn = document.querySelector('#progress-box button');
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Cancelling...';
+    }
     try {
-      await fetch('/api/admin/musicbrainz-dump/cancel/', {
+      const res = await fetch('/api/admin/musicbrainz-dump/cancel/', {
         method: 'POST',
         headers: { 'X-CSRFToken': getCookie('csrftoken') }
       });
-      refreshStatus();
+      const data = await res.json();
+      if (data.dump_status) {
+        updateUI(data.dump_status);
+      }
+      setTimeout(refreshStatus, 400);
     } catch (e) {
       alert('Error cancelling job: ' + e);
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-stop"></i> Cancel';
+      }
     }
   }
 
