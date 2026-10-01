@@ -2318,7 +2318,7 @@
                   <span>Concerts & Songs Over Time</span>
                 </h3>
               </div>
-              <p class="text-xs text-slate-400">You've attended <span class="text-white font-semibold">{{ stats.total_concerts|intcomma }}</span> concerts, how has your live music evolved over time?</p>
+              <p class="text-xs text-slate-400">Across <span class="text-white font-semibold">{{ stats.total_concerts|intcomma }}</span> shows, <span class="text-white font-semibold">{{ stats.total_songs_heard|intcomma }}</span> songs heard live — bars show shows per year, line tracks songs heard.</p>
             </div>
             <button onclick="switchTab('concerts')" class="px-2.5 py-1 rounded-lg bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 border border-indigo-500/30 text-xs font-semibold flex items-center gap-1.5 transition shrink-0">
               Concert History <i class="fa-solid fa-arrow-right text-[10px]"></i>
