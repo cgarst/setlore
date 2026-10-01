@@ -6981,40 +6981,71 @@
           return;
         }
 
-        const patId = 'pat-' + btoa(unescape(encodeURIComponent(`${artist}_${cleanAlbum}`))).replace(/[^a-zA-Z0-9]/g, '_');
-
         getAlbumArtUrl(artist, album).then(artUrl => {
           if (!artUrl) return;
+
+          const surfacePath = slice.querySelector('path.surface') || slice.querySelector('path');
+          if (!surfacePath) return;
+
+          let bbox;
+          try {
+            bbox = surfacePath.getBBox();
+          } catch (e) {
+            return;
+          }
+
+          if (!bbox || bbox.width <= 0 || bbox.height <= 0) return;
+
+          const w = Math.round(bbox.width);
+          const h = Math.round(bbox.height);
+          const x = Math.round(bbox.x);
+          const y = Math.round(bbox.y);
+          const patId = 'pat-' + btoa(unescape(encodeURIComponent(`${artist}_${cleanAlbum}_${x}_${y}_${w}_${h}`))).replace(/[^a-zA-Z0-9]/g, '_');
 
           let pattern = defs.querySelector(`#${patId}`);
           if (!pattern) {
             pattern = document.createElementNS('http://www.w3.org/2000/svg', 'pattern');
             pattern.setAttribute('id', patId);
-            pattern.setAttribute('patternUnits', 'objectBoundingBox');
-            pattern.setAttribute('width', '100%');
-            pattern.setAttribute('height', '100%');
-            pattern.setAttribute('viewBox', '0 0 100 100');
-            pattern.setAttribute('preserveAspectRatio', 'none');
+            pattern.setAttribute('patternUnits', 'userSpaceOnUse');
+            pattern.setAttribute('x', x);
+            pattern.setAttribute('y', y);
+            pattern.setAttribute('width', w);
+            pattern.setAttribute('height', h);
 
             const img = document.createElementNS('http://www.w3.org/2000/svg', 'image');
             img.setAttributeNS('http://www.w3.org/1999/xlink', 'href', artUrl);
             img.setAttribute('href', artUrl);
             img.setAttribute('x', '0');
             img.setAttribute('y', '0');
-            img.setAttribute('width', '100');
-            img.setAttribute('height', '100');
+            img.setAttribute('width', w);
+            img.setAttribute('height', h);
             img.setAttribute('preserveAspectRatio', 'xMidYMid slice');
 
             const overlay = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
             overlay.setAttribute('x', '0');
             overlay.setAttribute('y', '0');
-            overlay.setAttribute('width', '100');
-            overlay.setAttribute('height', '100');
+            overlay.setAttribute('width', w);
+            overlay.setAttribute('height', h);
             overlay.setAttribute('fill', 'rgba(15, 23, 42, 0.55)');
 
             pattern.appendChild(img);
             pattern.appendChild(overlay);
             defs.appendChild(pattern);
+          } else {
+            pattern.setAttribute('x', x);
+            pattern.setAttribute('y', y);
+            pattern.setAttribute('width', w);
+            pattern.setAttribute('height', h);
+            const img = pattern.querySelector('image');
+            if (img) {
+              img.setAttribute('width', w);
+              img.setAttribute('height', h);
+            }
+            const overlay = pattern.querySelector('rect');
+            if (overlay) {
+              overlay.setAttribute('width', w);
+              overlay.setAttribute('height', h);
+            }
           }
 
           const paths = slice.querySelectorAll('path.surface, path');
