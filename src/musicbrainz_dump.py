@@ -170,7 +170,18 @@ class MusicBrainzDumpManager:
             local_version = task_data.get("upstream_version")
 
         task_status = task_data.get("status")
-        is_running = (self._current_task_thread is not None and self._current_task_thread.is_alive()) or (task_status in ["downloading", "extracting"])
+        is_thread_alive = (self._current_task_thread is not None and self._current_task_thread.is_alive())
+        
+        # If status file says downloading/extracting but thread is not alive (e.g. dev server restarted), clean up status
+        if not is_thread_alive and task_status in ["downloading", "extracting"]:
+            task_status = "ready" if is_ready else "not_downloaded"
+            task_data["status"] = task_status
+            task_data["progress"] = {}
+            task_data["error"] = None
+            task_data["last_updated"] = time.strftime("%Y-%m-%d %H:%M:%S")
+            self._update_status_file(task_data)
+
+        is_running = is_thread_alive
         status_label = "not_downloaded"
         if is_running:
             status_label = task_data.get("status", "downloading")
@@ -180,6 +191,7 @@ class MusicBrainzDumpManager:
             status_label = "error"
 
         mode = self.get_mode()
+        online_fallback = self.get_online_fallback()
         upstream_version = task_data.get("upstream_version")
         has_new_version = bool(upstream_version and local_version and upstream_version != local_version)
         can_index_local = bool(has_raw_archives and not is_ready)
@@ -187,6 +199,7 @@ class MusicBrainzDumpManager:
         return {
             "status": status_label,
             "mode": mode,
+            "online_fallback": online_fallback,
             "is_available": (is_ready and not is_running) if mode == "auto" else False,
             "is_ready_on_disk": is_ready,
             "is_running": is_running,
@@ -231,6 +244,30 @@ class MusicBrainzDumpManager:
             except Exception:
                 pass
         data["mode"] = mode
+        data["last_updated"] = time.strftime("%Y-%m-%d %H:%M:%S")
+        self._update_status_file(data)
+
+    def get_online_fallback(self) -> bool:
+        """Returns True if unmatched queries should fall back to the live MusicBrainz Web API."""
+        if self.status_file.exists():
+            try:
+                with open(self.status_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    return bool(data.get("online_fallback", True))
+            except Exception:
+                pass
+        return True
+
+    def set_online_fallback(self, enabled: bool):
+        """Enables or disables falling back to live Web API for unmatched queries."""
+        data = {}
+        if self.status_file.exists():
+            try:
+                with open(self.status_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+            except Exception:
+                pass
+        data["online_fallback"] = bool(enabled)
         data["last_updated"] = time.strftime("%Y-%m-%d %H:%M:%S")
         self._update_status_file(data)
 
@@ -280,6 +317,7 @@ class MusicBrainzDumpManager:
     def _update_status_file(self, data: Dict[str, Any]):
         """Persists current state to status.json."""
         try:
+            self.status_file.parent.mkdir(parents=True, exist_ok=True)
             with open(self.status_file, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2)
         except Exception as e:

@@ -104,19 +104,36 @@ def api_musicbrainz_dump_test_lookup(request):
 
     manager = MusicBrainzDumpManager.get_instance()
     is_available = manager.is_dump_available()
+    online_fallback = manager.get_online_fallback()
     
     local_album, local_year = manager.lookup_studio_album(artist, song)
+    live_result = None
+    if not local_album and not local_year and online_fallback:
+        try:
+            from src.album_enricher import AlbumEnricher
+            enricher = AlbumEnricher()
+            live_album, live_year = enricher._query_musicbrainz_studio_album(artist, song)
+            if live_album or live_year:
+                live_result = {
+                    'album': live_album,
+                    'release_year': live_year,
+                    'source': 'live_api'
+                }
+        except Exception:
+            pass
 
     return JsonResponse({
         'status': 'success',
         'artist': artist,
         'song': song,
         'local_dump_available': is_available,
+        'online_fallback_enabled': online_fallback,
         'local_result': {
             'album': local_album,
             'release_year': local_year,
             'source': 'local_disk' if (local_album or local_year) else None
-        }
+        },
+        'live_result': live_result
     })
 
 @require_http_methods(["POST"])
@@ -140,6 +157,27 @@ def api_musicbrainz_dump_set_mode(request):
     return JsonResponse({
         'status': 'success',
         'mode': mode,
+        'dump_status': manager.get_status()
+    })
+
+@require_http_methods(["POST"])
+def api_musicbrainz_dump_set_online_fallback(request):
+    """API endpoint to toggle MusicBrainz live API fallback for unmatched tracks."""
+    if not _is_staff_or_admin(request):
+        return HttpResponseForbidden(json.dumps({'error': 'Admin access required'}), content_type='application/json')
+    
+    try:
+        data = json.loads(request.body or '{}')
+    except Exception:
+        data = {}
+
+    enabled = bool(data.get('enabled', True))
+    manager = MusicBrainzDumpManager.get_instance()
+    manager.set_online_fallback(enabled)
+    
+    return JsonResponse({
+        'status': 'success',
+        'online_fallback': enabled,
         'dump_status': manager.get_status()
     })
 

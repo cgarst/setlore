@@ -90,6 +90,7 @@ urlpatterns = [
     path('api/admin/musicbrainz-dump/delete/', catalog_views.api_musicbrainz_dump_delete, name='api_mb_dump_delete'),
     path('api/admin/musicbrainz-dump/delete-raw/', catalog_views.api_musicbrainz_dump_delete_raw, name='api_mb_dump_delete_raw'),
     path('api/admin/musicbrainz-dump/set-mode/', catalog_views.api_musicbrainz_dump_set_mode, name='api_mb_dump_set_mode'),
+    path('api/admin/musicbrainz-dump/set-online-fallback/', catalog_views.api_musicbrainz_dump_set_online_fallback, name='api_mb_dump_set_online_fallback'),
     path('api/admin/musicbrainz-dump/test-lookup/', catalog_views.api_musicbrainz_dump_test_lookup, name='api_mb_dump_test_lookup'),
 ]
 

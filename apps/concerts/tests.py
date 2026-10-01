@@ -324,5 +324,29 @@ class AutocompleteAndCSVTests(TestCase):
         response = anon_client.get(f'/u/{other_user.username}/')
         self.assertEqual(response.status_code, 200)
 
+    def test_musicbrainz_dump_online_fallback_toggle(self):
+        # Staff user toggle
+        self.user.is_staff = True
+        self.user.save()
+
+        response = self.client.post(
+            '/api/admin/musicbrainz-dump/set-online-fallback/',
+            data=json.dumps({"enabled": False}),
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertFalse(data['online_fallback'])
+
+        response = self.client.post(
+            '/api/admin/musicbrainz-dump/set-online-fallback/',
+            data=json.dumps({"enabled": True}),
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data['online_fallback'])
+
+
 
 

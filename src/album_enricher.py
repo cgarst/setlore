@@ -201,8 +201,10 @@ class AlbumEnricher:
                         local_album, local_yr = mb_dump.lookup_studio_album(artist_name, q_song)
                         if local_album or local_yr:
                             return local_album, local_yr
-                # Complete offline dump is active; song not found in 54M records
-                return None, None
+                # Song was not found in local disk dump
+                if not mb_dump.get_online_fallback():
+                    return None, None
+                # If online fallback is enabled, proceed to query live MusicBrainz API below
         except Exception:
             pass
 
