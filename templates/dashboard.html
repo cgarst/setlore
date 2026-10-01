@@ -5042,6 +5042,9 @@
             const el = document.getElementById(id);
             if (el) Plotly.Plots.resize(el);
           });
+          if (typeof applyAlbumArtToTreemap === 'function') {
+            setTimeout(applyAlbumArtToTreemap, 50);
+          }
         }, 150);
       } else if (tabId === 'overview') {
         setTimeout(() => {
@@ -6878,6 +6881,125 @@
     // Apply active theme colors right away
     applyThemeToPlotlyCharts(initialThemeId);
 
+    // Dynamic Album Art Background Provider for Treemap Album Cells
+    const albumArtCache = {};
+
+    async function getAlbumArtUrl(artist, album) {
+      if (!artist || !album) return null;
+      const cleanAlbum = album.replace(/\s*\([^)]*\)/g, '').trim();
+      if (!cleanAlbum || cleanAlbum.toLowerCase().includes('non-album') || cleanAlbum.toLowerCase().includes('singles')) {
+        return null;
+      }
+      const cacheKey = `setlore_art_${artist.toLowerCase()}_${cleanAlbum.toLowerCase()}`;
+      if (albumArtCache[cacheKey]) return albumArtCache[cacheKey];
+
+      try {
+        const stored = localStorage.getItem(cacheKey);
+        if (stored) {
+          albumArtCache[cacheKey] = stored;
+          return stored;
+        }
+      } catch (e) {}
+
+      try {
+        const q = encodeURIComponent(`${artist} ${cleanAlbum}`);
+        const res = await fetch(`https://itunes.apple.com/search?term=${q}&media=music&entity=album&limit=1`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.results && json.results.length > 0 && json.results[0].artworkUrl100) {
+            const imgUrl = json.results[0].artworkUrl100.replace('100x100bb', '300x300bb');
+            albumArtCache[cacheKey] = imgUrl;
+            try { localStorage.setItem(cacheKey, imgUrl); } catch (e) {}
+            return imgUrl;
+          }
+        }
+      } catch (e) {}
+
+      return null;
+    }
+
+    function applyAlbumArtToTreemap() {
+      const treemapEl = document.getElementById('chart-treemap');
+      if (!treemapEl) return;
+
+      const svg = treemapEl.querySelector('svg');
+      if (!svg) return;
+
+      let defs = svg.querySelector('defs');
+      if (!defs) {
+        defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+        svg.insertBefore(defs, svg.firstChild);
+      }
+
+      const processedSlices = treemapEl.querySelectorAll('.trace.treemap .slice');
+      processedSlices.forEach(slice => {
+        const d = slice.__data__;
+        if (!d) return;
+
+        const cData = d.customdata || (d.data && d.data.customdata);
+        const id = d.id || (d.data && d.data.id) || '';
+        const isAlbum = (cData && cData.type === 'album') || id.startsWith('alb_');
+
+        if (!isAlbum) return;
+
+        const artist = (cData && cData.artist) || '';
+        const album = (cData && cData.album) || d.label || (d.data && d.data.label) || '';
+        if (!artist || !album) return;
+
+        const surfacePath = slice.querySelector('path.surface');
+        if (!surfacePath) return;
+
+        // Enhance text readability inside this album slice with contrast drop shadow
+        const textEl = slice.querySelector('text.slicetext') || slice.querySelector('text');
+        if (textEl) {
+          textEl.style.fill = '#ffffff';
+          textEl.style.fontWeight = '800';
+          textEl.style.filter = 'drop-shadow(0 2px 4px rgba(0,0,0,0.95)) drop-shadow(0 0 8px rgba(0,0,0,0.9))';
+        }
+
+        const patId = 'pat-' + btoa(unescape(encodeURIComponent(`${artist}_${album}`))).replace(/[^a-zA-Z0-9]/g, '_');
+
+        getAlbumArtUrl(artist, album).then(artUrl => {
+          if (!artUrl) return;
+
+          let pattern = defs.querySelector(`#${patId}`);
+          if (!pattern) {
+            pattern = document.createElementNS('http://www.w3.org/2000/svg', 'pattern');
+            pattern.setAttribute('id', patId);
+            pattern.setAttribute('patternUnits', 'objectBoundingBox');
+            pattern.setAttribute('width', '1');
+            pattern.setAttribute('height', '1');
+
+            const img = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+            img.setAttributeNS('http://www.w3.org/1999/xlink', 'href', artUrl);
+            img.setAttribute('href', artUrl);
+            img.setAttribute('x', '0');
+            img.setAttribute('y', '0');
+            img.setAttribute('width', '100%');
+            img.setAttribute('height', '100%');
+            img.setAttribute('preserveAspectRatio', 'xMidYMid slice');
+
+            // Dark semi-transparent overlay to ensure text contrast and legibility
+            const overlay = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            overlay.setAttribute('x', '0');
+            overlay.setAttribute('y', '0');
+            overlay.setAttribute('width', '100%');
+            overlay.setAttribute('height', '100%');
+            overlay.setAttribute('fill', 'rgba(15, 23, 42, 0.45)');
+
+            pattern.appendChild(img);
+            pattern.appendChild(overlay);
+            defs.appendChild(pattern);
+          }
+
+          surfacePath.style.fill = `url(#${patId})`;
+          surfacePath.style.fillOpacity = '1';
+          surfacePath.style.stroke = '#334155';
+          surfacePath.style.strokeWidth = '1.5px';
+        });
+      });
+    }
+
     function resetTreemapZoom() {
       const el = document.getElementById('chart-treemap');
       if (el) {
@@ -6888,7 +7010,7 @@
               treemapData.data,
               Object.assign({}, layoutDefaults, treemapData.layout, { dragmode: false }),
               { responsive: true, displayModeBar: false, scrollZoom: false, doubleClick: false }
-            );
+            ).then(applyAlbumArtToTreemap);
           }
         });
       }
@@ -6896,6 +7018,11 @@
 
     const treemapEl = document.getElementById('chart-treemap');
     if (treemapEl) {
+      treemapEl.on('plotly_afterplot', function() {
+        setTimeout(applyAlbumArtToTreemap, 50);
+      });
+      setTimeout(applyAlbumArtToTreemap, 200);
+
       treemapEl.on('plotly_click', function(data) {
         if (data.points && data.points.length > 0) {
           const pt = data.points[0];
