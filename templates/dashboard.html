@@ -6097,11 +6097,72 @@
       container.innerHTML = '';
 
       if (!songs || songs.length === 0) {
+        const safeArtist = escapeHtml(artistName || 'this artist');
+        const setlistFmSearchUrl = `https://www.setlist.fm/search?query=${encodeURIComponent(artistName || '')}`;
         container.innerHTML = `
-          <div class="p-8 text-center glass-card rounded-xl border border-slate-800 space-y-2">
-            <i class="fa-solid fa-compact-disc text-3xl text-slate-600 block mb-2"></i>
-            <p class="text-sm font-semibold text-slate-300">No setlist songs recorded yet for this artist.</p>
-            <p class="text-xs text-slate-500">Click <strong class="text-indigo-400">Sync</strong> in the header to import live song setlists.</p>
+          <div class="p-6 md:p-8 glass-card rounded-2xl border border-slate-800 space-y-6">
+            <div class="flex flex-col sm:flex-row items-center sm:items-start gap-4 text-center sm:text-left border-b border-slate-800/80 pb-6">
+              <div class="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shrink-0 text-indigo-400 text-xl shadow-inner">
+                <i class="fa-solid fa-list-music"></i>
+              </div>
+              <div class="space-y-1">
+                <h3 class="text-base sm:text-lg font-bold text-white">No Setlist Songs Logged Yet for <span class="text-indigo-400">${safeArtist}</span></h3>
+                <p class="text-xs sm:text-sm text-slate-400 leading-relaxed">
+                  Shows for this artist are in your concert history, but no individual songs have been recorded yet. Here are ways you can add them:
+                </p>
+              </div>
+            </div>
+
+            <!-- 3 Action Pathways Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-left">
+              <!-- Pathway 1: Add/Edit Songs Manually -->
+              <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 flex flex-col justify-between space-y-3 transition">
+                <div class="space-y-2">
+                  <div class="flex items-center gap-2 text-indigo-300 font-semibold text-xs uppercase tracking-wider">
+                    <i class="fa-solid fa-pen-to-square"></i> Option 1: Direct Entry
+                  </div>
+                  <h4 class="text-sm font-bold text-white">Manually Add Setlist Songs</h4>
+                  <p class="text-xs text-slate-400 leading-relaxed">
+                    Open your attended concerts for this artist and use the built-in setlist editor to type or paste the tracklist directly.
+                  </p>
+                </div>
+                <button type="button" onclick="jumpToArtistInConcerts('${(artistName || '').replace(/'/g, "\\'")}')" class="w-full py-2 px-3 rounded-lg bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-200 border border-indigo-500/40 text-xs font-semibold flex items-center justify-center gap-2 transition cursor-pointer">
+                  <i class="fa-solid fa-ticket"></i> View Shows &amp; Edit Setlist
+                </button>
+              </div>
+
+              <!-- Pathway 2: Setlist.fm Community -->
+              <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 flex flex-col justify-between space-y-3 transition">
+                <div class="space-y-2">
+                  <div class="flex items-center gap-2 text-purple-300 font-semibold text-xs uppercase tracking-wider">
+                    <i class="fa-solid fa-earth-americas"></i> Option 2: Community
+                  </div>
+                  <h4 class="text-sm font-bold text-white">Find or Add on Setlist.fm</h4>
+                  <p class="text-xs text-slate-400 leading-relaxed">
+                    Look up this show on Setlist.fm. If missing or incomplete, adding songs there helps the entire live music community.
+                  </p>
+                </div>
+                <a href="${setlistFmSearchUrl}" target="_blank" rel="noopener noreferrer" class="w-full py-2 px-3 rounded-lg bg-purple-600/30 hover:bg-purple-600/50 text-purple-200 border border-purple-500/40 text-xs font-semibold flex items-center justify-center gap-2 transition cursor-pointer text-center">
+                  <i class="fa-solid fa-arrow-up-right-from-square"></i> Search on Setlist.fm
+                </a>
+              </div>
+
+              <!-- Pathway 3: Sync -->
+              <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 flex flex-col justify-between space-y-3 transition">
+                <div class="space-y-2">
+                  <div class="flex items-center gap-2 text-emerald-300 font-semibold text-xs uppercase tracking-wider">
+                    <i class="fa-solid fa-arrows-rotate"></i> Option 3: Auto-Import
+                  </div>
+                  <h4 class="text-sm font-bold text-white">Sync from Setlist.fm</h4>
+                  <p class="text-xs text-slate-400 leading-relaxed">
+                    Already updated on Setlist.fm? Trigger a sync to automatically match and pull the song tracklists into Setlore.
+                  </p>
+                </div>
+                <button type="button" onclick="triggerSync(true)" class="w-full py-2 px-3 rounded-lg bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-200 border border-emerald-500/40 text-xs font-semibold flex items-center justify-center gap-2 transition cursor-pointer">
+                  <i class="fa-solid fa-rotate"></i> Sync Setlists Now
+                </button>
+              </div>
+            </div>
           </div>
         `;
         return;
