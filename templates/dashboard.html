@@ -2371,11 +2371,11 @@
           </div>
         </div>
 
-        <!-- Shows Grid / List Container (Max 1 Row = 3 Cards) -->
+        <!-- Shows Grid / List Container (Max 1 Row: 1-col on Mobile (3 items), 2-col on Medium Desktop (2 items), 3-col on Large Desktop (3 items)) -->
         <div id="upcoming-shows-container" class="space-y-3">
           <div id="upcoming-shows-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {% for show in upcoming_shows|slice:":3" %}
-            <div class="upcoming-show-card p-4 rounded-xl bg-slate-900/70 border border-slate-800/80 hover:border-indigo-500/40 hover:bg-slate-800/50 transition-all flex flex-col justify-between space-y-3 group"
+            <div class="upcoming-show-card p-4 rounded-xl bg-slate-900/70 border border-slate-800/80 hover:border-indigo-500/40 hover:bg-slate-800/50 transition-all flex flex-col justify-between space-y-3 group {% if forloop.counter == 3 %}md:hidden xl:flex{% endif %}"
                  data-artist="{{ show.artist|lower }}" data-venue="{{ show.venue|lower }}" data-city="{{ show.city|lower }}" data-country="{{ show.country|lower }}">
               
               <div class="space-y-2">
@@ -9769,13 +9769,14 @@
         return;
       }
 
-      // Render top 3 shows only (1 row max on 3-col grid)
+      // Render top 3 shows only (dynamic 1 row: 3 on mobile, 2 on md/lg, 3 on xl+)
       const displayShows = activeShows.slice(0, 3);
       let html = '';
-      displayShows.forEach(show => {
+      displayShows.forEach((show, idx) => {
         const escArtist = show.artist.replace(/'/g, "\\'");
+        const respCardClass = idx === 2 ? 'md:hidden xl:flex' : '';
         html += `
-          <div class="upcoming-show-card p-4 rounded-xl bg-slate-900/70 border border-slate-800/80 hover:border-indigo-500/40 hover:bg-slate-800/50 transition-all flex flex-col justify-between space-y-3 group"
+          <div class="upcoming-show-card p-4 rounded-xl bg-slate-900/70 border border-slate-800/80 hover:border-indigo-500/40 hover:bg-slate-800/50 transition-all flex flex-col justify-between space-y-3 group ${respCardClass}"
                data-artist="${show.artist.toLowerCase()}" data-venue="${(show.venue || '').toLowerCase()}" data-city="${(show.city || '').toLowerCase()}" data-country="${(show.country || '').toLowerCase()}">
             
             <div class="space-y-2">
