@@ -6950,33 +6950,38 @@
         svg.insertBefore(defs, svg.firstChild);
       }
 
-      const processedSlices = treemapEl.querySelectorAll('.trace.treemap .slice');
+      const processedSlices = treemapEl.querySelectorAll('.slice, g.slice');
       processedSlices.forEach(slice => {
         const d = slice.__data__;
         if (!d) return;
 
-        const cData = d.customdata || (d.data && d.data.customdata);
-        const id = d.id || (d.data && d.data.id) || '';
-        const isAlbum = (cData && cData.type === 'album') || id.startsWith('alb_');
+        const nodeData = d.data || {};
+        const rawData = nodeData.data || {};
+        const cData = d.customdata || nodeData.customdata || rawData.customdata;
+        const id = String(d.id || nodeData.id || rawData.id || '');
+        const label = String(d.label || nodeData.label || rawData.label || '');
 
-        if (!isAlbum) return;
+        let isAlbum = (cData && cData.type === 'album') || id.startsWith('alb_');
+        let artist = (cData && cData.artist) || '';
+        let album = (cData && cData.album) || label;
 
-        const artist = (cData && cData.artist) || '';
-        const album = (cData && cData.album) || d.label || (d.data && d.data.label) || '';
-        if (!artist || !album) return;
-
-        const surfacePath = slice.querySelector('path.surface');
-        if (!surfacePath) return;
-
-        // Enhance text readability inside this album slice with contrast drop shadow
-        const textEl = slice.querySelector('text.slicetext') || slice.querySelector('text');
-        if (textEl) {
-          textEl.style.fill = '#ffffff';
-          textEl.style.fontWeight = '800';
-          textEl.style.filter = 'drop-shadow(0 2px 4px rgba(0,0,0,0.95)) drop-shadow(0 0 8px rgba(0,0,0,0.9))';
+        if (!artist && id.startsWith('alb_')) {
+          const afterPrefix = id.slice(4);
+          const firstUnderscore = afterPrefix.indexOf('_');
+          if (firstUnderscore > 0) {
+            artist = afterPrefix.substring(0, firstUnderscore);
+            album = afterPrefix.substring(firstUnderscore + 1);
+          }
         }
 
-        const patId = 'pat-' + btoa(unescape(encodeURIComponent(`${artist}_${album}`))).replace(/[^a-zA-Z0-9]/g, '_');
+        if (!isAlbum || !artist || !album) return;
+
+        const cleanAlbum = album.replace(/\s*\([^)]*\)/g, '').trim();
+        if (!cleanAlbum || cleanAlbum.toLowerCase().includes('non-album') || cleanAlbum.toLowerCase().includes('singles')) {
+          return;
+        }
+
+        const patId = 'pat-' + btoa(unescape(encodeURIComponent(`${artist}_${cleanAlbum}`))).replace(/[^a-zA-Z0-9]/g, '_');
 
         getAlbumArtUrl(artist, album).then(artUrl => {
           if (!artUrl) return;
@@ -6986,35 +6991,46 @@
             pattern = document.createElementNS('http://www.w3.org/2000/svg', 'pattern');
             pattern.setAttribute('id', patId);
             pattern.setAttribute('patternUnits', 'objectBoundingBox');
-            pattern.setAttribute('width', '1');
-            pattern.setAttribute('height', '1');
+            pattern.setAttribute('width', '100%');
+            pattern.setAttribute('height', '100%');
+            pattern.setAttribute('viewBox', '0 0 100 100');
+            pattern.setAttribute('preserveAspectRatio', 'none');
 
             const img = document.createElementNS('http://www.w3.org/2000/svg', 'image');
             img.setAttributeNS('http://www.w3.org/1999/xlink', 'href', artUrl);
             img.setAttribute('href', artUrl);
             img.setAttribute('x', '0');
             img.setAttribute('y', '0');
-            img.setAttribute('width', '100%');
-            img.setAttribute('height', '100%');
+            img.setAttribute('width', '100');
+            img.setAttribute('height', '100');
             img.setAttribute('preserveAspectRatio', 'xMidYMid slice');
 
-            // Dark semi-transparent overlay to ensure text contrast and legibility
             const overlay = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
             overlay.setAttribute('x', '0');
             overlay.setAttribute('y', '0');
-            overlay.setAttribute('width', '100%');
-            overlay.setAttribute('height', '100%');
-            overlay.setAttribute('fill', 'rgba(15, 23, 42, 0.45)');
+            overlay.setAttribute('width', '100');
+            overlay.setAttribute('height', '100');
+            overlay.setAttribute('fill', 'rgba(15, 23, 42, 0.55)');
 
             pattern.appendChild(img);
             pattern.appendChild(overlay);
             defs.appendChild(pattern);
           }
 
-          surfacePath.style.fill = `url(#${patId})`;
-          surfacePath.style.fillOpacity = '1';
-          surfacePath.style.stroke = '#334155';
-          surfacePath.style.strokeWidth = '1.5px';
+          const paths = slice.querySelectorAll('path.surface, path');
+          paths.forEach(p => {
+            p.style.setProperty('fill', `url(#${patId})`, 'important');
+            p.style.setProperty('fill-opacity', '1', 'important');
+            p.style.stroke = '#334155';
+            p.style.strokeWidth = '1.5px';
+          });
+
+          const texts = slice.querySelectorAll('text');
+          texts.forEach(t => {
+            t.style.setProperty('fill', '#ffffff', 'important');
+            t.style.setProperty('font-weight', '800', 'important');
+            t.style.setProperty('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.95)) drop-shadow(0 0 8px rgba(0,0,0,0.9))', 'important');
+          });
         });
       });
     }
@@ -7032,6 +7048,8 @@
             ).then(applyAlbumArtToTreemap);
           }
         });
+        setTimeout(applyAlbumArtToTreemap, 100);
+        setTimeout(applyAlbumArtToTreemap, 300);
       }
     }
 
@@ -7039,6 +7057,14 @@
     if (treemapEl) {
       treemapEl.on('plotly_afterplot', function() {
         setTimeout(applyAlbumArtToTreemap, 50);
+        setTimeout(applyAlbumArtToTreemap, 250);
+      });
+      treemapEl.on('plotly_treemapclick', function() {
+        setTimeout(applyAlbumArtToTreemap, 100);
+        setTimeout(applyAlbumArtToTreemap, 350);
+      });
+      treemapEl.on('plotly_relayout', function() {
+        setTimeout(applyAlbumArtToTreemap, 100);
       });
       setTimeout(applyAlbumArtToTreemap, 200);
 
