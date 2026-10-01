@@ -648,14 +648,9 @@
 
             <!-- Theme Option in User Dropdown -->
             <div class="border-t border-slate-800 py-1">
-              <button type="button" onclick="openThemeModal(); closeUserMenu();" class="w-full flex items-center justify-between px-3.5 py-2 text-xs font-medium text-slate-200 hover:text-white hover:bg-indigo-600/20 transition text-left cursor-pointer">
-                <div class="flex items-center gap-2.5">
-                  <i class="fa-solid fa-palette text-indigo-400 w-4 text-center"></i>
-                  <span>Theme & Color Palette</span>
-                </div>
-                <span id="user-menu-active-theme-label" class="badge bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[10px] font-mono">
-                  Default
-                </span>
+              <button type="button" onclick="openThemeModal(); closeUserMenu();" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-slate-200 hover:text-white hover:bg-indigo-600/20 transition text-left cursor-pointer">
+                <i class="fa-solid fa-palette text-indigo-400 w-4 text-center"></i>
+                <span>Theme & Color Palette</span>
               </button>
             </div>
 
@@ -746,14 +741,9 @@
               </div>
 
               <div class="py-1">
-                <button type="button" onclick="openThemeModal(); closeUserMenu();" class="w-full flex items-center justify-between px-3.5 py-2 text-xs font-medium text-slate-200 hover:text-white hover:bg-indigo-600/20 transition text-left cursor-pointer">
-                  <div class="flex items-center gap-2.5">
-                    <i class="fa-solid fa-palette text-indigo-400 w-4 text-center"></i>
-                    <span>Theme & Palette</span>
-                  </div>
-                  <span id="user-menu-active-theme-label-public" class="badge bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[10px] font-mono">
-                    Default
-                  </span>
+                <button type="button" onclick="openThemeModal(); closeUserMenu();" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-slate-200 hover:text-white hover:bg-indigo-600/20 transition text-left cursor-pointer">
+                  <i class="fa-solid fa-palette text-indigo-400 w-4 text-center"></i>
+                  <span>Theme & Palette</span>
                 </button>
 
                 <button type="button" onclick="openProfileModal(); closeUserMenu();" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-slate-200 hover:text-white hover:bg-amber-500/10 transition text-left cursor-pointer">
@@ -2361,44 +2351,49 @@
     <div class="max-w-6xl xl:max-w-7xl 2xl:max-w-[1440px] w-full glass-card p-5 sm:p-7 shadow-2xl space-y-4 border border-slate-700/80 max-h-[92vh] flex flex-col">
       <!-- Modal Header -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3 shrink-0">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
-            <i class="fa-solid fa-calendar-days text-base"></i>
-          </div>
-          <div>
-            <div class="flex items-center gap-2">
-              <h3 class="text-base font-bold text-white">Upcoming Shows</h3>
-              <span id="upcoming-table-modal-count" class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                0 shows
-              </span>
+        <div class="flex items-center justify-between w-full sm:w-auto">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
+              <i class="fa-solid fa-calendar-days text-base"></i>
             </div>
-            <p class="text-[11px] text-slate-400">All discovered tour dates for your seen artists</p>
+            <div>
+              <div class="flex items-center gap-2">
+                <h3 class="text-base font-bold text-white">Upcoming Shows</h3>
+                <span id="upcoming-table-modal-count" class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                  0 shows
+                </span>
+              </div>
+              <p class="text-[11px] text-slate-400">All discovered tour dates for your seen artists</p>
+            </div>
           </div>
+          <button type="button" onclick="closeUpcomingTableModal()" class="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition cursor-pointer sm:hidden">
+            <i class="fa-solid fa-xmark text-lg"></i>
+          </button>
         </div>
 
-        <div class="flex items-center gap-2 shrink-0">
-          <div class="relative">
-            <span class="absolute inset-y-0 left-0 flex items-center pl-2.5 text-slate-500 text-xs">
+        <div class="flex items-center gap-2 w-full sm:w-auto shrink-0">
+          <div class="relative flex-1 sm:flex-initial">
+            <span class="absolute inset-y-0 left-0 flex items-center pl-2.5 text-slate-500 text-xs pointer-events-none">
               <i class="fa-solid fa-magnifying-glass"></i>
             </span>
             <input type="text" id="upcoming-table-search" oninput="filterUpcomingTableRows()" placeholder="Filter table..."
-              class="pl-7 pr-2.5 py-1.5 text-xs rounded-lg bg-slate-900 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 w-40 sm:w-60">
+              class="w-full pl-7 pr-2.5 py-1.5 text-xs rounded-lg bg-slate-900 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 sm:w-60">
           </div>
           {% if not is_public_view and user.is_authenticated and is_owner %}
-          <button type="button" onclick="closeUpcomingTableModal(); openUpcomingConfigModal();" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-semibold flex items-center gap-1 transition cursor-pointer" title="Settings & Filters">
+          <button type="button" onclick="closeUpcomingTableModal(); openUpcomingConfigModal();" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-semibold flex items-center gap-1 transition cursor-pointer shrink-0" title="Settings & Filters">
             <i class="fa-solid fa-sliders text-indigo-400 text-xs"></i>
             <span class="hidden sm:inline">Filters</span>
           </button>
           {% endif %}
-          <button type="button" onclick="closeUpcomingTableModal()" class="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition cursor-pointer">
+          <button type="button" onclick="closeUpcomingTableModal()" class="hidden sm:inline-flex text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition cursor-pointer shrink-0">
             <i class="fa-solid fa-xmark text-lg"></i>
           </button>
         </div>
       </div>
 
-      <!-- Table Container (No horizontal scrollbar on desktop) -->
-      <div class="overflow-y-auto overflow-x-hidden md:overflow-x-visible flex-1 custom-scrollbar min-h-[260px]">
-        <table class="w-full text-left border-collapse table-auto">
+      <!-- Table Container (Horizontally scrollable on mobile, no overflow on desktop) -->
+      <div class="overflow-y-auto overflow-x-auto md:overflow-x-visible flex-1 custom-scrollbar min-h-[260px]">
+        <table class="w-full min-w-[640px] md:min-w-0 text-left border-collapse table-auto">
           <thead class="sticky top-0 bg-slate-900/95 backdrop-blur z-10">
             <tr class="border-b border-slate-800 text-slate-400 text-xs font-semibold uppercase tracking-wider">
               <th class="px-4 py-3 w-[15%]">Date &amp; Time</th>
@@ -2946,7 +2941,7 @@
              data-setlist-text="{{ c.setlist_text }}">
           
           <!-- Concert Event Header -->
-          <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 cursor-pointer select-none border-b border-slate-800/60 pb-3" onclick="toggleConcertDetails('{{ c.id }}')">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 cursor-pointer select-none" onclick="toggleConcertDetails('{{ c.id }}')">
             <div class="flex flex-wrap items-center gap-3">
               <span id="concert-fav-badge-{{ c.id }}" class="text-amber-400 text-xs px-1 {% if not c.has_favorite_artist %}hidden{% endif %}" title="Contains favorited performance">
                 <i class="fa-solid fa-star text-sm"></i>
@@ -3019,7 +3014,7 @@
           </div>
 
           <!-- Concert Artists & Sets Body -->
-          <div id="concert-details-{{ c.id }}" class="hidden space-y-6 pt-1">
+          <div id="concert-details-{{ c.id }}" class="hidden space-y-6 pt-4 border-t border-slate-800/60">
             {% for a in c.artists %}
             <div class="artist-set-card rounded-xl bg-slate-900/40 border border-slate-800/80 p-4 space-y-3"
                  id="artist-set-{{ c.id }}-{{ forloop.counter }}"
