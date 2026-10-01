@@ -24,7 +24,7 @@ class FriendsAndOnboardingTests(TestCase):
 
     def test_onboarding_content_matches_modal_guidance(self):
         self.client.force_login(self.user1)
-        res = self.client.get('/dashboard/')
+        res = self.client.get('/overview/')
         self.assertEqual(res.status_code, 200)
         content = res.content.decode('utf-8')
 
@@ -51,6 +51,8 @@ class FriendsAndOnboardingTests(TestCase):
         # Friends tab exists for dashboard owner
         self.assertIn('id="tab-friends"', content)
         self.assertIn('Friends &amp; Community', content)
+        self.assertIn('view their profiles', content)
+        self.assertNotIn('view their private profiles with shared access', content)
         self.assertIn('id="tab-friends-btn"', content)
 
     def test_friends_page_not_shown_on_public_profile(self):
@@ -87,8 +89,9 @@ class FriendsAndOnboardingTests(TestCase):
         self.user1.profile.is_public = False
         self.user1.profile.save()
 
-        # Alice friends Bob
+        # Mutual friendship between Alice and Bob
         Friendship.objects.create(user=self.user1, friend=self.user2)
+        Friendship.objects.create(user=self.user2, friend=self.user1)
 
         # Bob logs in and visits Alice's private profile
         self.client.force_login(self.user2)
@@ -111,18 +114,18 @@ class FriendsAndOnboardingTests(TestCase):
         self.assertIn('id="public-profile-friend-btn"', content)
         self.assertIn('Add Friend', content)
 
-        # Bob toggles friend
+        # Bob toggles friend (sends friend request)
         post_res = self.client.post('/api/friends/toggle/', {
             'friend_id': self.user1.id
         })
         self.assertEqual(post_res.status_code, 200)
         self.assertTrue(post_res.json()['is_friend'])
 
-        # Now Bob views Alice's profile again -> should show "Friended"
+        # Now Bob views Alice's profile again -> should show "Request Sent" (awaiting mutual confirmation)
         res_after = self.client.get('/u/alice/')
         self.assertEqual(res_after.status_code, 200)
         content_after = res_after.content.decode('utf-8')
-        self.assertIn('Friended', content_after)
+        self.assertIn('Request Sent', content_after)
 
     def test_co_attended_concerts_calculation_and_rendering(self):
         # Alice and Bob both attended Foo Fighters at 9:30 Club on 10/24/2023
@@ -145,11 +148,11 @@ class FriendsAndOnboardingTests(TestCase):
             primary_artist='Iron Maiden'
         )
 
-        # Alice friends Bob and Charlie
+        # Mutual friendship between Alice and Bob
         Friendship.objects.create(user=self.user1, friend=self.user2)
-        Friendship.objects.create(user=self.user1, friend=self.user3)
+        Friendship.objects.create(user=self.user2, friend=self.user1)
 
-        # Alice checks her friends page
+        # Alice checks her friends page with 1 friend
         self.client.force_login(self.user1)
         res = self.client.get('/friends/')
         self.assertEqual(res.status_code, 200)
@@ -159,11 +162,20 @@ class FriendsAndOnboardingTests(TestCase):
         self.assertEqual(friends_by_name['bob']['co_attended_count'], 1)
         self.assertEqual(len(friends_by_name['bob']['co_attended_concerts']), 1)
         self.assertEqual(friends_by_name['bob']['co_attended_concerts'][0]['artist'], 'Foo Fighters')
-        self.assertEqual(friends_by_name['charlie']['co_attended_count'], 0)
 
-        # Check HTML rendering
+        # Check HTML rendering with 1 friend: should render "1 Friend"
         content = res.content.decode('utf-8')
-        self.assertIn('1 Shared Show', content)
-        self.assertIn('0 shared', content)
+        self.assertIn('1 Friend', content)
+        self.assertNotIn('1 Friends', content)
+        self.assertIn('Co-Attended Show', content)
         self.assertIn('friend-co-', content)
         self.assertIn('Foo Fighters', content)
+
+        # Now make Charlie a mutual friend too -> should render "2 Friends"
+        Friendship.objects.create(user=self.user1, friend=self.user3)
+        Friendship.objects.create(user=self.user3, friend=self.user1)
+
+        res2 = self.client.get('/friends/')
+        self.assertEqual(res2.status_code, 200)
+        content2 = res2.content.decode('utf-8')
+        self.assertIn('2 Friends', content2)

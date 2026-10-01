@@ -3489,11 +3489,11 @@
               <div class="flex items-center gap-2 flex-wrap">
                 <h2 class="text-xl font-bold text-white">Friends &amp; Community</h2>
                 <span id="friends-count-badge" class="badge bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 font-mono">
-                  {{ friends_list|length }} Friends
+                  {{ friends_list|length }} Friend{{ friends_list|length|pluralize }}
                 </span>
               </div>
               <p class="text-xs text-slate-400 mt-1">
-                Connect with fellow concert-goers, view their private profiles with shared access, and compare attended shows.
+                Connect with fellow concert-goers, view their profiles, and compare attended shows.
               </p>
             </div>
           </div>
@@ -9009,7 +9009,7 @@
           const badge = document.getElementById('friends-count-badge');
           const headerCount = document.getElementById('friends-list-header-count');
           if (data.friends_count !== undefined) {
-            if (badge) badge.innerText = `${(data.friends_count).toLocaleString()} Friends`;
+            if (badge) badge.innerText = `${(data.friends_count).toLocaleString()} Friend${data.friends_count === 1 ? '' : 's'}`;
             if (headerCount) headerCount.innerText = `(${(data.friends_count).toLocaleString()})`;
           }
           if (typeof showToast === 'function' && data.message) {
