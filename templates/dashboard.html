@@ -7179,20 +7179,62 @@
       return null;
     }
 
-    // Vinyl Album Wall & Inspector Controller
-    function initAlbumGalleryImages() {
-      const cards = document.querySelectorAll('.album-gallery-card');
-      cards.forEach((card, idx) => {
-        const img = document.getElementById(`album-cover-img-${idx}`);
-        const fallback = document.getElementById(`album-cover-fallback-${idx}`);
-        if (!img || img.dataset.loaded === 'true') return;
+    // Vinyl Album Wall & Inspector Controller with Top-Down Priority Queue
+    let albumArtQueue = [];
+    let activeArtFetches = 0;
+    const MAX_CONCURRENT_ART_FETCHES = 4;
+    let albumIntersectionObserver = null;
 
-        const artist = img.dataset.artist;
-        const album = img.dataset.album;
-        if (!artist || !album) return;
+    function loadSingleAlbumCardArt(img, fallback) {
+      if (!img || img.dataset.loaded === 'true') return;
+      const artist = img.dataset.artist;
+      const album = img.dataset.album;
+      if (!artist || !album) return;
 
+      const cleanAlbum = album.replace(/\s*\([^)]*\)/g, '').trim();
+      const cacheKey = `setlore_art_${artist.toLowerCase()}_${cleanAlbum.toLowerCase()}`;
+      
+      // Fast path: if cached in memory or localStorage, apply immediately
+      if (albumArtCache[cacheKey]) {
+        img.src = albumArtCache[cacheKey];
+        img.dataset.loaded = 'true';
+        img.onload = () => {
+          img.classList.remove('opacity-0');
+          if (fallback) fallback.classList.add('opacity-0');
+        };
+        return;
+      }
+      try {
+        const stored = localStorage.getItem(cacheKey);
+        if (stored) {
+          albumArtCache[cacheKey] = stored;
+          img.src = stored;
+          img.dataset.loaded = 'true';
+          img.onload = () => {
+            img.classList.remove('opacity-0');
+            if (fallback) fallback.classList.add('opacity-0');
+          };
+          return;
+        }
+      } catch (e) {}
+
+      // Queue network fetch in top-to-bottom order if not already queued
+      if (img.dataset.queued !== 'true') {
+        img.dataset.queued = 'true';
+        albumArtQueue.push({ img, fallback, artist, album });
+        processArtQueue();
+      }
+    }
+
+    function processArtQueue() {
+      while (activeArtFetches < MAX_CONCURRENT_ART_FETCHES && albumArtQueue.length > 0) {
+        const task = albumArtQueue.shift();
+        const { img, fallback, artist, album } = task;
+        if (!img || img.dataset.loaded === 'true') continue;
+
+        activeArtFetches++;
         getAlbumArtUrl(artist, album).then(artUrl => {
-          if (artUrl) {
+          if (artUrl && img) {
             img.src = artUrl;
             img.dataset.loaded = 'true';
             img.onload = () => {
@@ -7200,7 +7242,61 @@
               if (fallback) fallback.classList.add('opacity-0');
             };
           }
+        }).finally(() => {
+          activeArtFetches--;
+          processArtQueue();
         });
+      }
+    }
+
+    function prioritizeAlbumCardArt(img, fallback) {
+      if (!img || img.dataset.loaded === 'true') return;
+      const artist = img.dataset.artist;
+      const album = img.dataset.album;
+      if (!artist || !album) return;
+
+      // Move to the front of the queue so on-screen / top cards resolve first
+      albumArtQueue = albumArtQueue.filter(t => t.img !== img);
+      img.dataset.queued = 'true';
+      albumArtQueue.unshift({ img, fallback, artist, album });
+      processArtQueue();
+    }
+
+    function initAlbumGalleryImages() {
+      const grid = document.getElementById('album-gallery-grid');
+      if (!grid) return;
+
+      // Setup IntersectionObserver to prioritize on-screen / scrolled-into-view albums
+      if (!albumIntersectionObserver && 'IntersectionObserver' in window) {
+        albumIntersectionObserver = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              const card = entry.target;
+              const img = card.querySelector('.album-cover-img');
+              const fallback = card.querySelector('[id^="album-cover-fallback-"]');
+              if (img && img.dataset.loaded !== 'true') {
+                prioritizeAlbumCardArt(img, fallback);
+              }
+            }
+          });
+        }, {
+          root: null,
+          rootMargin: '200px 0px 400px 0px',
+          threshold: 0.01
+        });
+      }
+
+      // Gather cards in top-to-bottom DOM order
+      const cards = Array.from(grid.querySelectorAll('.album-gallery-card'));
+      cards.forEach(card => {
+        const img = card.querySelector('.album-cover-img');
+        const fallback = card.querySelector('[id^="album-cover-fallback-"]');
+        if (img) {
+          if (albumIntersectionObserver) {
+            albumIntersectionObserver.observe(card);
+          }
+          loadSingleAlbumCardArt(img, fallback);
+        }
       });
     }
 
@@ -7278,6 +7374,7 @@
       });
 
       cards.forEach(card => grid.appendChild(card));
+      initAlbumGalleryImages();
     }
 
     function openAlbumModal(idx) {
