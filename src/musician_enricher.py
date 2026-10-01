@@ -323,7 +323,10 @@ class MusicianEnricher:
         tenures = self.parse_member_tenures(mb_data)
 
         if artist_obj:
-            self._sync_tenures_to_db(artist_obj, tenures)
+            created, updated = self._sync_tenures_to_db(artist_obj, tenures)
+            self.last_sync_stats = (created, updated)
+        else:
+            self.last_sync_stats = (0, 0)
 
         return tenures
 

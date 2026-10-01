@@ -813,8 +813,11 @@ def add_concert(request):
 
         try:
             m_enricher = MusicianEnricher()
+            is_upcoming_or_current = bool(concert.date and concert.date.year >= datetime.now().year)
             if not primary_art_obj.members.exists():
                 m_enricher.enrich_artist(primary_art_obj.name, artist_obj=primary_art_obj)
+            elif is_upcoming_or_current:
+                m_enricher.enrich_artist(primary_art_obj.name, artist_obj=primary_art_obj, refresh=True)
         except Exception:
             pass
 
@@ -2050,8 +2053,11 @@ def edit_concert(request):
 
         try:
             m_enricher = MusicianEnricher()
+            is_upcoming_or_current = bool(concert.date and concert.date.year >= datetime.now().year)
             if not primary_art_obj.members.exists():
                 m_enricher.enrich_artist(primary_art_obj.name, artist_obj=primary_art_obj)
+            elif is_upcoming_or_current:
+                m_enricher.enrich_artist(primary_art_obj.name, artist_obj=primary_art_obj, refresh=True)
         except Exception:
             pass
 
@@ -2602,6 +2608,17 @@ def track_upcoming_show(request):
                     billing_order=order,
                     has_setlist=False
                 )
+
+            try:
+                m_enricher = MusicianEnricher()
+                for a_name in all_lineup_names:
+                    a_obj, _ = get_or_create_artist(a_name)
+                    if not a_obj.members.exists():
+                        m_enricher.enrich_artist(a_obj.name, artist_obj=a_obj)
+                    elif year >= datetime.now().year:
+                        m_enricher.enrich_artist(a_obj.name, artist_obj=a_obj, refresh=True)
+            except Exception:
+                pass
 
         ApiCache.objects.filter(cache_key=f"user_dashboard_bundle_{request.user.id}").delete()
 

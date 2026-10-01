@@ -329,9 +329,24 @@ class SyncWorker:
                 m_enricher = MusicianEnricher()
                 user_artist_ids = ConcertArtist.objects.filter(concert__user=user).values_list('artist_id', flat=True).distinct()
                 user_artists = Artist.objects.filter(id__in=user_artist_ids)
+                
+                # Active artists: artists with shows in current or future years
+                current_year = timezone.now().year
+                active_artist_ids = set(
+                    ConcertArtist.objects.filter(
+                        concert__user=user,
+                        concert__date__year__gte=current_year
+                    ).values_list('artist_id', flat=True)
+                )
+
                 for art in user_artists:
-                    if not MusicianTenure.objects.filter(artist=art).exists():
+                    has_tenures = MusicianTenure.objects.filter(artist=art).exists()
+                    if not has_tenures:
                         m_enricher.enrich_artist(art.name, artist_obj=art)
+                    elif art.id in active_artist_ids:
+                        # For active/upcoming artists, refresh MusicBrainz relations to capture lineup changes/departures
+                        m_enricher.enrich_artist(art.name, artist_obj=art, refresh=True)
+
                 stats["musicians"] = analyze_musicians_live(csv_records)
                 ApiCache.objects.update_or_create(
                     cache_key=cache_key,

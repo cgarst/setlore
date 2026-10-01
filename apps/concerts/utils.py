@@ -761,12 +761,16 @@ def sync_single_concert(concert, user=None, client=None) -> Dict[str, Any]:
         except Exception:
             pass
 
+    current_year = datetime.now().year
+    is_upcoming_or_current = bool(concert.date and concert.date.year >= current_year)
     for ca in ca_list:
         if ca.artist:
             try:
                 m_enricher = MusicianEnricher()
                 if not ca.artist.members.exists():
                     m_enricher.enrich_artist(ca.artist.name, artist_obj=ca.artist)
+                elif is_upcoming_or_current:
+                    m_enricher.enrich_artist(ca.artist.name, artist_obj=ca.artist, refresh=True)
             except Exception:
                 pass
 

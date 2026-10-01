@@ -73,19 +73,32 @@ class Command(BaseCommand):
 
             existing_count = MusicianTenure.objects.filter(artist=art_obj).count()
             tenures = enricher.enrich_artist(name, artist_obj=art_obj, refresh=refresh)
+            created, updated = getattr(enricher, 'last_sync_stats', (0, 0))
 
             new_count = MusicianTenure.objects.filter(artist=art_obj).count()
-            diff = new_count - existing_count
 
             if tenures:
+                msg_parts = []
+                if created:
+                    msg_parts.append(f"{created} added")
+                if updated:
+                    msg_parts.append(f"{updated} updated")
+                stat_str = ", ".join(msg_parts) if msg_parts else "up-to-date"
                 self.stdout.write(self.style.SUCCESS(
-                    f"      -> {len(tenures)} MusicBrainz member relations found ({diff} new tenures added, {new_count} total)."
+                    f"      -> {len(tenures)} MusicBrainz member relations ({stat_str}, {new_count} total tenures in DB)."
                 ))
             else:
                 self.stdout.write(f"      -> No MusicBrainz member relations found for '{name}'.")
 
-            total_created += diff
+            total_created += created
+            total_updated += updated
+
+        # Invalidate dashboard caches so changes reflect immediately
+        from apps.catalog.models import ApiCache
+        deleted_caches, _ = ApiCache.objects.filter(endpoint='dashboard_bundle').delete()
 
         self.stdout.write(self.style.SUCCESS(
-            f"\nCompleted! Added {total_created} new musician tenures across {total_artists} artists (0 duplicates created)."
+            f"\nCompleted! Added {total_created} new musician tenures and updated {total_updated} existing tenures across {total_artists} artists."
         ))
+        if deleted_caches:
+            self.stdout.write(self.style.SUCCESS(f"Invalidated {deleted_caches} dashboard cache bundles."))
