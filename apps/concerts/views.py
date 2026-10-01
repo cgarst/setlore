@@ -818,15 +818,50 @@ def add_concert(request):
         except Exception:
             pass
 
+        # If user has a Setlist.fm username configured, always save and sync this concert
+        sync_info = None
+        if hasattr(request.user, 'profile') and (request.user.profile.setlistfm_username or "").strip():
+            try:
+                from apps.concerts.utils import sync_single_concert
+                sync_info = sync_single_concert(concert, user=request.user)
+            except Exception as se:
+                logger.warning("Single concert sync error on add_concert: %s", se)
+
         # Clear dashboard bundle cache for this user so changes reflect immediately
         ApiCache.objects.filter(cache_key=f"user_dashboard_bundle_{request.user.id}").delete()
 
-        song_count_msg = f" with {len(new_songs_to_enrich)} songs" if new_songs_to_enrich else ""
+        synced_msg = ""
+        if sync_info and sync_info.get("status") == "success" and sync_info.get("matched", 0) > 0:
+            synced_msg = f" (synced with Setlist.fm: {sync_info.get('songs_added', 0)} songs linked)"
+        elif new_songs_to_enrich:
+            synced_msg = f" with {len(new_songs_to_enrich)} songs"
+
         return JsonResponse({
             "status": "success",
-            "message": f"Concert for '{can_primary}' on {raw_date} added successfully{song_count_msg}!",
-            "concert_id": concert.id
+            "message": f"Concert for '{can_primary}' on {raw_date} saved and logged successfully{synced_msg}!",
+            "concert_id": concert.id,
+            "synced": bool(sync_info and sync_info.get("status") == "success")
         })
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+@login_required
+@require_POST
+def sync_single_concert_view(request):
+    try:
+        try:
+            data = json.loads(request.body.decode('utf-8'))
+        except Exception:
+            data = request.POST
+        concert_id = data.get('concert_id')
+        if not concert_id:
+            return JsonResponse({"error": "Missing concert_id parameter."}, status=400)
+        concert = Concert.objects.filter(id=concert_id, user=request.user).first()
+        if not concert:
+            return JsonResponse({"error": "Concert not found."}, status=404)
+        from apps.concerts.utils import sync_single_concert
+        res = sync_single_concert(concert, user=request.user)
+        return JsonResponse(res)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
 

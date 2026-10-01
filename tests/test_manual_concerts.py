@@ -84,7 +84,7 @@ class ManualConcertTests(TestCase):
         self.assertEqual(artists[2].artist.name, "Acoustic Duo")
 
         # Verify dashboard renders with this concert
-        dash_res = self.client.get('/dashboard/')
+        dash_res = self.client.get('/overview/')
         self.assertEqual(dash_res.status_code, 200)
         content = dash_res.content.decode('utf-8')
         self.assertIn("Local Garage Band", content)
@@ -129,7 +129,7 @@ class ManualConcertTests(TestCase):
         self.assertEqual(songs[2].original_artist, "Someone")
 
         # Verify dashboard computes songs heard
-        dash_res = self.client.get('/dashboard/')
+        dash_res = self.client.get('/overview/')
         self.assertEqual(dash_res.status_code, 200)
         content = dash_res.content.decode('utf-8')
         self.assertIn("A Nightmare to Remember", content)
@@ -389,3 +389,106 @@ class ManualConcertTests(TestCase):
         ca = user_concert.artists.first()
         self.assertEqual(ca.setlistfm_id, "")
         self.assertEqual(ca.setlist_url, "")
+
+    def test_add_concert_with_setlistfm_user_syncs_single_concert(self):
+        from unittest.mock import patch
+        self.user.profile.setlistfm_username = "progfan99"
+        self.user.profile.save()
+
+        mock_setlist_payload = {
+            "id": "mock_sl_123",
+            "eventDate": "15-10-2023",
+            "url": "https://www.setlist.fm/setlist/dream-theater/2023/anthem-mock_sl_123.html",
+            "artist": {"name": "Dream Theater"},
+            "venue": {
+                "name": "The Anthem",
+                "city": {"name": "Washington", "state": "DC", "country": {"name": "United States"}, "coords": {"lat": 38.88, "long": -77.02}}
+            },
+            "sets": {
+                "set": [
+                    {
+                        "name": "Main Set",
+                        "song": [
+                            {"name": "The Alien"},
+                            {"name": "Awaken the Master"}
+                        ]
+                    }
+                ]
+            }
+        }
+
+        with patch('src.setlist_api.SetlistFMClient.get_user_attended', return_value=[mock_setlist_payload]):
+            payload = {
+                "date": "2023-10-15",
+                "primary_artist": "Dream Theater",
+                "supporting_artists": "",
+                "venue_name": "The Anthem",
+                "city": "Washington",
+                "state": "DC",
+                "notes": "",
+                "setlist_text": "",
+                "is_custom_offline": False
+            }
+            res = self.client.post(
+                '/api/concerts/add/',
+                data=json.dumps(payload),
+                content_type='application/json'
+            )
+            self.assertEqual(res.status_code, 200)
+            data = res.json()
+            self.assertEqual(data["status"], "success")
+            self.assertTrue(data.get("synced"))
+
+            concert = Concert.objects.get(id=data["concert_id"])
+            ca = concert.artists.first()
+            self.assertEqual(ca.setlistfm_id, "mock_sl_123")
+            self.assertTrue(ca.has_setlist)
+            self.assertEqual(ca.songs.count(), 2)
+
+    def test_sync_single_concert_api(self):
+        from unittest.mock import patch
+        self.user.profile.setlistfm_username = "progfan99"
+        self.user.profile.save()
+
+        v = Venue.objects.create(name="9:30 Club", city="Washington", state="DC")
+        a = Artist.objects.create(name="Haken", normalized_name="haken")
+        c = Concert.objects.create(
+            user=self.user,
+            raw_date="05/12/2022",
+            date="2022-05-12",
+            year=2022,
+            venue=v,
+            primary_artist="Haken",
+            raw_artists="Haken",
+            source="manual"
+        )
+        ca = ConcertArtist.objects.create(
+            concert=c,
+            artist=a,
+            billing_order=0
+        )
+
+        mock_sl = {
+            "id": "haken_sl_999",
+            "eventDate": "12-05-2022",
+            "url": "https://www.setlist.fm/setlist/haken/2022/930-club-haken_sl_999.html",
+            "artist": {"name": "Haken"},
+            "venue": {"name": "9:30 Club", "city": {"name": "Washington", "state": "DC", "coords": {"lat": 38.91, "long": -77.02}}},
+            "sets": {"set": [{"song": [{"name": "Prosthetic"}, {"name": "Invasion"}]}]}
+        }
+
+        with patch('src.gap_analysis.find_global_setlist_match', return_value=mock_sl):
+            res = self.client.post(
+                '/api/concerts/sync-single/',
+                data=json.dumps({"concert_id": c.id}),
+                content_type='application/json'
+            )
+            self.assertEqual(res.status_code, 200)
+            data = res.json()
+            self.assertEqual(data["status"], "success")
+            self.assertEqual(data["matched"], 1)
+            self.assertEqual(data["songs_added"], 2)
+
+            ca.refresh_from_db()
+            self.assertEqual(ca.setlistfm_id, "haken_sl_999")
+            self.assertEqual(ca.songs.count(), 2)

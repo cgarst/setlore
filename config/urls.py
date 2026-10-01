@@ -72,6 +72,7 @@ urlpatterns = [
     path('api/upload-csv/', concerts_views.upload_csv, name='api_upload_csv'),
     path('api/concerts/export/', concerts_views.export_concerts_csv, name='api_export_concerts_csv'),
     path('api/concerts/add/', concerts_views.add_concert, name='api_add_concert'),
+    path('api/concerts/sync-single/', concerts_views.sync_single_concert_view, name='api_sync_single_concert'),
     path('api/concerts/edit/', concerts_views.edit_concert, name='api_edit_concert'),
     path('api/concerts/delete/', concerts_views.delete_concert, name='api_delete_concert'),
     path('api/concerts/convert-local/', concerts_views.convert_concert_to_local, name='api_convert_concert_to_local'),

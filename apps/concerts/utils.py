@@ -587,3 +587,197 @@ def import_setlistfm_shows_into_database(user, user_attended: List[Dict[str, Any
 
     return imported_count
 
+
+def sync_single_concert(concert, user=None, client=None) -> Dict[str, Any]:
+    """
+    Syncs a single concert with Setlist.fm without triggering a full database sync.
+    Searches for matching setlists for the concert's artist(s) on the concert's date,
+    attaching Setlist.fm IDs, setlist URLs, tracklists, venue geocoding, and running
+    album/musician catalog enrichment.
+    """
+    from datetime import datetime
+    from django.db import transaction
+    from apps.catalog.models import Venue, Artist, Song, ApiCache
+    from apps.concerts.models import Concert, ConcertArtist, ConcertSong
+    from src.setlist_api import SetlistFMClient
+    from src.gap_analysis import find_global_setlist_match, is_ignored_artist, match_score
+    from src.album_enricher import AlbumEnricher
+    from src.musician_enricher import MusicianEnricher
+    from src.config import SETLISTFM_API_KEY
+
+    user = user or concert.user
+    profile = getattr(user, 'profile', None)
+    if not profile or not (profile.setlistfm_username or "").strip():
+        return {"status": "skipped", "message": "No Setlist.fm username configured.", "matched": 0, "songs_added": 0}
+
+    api_key = profile.setlistfm_api_key or SETLISTFM_API_KEY or "api_key_placeholder"
+    if client is None:
+        try:
+            client = SetlistFMClient(api_key=api_key)
+        except Exception as e:
+            logger.warning("Could not initialize SetlistFMClient: %s", e)
+
+    if not client:
+        return {"status": "skipped", "message": "Setlist.fm client unavailable.", "matched": 0, "songs_added": 0}
+
+    ignored_artists = profile.ignored_artists or []
+    date_str = None
+    if concert.date:
+        date_str = concert.date.strftime("%d-%m-%Y")
+    elif concert.raw_date:
+        for fmt in ("%m/%d/%Y", "%m-%d-%Y", "%Y-%m-%d", "%d-%m-%Y"):
+            try:
+                dt = datetime.strptime(concert.raw_date.strip(), fmt)
+                date_str = dt.strftime("%d-%m-%Y")
+                break
+            except ValueError:
+                pass
+
+    venue_name = concert.raw_venue or (concert.venue.name if concert.venue else "")
+    matched_count = 0
+    total_songs_added = 0
+    new_songs_to_enrich = []
+
+    ca_list = list(concert.artists.all().select_related('artist'))
+    with transaction.atomic():
+        for ca in ca_list:
+            if not ca.artist:
+                continue
+            art_name = ca.artist.name
+            if is_ignored_artist(art_name, ignored_artists):
+                continue
+
+            # First try user attended setlists if available / cached
+            matched_sl = None
+            try:
+                user_attended = client.get_user_attended(profile.setlistfm_username.strip(), use_cache=True)
+                for sl in user_attended:
+                    sl_art = (sl.get("artist", {}).get("name") or "").strip()
+                    sl_date = (sl.get("eventDate") or "").strip()
+                    if date_str and sl_date == date_str:
+                        sc = match_score(art_name, venue_name, sl)
+                        if sc >= 60:
+                            matched_sl = sl
+                            break
+            except Exception:
+                pass
+
+            # If not found in user_attended, try global search
+            if not matched_sl and date_str:
+                try:
+                    matched_sl = find_global_setlist_match(client, art_name, date_str, concert.year, venue_name)
+                except Exception as e:
+                    logger.debug("find_global_setlist_match error for %s on %s: %s", art_name, date_str, e)
+
+            if matched_sl:
+                matched_count += 1
+                sl_id = matched_sl.get("id", "")
+                sl_url = matched_sl.get("url", "")
+                if sl_id:
+                    ca.setlistfm_id = sl_id
+                if sl_url:
+                    ca.setlist_url = sl_url
+
+                tracks = parse_setlistfm_sets_to_tracks(matched_sl)
+                if tracks:
+                    ca.has_setlist = True
+                    # If concert artist has no songs (e.g. was logged without setlist or blank), populate them
+                    if not ca.songs.exists():
+                        total_tracks = len(tracks)
+                        cs_objs = []
+                        for idx, t in enumerate(tracks):
+                            track_num = idx + 1
+                            pct = round((track_num / total_tracks) * 100) if total_tracks > 0 else 100
+                            if track_num == 1:
+                                slot = "Opener"
+                                slot_category = "opener"
+                            elif t["is_encore"]:
+                                slot = "Show Closer" if track_num == total_tracks else (f"Encore {t['encore_number']}" if t['encore_number'] else "Encore")
+                                slot_category = "encore"
+                            elif track_num == total_tracks:
+                                slot = "Show Closer"
+                                slot_category = "closer"
+                            elif pct <= 35:
+                                slot = "Early Set"
+                                slot_category = "early"
+                            elif pct <= 70:
+                                slot = "Mid-Set"
+                                slot_category = "mid"
+                            else:
+                                slot = "Late Set"
+                                slot_category = "late"
+
+                            clean_title_key = t["title"].lower().strip()
+                            song_obj = Song.objects.filter(artist=ca.artist, clean_title=clean_title_key).first()
+                            if not song_obj:
+                                song_obj = Song.objects.create(
+                                    artist=ca.artist,
+                                    clean_title=clean_title_key,
+                                    title=t["title"],
+                                    is_cover=t["is_cover"],
+                                    original_artist=t["original_artist"] or None
+                                )
+
+                            cs_objs.append(ConcertSong(
+                                concert_artist=ca,
+                                song=song_obj,
+                                raw_song_name=t["title"],
+                                set_name=t["set_name"],
+                                is_encore=t["is_encore"],
+                                encore_number=t["encore_number"],
+                                track_num=track_num,
+                                total_tracks=total_tracks,
+                                pct_position=pct,
+                                slot=slot,
+                                slot_category=slot_category,
+                                is_cover=t["is_cover"],
+                                original_artist=t["original_artist"] or '',
+                                info=t["info"] or ''
+                            ))
+                            new_songs_to_enrich.append((ca.artist.name, t["title"]))
+                        ConcertSong.objects.bulk_create(cs_objs)
+                        total_songs_added += len(cs_objs)
+
+                ca.save(update_fields=['setlistfm_id', 'setlist_url', 'has_setlist'])
+
+                # Venue geolocation update from Setlist.fm venue coords if missing
+                if concert.venue and (concert.venue.latitude is None or concert.venue.longitude is None):
+                    v_dict = matched_sl.get("venue") or {}
+                    city_dict = v_dict.get("city") or {}
+                    coords = city_dict.get("coords") or {}
+                    lat = coords.get("lat")
+                    lng = coords.get("long")
+                    if lat is not None and lng is not None:
+                        concert.venue.latitude = lat
+                        concert.venue.longitude = lng
+                        concert.venue.geocode_source = 'setlistfm'
+                        concert.venue.save(update_fields=['latitude', 'longitude', 'geocode_source'])
+
+    # Catalog enrichment for new songs & musicians
+    if new_songs_to_enrich:
+        try:
+            enricher = AlbumEnricher()
+            enricher.load_cached_catalog([{"artist": a, "song": s} for a, s in new_songs_to_enrich])
+        except Exception:
+            pass
+
+    for ca in ca_list:
+        if ca.artist:
+            try:
+                m_enricher = MusicianEnricher()
+                if not ca.artist.members.exists():
+                    m_enricher.enrich_artist(ca.artist.name, artist_obj=ca.artist)
+            except Exception:
+                pass
+
+    # Clear user cache
+    ApiCache.objects.filter(cache_key=f"user_dashboard_bundle_{user.id}").delete()
+
+    return {
+        "status": "success",
+        "matched": matched_count,
+        "songs_added": total_songs_added,
+        "message": f"Concert synced with Setlist.fm: {matched_count} artist setlist(s) matched, {total_songs_added} songs linked."
+    }
+
+
