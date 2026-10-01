@@ -7071,15 +7071,7 @@
             img.setAttribute('height', h);
             img.setAttribute('preserveAspectRatio', 'xMidYMid slice');
 
-            const overlay = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-            overlay.setAttribute('x', '0');
-            overlay.setAttribute('y', '0');
-            overlay.setAttribute('width', w);
-            overlay.setAttribute('height', h);
-            overlay.setAttribute('fill', 'rgba(15, 23, 42, 0.55)');
-
             pattern.appendChild(img);
-            pattern.appendChild(overlay);
             defs.appendChild(pattern);
           } else {
             pattern.setAttribute('x', x);
@@ -7093,8 +7085,7 @@
             }
             const overlay = pattern.querySelector('rect');
             if (overlay) {
-              overlay.setAttribute('width', w);
-              overlay.setAttribute('height', h);
+              overlay.remove();
             }
           }
 
@@ -7109,8 +7100,12 @@
           const texts = slice.querySelectorAll('text');
           texts.forEach(t => {
             t.style.setProperty('fill', '#ffffff', 'important');
+            t.style.setProperty('stroke', '#090d16', 'important');
+            t.style.setProperty('stroke-width', '3.5px', 'important');
+            t.style.setProperty('stroke-linejoin', 'round', 'important');
+            t.style.setProperty('paint-order', 'stroke fill', 'important');
             t.style.setProperty('font-weight', '800', 'important');
-            t.style.setProperty('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.95)) drop-shadow(0 0 8px rgba(0,0,0,0.9))', 'important');
+            t.style.setProperty('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.85))', 'important');
           });
         });
       });
