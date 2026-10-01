@@ -144,8 +144,8 @@ class DjangoAppTests(TestCase):
             ('/musicians/', 'musicians'),
             ('/map/', 'map'),
             ('/venues/', 'map'),
-            ('/advanced/', 'advanced'),
-            ('/albums/', 'advanced'),
+            ('/advanced/', 'albums'),
+            ('/albums/', 'albums'),
             ('/setlists/', 'setlists'),
             ('/freshness/', 'setlists'),
             ('/gap/', 'gap'),
@@ -307,12 +307,16 @@ class DjangoAppTests(TestCase):
         self.assertIn('User Not Found', content)
 
     def test_public_profile_tab_urls(self):
-        tabs = ['overview', 'concerts', 'drilldown', 'musicians', 'map', 'advanced', 'setlists', 'gap']
+        tabs = ['overview', 'concerts', 'drilldown', 'musicians', 'map', 'albums', 'setlists', 'gap']
         for t in tabs:
             res = self.client.get(f'/u/{self.user.username}/{t}/')
             self.assertEqual(res.status_code, 200)
             self.assertEqual(res.context['initial_tab'], t)
             self.assertTrue(res.context['is_public_view'])
+        # Verify legacy alias
+        res_alias = self.client.get(f'/u/{self.user.username}/advanced/')
+        self.assertEqual(res_alias.status_code, 200)
+        self.assertEqual(res_alias.context['initial_tab'], 'albums')
 
     def test_public_profile_i_was_there_button_and_attendance_toggle(self):
         # Setup target user's concert

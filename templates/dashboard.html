@@ -2482,7 +2482,7 @@
         <button onclick="switchTab('drilldown')" id="tab-drilldown-btn" class="nav-tab-btn px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 flex items-center gap-2 transition-all">
           <i class="fa-solid fa-magnifying-glass-chart text-pink-400"></i> Artists & Songs
         </button>
-        <button onclick="switchTab('advanced')" id="tab-advanced-btn" class="nav-tab-btn px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 flex items-center gap-2 transition-all">
+        <button onclick="switchTab('albums')" id="tab-albums-btn" class="nav-tab-btn px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 flex items-center gap-2 transition-all">
           <i class="fa-solid fa-wand-magic-sparkles text-cyan-400"></i> Albums & Eras
         </button>
         <button onclick="switchTab('musicians')" id="tab-musicians-btn" class="nav-tab-btn px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 flex items-center gap-2 transition-all">
@@ -3596,7 +3596,7 @@
     </div>
 
     <!-- 5. ADVANCED & ALBUM VISUALS TAB -->
-    <div id="tab-advanced" class="hidden space-y-6">
+    <div id="tab-albums" class="hidden space-y-6">
       
       <!-- Album Era & Catalog Age Analysis (Top of Tab) -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -4817,7 +4817,7 @@
           </button>
 
           <!-- Albums & Eras -->
-          <button onclick="switchTab('advanced'); closeMobileMoreMenu();" id="mobile-sheet-tab-advanced-btn" class="w-full flex items-center justify-between p-2.5 rounded-xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600 transition text-left group cursor-pointer">
+          <button onclick="switchTab('albums'); closeMobileMoreMenu();" id="mobile-sheet-tab-albums-btn" class="w-full flex items-center justify-between p-2.5 rounded-xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600 transition text-left group cursor-pointer">
             <div class="flex items-center gap-3">
               <div class="w-8 h-8 rounded-lg bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 group-hover:scale-105 transition shrink-0">
                 <i class="fa-solid fa-wand-magic-sparkles text-sm"></i>
@@ -5147,8 +5147,8 @@
         'musicians': 'musicians',
         'map': 'map',
         'venues': 'map',
-        'advanced': 'advanced',
-        'albums': 'advanced',
+        'albums': 'albums',
+        'advanced': 'albums',
         'setlists': 'setlists',
         'freshness': 'setlists',
         'gap': 'gap',
@@ -5163,7 +5163,7 @@
       if (tabId === 'friends' && window.isPublicView) {
         tabId = 'overview';
       }
-      const validTabs = ['overview', 'concerts', 'drilldown', 'advanced', 'musicians', 'map', 'setlists', 'gap', 'friends'];
+      const validTabs = ['overview', 'concerts', 'drilldown', 'albums', 'musicians', 'map', 'setlists', 'gap', 'friends'];
 
       validTabs.forEach(t => {
         const tabEl = document.getElementById('tab-' + t);
@@ -5201,7 +5201,7 @@
         }
       });
 
-      const secondaryTabs = ['map', 'musicians', 'advanced', 'setlists', 'gap', 'friends'];
+      const secondaryTabs = ['map', 'musicians', 'albums', 'setlists', 'gap', 'friends'];
       const isSecondary = secondaryTabs.includes(tabId);
       const moreBtn = document.getElementById('mobile-tab-more-btn');
       const moreDot = document.getElementById('mobile-more-active-dot');
@@ -5245,7 +5245,7 @@
           initVenueMap();
           if (venueMap) venueMap.invalidateSize();
         }, 150);
-      } else if (tabId === 'advanced') {
+      } else if (tabId === 'albums') {
         ['chart-era', 'chart-song-age'].forEach(id => {
           const el = document.getElementById(id);
           if (el) Plotly.Plots.resize(el);
