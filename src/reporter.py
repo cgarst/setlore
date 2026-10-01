@@ -132,47 +132,43 @@ def generate_plotly_charts(stats: Dict[str, Any], album_enrichments: Dict[str, A
             words = name.split()
             
             if r >= 42:
-                # Large bubble: plenty of room
-                if len(name) <= 14:
-                    txt = name
-                elif len(words) == 2 and len(words[0]) <= 10 and len(words[1]) <= 10:
-                    txt = f"{words[0]}<br>{words[1]}"
-                elif len(name) > 16:
-                    txt = name[:14] + "…"
-                else:
-                    txt = name
-                display_text = f"{txt}<br><b>{c}</b>"
-                font_size = 12
-            elif r >= 30:
-                # Medium-large bubble
-                if len(name) <= 10:
+                # Large bubble
+                if len(name) <= 12:
                     txt = name
                 elif len(words) == 2 and len(words[0]) <= 8 and len(words[1]) <= 8:
                     txt = f"{words[0]}<br>{words[1]}"
-                elif len(name) > 11:
-                    txt = name[:9] + "…"
+                elif len(name) > 13:
+                    txt = name[:11] + "…"
                 else:
                     txt = name
                 display_text = f"{txt}<br><b>{c}</b>"
-                font_size = 10
-            elif r >= 23:
-                # Medium bubble
-                if len(name) <= 7:
+                font_size = 11
+            elif r >= 30:
+                # Medium-large bubble
+                if len(name) <= 8:
                     txt = name
-                elif len(name) > 8:
-                    txt = name[:6] + "…"
+                elif len(words) == 2 and len(words[0]) <= 6 and len(words[1]) <= 6:
+                    txt = f"{words[0]}<br>{words[1]}"
+                elif len(name) > 9:
+                    txt = name[:7] + "…"
                 else:
                     txt = name
                 display_text = f"{txt}<br><b>{c}</b>"
                 font_size = 9
-            else:
-                # Small bubble: fit ultra-short name or clear count
-                if len(name) <= 4:
-                    display_text = f"{name}<br><b>{c}</b>"
-                    font_size = 8
+            elif r >= 23:
+                # Medium bubble
+                if len(name) <= 6:
+                    txt = name
+                elif len(name) > 6:
+                    txt = name[:5] + "…"
                 else:
-                    display_text = f"<b>{c}</b>"
-                    font_size = 9
+                    txt = name
+                display_text = f"{txt}<br><b>{c}</b>"
+                font_size = 8
+            else:
+                # Small bubble: count only to prevent clipping
+                display_text = f"<b>{c}</b>"
+                font_size = 8
             
             circles.append({
                 "artist": name,

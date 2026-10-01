@@ -5039,7 +5039,12 @@
         setTimeout(() => {
           ['chart-timeline', 'chart-top-artists'].forEach(id => {
             const el = document.getElementById(id);
-            if (el) Plotly.Plots.resize(el);
+            if (el) {
+              if (id === 'chart-top-artists' && typeof getResponsiveTopArtistsData === 'function') {
+                Plotly.react(el, getResponsiveTopArtistsData(), el.layout);
+              }
+              Plotly.Plots.resize(el);
+            }
           });
         }, 150);
       }
@@ -6741,9 +6746,21 @@
       }),
       { responsive: true, displayModeBar: false, scrollZoom: false, doubleClick: false }
     );
+    function getResponsiveTopArtistsData() {
+      if (!topArtistsData || !topArtistsData.data || !topArtistsData.data[0]) return (topArtistsData && topArtistsData.data) || [];
+      const isMobile = window.innerWidth < 640;
+      const isTablet = window.innerWidth >= 640 && window.innerWidth < 1024;
+      const scale = isMobile ? 0.72 : (isTablet ? 0.88 : 1.0);
+      const trace = JSON.parse(JSON.stringify(topArtistsData.data[0]));
+      if (trace.textfont && Array.isArray(trace.textfont.size)) {
+        trace.textfont.size = trace.textfont.size.map(s => Math.max(7, Math.round(s * scale)));
+      }
+      return [trace];
+    }
+
     Plotly.newPlot(
       'chart-top-artists',
-      topArtistsData.data,
+      getResponsiveTopArtistsData(),
       Object.assign({}, layoutDefaults, topArtistsData.layout, {
         dragmode: false,
         margin: { t: 10, b: 10, l: 10, r: 10 },
