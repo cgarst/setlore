@@ -3622,7 +3622,7 @@
               <h3 class="text-lg font-bold text-white flex items-center gap-2">
                 <i class="fa-solid fa-compact-disc text-indigo-400"></i> Live Albums &amp; Vinyl Wall
               </h3>
-              <span class="badge bg-indigo-500/20 text-indigo-300 font-mono text-xs font-bold border border-indigo-500/30 px-2.5 py-0.5">
+              <span id="album-gallery-count-badge" class="badge bg-indigo-500/20 text-indigo-300 font-mono text-xs font-bold border border-indigo-500/30 px-2.5 py-0.5">
                 {{ stats.albums_gallery|length|intcomma }} Albums
               </span>
             </div>
@@ -3722,6 +3722,16 @@
 
               <!-- Album Cover Sleeve -->
               <div class="relative w-full h-full rounded-xl overflow-hidden z-10 shadow-md border border-white/10 bg-slate-900">
+                {% if alb.decade == 'Covers' or alb.album|lower == 'covers' %}
+                <!-- Covers Sleeve (No Album Art) -->
+                <div class="absolute inset-0 bg-gradient-to-br from-pink-950 via-slate-900 to-indigo-950 flex flex-col items-center justify-center p-3 text-center">
+                  <div class="w-10 h-10 rounded-xl bg-pink-500/20 border border-pink-500/30 flex items-center justify-center text-pink-400 mb-2 shadow-inner">
+                    <i class="fa-solid fa-microphone-lines text-lg"></i>
+                  </div>
+                  <p class="text-xs font-bold text-white line-clamp-2">Cover Songs</p>
+                  <p class="text-[11px] text-pink-300 truncate max-w-full">{{ alb.artist }}</p>
+                </div>
+                {% else %}
                 <img id="album-cover-img-{{ forloop.counter0 }}"
                      src=""
                      data-artist="{{ alb.artist }}"
@@ -3736,6 +3746,25 @@
                   <p class="text-xs font-bold text-white line-clamp-2">{{ alb.album }}</p>
                   <p class="text-[11px] text-indigo-300 truncate max-w-full">{{ alb.artist }}</p>
                 </div>
+                {% endif %}
+
+                <!-- Top Right Badge: Plays Heard Count -->
+                <div class="absolute top-2 right-2 z-20">
+                  <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-slate-950/85 text-emerald-400 border border-emerald-500/40 backdrop-blur-md shadow-md">
+                    {{ alb.plays_heard }}x live
+                  </span>
+                </div>
+
+                <!-- Top Left Badge: Release Year -->
+                {% if alb.release_year %}
+                <div class="absolute top-2 left-2 z-20">
+                  <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-slate-950/85 text-slate-300 border border-slate-700/60 backdrop-blur-md">
+                    {{ alb.release_year }}
+                  </span>
+                </div>
+                {% endif %}
+              </div>
+            </div>
 
                 <!-- Top Right Badge: Plays Heard Count -->
                 <div class="absolute top-2 right-2 z-20">
@@ -7121,7 +7150,7 @@
     async function getAlbumArtUrl(artist, album) {
       if (!artist || !album) return null;
       const cleanAlbum = album.replace(/\s*\([^)]*\)/g, '').trim();
-      if (!cleanAlbum || cleanAlbum.toLowerCase().includes('non-album') || cleanAlbum.toLowerCase().includes('singles')) {
+      if (!cleanAlbum || cleanAlbum.toLowerCase() === 'covers' || cleanAlbum.toLowerCase().includes('non-album') || cleanAlbum.toLowerCase().includes('singles')) {
         return null;
       }
       const cacheKey = `setlore_art_${artist.toLowerCase()}_${cleanAlbum.toLowerCase()}`;
@@ -7165,6 +7194,10 @@
       if (!artist || !album) return;
 
       const cleanAlbum = album.replace(/\s*\([^)]*\)/g, '').trim();
+      if (!cleanAlbum || cleanAlbum.toLowerCase() === 'covers' || cleanAlbum.toLowerCase().includes('non-album') || cleanAlbum.toLowerCase().includes('singles')) {
+        return;
+      }
+
       const cacheKey = `setlore_art_${artist.toLowerCase()}_${cleanAlbum.toLowerCase()}`;
       
       // Fast path: if cached in memory or localStorage, apply immediately
@@ -7227,6 +7260,11 @@
       const artist = img.dataset.artist;
       const album = img.dataset.album;
       if (!artist || !album) return;
+
+      const cleanAlbum = album.replace(/\s*\([^)]*\)/g, '').trim();
+      if (!cleanAlbum || cleanAlbum.toLowerCase() === 'covers' || cleanAlbum.toLowerCase().includes('non-album') || cleanAlbum.toLowerCase().includes('singles')) {
+        return;
+      }
 
       // Move to the front of the queue so on-screen / top cards resolve first
       albumArtQueue = albumArtQueue.filter(t => t.img !== img);
@@ -7306,7 +7344,18 @@
         const searchData = card.getAttribute('data-search') || '';
         const decadeData = card.getAttribute('data-decade') || '';
         const matchSearch = !q || searchData.includes(q);
-        const matchDecade = currentGalleryDecade === 'all' || decadeData === currentGalleryDecade;
+
+        let matchDecade = false;
+        if (currentGalleryDecade === 'all') {
+          // "All Eras" view shows standard album eras and excludes Covers
+          matchDecade = decadeData !== 'Covers';
+        } else if (currentGalleryDecade === 'Covers') {
+          // "Covers" view shows only Covers
+          matchDecade = decadeData === 'Covers';
+        } else {
+          // Specific era view (e.g. 2020s, 1990s)
+          matchDecade = decadeData === currentGalleryDecade;
+        }
 
         if (matchSearch && matchDecade) {
           card.style.display = 'flex';
@@ -7315,6 +7364,15 @@
           card.style.display = 'none';
         }
       });
+
+      const countBadge = document.getElementById('album-gallery-count-badge');
+      if (countBadge) {
+        if (currentGalleryDecade === 'Covers') {
+          countBadge.innerText = `${visibleCount} Cover Collection${visibleCount === 1 ? '' : 's'}`;
+        } else {
+          countBadge.innerText = `${visibleCount} Album${visibleCount === 1 ? '' : 's'}`;
+        }
+      }
 
       const noResults = document.getElementById('album-gallery-no-results');
       if (noResults) {
@@ -7383,7 +7441,22 @@
       }
 
       // Cover Art
-      if (coverImg && coverFallback) {
+      if (alb.decade === 'Covers' || (alb.album && alb.album.toLowerCase() === 'covers')) {
+        if (coverImg) {
+          coverImg.src = '';
+          coverImg.classList.add('opacity-0');
+        }
+        if (coverFallback) {
+          coverFallback.innerHTML = `
+            <div class="flex flex-col items-center justify-center text-pink-400">
+              <i class="fa-solid fa-microphone-lines text-3xl mb-1"></i>
+              <span class="text-[10px] font-bold uppercase tracking-wider text-pink-300">Covers</span>
+            </div>
+          `;
+          coverFallback.classList.remove('opacity-0');
+        }
+      } else if (coverImg && coverFallback) {
+        coverFallback.innerHTML = `<i class="fa-solid fa-compact-disc text-3xl text-indigo-400"></i>`;
         coverImg.src = '';
         coverImg.classList.add('opacity-0');
         coverFallback.classList.remove('opacity-0');
