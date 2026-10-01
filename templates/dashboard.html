@@ -1627,12 +1627,15 @@
       </div>
 
       <div class="shrink-0 space-y-2 py-3">
-        <div class="relative">
-          <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500 text-xs">
+        <div class="relative flex items-center">
+          <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500 text-xs pointer-events-none">
             <i class="fa-solid fa-magnifying-glass"></i>
           </span>
-          <input type="text" id="impersonate-search" placeholder="Filter user by username or email..." oninput="filterImpersonateUsers()"
-            class="w-full pl-8 pr-3 py-2 text-xs rounded-xl bg-slate-900/90 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500">
+          <input type="text" id="impersonate-search" placeholder="Filter user by username or email..." oninput="handleFilterInput('impersonate-search', 'impersonate-search-clear', filterImpersonateUsers)"
+            class="w-full pl-8 pr-8 py-2 text-xs rounded-xl bg-slate-900/90 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500">
+          <button type="button" id="impersonate-search-clear" onclick="clearFilterField('impersonate-search', 'impersonate-search-clear', filterImpersonateUsers)" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-0.5 cursor-pointer text-xs transition" title="Clear filter">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
         </div>
       </div>
 
@@ -2642,7 +2645,7 @@
         <div class="glass-card p-4">
           <span class="text-xs text-slate-400 font-semibold uppercase tracking-wider">#1 Most Seen Musician</span>
           <p class="text-lg font-black text-indigo-400 mt-1 truncate">
-            <button onclick="jumpToMusicianInDrilldown('{{ stats.musicians.top_musicians.0.musician|escapejs }}');" class="hover:underline text-indigo-400 text-left font-black cursor-pointer">
+            <button onclick="jumpToMusicianInConcerts('{{ stats.musicians.top_musicians.0.musician|escapejs }}');" class="hover:underline text-indigo-400 text-left font-black cursor-pointer">
               {{ stats.musicians.top_musicians.0.musician }}
             </button>
           </p>
@@ -2656,7 +2659,7 @@
         <div class="glass-card p-4">
           <span class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Top Multi-Band Member</span>
           <p class="text-base font-black text-pink-400 mt-1 truncate">
-            <button onclick="jumpToMusicianInDrilldown('{{ stats.musicians.supergroup_musicians.0.musician|escapejs }}');" class="hover:underline text-pink-400 text-left font-black cursor-pointer">
+            <button onclick="jumpToMusicianInConcerts('{{ stats.musicians.supergroup_musicians.0.musician|escapejs }}');" class="hover:underline text-pink-400 text-left font-black cursor-pointer">
               {{ stats.musicians.supergroup_musicians.0.musician }}
             </button>
           </p>
@@ -2669,7 +2672,7 @@
         <div class="flex items-center justify-between border-b border-slate-800 pb-3">
           <div>
             <h3 class="text-base font-bold text-white flex items-center gap-2">
-              <i class="fa-solid fa-bolt text-amber-400"></i> Multi-Band & Supergroup Members
+              <i class="fa-solid fa-bolt text-amber-400"></i> Multi-Band &amp; Supergroup Members
             </h3>
             <p class="text-xs text-slate-400">Individual musicians you've seen performing across multiple different bands and solo projects</p>
           </div>
@@ -2682,7 +2685,7 @@
             <div class="flex items-start justify-between">
               <div>
                 <h4 class="font-bold text-white text-sm flex items-center gap-1.5">
-                  <button onclick="jumpToMusicianInDrilldown('{{ m.musician|escapejs }}');" class="hover:underline hover:text-indigo-300 flex items-center gap-1.5 text-white font-bold text-sm text-left cursor-pointer">
+                  <button onclick="jumpToMusicianInConcerts('{{ m.musician|escapejs }}');" class="hover:underline hover:text-indigo-300 flex items-center gap-1.5 text-white font-bold text-sm text-left cursor-pointer">
                     <i class="fa-solid fa-user-tag text-indigo-400 text-xs"></i> {{ m.musician }}
                   </button>
                 </h4>
@@ -2698,7 +2701,7 @@
               <p class="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Projects Seen Live ({{ m.unique_bands_count }}):</p>
               <div class="flex flex-wrap gap-1.5">
                 {% for b_name, b_count in m.bands.items %}
-                <button onclick="jumpToSongInDrilldown('{{ b_name|escapejs }}', '');" class="badge bg-slate-800 hover:bg-indigo-600/30 text-slate-200 hover:text-indigo-200 border border-slate-700 hover:border-indigo-500/50 text-xs transition cursor-pointer">
+                <button onclick="jumpToArtistInConcerts('{{ b_name|escapejs }}');" class="badge bg-slate-800 hover:bg-indigo-600/30 text-slate-200 hover:text-indigo-200 border border-slate-700 hover:border-indigo-500/50 text-xs transition cursor-pointer">
                   {{ b_name }} <span class="text-indigo-400 ml-1 font-bold">{{ b_count }}x</span>
                 </button>
                 {% endfor %}
@@ -2747,7 +2750,7 @@
                 <th class="px-3 py-2.5">Musician</th>
                 <th class="px-3 py-2.5">Primary Instrument / Role</th>
                 <th class="px-3 py-2.5 text-center">Shows</th>
-                <th class="px-3 py-2.5">Bands & Projects Seen Live</th>
+                <th class="px-3 py-2.5">Bands &amp; Projects Seen Live</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-800/50">
@@ -2755,7 +2758,7 @@
               <tr class="musician-row hover:bg-slate-800/40 transition" data-musician-name="{{ m.musician|lower }}" data-instrument="{{ m.instrument }}">
                 <td class="px-3 py-2.5 text-xs font-mono text-slate-500">{{ forloop.counter }}</td>
                 <td class="px-3 py-2.5">
-                  <button onclick="jumpToMusicianInDrilldown('{{ m.musician|escapejs }}');" class="font-bold text-white hover:text-indigo-300 hover:underline text-xs text-left cursor-pointer">
+                  <button onclick="jumpToMusicianInConcerts('{{ m.musician|escapejs }}');" class="font-bold text-white hover:text-indigo-300 hover:underline text-xs text-left cursor-pointer">
                     {{ m.musician }}
                   </button>
                 </td>
@@ -2768,7 +2771,7 @@
                 <td class="px-3 py-2.5 text-xs">
                   <div class="flex flex-wrap gap-1">
                     {% for b_name, b_count in m.bands.items %}
-                    <button onclick="jumpToSongInDrilldown('{{ b_name|escapejs }}', '');" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-indigo-600/30 text-slate-300 hover:text-indigo-200 border border-slate-700 hover:border-indigo-500/50 text-[11px] transition">
+                    <button onclick="jumpToArtistInConcerts('{{ b_name|escapejs }}');" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-indigo-600/30 text-slate-300 hover:text-indigo-200 border border-slate-700 hover:border-indigo-500/50 text-[11px] transition cursor-pointer">
                       {{ b_name }} <span class="text-indigo-400 font-bold">({{ b_count }}x)</span>
                     </button>
                     {% endfor %}
@@ -2995,11 +2998,15 @@
       <!-- Filter / Search & Add Friend -->
       <div class="glass-card p-4 flex flex-col md:flex-row items-center justify-between gap-4">
         <div class="relative w-full md:w-80">
-          <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500 text-xs">
+          <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500 text-xs pointer-events-none">
             <i class="fa-solid fa-magnifying-glass"></i>
           </span>
-          <input type="text" id="friends-search-input" placeholder="Filter friends or community..." oninput="filterFriendsPage(this.value)"
-            class="w-full pl-8 pr-3 py-2 text-xs rounded-xl bg-slate-900/90 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
+          <input type="text" id="friends-search-input" placeholder="Filter friends or community..." oninput="handleFilterInput('friends-search-input', 'friends-search-clear', filterFriendsPage)"
+            class="w-full pl-8 pr-8 py-2 text-xs rounded-xl bg-slate-900/90 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
+          <button type="button" id="friends-search-clear" onclick="clearFilterField('friends-search-input', 'friends-search-clear', filterFriendsPage)"
+            class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-0.5 cursor-pointer text-xs transition" title="Clear search">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
         </div>
 
         <!-- Add by Username Quick Form -->
@@ -3042,9 +3049,15 @@
                       {{ fb.username|slice:":1"|upper }}
                     </div>
                     <div class="min-w-0">
-                      <a href="{% url 'public_profile' username=fb.username %}" class="text-sm font-bold text-white hover:text-indigo-300 transition truncate block">
-                        @{{ fb.username }}
-                      </a>
+                      {% if fb.is_public %}
+                        <a href="{% url 'public_profile' username=fb.username %}" class="text-sm font-bold text-white hover:text-indigo-300 transition truncate block">
+                          @{{ fb.username }}
+                        </a>
+                      {% else %}
+                        <span class="text-sm font-bold text-slate-300 truncate block cursor-default select-none">
+                          @{{ fb.username }}
+                        </span>
+                      {% endif %}
                       {% if fb.setlistfm_username %}
                         <p class="text-[11px] text-slate-400 truncate flex items-center gap-1">
                           <i class="fa-brands fa-lastfm text-amber-400 text-[10px]"></i> {{ fb.setlistfm_username }}
@@ -3098,10 +3111,17 @@
                 {% endif %}
 
                 <div class="flex items-center gap-2 pt-1">
-                  <a href="{% url 'public_profile' username=fb.username %}" class="flex-1 py-1.5 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 hover:text-white text-xs font-semibold text-center transition flex items-center justify-center gap-1.5">
-                    <i class="fa-solid fa-eye text-[11px]"></i>
-                    <span>Profile</span>
-                  </a>
+                  {% if fb.is_public %}
+                    <a href="{% url 'public_profile' username=fb.username %}" class="flex-1 py-1.5 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 hover:text-white text-xs font-semibold text-center transition flex items-center justify-center gap-1.5">
+                      <i class="fa-solid fa-eye text-[11px]"></i>
+                      <span>Profile</span>
+                    </a>
+                  {% else %}
+                    <div class="flex-1 py-1.5 px-3 rounded-lg bg-slate-900/60 border border-slate-800 text-slate-500 text-xs font-medium text-center flex items-center justify-center gap-1.5 select-none" title="Private profile">
+                      <i class="fa-solid fa-lock text-[10px]"></i>
+                      <span>Private</span>
+                    </div>
+                  {% endif %}
                   <button type="button" onclick="toggleFriendsPageFriend({{ fb.id }}, this)" class="py-1.5 px-3.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 shrink-0 shadow-md shadow-indigo-600/25">
                     <i class="fa-solid fa-user-plus text-[10px]"></i>
                     <span>Friend Back</span>
@@ -3317,9 +3337,15 @@
                     {{ s.username|slice:":1"|upper }}
                   </div>
                   <div class="min-w-0">
-                    <a href="{% url 'public_profile' username=s.username %}" class="text-sm font-bold text-white hover:text-indigo-300 transition truncate block">
-                      @{{ s.username }}
-                    </a>
+                    {% if s.is_public %}
+                      <a href="{% url 'public_profile' username=s.username %}" class="text-sm font-bold text-white hover:text-indigo-300 transition truncate block">
+                        @{{ s.username }}
+                      </a>
+                    {% else %}
+                      <span class="text-sm font-bold text-slate-300 truncate block cursor-default select-none">
+                        @{{ s.username }}
+                      </span>
+                    {% endif %}
                     {% if s.setlistfm_username %}
                       <p class="text-[11px] text-slate-400 truncate flex items-center gap-1">
                         <i class="fa-brands fa-lastfm text-amber-400 text-[10px]"></i> {{ s.setlistfm_username }}
@@ -3375,10 +3401,17 @@
               {% endif %}
 
               <div class="flex items-center gap-2 pt-1">
-                <a href="{% url 'public_profile' username=s.username %}" class="flex-1 py-1.5 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white text-xs font-semibold text-center transition flex items-center justify-center gap-1.5">
-                  <i class="fa-solid fa-eye text-[11px]"></i>
-                  <span>Profile</span>
-                </a>
+                {% if s.is_public %}
+                  <a href="{% url 'public_profile' username=s.username %}" class="flex-1 py-1.5 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white text-xs font-semibold text-center transition flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-eye text-[11px]"></i>
+                    <span>Profile</span>
+                  </a>
+                {% else %}
+                  <div class="flex-1 py-1.5 px-3 rounded-lg bg-slate-900/60 border border-slate-800 text-slate-500 text-xs font-medium text-center flex items-center justify-center gap-1.5 select-none" title="Private profile">
+                    <i class="fa-solid fa-lock text-[10px]"></i>
+                    <span>Private</span>
+                  </div>
+                {% endif %}
                 <button type="button" onclick="toggleFriendsPageFriend({{ s.id }}, this)" class="py-1.5 px-3.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition cursor-pointer flex items-center gap-1 shrink-0 shadow-md shadow-indigo-600/25">
                   <i class="fa-solid fa-user-plus text-[10px]"></i>
                   <span>Add Friend</span>
@@ -4471,6 +4504,10 @@
           firstMatch.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }, 60);
       }
+    }
+
+    function jumpToMusicianInConcerts(musicianName) {
+      jumpToArtistInConcerts(musicianName);
     }
 
     function focusVenueOnMap(lat, lng, venueName) {

@@ -304,4 +304,25 @@ class AutocompleteAndCSVTests(TestCase):
         self.assertEqual(self.user.profile.sync_status, 'idle')
         self.assertEqual(self.user.profile.sync_progress, 'Sync cancelled')
 
+    def test_public_profile_private_returns_403(self):
+        other_user = User.objects.create_user(username='privateuser', password='password123')
+        other_user.profile.is_public = False
+        other_user.profile.save()
+
+        # Anonymous client attempting to view private profile
+        anon_client = Client()
+        response = anon_client.get(f'/u/{other_user.username}/')
+        self.assertEqual(response.status_code, 403)
+
+        # Logged-in user who is not friends attempting to view private profile
+        response = self.client.get(f'/u/{other_user.username}/')
+        self.assertEqual(response.status_code, 403)
+
+        # Public profile should return 200
+        other_user.profile.is_public = True
+        other_user.profile.save()
+        response = anon_client.get(f'/u/{other_user.username}/')
+        self.assertEqual(response.status_code, 200)
+
+
 

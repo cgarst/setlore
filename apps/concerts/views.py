@@ -278,6 +278,7 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
 
     is_friend = False
     friends_list = []
+    friended_by_list = []
     friend_suggestions = []
 
     if request.user.is_authenticated:
@@ -488,7 +489,12 @@ def public_profile_view(request, username, tab_name='overview'):
             user=request.user, friend=target_user
         ).exists()
 
-    if not target_user.profile.is_public and not is_owner and not is_staff and not is_friend:
+    target_profile = getattr(target_user, 'profile', None)
+    if not target_profile:
+        from apps.core.models import UserProfile
+        target_profile, _ = UserProfile.objects.get_or_create(user=target_user)
+
+    if not target_profile.is_public and not is_owner and not is_staff and not is_friend:
         return render(request, 'public_profile_message.html', {
             'title': 'Private Profile',
             'message_type': 'private',
