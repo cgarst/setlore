@@ -192,6 +192,7 @@ class MusicBrainzDumpManager:
 
         mode = self.get_mode()
         online_fallback = self.get_online_fallback()
+        schedule_info = self.get_schedule()
         upstream_version = task_data.get("upstream_version")
         has_new_version = bool(upstream_version and local_version and upstream_version != local_version)
         can_index_local = bool(has_raw_archives and not is_ready)
@@ -200,6 +201,9 @@ class MusicBrainzDumpManager:
             "status": status_label,
             "mode": mode,
             "online_fallback": online_fallback,
+            "schedule": schedule_info.get("interval", "off"),
+            "schedule_info": schedule_info,
+            "auto_delete_raw": schedule_info.get("auto_delete_raw", False),
             "is_available": (is_ready and not is_running) if mode == "auto" else False,
             "is_ready_on_disk": is_ready,
             "is_running": is_running,
@@ -246,6 +250,92 @@ class MusicBrainzDumpManager:
         data["mode"] = mode
         data["last_updated"] = time.strftime("%Y-%m-%d %H:%M:%S")
         self._update_status_file(data)
+
+    def get_schedule(self) -> Dict[str, Any]:
+        """Returns dump update schedule config."""
+        if self.status_file.exists():
+            try:
+                with open(self.status_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    sched = data.get("schedule_config") or {}
+                    return {
+                        "interval": sched.get("interval", data.get("schedule", "off")),
+                        "auto_delete_raw": bool(sched.get("auto_delete_raw", data.get("auto_delete_raw", False))),
+                        "last_checked": sched.get("last_checked")
+                    }
+            except Exception:
+                pass
+        return {"interval": "off", "auto_delete_raw": False, "last_checked": None}
+
+    def set_schedule(self, interval: str, auto_delete_raw: bool = False):
+        """Sets scheduled update interval ('off', 'daily', 'weekly', 'monthly') and auto cleanup preference."""
+        if interval not in ("off", "daily", "weekly", "monthly"):
+            interval = "off"
+        data = {}
+        if self.status_file.exists():
+            try:
+                with open(self.status_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+            except Exception:
+                pass
+        data["schedule"] = interval
+        data["auto_delete_raw"] = bool(auto_delete_raw)
+        data["schedule_config"] = {
+            "interval": interval,
+            "auto_delete_raw": bool(auto_delete_raw),
+            "last_checked": time.strftime("%Y-%m-%d %H:%M:%S")
+        }
+        data["last_updated"] = time.strftime("%Y-%m-%d %H:%M:%S")
+        self._update_status_file(data)
+
+    def get_auto_delete_raw(self) -> bool:
+        """Returns True if raw archives should automatically be deleted after indexing."""
+        sched = self.get_schedule()
+        return bool(sched.get("auto_delete_raw", False))
+
+    def set_auto_delete_raw(self, enabled: bool):
+        sched = self.get_schedule()
+        self.set_schedule(sched.get("interval", "off"), auto_delete_raw=enabled)
+
+    def check_and_run_scheduled_update(self, force: bool = False) -> Tuple[bool, str]:
+        """
+        Checks upstream MetaBrainz version against local dump.
+        Skips if local version matches upstream. If new version exists (or missing), triggers update.
+        """
+        sched = self.get_schedule()
+        auto_delete_raw = sched.get("auto_delete_raw", False)
+        upstream_version = self.get_latest_upstream_version()
+        if not upstream_version:
+            return False, "Could not reach upstream MetaBrainz dump server."
+
+        status = self.get_status()
+        local_version = status.get("local_version")
+        is_ready = status.get("is_ready_on_disk", False)
+
+        # Update last checked timestamp
+        data = {}
+        if self.status_file.exists():
+            try:
+                with open(self.status_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+            except Exception:
+                pass
+        if "schedule_config" in data:
+            data["schedule_config"]["last_checked"] = time.strftime("%Y-%m-%d %H:%M:%S")
+            self._update_status_file(data)
+
+        if is_ready and local_version and local_version == upstream_version and not force:
+            msg = f"Upstream dump is already current ({local_version}). Skipping update."
+            print(f"[MusicBrainzDump] {msg}")
+            return False, msg
+
+        print(f"[MusicBrainzDump] Starting scheduled dump update to version {upstream_version}...")
+        success, msg = self.download_and_build(
+            components=["release.tar.xz", "artist.tar.xz"],
+            background=True,
+            auto_delete_raw=auto_delete_raw
+        )
+        return success, msg
 
     def get_online_fallback(self) -> bool:
         """Returns True if unmatched queries should fall back to the live MusicBrainz Web API."""
@@ -315,15 +405,26 @@ class MusicBrainzDumpManager:
         return True, f"Deleted raw archives ({format_bytes(freed_bytes)} freed)."
 
     def _update_status_file(self, data: Dict[str, Any]):
-        """Persists current state to status.json."""
+        """Persists current state to status.json while safely preserving user configurations."""
         try:
             self.status_file.parent.mkdir(parents=True, exist_ok=True)
+            existing = {}
+            if self.status_file.exists():
+                try:
+                    with open(self.status_file, "r", encoding="utf-8") as f:
+                        existing = json.load(f)
+                except Exception:
+                    pass
+            # Preserve user settings from existing file if not explicitly set in incoming data
+            for key in ["mode", "online_fallback", "schedule", "schedule_config", "auto_delete_raw"]:
+                if key in existing and key not in data:
+                    data[key] = existing[key]
             with open(self.status_file, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2)
         except Exception as e:
             print(f"[MusicBrainzDump] Failed to update status file: {e}")
 
-    def download_and_build(self, components: Optional[List[str]] = None, background: bool = True):
+    def download_and_build(self, components: Optional[List[str]] = None, background: bool = True, auto_delete_raw: Optional[bool] = None):
         """Starts background download and indexing of MusicBrainz JSON dump."""
         if self._current_task_thread and self._current_task_thread.is_alive():
             return False, "A download or build task is already currently running."
@@ -331,18 +432,21 @@ class MusicBrainzDumpManager:
         if not components:
             components = ["release.tar.xz", "artist.tar.xz"]
 
+        if auto_delete_raw is None:
+            auto_delete_raw = self.get_auto_delete_raw()
+
         self._cancel_requested = False
 
         if background:
             self._current_task_thread = threading.Thread(
                 target=self._run_download_and_build,
-                args=(components,),
+                args=(components, auto_delete_raw),
                 daemon=True
             )
             self._current_task_thread.start()
             return True, "Download started in background."
         else:
-            self._run_download_and_build(components)
+            self._run_download_and_build(components, auto_delete_raw)
             return True, "Download and build completed."
 
     def _is_cancel_requested(self) -> bool:
@@ -482,7 +586,7 @@ class MusicBrainzDumpManager:
         cur.execute("CREATE INDEX IF NOT EXISTS idx_rg_artist_title ON release_groups(clean_artist, clean_title);")
         conn.commit()
 
-    def _run_download_and_build(self, components: List[str]):
+    def _run_download_and_build(self, components: List[str], auto_delete_raw: bool = False):
         """Worker thread loop to download dump archives and index them into SQLite."""
         upstream_version = self.get_latest_upstream_version() or time.strftime("%Y%m%d-000000")
         
@@ -869,12 +973,19 @@ class MusicBrainzDumpManager:
             # Mark version and complete
             self.latest_file.write_text(upstream_version, encoding="utf-8")
 
+            if auto_delete_raw:
+                try:
+                    self.delete_raw_archives()
+                except Exception as e:
+                    print(f"[MusicBrainzDump] Auto delete raw error: {e}")
+
             status_state["status"] = "ready"
             status_state["progress"] = {
                 "step": "Completed successfully",
                 "percent": 100
             }
             status_state["last_updated"] = time.strftime("%Y-%m-%d %H:%M:%S")
+            self._update_status_file(status_state)
         except Exception as e:
             msg = str(e)
             if "cancelled" in msg.lower() or self._is_cancel_requested():

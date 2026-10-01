@@ -117,3 +117,27 @@ class MusicBrainzDumpTests(TestCase):
         self.assertEqual(res.status_code, 200)
         data = res.json()
         self.assertEqual(data['status'], 'success')
+
+    def test_mode_toggle_preserved_during_progress(self):
+        # Initial status write (e.g. starting download)
+        self.manager._update_status_file({
+            'status': 'downloading',
+            'progress': {'step': 'Downloading release.tar.xz...', 'percent': 10}
+        })
+        self.assertEqual(self.manager.get_mode(), 'auto')
+
+        # User toggles mode to off while indexing/downloading
+        self.manager.set_mode('off')
+        self.assertEqual(self.manager.get_mode(), 'off')
+
+        # Background worker writes an updated progress status
+        self.manager._update_status_file({
+            'status': 'extracting',
+            'progress': {'step': 'Indexing releases...', 'percent': 50}
+        })
+
+        # Mode should still remain 'off', not flipped back to 'auto'
+        self.assertEqual(self.manager.get_mode(), 'off')
+        status = self.manager.get_status()
+        self.assertEqual(status['mode'], 'off')
+
