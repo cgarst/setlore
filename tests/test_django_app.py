@@ -564,6 +564,26 @@ class DjangoAppTests(TestCase):
         self.assertEqual(jolly_data["total_plays"], 2)
         self.assertEqual(jolly_data["unique_songs"], 2)
 
+    def test_initial_tab_html_rendering(self):
+        self.client.force_login(self.user)
 
+        # 1. /concerts/ should render tab-concerts without hidden and tab-overview with hidden
+        res_concerts = self.client.get('/concerts/')
+        self.assertEqual(res_concerts.status_code, 200)
+        content_concerts = res_concerts.content.decode('utf-8')
+        self.assertIn('id="tab-concerts" class="space-y-6"', content_concerts)
+        self.assertIn('id="tab-overview" class="hidden space-y-6"', content_concerts)
 
+        # 2. /albums/ should render tab-albums without hidden and tab-overview with hidden
+        res_albums = self.client.get('/albums/')
+        self.assertEqual(res_albums.status_code, 200)
+        content_albums = res_albums.content.decode('utf-8')
+        self.assertIn('id="tab-albums" class="space-y-6"', content_albums)
+        self.assertIn('id="tab-overview" class="hidden space-y-6"', content_albums)
 
+        # 3. /overview/ (or /) should render tab-overview without hidden and tab-concerts with hidden
+        res_overview = self.client.get('/overview/')
+        self.assertEqual(res_overview.status_code, 200)
+        content_overview = res_overview.content.decode('utf-8')
+        self.assertIn('id="tab-overview" class="space-y-6"', content_overview)
+        self.assertIn('id="tab-concerts" class="hidden space-y-6"', content_overview)

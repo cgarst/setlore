@@ -2473,36 +2473,36 @@
   <div id="desktop-nav-bar" class="hidden md:block max-w-7xl mx-auto mb-8">
     <div class="glass-card p-1.5 flex flex-col lg:flex-row items-center justify-between gap-3 shadow-2xl border border-slate-800/80 bg-slate-900/90 backdrop-blur-xl">
       <nav class="flex flex-wrap items-center gap-1.5 w-full lg:w-auto">
-        <button onclick="switchTab('overview')" id="tab-overview-btn" class="nav-tab-btn px-3.5 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-500/25 flex items-center gap-2 transition-all">
+        <button onclick="switchTab('overview')" id="tab-overview-btn" class="nav-tab-btn px-3.5 py-2 rounded-xl text-xs {% if initial_tab == 'overview' or not initial_tab %}font-bold bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-500/25{% else %}font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/60{% endif %} flex items-center gap-2 transition-all">
           <i class="fa-solid fa-chart-pie"></i> Overview
         </button>
-        <button onclick="switchTab('concerts')" id="tab-concerts-btn" class="nav-tab-btn px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 flex items-center gap-2 transition-all">
+        <button onclick="switchTab('concerts')" id="tab-concerts-btn" class="nav-tab-btn px-3.5 py-2 rounded-xl text-xs {% if initial_tab == 'concerts' %}font-bold bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-500/25{% else %}font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/60{% endif %} flex items-center gap-2 transition-all">
           <i class="fa-solid fa-ticket text-purple-400"></i> Concerts
         </button>
-        <button onclick="switchTab('drilldown')" id="tab-drilldown-btn" class="nav-tab-btn px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 flex items-center gap-2 transition-all">
+        <button onclick="switchTab('drilldown')" id="tab-drilldown-btn" class="nav-tab-btn px-3.5 py-2 rounded-xl text-xs {% if initial_tab == 'drilldown' %}font-bold bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-500/25{% else %}font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/60{% endif %} flex items-center gap-2 transition-all">
           <i class="fa-solid fa-magnifying-glass-chart text-pink-400"></i> Artists & Songs
         </button>
-        <button onclick="switchTab('albums')" id="tab-albums-btn" class="nav-tab-btn px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 flex items-center gap-2 transition-all">
+        <button onclick="switchTab('albums')" id="tab-albums-btn" class="nav-tab-btn px-3.5 py-2 rounded-xl text-xs {% if initial_tab == 'albums' %}font-bold bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-500/25{% else %}font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/60{% endif %} flex items-center gap-2 transition-all">
           <i class="fa-solid fa-wand-magic-sparkles text-cyan-400"></i> Albums & Eras
         </button>
-        <button onclick="switchTab('musicians')" id="tab-musicians-btn" class="nav-tab-btn px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 flex items-center gap-2 transition-all">
+        <button onclick="switchTab('musicians')" id="tab-musicians-btn" class="nav-tab-btn px-3.5 py-2 rounded-xl text-xs {% if initial_tab == 'musicians' %}font-bold bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-500/25{% else %}font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/60{% endif %} flex items-center gap-2 transition-all">
           <i class="fa-solid fa-users-viewfinder text-amber-400"></i> Musicians
         </button>
-        <button onclick="switchTab('map')" id="tab-map-btn" class="nav-tab-btn px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 flex items-center gap-2 transition-all">
+        <button onclick="switchTab('map')" id="tab-map-btn" class="nav-tab-btn px-3.5 py-2 rounded-xl text-xs {% if initial_tab == 'map' %}font-bold bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-500/25{% else %}font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/60{% endif %} flex items-center gap-2 transition-all">
           <i class="fa-solid fa-map-location-dot text-emerald-400"></i> Venue Map
         </button>
-        <button onclick="switchTab('setlists')" id="tab-setlists-btn" class="nav-tab-btn px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 flex items-center gap-2 transition-all">
+        <button onclick="switchTab('setlists')" id="tab-setlists-btn" class="nav-tab-btn px-3.5 py-2 rounded-xl text-xs {% if initial_tab == 'setlists' %}font-bold bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-500/25{% else %}font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/60{% endif %} flex items-center gap-2 transition-all">
           <i class="fa-solid fa-leaf text-emerald-400"></i> Freshness
         </button>
         {% if not is_public_view %}
-        <button onclick="switchTab('friends')" id="tab-friends-btn" class="nav-tab-btn px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 flex items-center gap-2 transition-all">
+        <button onclick="switchTab('friends')" id="tab-friends-btn" class="nav-tab-btn px-3.5 py-2 rounded-xl text-xs {% if initial_tab == 'friends' %}font-bold bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-500/25{% else %}font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/60{% endif %} flex items-center gap-2 transition-all">
           <i class="fa-solid fa-user-group text-purple-400"></i> Friends
         </button>
         {% endif %}
       </nav>
 
       <div class="flex items-center gap-2 w-full lg:w-auto justify-end border-t lg:border-t-0 border-slate-800/80 pt-2 lg:pt-0">
-        <button onclick="switchTab('gap')" id="tab-gap-btn" class="nav-tab-btn px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:text-white bg-slate-800/80 border border-slate-700 hover:border-amber-500/50 flex items-center gap-2 transition-all shadow-sm">
+        <button onclick="switchTab('gap')" id="tab-gap-btn" class="nav-tab-btn px-3.5 py-2 rounded-xl text-xs {% if initial_tab == 'gap' %}font-bold bg-amber-500/20 text-amber-300 border border-amber-500/50 shadow-md shadow-amber-500/10{% else %}font-semibold text-slate-300 hover:text-white bg-slate-800/80 border border-slate-700 hover:border-amber-500/50 shadow-sm{% endif %} flex items-center gap-2 transition-all">
           <i class="fa-solid fa-clipboard-check text-amber-400"></i> Setlist Audit
           {% if gap.csv_missing_or_partial|length > 0 %}
             <span class="bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-md text-[11px] font-mono font-bold border border-amber-500/30">{{ gap.csv_missing_or_partial|length }}</span>
@@ -2516,7 +2516,7 @@
   <main class="max-w-7xl mx-auto pt-8 md:pt-0">
 
     <!-- 1. OVERVIEW & CORE STATS TAB (Default Active) -->
-    <div id="tab-overview" class="space-y-6">
+    <div id="tab-overview" class="{% if initial_tab != 'overview' and initial_tab %}hidden {% endif %}space-y-6">
       
       <!-- Charts Row: Yearly Timeline & Top Artists -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -2886,7 +2886,7 @@
     </div>
 
     <!-- 2. CONCERT DRILLDOWN TAB (Chronological Latest to Oldest) -->
-    <div id="tab-concerts" class="hidden space-y-6">
+    <div id="tab-concerts" class="{% if initial_tab != 'concerts' %}hidden {% endif %}space-y-6">
       
       <!-- Top Bar: Search / Filter & Actions -->
       <div class="glass-card p-5 space-y-4">
@@ -3306,7 +3306,7 @@
     </div>
 
     <!-- 3. ARTIST & SONG DRILLDOWN TAB -->
-    <div id="tab-drilldown" class="hidden space-y-6">
+    <div id="tab-drilldown" class="{% if initial_tab != 'drilldown' %}hidden {% endif %}space-y-6">
       
       <!-- Artist Selection Cards -->
       <div class="glass-card p-6">
@@ -3398,7 +3398,7 @@
     </div>
 
     <!-- 4. MUSICIANS & MULTI-BAND TENURE TAB -->
-    <div id="tab-musicians" class="hidden space-y-6">
+    <div id="tab-musicians" class="{% if initial_tab != 'musicians' %}hidden {% endif %}space-y-6">
       
       <!-- Summary Metrics Bar -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -3553,7 +3553,7 @@
     </div>
 
     <!-- 5. VENUE & CONCERT MAP TAB -->
-    <div id="tab-map" class="hidden space-y-6">
+    <div id="tab-map" class="{% if initial_tab != 'map' %}hidden {% endif %}space-y-6">
       
       <!-- Top Metrics Row -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -3628,8 +3628,8 @@
 
     </div>
 
-    <!-- 5. ADVANCED & ALBUM VISUALS TAB -->
-    <div id="tab-albums" class="hidden space-y-6">
+    <!-- 6. ALBUMS & ERAS TAB -->
+    <div id="tab-albums" class="{% if initial_tab != 'albums' %}hidden {% endif %}space-y-6">
       
       <!-- Album Era & Catalog Age Analysis (Top of Tab) -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -3854,8 +3854,8 @@
 
     </div>
 
-    <!-- 4. SETLIST VARIATION & FRESHNESS TAB -->
-    <div id="tab-setlists" class="hidden space-y-6">
+    <!-- 7. SETLIST VARIATION & FRESHNESS TAB -->
+    <div id="tab-setlists" class="{% if initial_tab != 'setlists' %}hidden {% endif %}space-y-6">
       
       <div class="glass-card p-6">
         <div class="flex items-center justify-between mb-4">
@@ -3911,7 +3911,7 @@
 
     {% if not is_public_view %}
     <!-- 8. FRIENDS & COMMUNITY TAB (Not shown on public profiles) -->
-    <div id="tab-friends" class="hidden space-y-6">
+    <div id="tab-friends" class="{% if initial_tab != 'friends' %}hidden {% endif %}space-y-6">
       <!-- Friends Header Banner -->
       <div class="glass-card p-6 border border-slate-700/60 bg-slate-900/60">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -4550,7 +4550,7 @@
     {% endif %}
 
     <!-- 9. SETLIST AUDIT TAB -->
-    <div id="tab-gap" class="hidden space-y-6">
+    <div id="tab-gap" class="{% if initial_tab != 'gap' %}hidden {% endif %}space-y-6">
       
       <!-- Coverage Scorecards -->
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -4736,7 +4736,7 @@
   <nav id="mobile-bottom-nav" class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-900/95 backdrop-blur-xl border-t border-slate-800/90 shadow-[0_-10px_25px_-5px_rgba(0,0,0,0.5)] px-3 pt-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom,0px))]">
     <div class="grid grid-cols-5 items-center justify-between max-w-md mx-auto">
       <!-- 1. Overview -->
-      <button onclick="switchTab('overview')" id="mobile-tab-overview-btn" class="mobile-nav-tab flex flex-col items-center justify-center py-1 px-1 rounded-xl text-indigo-400 font-bold transition-all group scale-105" title="Overview">
+      <button onclick="switchTab('overview')" id="mobile-tab-overview-btn" class="mobile-nav-tab flex flex-col items-center justify-center py-1 px-1 rounded-xl {% if initial_tab == 'overview' or not initial_tab %}text-indigo-400 font-bold scale-105{% else %}text-slate-400 hover:text-slate-200 font-medium{% endif %} transition-all group" title="Overview">
         <div class="w-8 h-7 flex items-center justify-center rounded-lg transition">
           <i class="fa-solid fa-chart-pie text-lg transition-transform group-active:scale-90"></i>
         </div>
@@ -4744,7 +4744,7 @@
       </button>
 
       <!-- 2. Concerts -->
-      <button onclick="switchTab('concerts')" id="mobile-tab-concerts-btn" class="mobile-nav-tab flex flex-col items-center justify-center py-1 px-1 rounded-xl text-slate-400 hover:text-slate-200 font-medium transition-all group" title="Concerts">
+      <button onclick="switchTab('concerts')" id="mobile-tab-concerts-btn" class="mobile-nav-tab flex flex-col items-center justify-center py-1 px-1 rounded-xl {% if initial_tab == 'concerts' %}text-indigo-400 font-bold scale-105{% else %}text-slate-400 hover:text-slate-200 font-medium{% endif %} transition-all group" title="Concerts">
         <div class="w-8 h-7 flex items-center justify-center rounded-lg transition">
           <i class="fa-solid fa-ticket text-lg transition-transform group-active:scale-90"></i>
         </div>
@@ -4790,7 +4790,7 @@
       {% endif %}
 
       <!-- 4. Artists & Songs -->
-      <button onclick="switchTab('drilldown')" id="mobile-tab-drilldown-btn" class="mobile-nav-tab flex flex-col items-center justify-center py-1 px-1 rounded-xl text-slate-400 hover:text-slate-200 font-medium transition-all group" title="Artists & Songs">
+      <button onclick="switchTab('drilldown')" id="mobile-tab-drilldown-btn" class="mobile-nav-tab flex flex-col items-center justify-center py-1 px-1 rounded-xl {% if initial_tab == 'drilldown' %}text-indigo-400 font-bold scale-105{% else %}text-slate-400 hover:text-slate-200 font-medium{% endif %} transition-all group" title="Artists & Songs">
         <div class="w-8 h-7 flex items-center justify-center rounded-lg transition">
           <i class="fa-solid fa-magnifying-glass-chart text-lg transition-transform group-active:scale-90"></i>
         </div>
@@ -4798,10 +4798,10 @@
       </button>
 
       <!-- 5. More & Profile Menu -->
-      <button onclick="toggleMobileMoreMenu()" id="mobile-tab-more-btn" class="mobile-nav-tab relative flex flex-col items-center justify-center py-1 px-1 rounded-xl text-slate-400 hover:text-slate-200 font-medium transition-all group cursor-pointer" title="More sections & profile">
+      <button onclick="toggleMobileMoreMenu()" id="mobile-tab-more-btn" class="mobile-nav-tab relative flex flex-col items-center justify-center py-1 px-1 rounded-xl {% if initial_tab == 'map' or initial_tab == 'albums' or initial_tab == 'musicians' or initial_tab == 'setlists' or initial_tab == 'friends' or initial_tab == 'gap' %}text-indigo-400 font-bold scale-105{% else %}text-slate-400 hover:text-slate-200 font-medium{% endif %} transition-all group cursor-pointer" title="More sections & profile">
         <div class="w-8 h-7 flex items-center justify-center rounded-lg transition relative">
           <i id="mobile-more-icon" class="fa-solid fa-ellipsis text-lg transition-transform group-active:scale-90"></i>
-          <span id="mobile-more-active-dot" class="hidden absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
+          <span id="mobile-more-active-dot" class="{% if initial_tab != 'map' and initial_tab != 'albums' and initial_tab != 'musicians' and initial_tab != 'setlists' and initial_tab != 'friends' and initial_tab != 'gap' %}hidden {% endif %}absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
         </div>
         <span id="mobile-more-label" class="text-[10px] tracking-tight truncate mt-0.5">More</span>
       </button>
@@ -4857,7 +4857,7 @@
         
         <div class="space-y-2">
           <!-- Venue Map -->
-          <button onclick="switchTab('map'); closeMobileMoreMenu();" id="mobile-sheet-tab-map-btn" class="w-full flex items-center justify-between p-2.5 rounded-xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600 transition text-left group cursor-pointer">
+          <button onclick="switchTab('map'); closeMobileMoreMenu();" id="mobile-sheet-tab-map-btn" class="w-full flex items-center justify-between p-2.5 rounded-xl {% if initial_tab == 'map' %}bg-indigo-600/20 border border-indigo-500/50 shadow-md shadow-indigo-500/10{% else %}bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600{% endif %} transition text-left group cursor-pointer">
             <div class="flex items-center gap-3">
               <div class="w-8 h-8 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 group-hover:scale-105 transition shrink-0">
                 <i class="fa-solid fa-map-location-dot text-sm"></i>
@@ -4871,7 +4871,7 @@
           </button>
 
           <!-- Albums & Eras -->
-          <button onclick="switchTab('albums'); closeMobileMoreMenu();" id="mobile-sheet-tab-albums-btn" class="w-full flex items-center justify-between p-2.5 rounded-xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600 transition text-left group cursor-pointer">
+          <button onclick="switchTab('albums'); closeMobileMoreMenu();" id="mobile-sheet-tab-albums-btn" class="w-full flex items-center justify-between p-2.5 rounded-xl {% if initial_tab == 'albums' %}bg-indigo-600/20 border border-indigo-500/50 shadow-md shadow-indigo-500/10{% else %}bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600{% endif %} transition text-left group cursor-pointer">
             <div class="flex items-center gap-3">
               <div class="w-8 h-8 rounded-lg bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 group-hover:scale-105 transition shrink-0">
                 <i class="fa-solid fa-wand-magic-sparkles text-sm"></i>
@@ -4885,7 +4885,7 @@
           </button>
 
           <!-- Musicians -->
-          <button onclick="switchTab('musicians'); closeMobileMoreMenu();" id="mobile-sheet-tab-musicians-btn" class="w-full flex items-center justify-between p-2.5 rounded-xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600 transition text-left group cursor-pointer">
+          <button onclick="switchTab('musicians'); closeMobileMoreMenu();" id="mobile-sheet-tab-musicians-btn" class="w-full flex items-center justify-between p-2.5 rounded-xl {% if initial_tab == 'musicians' %}bg-indigo-600/20 border border-indigo-500/50 shadow-md shadow-indigo-500/10{% else %}bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600{% endif %} transition text-left group cursor-pointer">
             <div class="flex items-center gap-3">
               <div class="w-8 h-8 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 group-hover:scale-105 transition shrink-0">
                 <i class="fa-solid fa-users-viewfinder text-sm"></i>
@@ -4899,7 +4899,7 @@
           </button>
 
           <!-- Freshness -->
-          <button onclick="switchTab('setlists'); closeMobileMoreMenu();" id="mobile-sheet-tab-setlists-btn" class="w-full flex items-center justify-between p-2.5 rounded-xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600 transition text-left group cursor-pointer">
+          <button onclick="switchTab('setlists'); closeMobileMoreMenu();" id="mobile-sheet-tab-setlists-btn" class="w-full flex items-center justify-between p-2.5 rounded-xl {% if initial_tab == 'setlists' %}bg-indigo-600/20 border border-indigo-500/50 shadow-md shadow-indigo-500/10{% else %}bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600{% endif %} transition text-left group cursor-pointer">
             <div class="flex items-center gap-3">
               <div class="w-8 h-8 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 group-hover:scale-105 transition shrink-0">
                 <i class="fa-solid fa-leaf text-sm"></i>
@@ -4914,7 +4914,7 @@
 
           {% if not is_public_view %}
           <!-- Friends -->
-          <button onclick="switchTab('friends'); closeMobileMoreMenu();" id="mobile-sheet-tab-friends-btn" class="w-full flex items-center justify-between p-2.5 rounded-xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600 transition text-left group cursor-pointer">
+          <button onclick="switchTab('friends'); closeMobileMoreMenu();" id="mobile-sheet-tab-friends-btn" class="w-full flex items-center justify-between p-2.5 rounded-xl {% if initial_tab == 'friends' %}bg-indigo-600/20 border border-indigo-500/50 shadow-md shadow-indigo-500/10{% else %}bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600{% endif %} transition text-left group cursor-pointer">
             <div class="flex items-center gap-3">
               <div class="w-8 h-8 rounded-lg bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400 group-hover:scale-105 transition shrink-0">
                 <i class="fa-solid fa-user-group text-sm"></i>
@@ -4929,7 +4929,7 @@
           {% endif %}
 
           <!-- Setlist Audit -->
-          <button onclick="switchTab('gap'); closeMobileMoreMenu();" id="mobile-sheet-tab-gap-btn" class="w-full flex items-center justify-between p-2.5 rounded-xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600 transition text-left group cursor-pointer">
+          <button onclick="switchTab('gap'); closeMobileMoreMenu();" id="mobile-sheet-tab-gap-btn" class="w-full flex items-center justify-between p-2.5 rounded-xl {% if initial_tab == 'gap' %}bg-indigo-600/20 border border-indigo-500/50 shadow-md shadow-indigo-500/10{% else %}bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600{% endif %} transition text-left group cursor-pointer">
             <div class="flex items-center gap-3">
               <div class="w-8 h-8 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 group-hover:scale-105 transition shrink-0">
                 <i class="fa-solid fa-clipboard-check text-sm"></i>
