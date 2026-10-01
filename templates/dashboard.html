@@ -5294,10 +5294,6 @@
             if (el) Plotly.Plots.resize(el);
           });
         });
-      } else if (tabId === 'concerts') {
-        if (typeof initLazyAlbumThumbnails === 'function') {
-          initLazyAlbumThumbnails(document.getElementById('tab-concerts'));
-        }
       } else if (tabId === 'drilldown') {
         if (typeof initLazyAlbumThumbnails === 'function') {
           initLazyAlbumThumbnails(document.getElementById('drilldown-songs-container'));
@@ -7397,21 +7393,25 @@
           });
         }, {
           root: null,
-          rootMargin: '200px 0px 400px 0px',
+          rootMargin: '300px 0px 500px 0px',
           threshold: 0.01
         });
       }
 
-      // Gather cards in top-to-bottom DOM order
-      const cards = Array.from(grid.querySelectorAll('.album-gallery-card'));
-      cards.forEach(card => {
+      // Gather ONLY visible cards in top-to-bottom DOM order
+      const cards = Array.from(grid.querySelectorAll('.album-gallery-card')).filter(c => c.style.display !== 'none');
+      cards.forEach((card, idx) => {
         const img = card.querySelector('.album-cover-img');
         const fallback = card.querySelector('[id^="album-cover-fallback-"]');
         if (img) {
           if (albumIntersectionObserver) {
             albumIntersectionObserver.observe(card);
           }
-          loadSingleAlbumCardArt(img, fallback);
+          if (idx < 12) {
+            prioritizeAlbumCardArt(img, fallback);
+          } else {
+            loadSingleAlbumCardArt(img, fallback);
+          }
         }
       });
     }
@@ -7713,9 +7713,8 @@
       });
     }
 
-    // Trigger initial album gallery filtering and cover loading once DOM is ready
+    // Trigger initial album gallery filtering and top-down cover loading once DOM is ready
     window.addEventListener('DOMContentLoaded', () => {
-      initLazyAlbumThumbnails(document);
       if (typeof filterAlbumGallery === 'function') {
         filterAlbumGallery();
       }
@@ -7723,8 +7722,7 @@
         if (typeof initAlbumGalleryImages === 'function') {
           initAlbumGalleryImages();
         }
-        initLazyAlbumThumbnails(document);
-      }, 300);
+      }, 150);
     });
 
     const topArtistsEl = document.getElementById('chart-top-artists');
