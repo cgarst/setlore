@@ -1901,9 +1901,9 @@
             </div>
             <div class="flex items-center gap-2">
               <input type="text" id="onboarding-share-url-input" readonly value="{{ share_url }}"
-                class="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-indigo-300 font-mono select-all">
+                class="flex-1 min-w-0 bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-indigo-300 font-mono select-all">
               <button type="button" onclick="copyOnboardingShareUrl()" id="onboarding-copy-link-btn"
-                class="px-3 py-1.5 rounded-lg bg-indigo-600/30 hover:bg-indigo-600/50 border border-indigo-500/40 text-xs font-semibold text-indigo-200 transition flex items-center gap-1.5 cursor-pointer">
+                class="px-3 py-1.5 rounded-lg bg-indigo-600/30 hover:bg-indigo-600/50 border border-indigo-500/40 text-xs font-semibold text-indigo-200 transition flex items-center gap-1.5 cursor-pointer shrink-0">
                 <i class="fa-solid fa-copy"></i>
                 <span>Copy</span>
               </button>
@@ -2552,10 +2552,10 @@
             </h2>
             <p class="text-xs text-slate-400">Click any artist below to inspect all songs heard, filtered by album, ranked by play count, or filter artists by musician.</p>
           </div>
-          <div class="flex flex-wrap items-center gap-2.5">
+          <div class="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
             <!-- Musician Filter Dropdown -->
-            <div class="relative flex items-center">
-              <select id="drilldown-musician-filter" onchange="handleMusicianFilterChange(this.value)" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500 max-w-[190px] truncate cursor-pointer" title="Filter bands by musician">
+            <div class="relative flex items-center w-full sm:w-auto">
+              <select id="drilldown-musician-filter" onchange="handleMusicianFilterChange(this.value)" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500 w-full sm:w-auto sm:max-w-[190px] truncate cursor-pointer" title="Filter bands by musician">
                 <option value="">All Musicians</option>
                 {% for m in stats.musicians.top_musicians %}
                 <option value="{{ m.musician }}">{{ m.musician }} ({{ m.bands|length }} {% if m.bands|length == 1 %}band{% else %}bands{% endif %})</option>
@@ -2563,7 +2563,7 @@
               </select>
             </div>
             <!-- Artist Search Input -->
-            <div class="relative flex items-center w-48 sm:w-52">
+            <div class="relative flex items-center w-full sm:w-52">
               <input type="text" id="artist-search-input" placeholder="Filter artist name..." oninput="handleFilterInput('artist-search-input', 'artist-search-clear', filterArtistButtons)" class="bg-slate-900 border border-slate-700 rounded-lg pl-3 pr-7 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 w-full">
               <button type="button" id="artist-search-clear" onclick="clearFilterField('artist-search-input', 'artist-search-clear', filterArtistButtons)" class="hidden absolute right-2 text-slate-400 hover:text-white p-0.5 cursor-pointer text-xs transition" title="Clear filter">
                 <i class="fa-solid fa-xmark"></i>
@@ -2605,17 +2605,17 @@
 
         <!-- Filter Controls Row (Song Search & Album Dropdown) -->
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-slate-900/50 p-3 rounded-xl border border-slate-800">
-          <div class="flex flex-wrap items-center gap-3">
-            <div class="relative flex items-center w-64">
+          <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
+            <div class="relative flex items-center w-full sm:w-64">
               <input type="text" id="drilldown-song-filter" placeholder="Search song title..." oninput="handleFilterInput('drilldown-song-filter', 'drilldown-song-clear', filterDrilldownSongs)" class="bg-slate-900 border border-slate-700 rounded-lg pl-3 pr-7 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 w-full">
               <button type="button" id="drilldown-song-clear" onclick="clearFilterField('drilldown-song-filter', 'drilldown-song-clear', filterDrilldownSongs)" class="hidden absolute right-2 text-slate-400 hover:text-white p-0.5 cursor-pointer text-xs transition" title="Clear filter">
                 <i class="fa-solid fa-xmark"></i>
               </button>
             </div>
             
-            <div class="flex items-center gap-2">
-              <span class="text-xs text-slate-400 font-medium"><i class="fa-solid fa-compact-disc text-indigo-400 mr-1"></i>Album:</span>
-              <select id="drilldown-album-filter" onchange="filterDrilldownSongs()" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500">
+            <div class="flex items-center gap-2 w-full sm:w-auto">
+              <span class="text-xs text-slate-400 font-medium shrink-0"><i class="fa-solid fa-compact-disc text-indigo-400 mr-1"></i>Album:</span>
+              <select id="drilldown-album-filter" onchange="filterDrilldownSongs()" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500 flex-1 sm:flex-initial">
                 <option value="ALL">All Albums</option>
               </select>
             </div>
@@ -2723,16 +2723,16 @@
           </div>
 
           <!-- Instrument Filters & Search -->
-          <div class="flex flex-wrap items-center gap-3">
-            <div class="flex rounded-lg bg-slate-900 border border-slate-800 p-0.5 text-xs">
-              <button onclick="filterMusicianInstrument('all')" id="btn-instr-all" class="px-2.5 py-1 rounded bg-indigo-600 text-white font-semibold transition">All</button>
-              <button onclick="filterMusicianInstrument('Guitar')" id="btn-instr-Guitar" class="px-2.5 py-1 rounded text-slate-400 hover:text-white transition">Guitars</button>
-              <button onclick="filterMusicianInstrument('Drums')" id="btn-instr-Drums" class="px-2.5 py-1 rounded text-slate-400 hover:text-white transition">Drums</button>
-              <button onclick="filterMusicianInstrument('Bass')" id="btn-instr-Bass" class="px-2.5 py-1 rounded text-slate-400 hover:text-white transition">Bass</button>
-              <button onclick="filterMusicianInstrument('Vocals')" id="btn-instr-Vocals" class="px-2.5 py-1 rounded text-slate-400 hover:text-white transition">Vocals</button>
-              <button onclick="filterMusicianInstrument('Keyboards')" id="btn-instr-Keyboards" class="px-2.5 py-1 rounded text-slate-400 hover:text-white transition">Keys</button>
+          <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
+            <div class="flex rounded-lg bg-slate-900 border border-slate-800 p-0.5 text-xs overflow-x-auto max-w-full">
+              <button onclick="filterMusicianInstrument('all')" id="btn-instr-all" class="px-2.5 py-1 rounded bg-indigo-600 text-white font-semibold transition shrink-0">All</button>
+              <button onclick="filterMusicianInstrument('Guitar')" id="btn-instr-Guitar" class="px-2.5 py-1 rounded text-slate-400 hover:text-white transition shrink-0">Guitars</button>
+              <button onclick="filterMusicianInstrument('Drums')" id="btn-instr-Drums" class="px-2.5 py-1 rounded text-slate-400 hover:text-white transition shrink-0">Drums</button>
+              <button onclick="filterMusicianInstrument('Bass')" id="btn-instr-Bass" class="px-2.5 py-1 rounded text-slate-400 hover:text-white transition shrink-0">Bass</button>
+              <button onclick="filterMusicianInstrument('Vocals')" id="btn-instr-Vocals" class="px-2.5 py-1 rounded text-slate-400 hover:text-white transition shrink-0">Vocals</button>
+              <button onclick="filterMusicianInstrument('Keyboards')" id="btn-instr-Keyboards" class="px-2.5 py-1 rounded text-slate-400 hover:text-white transition shrink-0">Keys</button>
             </div>
-            <div class="relative flex items-center w-48">
+            <div class="relative flex items-center w-full sm:w-48">
               <input type="text" id="musician-search-input" placeholder="Search musician..." oninput="handleFilterInput('musician-search-input', 'musician-search-clear', filterMusicianSearch)" class="bg-slate-900 border border-slate-700 rounded-lg pl-3 pr-7 py-1 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 w-full">
               <button type="button" id="musician-search-clear" onclick="clearFilterField('musician-search-input', 'musician-search-clear', filterMusicianSearch)" class="hidden absolute right-2 text-slate-400 hover:text-white p-0.5 cursor-pointer text-xs transition" title="Clear search">
                 <i class="fa-solid fa-xmark"></i>
@@ -3011,7 +3011,7 @@
 
         <!-- Add by Username Quick Form -->
         <div class="flex items-center gap-2 w-full md:w-auto">
-          <div class="relative flex-1 md:w-64">
+          <div class="relative flex-1 min-w-0 md:w-64">
             <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500 text-xs font-mono">@</span>
             <input type="text" id="friends-add-username-input" placeholder="Add friend by username..."
               onkeydown="if(event.key==='Enter'){event.preventDefault(); addFriendByUsername('friends-add-username-input');}"
@@ -3407,7 +3407,7 @@
                   <p class="text-[11px] text-slate-400">Know their Setlore handle? Enter it below:</p>
                 </div>
                 <div class="flex items-center gap-1.5 pt-1">
-                  <div class="relative flex-1">
+                  <div class="relative flex-1 min-w-0">
                     <span class="absolute inset-y-0 left-0 flex items-center pl-2.5 text-slate-500 text-xs font-mono">@</span>
                     <input type="text" id="empty-friends-add-input" placeholder="username"
                       onkeydown="if(event.key==='Enter'){event.preventDefault(); addFriendByUsername('empty-friends-add-input');}"
@@ -3429,8 +3429,10 @@
                   <p class="text-[11px] text-slate-400">Send your link so friends can view &amp; friend you:</p>
                 </div>
                 <div class="flex items-center gap-1.5 pt-1">
-                  <input type="text" readonly value="{{ share_url }}"
-                    class="w-full px-2.5 py-1.5 text-[11px] rounded-lg bg-slate-950 border border-slate-700 text-indigo-300 font-mono select-all truncate">
+                  <div class="relative flex-1 min-w-0">
+                    <input type="text" readonly value="{{ share_url }}"
+                      class="w-full px-2.5 py-1.5 text-[11px] rounded-lg bg-slate-950 border border-slate-700 text-indigo-300 font-mono select-all truncate">
+                  </div>
                   <button type="button" onclick="copyPublicShareUrl()"
                     class="px-3 py-1.5 rounded-lg bg-indigo-600/30 hover:bg-indigo-600/50 border border-indigo-500/40 text-indigo-200 text-xs font-semibold transition cursor-pointer shrink-0 flex items-center gap-1">
                     <i class="fa-solid fa-copy text-[11px]"></i>
