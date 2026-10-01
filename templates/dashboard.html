@@ -3180,6 +3180,7 @@
                             <img class="lazy-album-art w-full h-full object-cover opacity-0 transition-opacity duration-300"
                                  data-artist="{{ a.artist }}"
                                  data-album="{{ track.album }}"
+                                 data-size="small"
                                  alt="{{ track.album }}" />
                             <div class="album-thumb-fallback absolute inset-0 flex items-center justify-center text-[10px] text-slate-500 group-hover/thumb:text-indigo-300">
                               <i class="fa-solid fa-compact-disc"></i>
@@ -3768,6 +3769,7 @@
                      src=""
                      data-artist="{{ alb.artist }}"
                      data-album="{{ alb.album }}"
+                     data-size="medium"
                      alt="{{ alb.album }} by {{ alb.artist }}"
                      loading="lazy"
                      class="album-cover-img w-full h-full object-cover rounded-xl transition-transform duration-500 group-hover:scale-105 opacity-0">
@@ -6527,6 +6529,7 @@
               <img class="lazy-album-art w-full h-full object-cover opacity-0 transition-opacity duration-300"
                    data-artist="${escapeHtml(artistName)}"
                    data-album="${escapeHtml(sAlbum)}"
+                   data-size="small"
                    alt="${escapeHtml(sAlbum)}" />
               <div class="album-thumb-fallback absolute inset-0 flex items-center justify-center text-[10px] text-slate-500 group-hover/thumb:text-indigo-300">
                 <i class="fa-solid fa-compact-disc"></i>
@@ -7248,38 +7251,64 @@
       return null;
     }
 
-    async function getAlbumArtUrl(artist, album) {
+    function formatAlbumArtUrl(url, size = 'large') {
+      if (!url) return null;
+      if (url.includes('dzcdn.net/images/cover/')) {
+        if (size === 'small' || size === 'thumb') {
+          return url.replace(/\/\d+x\d+[^/]*\.jpg$/, '/56x56-000000-80-0-0.jpg');
+        } else if (size === 'medium') {
+          return url.replace(/\/\d+x\d+[^/]*\.jpg$/, '/250x250-000000-80-0-0.jpg');
+        } else {
+          return url.replace(/\/\d+x\d+[^/]*\.jpg$/, '/500x500-000000-80-0-0.jpg');
+        }
+      }
+      if (url.includes('mzstatic.com')) {
+        if (size === 'small' || size === 'thumb') {
+          return url.replace(/\/\d+x\d+bb\.jpg$/, '/60x60bb.jpg');
+        } else if (size === 'medium') {
+          return url.replace(/\/\d+x\d+bb\.jpg$/, '/250x250bb.jpg');
+        } else {
+          return url.replace(/\/\d+x\d+bb\.jpg$/, '/500x500bb.jpg');
+        }
+      }
+      return url;
+    }
+
+    async function getAlbumArtUrl(artist, album, size = 'large') {
       if (!artist || !album) return null;
       const cleanAlbum = album.replace(/\s*\([^)]*\)/g, '').trim();
       if (!cleanAlbum || cleanAlbum.toLowerCase() === 'covers' || cleanAlbum.toLowerCase().includes('non-album') || cleanAlbum.toLowerCase().includes('singles')) {
         return null;
       }
       const cacheKey = `setlore_art_${artist.toLowerCase()}_${cleanAlbum.toLowerCase()}`;
-      if (albumArtCache[cacheKey]) return albumArtCache[cacheKey];
+      let baseArtUrl = albumArtCache[cacheKey];
 
-      try {
-        const stored = localStorage.getItem(cacheKey);
-        if (stored) {
-          albumArtCache[cacheKey] = stored;
-          return stored;
+      if (!baseArtUrl) {
+        try {
+          const stored = localStorage.getItem(cacheKey);
+          if (stored) {
+            albumArtCache[cacheKey] = stored;
+            baseArtUrl = stored;
+          }
+        } catch (e) {}
+      }
+
+      if (!baseArtUrl) {
+        // 1. Primary: Deezer CDN (covers all major rock/metal catalogs with high-res artwork)
+        baseArtUrl = await fetchDeezerAlbumArt(artist, cleanAlbum);
+
+        // 2. Fallback: Apple iTunes Search API
+        if (!baseArtUrl) {
+          baseArtUrl = await fetchItunesAlbumArt(artist, cleanAlbum);
         }
-      } catch (e) {}
 
-      // 1. Primary: Deezer CDN (covers all major rock/metal catalogs with high-res artwork)
-      let artUrl = await fetchDeezerAlbumArt(artist, cleanAlbum);
-
-      // 2. Fallback: Apple iTunes Search API
-      if (!artUrl) {
-        artUrl = await fetchItunesAlbumArt(artist, cleanAlbum);
+        if (baseArtUrl) {
+          albumArtCache[cacheKey] = baseArtUrl;
+          try { localStorage.setItem(cacheKey, baseArtUrl); } catch (e) {}
+        }
       }
 
-      if (artUrl) {
-        albumArtCache[cacheKey] = artUrl;
-        try { localStorage.setItem(cacheKey, artUrl); } catch (e) {}
-        return artUrl;
-      }
-
-      return null;
+      return formatAlbumArtUrl(baseArtUrl, size);
     }
 
     // Vinyl Album Wall & Inspector Controller with Top-Down Priority Queue
@@ -7288,12 +7317,13 @@
     const MAX_CONCURRENT_ART_FETCHES = 4;
     let albumIntersectionObserver = null;
 
-    function loadSingleAlbumCardArt(img, fallback) {
+    function loadSingleAlbumCardArt(img, fallback, requestedSize) {
       if (!img || img.dataset.loaded === 'true') return;
       const artist = img.dataset.artist;
       const album = img.dataset.album;
       if (!artist || !album) return;
 
+      const size = requestedSize || (img.dataset ? img.dataset.size : null) || 'medium';
       const cleanAlbum = album.replace(/\s*\([^)]*\)/g, '').trim();
       if (!cleanAlbum || cleanAlbum.toLowerCase() === 'covers' || cleanAlbum.toLowerCase().includes('non-album') || cleanAlbum.toLowerCase().includes('singles')) {
         return;
@@ -7301,9 +7331,9 @@
 
       const cacheKey = `setlore_art_${artist.toLowerCase()}_${cleanAlbum.toLowerCase()}`;
       
-      // Fast path: if cached in memory or localStorage, apply immediately
+      // Fast path: if cached in memory or localStorage, apply sized URL immediately
       if (albumArtCache[cacheKey]) {
-        img.src = albumArtCache[cacheKey];
+        img.src = formatAlbumArtUrl(albumArtCache[cacheKey], size);
         img.dataset.loaded = 'true';
         img.onload = () => {
           img.classList.remove('opacity-0');
@@ -7315,7 +7345,7 @@
         const stored = localStorage.getItem(cacheKey);
         if (stored) {
           albumArtCache[cacheKey] = stored;
-          img.src = stored;
+          img.src = formatAlbumArtUrl(stored, size);
           img.dataset.loaded = 'true';
           img.onload = () => {
             img.classList.remove('opacity-0');
@@ -7328,7 +7358,7 @@
       // Queue network fetch in top-to-bottom order if not already queued
       if (img.dataset.queued !== 'true') {
         img.dataset.queued = 'true';
-        albumArtQueue.push({ img, fallback, artist, album });
+        albumArtQueue.push({ img, fallback, artist, album, size });
         processArtQueue();
       }
     }
@@ -7336,11 +7366,11 @@
     function processArtQueue() {
       while (activeArtFetches < MAX_CONCURRENT_ART_FETCHES && albumArtQueue.length > 0) {
         const task = albumArtQueue.shift();
-        const { img, fallback, artist, album } = task;
+        const { img, fallback, artist, album, size } = task;
         if (!img || img.dataset.loaded === 'true') continue;
 
         activeArtFetches++;
-        getAlbumArtUrl(artist, album).then(artUrl => {
+        getAlbumArtUrl(artist, album, size || 'medium').then(artUrl => {
           if (artUrl && img) {
             img.src = artUrl;
             img.dataset.loaded = 'true';
@@ -7356,12 +7386,13 @@
       }
     }
 
-    function prioritizeAlbumCardArt(img, fallback) {
+    function prioritizeAlbumCardArt(img, fallback, requestedSize) {
       if (!img || img.dataset.loaded === 'true') return;
       const artist = img.dataset.artist;
       const album = img.dataset.album;
       if (!artist || !album) return;
 
+      const size = requestedSize || (img.dataset ? img.dataset.size : null) || 'medium';
       const cleanAlbum = album.replace(/\s*\([^)]*\)/g, '').trim();
       if (!cleanAlbum || cleanAlbum.toLowerCase() === 'covers' || cleanAlbum.toLowerCase().includes('non-album') || cleanAlbum.toLowerCase().includes('singles')) {
         return;
@@ -7370,7 +7401,7 @@
       // Move to the front of the queue so on-screen / top cards resolve first
       albumArtQueue = albumArtQueue.filter(t => t.img !== img);
       img.dataset.queued = 'true';
-      albumArtQueue.unshift({ img, fallback, artist, album });
+      albumArtQueue.unshift({ img, fallback, artist, album, size });
       processArtQueue();
     }
 
@@ -7565,7 +7596,7 @@
         coverImg.src = '';
         coverImg.classList.add('opacity-0');
         coverFallback.classList.remove('opacity-0');
-        getAlbumArtUrl(alb.artist, alb.album).then(artUrl => {
+        getAlbumArtUrl(alb.artist, alb.album, 'large').then(artUrl => {
           if (artUrl) {
             coverImg.src = artUrl;
             coverImg.onload = () => {
