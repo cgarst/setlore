@@ -3766,24 +3766,6 @@
               </div>
             </div>
 
-                <!-- Top Right Badge: Plays Heard Count -->
-                <div class="absolute top-2 right-2 z-20">
-                  <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-slate-950/85 text-emerald-400 border border-emerald-500/40 backdrop-blur-md shadow-md">
-                    {{ alb.plays_heard }}x live
-                  </span>
-                </div>
-
-                <!-- Top Left Badge: Release Year -->
-                {% if alb.release_year %}
-                <div class="absolute top-2 left-2 z-20">
-                  <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-slate-950/85 text-slate-300 border border-slate-700/60 backdrop-blur-md">
-                    {{ alb.release_year }}
-                  </span>
-                </div>
-                {% endif %}
-              </div>
-            </div>
-
             <!-- Card Meta Details -->
             <div class="space-y-1 min-w-0 z-20">
               <h4 class="text-xs font-bold text-white truncate group-hover:text-indigo-300 transition" title="{{ alb.album }}">
@@ -5268,6 +5250,9 @@
           const el = document.getElementById(id);
           if (el) Plotly.Plots.resize(el);
         });
+        if (typeof filterAlbumGallery === 'function') {
+          filterAlbumGallery();
+        }
         if (typeof initAlbumGalleryImages === 'function') {
           initAlbumGalleryImages();
         }
@@ -7571,8 +7556,11 @@
       });
     }
 
-    // Trigger initial album cover loading once DOM is ready
+    // Trigger initial album gallery filtering and cover loading once DOM is ready
     window.addEventListener('DOMContentLoaded', () => {
+      if (typeof filterAlbumGallery === 'function') {
+        filterAlbumGallery();
+      }
       setTimeout(() => {
         if (typeof initAlbumGalleryImages === 'function') {
           initAlbumGalleryImages();
