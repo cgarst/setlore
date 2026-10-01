@@ -256,7 +256,7 @@ class SyncWorker:
 
             # 2. Immediately cache the initial bundle with whatever album data is locally available
             enricher = AlbumEnricher()
-            cached_enrichments, uncached_pairs, total_unique = enricher.load_cached_catalog(stats["all_songs_list"])
+            cached_enrichments, uncached_pairs, total_unique = enricher.load_cached_catalog(stats["all_songs_list"], refresh_unresolved=True)
 
             stats["concerts_drilldown"] = analytics.compute_concert_drilldown(cached_enrichments)
             stats["venue_map"] = generate_venue_map_data(csv_records, gap_results["matched"])
@@ -298,6 +298,7 @@ class SyncWorker:
 
                 album_enrichments = enricher.enrich_catalog(
                     stats["all_songs_list"],
+                    refresh_unresolved=True,
                     progress_callback=on_progress,
                     batch_save_callback=on_batch,
                     cancel_check=is_cancelled

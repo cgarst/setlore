@@ -296,6 +296,8 @@ class AlbumEnricher:
         """Returns False if cached entry has bad attributions or needs unresolved refresh."""
         if not cached:
             return False
+        if cached.get("resolved") is False:
+            return False
         album = cached.get("album")
         if not album:
             return False
@@ -307,7 +309,7 @@ class AlbumEnricher:
             return False
         return True
 
-    def get_track_info(self, artist_name: str, song_name: str, song_obj: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def get_track_info(self, artist_name: str, song_name: str, song_obj: Optional[Dict[str, Any]] = None, refresh_unresolved: bool = False) -> Dict[str, Any]:
         """Retrieves track studio album information dynamically from cache or MusicBrainz."""
         result = {
             "song": song_name,
@@ -336,7 +338,7 @@ class AlbumEnricher:
             try:
                 with open(cache_file, "r", encoding="utf-8") as f:
                     cached = json.load(f)
-                    if self._is_valid_cache_entry(cached):
+                    if self._is_valid_cache_entry(cached, refresh_unresolved=refresh_unresolved):
                         result.update(cached)
                         result["album"] = clean_album_title(result.get("album", "Non-Album / Singles"))
                         return result
@@ -402,7 +404,7 @@ class AlbumEnricher:
                 print("\n      [CANCEL] Album enrichment cancelled.")
                 break
             try:
-                info = self.get_track_info(art, song)
+                info = self.get_track_info(art, song, refresh_unresolved=refresh_unresolved)
                 results[key] = info
             except Exception:
                 results[key] = {
