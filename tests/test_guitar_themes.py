@@ -66,7 +66,7 @@ class GuitarThemesTestCase(TestCase):
     def test_dashboard_renders_theme_elements(self):
         """Ensure dashboard template contains theme custom properties, theme selectors, and logo wrapper."""
         self.client.login(username='petruccifan', password='password123')
-        res = self.client.get('/dashboard/')
+        res = self.client.get('/overview/')
         self.assertEqual(res.status_code, 200)
         content = res.content.decode('utf-8')
 
@@ -79,13 +79,19 @@ class GuitarThemesTestCase(TestCase):
         self.assertIn('[data-theme="Purple Nebula"]', content)
         self.assertIn('[data-theme="Red Pearl Burst"]', content)
 
-        # Check logo tint overlay & wrapper
+        # Check logo wrapper, img, and monochrome filter
         self.assertIn('logo-wrapper', content)
-        self.assertIn('logo-tint-overlay', content)
         self.assertIn('logo-img', content)
+        self.assertIn('grayscale(100%)', content)
 
-        # Check theme menus
-        self.assertIn('id="theme-menu-btn"', content)
-        self.assertIn('id="theme-dropdown-menu"', content)
+        # Check theme menus in authenticated dashboard
         self.assertIn('id="modal-theme-grid"', content)
         self.assertIn('id="mobile-sheet-theme-grid"', content)
+
+        # Check anonymous public profile header theme selector
+        self.client.logout()
+        res_anon = self.client.get(f'/u/{self.user.username}/')
+        self.assertEqual(res_anon.status_code, 200)
+        anon_content = res_anon.content.decode('utf-8')
+        self.assertIn('id="theme-menu-btn"', anon_content)
+        self.assertIn('id="theme-dropdown-menu"', anon_content)

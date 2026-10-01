@@ -94,10 +94,10 @@
       --accent-primary-alpha: rgba(37, 99, 235, 0.25);
       --accent-border-alpha: rgba(56, 189, 248, 0.45);
       --accent-text: #93c5fd;
-      --logo-filter: hue-rotate(185deg) saturate(135%) brightness(1.05);
-      --logo-overlay-bg: linear-gradient(135deg, rgba(37, 99, 235, 0.35), rgba(56, 189, 248, 0.25));
-      --logo-tint-opacity: 0.8;
-      --logo-blend-mode: color-dodge;
+      --logo-filter: grayscale(100%);
+      --logo-overlay-bg: transparent;
+      --logo-tint-opacity: 0;
+      --logo-blend-mode: normal;
     }
 
     [data-theme="Cerulean Paradise"] {
@@ -122,10 +122,10 @@
       --accent-primary-alpha: rgba(6, 182, 212, 0.22);
       --accent-border-alpha: rgba(34, 211, 238, 0.45);
       --accent-text: #67e8f9;
-      --logo-filter: hue-rotate(160deg) saturate(155%) brightness(1.1);
-      --logo-overlay-bg: linear-gradient(135deg, rgba(6, 182, 212, 0.4), rgba(2, 132, 199, 0.3));
-      --logo-tint-opacity: 0.85;
-      --logo-blend-mode: color-dodge;
+      --logo-filter: grayscale(100%);
+      --logo-overlay-bg: transparent;
+      --logo-tint-opacity: 0;
+      --logo-blend-mode: normal;
     }
 
     [data-theme="Dark Side"] {
@@ -150,10 +150,10 @@
       --accent-primary-alpha: rgba(225, 29, 72, 0.22);
       --accent-border-alpha: rgba(225, 29, 72, 0.45);
       --accent-text: #fda4af;
-      --logo-filter: grayscale(70%) brightness(0.95) contrast(1.15);
-      --logo-overlay-bg: linear-gradient(135deg, rgba(225, 29, 72, 0.35), rgba(40, 40, 50, 0.4));
-      --logo-tint-opacity: 0.7;
-      --logo-blend-mode: screen;
+      --logo-filter: grayscale(100%);
+      --logo-overlay-bg: transparent;
+      --logo-tint-opacity: 0;
+      --logo-blend-mode: normal;
     }
 
     [data-theme="Ember Glow"] {
@@ -178,10 +178,10 @@
       --accent-primary-alpha: rgba(249, 115, 22, 0.22);
       --accent-border-alpha: rgba(251, 146, 60, 0.45);
       --accent-text: #fdba74;
-      --logo-filter: hue-rotate(330deg) saturate(160%) brightness(1.1);
-      --logo-overlay-bg: linear-gradient(135deg, rgba(249, 115, 22, 0.45), rgba(239, 68, 68, 0.3));
-      --logo-tint-opacity: 0.85;
-      --logo-blend-mode: color-dodge;
+      --logo-filter: grayscale(100%);
+      --logo-overlay-bg: transparent;
+      --logo-tint-opacity: 0;
+      --logo-blend-mode: normal;
     }
 
     [data-theme="Mystic Dream"] {
@@ -206,10 +206,10 @@
       --accent-primary-alpha: rgba(147, 51, 234, 0.22);
       --accent-border-alpha: rgba(168, 85, 247, 0.45);
       --accent-text: #d8b4fe;
-      --logo-filter: hue-rotate(245deg) saturate(145%) brightness(1.05);
-      --logo-overlay-bg: linear-gradient(135deg, rgba(147, 51, 234, 0.4), rgba(16, 185, 129, 0.3));
-      --logo-tint-opacity: 0.85;
-      --logo-blend-mode: screen;
+      --logo-filter: grayscale(100%);
+      --logo-overlay-bg: transparent;
+      --logo-tint-opacity: 0;
+      --logo-blend-mode: normal;
     }
 
     [data-theme="Purple Nebula"] {
@@ -234,10 +234,10 @@
       --accent-primary-alpha: rgba(192, 38, 211, 0.22);
       --accent-border-alpha: rgba(217, 70, 239, 0.45);
       --accent-text: #f0abfc;
-      --logo-filter: hue-rotate(265deg) saturate(160%) brightness(1.1);
-      --logo-overlay-bg: linear-gradient(135deg, rgba(192, 38, 211, 0.45), rgba(124, 58, 237, 0.3));
-      --logo-tint-opacity: 0.85;
-      --logo-blend-mode: color-dodge;
+      --logo-filter: grayscale(100%);
+      --logo-overlay-bg: transparent;
+      --logo-tint-opacity: 0;
+      --logo-blend-mode: normal;
     }
 
     [data-theme="Red Pearl Burst"] {
@@ -262,10 +262,10 @@
       --accent-primary-alpha: rgba(225, 29, 72, 0.22);
       --accent-border-alpha: rgba(251, 113, 133, 0.45);
       --accent-text: #fda4af;
-      --logo-filter: hue-rotate(310deg) saturate(155%) brightness(1.08);
-      --logo-overlay-bg: linear-gradient(135deg, rgba(225, 29, 72, 0.45), rgba(153, 27, 27, 0.35));
-      --logo-tint-opacity: 0.85;
-      --logo-blend-mode: color-dodge;
+      --logo-filter: grayscale(100%);
+      --logo-overlay-bg: transparent;
+      --logo-tint-opacity: 0;
+      --logo-blend-mode: normal;
     }
 
     /* Core Document & Typography */
@@ -355,27 +355,21 @@
       cursor: pointer !important;
     }
 
-    /* Logo Wrapper & Tint Overlay */
+    /* Logo Wrapper & Monochrome Theme Styling */
     .logo-wrapper {
       position: relative;
       display: inline-flex;
       align-items: center;
-      border-radius: 0.75rem;
-      overflow: hidden;
     }
     .logo-img {
       filter: var(--logo-filter, none);
       transition: filter 0.3s ease, transform 0.2s ease;
     }
+    [data-theme]:not([data-theme="Default"]) .logo-img {
+      filter: grayscale(100%);
+    }
     .logo-tint-overlay {
-      position: absolute;
-      inset: 0;
-      background: var(--logo-overlay-bg, transparent);
-      mix-blend-mode: var(--logo-blend-mode, normal);
-      opacity: var(--logo-tint-opacity, 0);
-      pointer-events: none;
-      border-radius: 0.75rem;
-      transition: opacity 0.3s ease, background 0.3s ease;
+      display: none;
     }
 
     /* Dynamic UI overrides matching active guitar finish */
