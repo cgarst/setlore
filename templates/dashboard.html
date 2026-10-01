@@ -3168,9 +3168,37 @@
                       {% for track in s_group.songs %}
                       <div class="flex flex-col sm:flex-row sm:items-center justify-between p-2 rounded-lg bg-slate-950/40 border border-slate-800/40 hover:border-slate-700/60 text-xs gap-2 transition">
                         
-                        <!-- Track Name & Nth-Time-Heard & Song Age -->
-                        <div class="flex flex-wrap items-center gap-2.5">
-                          <span class="font-mono text-slate-500 text-[11px] w-5">#{{ forloop.counter }}</span>
+                        <!-- Track Name & Thumbnail & Nth-Time-Heard & Song Age -->
+                        <div class="flex flex-wrap items-center gap-2 min-w-0">
+                          <span class="font-mono text-slate-500 text-[11px] w-5 shrink-0">#{{ forloop.counter }}</span>
+                          
+                          <!-- Album Art Thumbnail (left of song name) -->
+                          {% if not track.is_cover and track.album != 'Covers' and track.album != 'Non-Album / Singles' %}
+                          <div class="album-thumb-btn relative w-6 h-6 rounded-md overflow-hidden shrink-0 bg-slate-800 border border-slate-700/70 hover:border-indigo-400 hover:scale-110 transition shadow-sm cursor-pointer group/thumb"
+                               onclick="event.stopPropagation(); openAlbumModalByName('{{ a.artist|escapejs }}', '{{ track.album|escapejs }}');"
+                               title="Inspect album: {{ track.album_display }}">
+                            <img class="lazy-album-art w-full h-full object-cover opacity-0 transition-opacity duration-300"
+                                 data-artist="{{ a.artist }}"
+                                 data-album="{{ track.album }}"
+                                 alt="{{ track.album }}" />
+                            <div class="album-thumb-fallback absolute inset-0 flex items-center justify-center text-[10px] text-slate-500 group-hover/thumb:text-indigo-300">
+                              <i class="fa-solid fa-compact-disc"></i>
+                            </div>
+                          </div>
+                          {% elif track.is_cover or track.album == 'Covers' %}
+                          <div class="relative w-6 h-6 rounded-md overflow-hidden shrink-0 bg-pink-500/10 border border-pink-500/30 flex items-center justify-center text-[10px] text-pink-400 hover:scale-110 transition shadow-sm cursor-pointer"
+                               onclick="event.stopPropagation(); openAlbumModalByName('{{ a.artist|escapejs }}', 'Covers');"
+                               title="Inspect Covers">
+                            <i class="fa-solid fa-microphone-lines"></i>
+                          </div>
+                          {% else %}
+                          <div class="relative w-6 h-6 rounded-md overflow-hidden shrink-0 bg-slate-800/60 border border-slate-700/40 flex items-center justify-center text-[10px] text-slate-500 hover:scale-110 hover:text-indigo-300 transition shadow-sm cursor-pointer"
+                               onclick="event.stopPropagation(); openAlbumModalByName('{{ a.artist|escapejs }}', 'Non-Album / Singles');"
+                               title="Inspect Non-Album / Singles">
+                            <i class="fa-solid fa-compact-disc"></i>
+                          </div>
+                          {% endif %}
+
                           <button onclick="jumpToSongInDrilldown('{{ a.artist|escapejs }}', '{{ track.song|escapejs }}');" class="text-white font-semibold hover:underline hover:text-indigo-300 text-left">
                             {{ track.song }}
                           </button>
@@ -3188,10 +3216,14 @@
                           </span>
                           {% endif %}
 
-                          <!-- Album Tag -->
-                          <span class="badge bg-slate-800/80 text-indigo-300 border border-indigo-500/20 text-[10px]">
-                            <i class="fa-solid fa-compact-disc text-[8px] mr-1 text-indigo-400"></i> {{ track.album_display }}
-                          </span>
+                          <!-- Album Tag Button -->
+                          <button type="button"
+                                  onclick="event.stopPropagation(); openAlbumModalByName('{{ a.artist|escapejs }}', '{{ track.album|escapejs }}');"
+                                  class="badge bg-slate-800/80 hover:bg-slate-800 hover:text-indigo-200 hover:border-indigo-500/50 text-indigo-300 border border-indigo-500/20 text-[10px] cursor-pointer transition flex items-center gap-1 shrink-0"
+                                  title="Inspect album: {{ track.album_display }}">
+                            <i class="fa-solid fa-compact-disc text-[8px] text-indigo-400"></i>
+                            <span>{{ track.album_display }}</span>
+                          </button>
 
                           {% if track.is_cover %}
                           <span class="badge bg-pink-500/20 text-pink-300 text-[10px]">Cover{% if track.cover_original and track.cover_original != 'Cover' %} ({{ track.cover_original }}){% endif %}</span>
@@ -5262,6 +5294,14 @@
             if (el) Plotly.Plots.resize(el);
           });
         });
+      } else if (tabId === 'concerts') {
+        if (typeof initLazyAlbumThumbnails === 'function') {
+          initLazyAlbumThumbnails(document.getElementById('tab-concerts'));
+        }
+      } else if (tabId === 'drilldown') {
+        if (typeof initLazyAlbumThumbnails === 'function') {
+          initLazyAlbumThumbnails(document.getElementById('drilldown-songs-container'));
+        }
       } else if (tabId === 'overview') {
         setTimeout(() => {
           ['chart-timeline', 'chart-top-artists'].forEach(id => {
@@ -5680,6 +5720,9 @@
       if (el.classList.contains('hidden')) {
         el.classList.remove('hidden');
         if (ch) ch.classList.add('rotate-180');
+        if (typeof initLazyAlbumThumbnails === 'function') {
+          initLazyAlbumThumbnails(el);
+        }
       } else {
         el.classList.add('hidden');
         if (ch) ch.classList.remove('rotate-180');
@@ -5714,6 +5757,10 @@
           }
         }
       });
+
+      if (allConcertsExpanded && typeof initLazyAlbumThumbnails === 'function') {
+        initLazyAlbumThumbnails(document.getElementById('tab-concerts'));
+      }
     }
 
     let showOnlyFavorites = false;
@@ -6471,17 +6518,59 @@
         const playCount = occsToRender.length;
         const firstDate = occsToRender.length > 0 ? occsToRender[0].date : s.first_heard;
 
+        const sAlbum = s.album || 'Non-Album / Singles';
+        const isCover = sAlbum === 'Covers';
+        const isNonAlbum = sAlbum.toLowerCase().includes('non-album') || sAlbum.toLowerCase().includes('singles');
+
+        let thumbHtml = '';
+        if (!isCover && !isNonAlbum) {
+          thumbHtml = `
+            <div class="album-thumb-btn relative w-6 h-6 rounded-md overflow-hidden shrink-0 bg-slate-800 border border-slate-700/70 hover:border-indigo-400 hover:scale-110 transition shadow-sm cursor-pointer group/thumb"
+                 onclick="event.stopPropagation(); openAlbumModalByName('${(artistName || '').replace(/'/g, "\\'")}', '${(sAlbum || '').replace(/'/g, "\\'")}');"
+                 title="Inspect album: ${escapeHtml(s.album_display || sAlbum)}">
+              <img class="lazy-album-art w-full h-full object-cover opacity-0 transition-opacity duration-300"
+                   data-artist="${escapeHtml(artistName)}"
+                   data-album="${escapeHtml(sAlbum)}"
+                   alt="${escapeHtml(sAlbum)}" />
+              <div class="album-thumb-fallback absolute inset-0 flex items-center justify-center text-[10px] text-slate-500 group-hover/thumb:text-indigo-300">
+                <i class="fa-solid fa-compact-disc"></i>
+              </div>
+            </div>
+          `;
+        } else if (isCover) {
+          thumbHtml = `
+            <div class="relative w-6 h-6 rounded-md overflow-hidden shrink-0 bg-pink-500/10 border border-pink-500/30 flex items-center justify-center text-[10px] text-pink-400 hover:scale-110 transition shadow-sm cursor-pointer"
+                 onclick="event.stopPropagation(); openAlbumModalByName('${(artistName || '').replace(/'/g, "\\'")}', 'Covers');"
+                 title="Inspect Covers">
+              <i class="fa-solid fa-microphone-lines"></i>
+            </div>
+          `;
+        } else {
+          thumbHtml = `
+            <div class="relative w-6 h-6 rounded-md overflow-hidden shrink-0 bg-slate-800/60 border border-slate-700/40 flex items-center justify-center text-[10px] text-slate-500 hover:scale-110 hover:text-indigo-300 transition shadow-sm cursor-pointer"
+                 onclick="event.stopPropagation(); openAlbumModalByName('${(artistName || '').replace(/'/g, "\\'")}', 'Non-Album / Singles');"
+                 title="Inspect Non-Album / Singles">
+              <i class="fa-solid fa-compact-disc"></i>
+            </div>
+          `;
+        }
+
         item.innerHTML = `
           <div class="p-3 flex items-center justify-between cursor-pointer select-none" onclick="toggleSongOccurrences(${idx})">
-            <div class="flex flex-wrap items-center gap-3">
-              <span class="text-xs font-mono text-slate-500 w-6">#${renderedCount}</span>
-              <span class="font-semibold text-white text-sm">${s.song}</span>
-              <span class="badge bg-slate-800/80 text-indigo-300 border border-indigo-500/30 text-[11px]">
-                <i class="fa-solid fa-compact-disc text-[10px] mr-1 text-indigo-400"></i> ${s.album_display}
-              </span>
+            <div class="flex flex-wrap items-center gap-2.5 min-w-0">
+              <span class="text-xs font-mono text-slate-500 w-6 shrink-0">#${renderedCount}</span>
+              ${thumbHtml}
+              <span class="font-semibold text-white text-sm truncate">${escapeHtml(s.song)}</span>
+              <button type="button"
+                      onclick="event.stopPropagation(); openAlbumModalByName('${(artistName || '').replace(/'/g, "\\'")}', '${(sAlbum || '').replace(/'/g, "\\'")}');"
+                      class="badge bg-slate-800/80 hover:bg-slate-800 hover:text-indigo-200 hover:border-indigo-500/50 text-indigo-300 border border-indigo-500/30 text-[11px] cursor-pointer transition flex items-center gap-1 shrink-0"
+                      title="Inspect album: ${escapeHtml(s.album_display || sAlbum)}">
+                <i class="fa-solid fa-compact-disc text-[10px] text-indigo-400"></i>
+                <span>${escapeHtml(s.album_display || sAlbum)}</span>
+              </button>
               <span class="text-xs text-slate-400">(${activeMusicianFilter ? 'First with ' + escapeHtml(activeMusicianFilter) + ': ' : 'First heard: '}<span class="text-indigo-300 font-mono">${firstDate}</span>)</span>
             </div>
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-3 shrink-0">
               <span class="badge bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">${playCount}x</span>
               <i id="chevron-${idx}" class="fa-solid fa-chevron-down text-slate-400 text-xs transition-transform duration-200"></i>
             </div>
@@ -6492,6 +6581,8 @@
         `;
         container.appendChild(item);
       });
+
+      initLazyAlbumThumbnails(container);
 
       if (renderedCount === 0) {
         container.innerHTML = `
@@ -7540,6 +7631,72 @@
       modal.classList.remove('hidden');
     }
 
+    function openAlbumModalByName(artist, album) {
+      if (!artist || !album) return;
+      const artLow = artist.toLowerCase().trim();
+      const albClean = album.replace(/\s*\([^)]*\)/g, '').toLowerCase().trim();
+      const albLow = album.toLowerCase().trim();
+
+      // 1. Try finding in albumsGalleryData
+      if (typeof albumsGalleryData !== 'undefined' && albumsGalleryData && albumsGalleryData.length > 0) {
+        let idx = albumsGalleryData.findIndex(a => {
+          const aArt = (a.artist || '').toLowerCase().trim();
+          const aAlb = (a.album || '').toLowerCase().trim();
+          const aAlbClean = aAlb.replace(/\s*\([^)]*\)/g, '').trim();
+          return aArt === artLow && (aAlb === albLow || aAlbClean === albClean || aAlb.includes(albClean) || albClean.includes(aAlbClean));
+        });
+        if (idx !== -1) {
+          openAlbumModal(idx);
+          return;
+        }
+      }
+
+      // 2. Synthesize from drilldownData if available
+      let songs = [];
+      let releaseYear = null;
+      if (typeof drilldownData !== 'undefined' && drilldownData && drilldownData[artist]) {
+        const artData = drilldownData[artist];
+        (artData.songs || []).forEach(s => {
+          const sAlb = (s.album || '').toLowerCase().trim();
+          const sAlbClean = sAlb.replace(/\s*\([^)]*\)/g, '').trim();
+          if (sAlb === albLow || sAlbClean === albClean || sAlb.includes(albClean) || albClean.includes(sAlbClean)) {
+            if (!releaseYear && s.release_year) releaseYear = s.release_year;
+            songs.push({
+              song: s.song,
+              plays: s.count || (s.occurrences ? s.occurrences.length : 1),
+              occurrences: s.occurrences || []
+            });
+          }
+        });
+      }
+
+      const tempAlbum = {
+        artist: artist,
+        album: album,
+        release_year: releaseYear,
+        decade: releaseYear ? `${Math.floor(releaseYear / 10) * 10}s` : (album.toLowerCase() === 'covers' ? 'Covers' : 'Other'),
+        unique_songs: songs.length,
+        plays_heard: songs.reduce((sum, s) => sum + s.plays, 0),
+        songs: songs
+      };
+
+      if (typeof albumsGalleryData !== 'undefined' && albumsGalleryData) {
+        const newIdx = albumsGalleryData.length;
+        albumsGalleryData.push(tempAlbum);
+        openAlbumModal(newIdx);
+      }
+    }
+
+    function initLazyAlbumThumbnails(container = document) {
+      if (!container) return;
+      const imgs = container.querySelectorAll('img.lazy-album-art');
+      imgs.forEach(img => {
+        if (img.dataset.loaded === 'true') return;
+        const fallback = img.parentElement ? img.parentElement.querySelector('.album-thumb-fallback') : null;
+        loadSingleAlbumCardArt(img, fallback);
+      });
+    }
+
     function closeAlbumModal() {
       const modal = document.getElementById('album-inspector-modal');
       if (modal) modal.classList.add('hidden');
@@ -7558,6 +7715,7 @@
 
     // Trigger initial album gallery filtering and cover loading once DOM is ready
     window.addEventListener('DOMContentLoaded', () => {
+      initLazyAlbumThumbnails(document);
       if (typeof filterAlbumGallery === 'function') {
         filterAlbumGallery();
       }
@@ -7565,7 +7723,8 @@
         if (typeof initAlbumGalleryImages === 'function') {
           initAlbumGalleryImages();
         }
-      }, 500);
+        initLazyAlbumThumbnails(document);
+      }, 300);
     });
 
     const topArtistsEl = document.getElementById('chart-top-artists');
