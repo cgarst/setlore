@@ -126,7 +126,8 @@ class MusicBrainzDumpManager:
         is_ready = False
         if self.db_path.exists() and self.db_path.stat().st_size > 0:
             try:
-                with sqlite3.connect(f"file:{self.db_path}?mode=ro", uri=True) as conn:
+                conn = self._get_read_conn()
+                if conn:
                     cur = conn.cursor()
                     cur.execute("SELECT COUNT(*) FROM recordings")
                     row = cur.fetchone()
@@ -176,10 +177,12 @@ class MusicBrainzDumpManager:
         if not self.db_path.exists():
             return False
         try:
-            with sqlite3.connect(f"file:{self.db_path}?mode=ro", uri=True) as conn:
-                cur = conn.cursor()
-                cur.execute("SELECT 1 FROM recordings LIMIT 1")
-                return cur.fetchone() is not None
+            conn = self._get_read_conn()
+            if not conn:
+                return False
+            cur = conn.cursor()
+            cur.execute("SELECT 1 FROM recordings LIMIT 1")
+            return cur.fetchone() is not None
         except Exception:
             return False
 
