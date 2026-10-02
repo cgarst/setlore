@@ -588,12 +588,13 @@ def import_setlistfm_shows_into_database(user, user_attended: List[Dict[str, Any
     return imported_count
 
 
-def sync_single_concert(concert, user=None, client=None) -> Dict[str, Any]:
+def sync_single_concert(concert, user=None, client=None, force_refresh=True) -> Dict[str, Any]:
     """
     Syncs a single concert with Setlist.fm without triggering a full database sync.
     Searches for matching setlists for the concert's artist(s) on the concert's date,
     attaching Setlist.fm IDs, setlist URLs, tracklists, venue geocoding, and running
-    album/musician catalog enrichment.
+    album/musician catalog enrichment. When force_refresh=True, bypasses and clears
+    local setlist disk caches and replaces existing ConcertSong records with updated tracks.
     """
     from datetime import datetime
     from django.db import transaction
@@ -603,7 +604,7 @@ def sync_single_concert(concert, user=None, client=None) -> Dict[str, Any]:
     from src.gap_analysis import find_global_setlist_match, is_ignored_artist, match_score
     from src.album_enricher import AlbumEnricher
     from src.musician_enricher import MusicianEnricher
-    from src.config import SETLISTFM_API_KEY
+    from src.config import SETLISTFM_API_KEY, SETLIST_CACHE_DIR
 
     user = user or concert.user
     profile = getattr(user, 'profile', None)
@@ -647,20 +648,37 @@ def sync_single_concert(concert, user=None, client=None) -> Dict[str, Any]:
             if is_ignored_artist(art_name, ignored_artists):
                 continue
 
-            # First try user attended setlists if available / cached
+            # Invalidate specific setlist file cache if ca already had a setlistfm_id and force_refresh is True
+            if force_refresh and ca.setlistfm_id:
+                try:
+                    c_file = SETLIST_CACHE_DIR / f"{ca.setlistfm_id}.json"
+                    if c_file.exists():
+                        c_file.unlink(missing_ok=True)
+                except Exception:
+                    pass
+
+            # If ca already has a setlistfm_id, try fetching fresh by ID first
             matched_sl = None
-            try:
-                user_attended = client.get_user_attended(profile.setlistfm_username.strip(), use_cache=True)
-                for sl in user_attended:
-                    sl_art = (sl.get("artist", {}).get("name") or "").strip()
-                    sl_date = (sl.get("eventDate") or "").strip()
-                    if date_str and sl_date == date_str:
-                        sc = match_score(art_name, venue_name, sl)
-                        if sc >= 60:
-                            matched_sl = sl
-                            break
-            except Exception:
-                pass
+            if ca.setlistfm_id:
+                try:
+                    matched_sl = client.get_setlist_by_id(ca.setlistfm_id, use_cache=not force_refresh)
+                except Exception as e:
+                    logger.debug("get_setlist_by_id error for %s (%s): %s", art_name, ca.setlistfm_id, e)
+
+            # First try user attended setlists if available / cached
+            if not matched_sl:
+                try:
+                    user_attended = client.get_user_attended(profile.setlistfm_username.strip(), use_cache=not force_refresh)
+                    for sl in user_attended:
+                        sl_art = (sl.get("artist", {}).get("name") or "").strip()
+                        sl_date = (sl.get("eventDate") or "").strip()
+                        if date_str and sl_date == date_str:
+                            sc = match_score(art_name, venue_name, sl)
+                            if sc >= 60:
+                                matched_sl = sl
+                                break
+                except Exception:
+                    pass
 
             # If not found in user_attended, try global search
             if not matched_sl and date_str:
@@ -681,7 +699,11 @@ def sync_single_concert(concert, user=None, client=None) -> Dict[str, Any]:
                 tracks = parse_setlistfm_sets_to_tracks(matched_sl)
                 if tracks:
                     ca.has_setlist = True
-                    # If concert artist has no songs (e.g. was logged without setlist or blank), populate them
+                    # If force_refresh is enabled, delete existing tracks for this concert artist to ingest corrections
+                    if force_refresh:
+                        ca.songs.all().delete()
+
+                    # If concert artist has no songs (or just deleted for refresh), populate them
                     if not ca.songs.exists():
                         total_tracks = len(tracks)
                         cs_objs = []

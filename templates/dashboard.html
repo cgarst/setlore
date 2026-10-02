@@ -3855,7 +3855,18 @@
                   <i class="fa-solid fa-users text-indigo-400"></i>
                   <span>Lineup & Performances ({{ c.artists|length }} {% if c.artists|length == 1 %}Artist{% else %}Artists{% endif %})</span>
                 </h4>
-                <span class="text-[11px] text-slate-500">Tap a band to view their full setlist</span>
+                <div class="flex items-center gap-2">
+                  <span class="text-[11px] text-slate-500 hidden sm:inline">Tap a band to view their full setlist</span>
+                  {% if profile.setlistfm_username and not is_public_view or is_owner %}
+                  <button type="button"
+                          onclick="syncSingleConcert('{{ c.id }}', this)"
+                          class="px-2.5 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 hover:text-white text-xs font-semibold transition inline-flex items-center gap-1.5 shadow-sm cursor-pointer"
+                          title="Re-sync concert details and song lists directly from Setlist.fm">
+                    <i class="fa-solid fa-arrows-rotate text-amber-400 text-xs"></i>
+                    <span>Re-sync</span>
+                  </button>
+                  {% endif %}
+                </div>
               </div>
 
               <!-- Band Cards Grid -->
@@ -4002,6 +4013,16 @@
                 </div>
 
                 <div class="flex flex-wrap items-center gap-1.5">
+                  {% if profile.setlistfm_username and not is_public_view or is_owner %}
+                  <button type="button"
+                          onclick="syncSingleConcert('{{ c.id }}', this)"
+                          class="px-2.5 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 hover:text-white text-xs font-semibold transition inline-flex items-center gap-1.5 shadow-sm cursor-pointer"
+                          title="Re-sync concert details and song lists directly from Setlist.fm">
+                    <i class="fa-solid fa-arrows-rotate text-amber-400 text-xs"></i>
+                    <span>Re-sync</span>
+                  </button>
+                  {% endif %}
+
                   {% if a.setify_url or a.setlist_url %}
                   <a href="{% if a.setify_url %}{{ a.setify_url }}{% else %}https://setify.co/s/{{ a.setlist_url|slice:'-13:-5' }}{% endif %}" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 hover:text-white text-xs font-semibold transition inline-flex items-center gap-1.5 shadow-sm" title="Export setlist to Spotify / Apple Music playlist via Setify">
                     <i class="fa-solid fa-music text-emerald-400 text-xs"></i>
@@ -7508,6 +7529,52 @@
           showToast(data.error || 'Failed to update artist favorite', 'error');
         }
       } catch (err) {
+        showToast('Network error: ' + err.message, 'error');
+      }
+    }
+
+    async function syncSingleConcert(concertId, btnElement) {
+      if (!concertId) return;
+      const targetId = (concertId.startsWith('concert_') ? concertId.replace('concert_', '') : concertId);
+      const btn = btnElement || event?.currentTarget;
+      let originalHtml = '';
+      if (btn) {
+        originalHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fa-solid fa-arrows-rotate fa-spin text-amber-400 text-xs"></i> <span>Syncing...</span>`;
+      }
+
+      showToast('Re-syncing concert from Setlist.fm...', 'info');
+
+      try {
+        const res = await fetch('/api/concerts/sync-single/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken'),
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          body: JSON.stringify({ concert_id: targetId })
+        });
+
+        const data = await res.json();
+        if (res.ok && (data.status === 'success' || data.status === 'ok')) {
+          showToast(data.message || 'Concert re-synced successfully! Refreshing...', 'success');
+          setTimeout(() => {
+            window.location.reload();
+          }, 900);
+        } else {
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+          }
+          showToast(data.error || data.message || 'Failed to re-sync concert.', 'error');
+        }
+      } catch (err) {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = originalHtml;
+        }
         showToast('Network error: ' + err.message, 'error');
       }
     }
