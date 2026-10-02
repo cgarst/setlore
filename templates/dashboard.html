@@ -8244,12 +8244,13 @@
 
       // Render songs and handle full tracklist
       const cacheKey = (alb.artist + ':::' + alb.album).toLowerCase();
-      let currentTracklist = alb.tracklist || window._albumTracklistsCache[cacheKey];
+      let currentTracklist = (alb.tracklist && Array.isArray(alb.tracklist) && alb.tracklist.length > 0) ? alb.tracklist : window._albumTracklistsCache[cacheKey];
 
       renderAlbumModalSongs(alb, currentTracklist);
 
       // Dynamically fetch tracklist if not yet cached
-      if (!currentTracklist && alb.decade !== 'Covers' && (alb.album || '').toLowerCase() !== 'covers' && (alb.album || '').toLowerCase() !== 'non-album / singles') {
+      const hasTracklist = currentTracklist && Array.isArray(currentTracklist) && currentTracklist.length > 0;
+      if (!hasTracklist && alb.decade !== 'Covers' && (alb.album || '').toLowerCase() !== 'covers' && (alb.album || '').toLowerCase() !== 'non-album / singles') {
         if (countEl) {
           countEl.innerHTML = `<span class="inline-flex items-center gap-1 text-slate-400"><i class="fa-solid fa-circle-notch fa-spin text-[10px] text-indigo-400"></i> ${alb.unique_songs} heard &bull; Loading full album...</span>`;
         }
