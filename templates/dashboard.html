@@ -4416,15 +4416,15 @@
     <!-- 6. ALBUMS & ERAS TAB -->
     <div id="tab-albums" class="{% if initial_tab != 'albums' %}hidden {% endif %}space-y-6 pb-24 md:pb-8">
       
-      <!-- Albums & Eras Wall Gallery -->
-      <div id="album-wall-section" class="glass-card p-6 space-y-5">
-        <!-- Section Header -->
-        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+      <!-- Top Bar: Search / Filter & Actions (Master Control Section) -->
+      <div id="album-wall-section" class="glass-card p-4 sm:p-5 space-y-3.5">
+        <!-- Header Info Row -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/60 pb-3">
           <div>
             <div class="flex items-center gap-2.5 flex-wrap">
-              <h3 class="text-lg font-bold text-white flex items-center gap-2">
+              <h2 class="text-lg font-bold text-white flex items-center gap-2">
                 <i class="fa-solid fa-compact-disc text-indigo-400"></i> Albums &amp; Eras Wall
-              </h3>
+              </h2>
               <span id="album-gallery-count-badge" class="badge bg-indigo-500/20 text-indigo-300 font-mono text-xs font-bold border border-indigo-500/30 px-2.5 py-0.5">
                 {{ stats.albums_gallery|length|intcomma }} Albums
               </span>
@@ -4433,38 +4433,36 @@
               Interactive album catalog with full artwork, song breakdowns, and live play occurrences across every show.
             </p>
           </div>
+        </div>
 
-          <!-- Controls: Search & Sort -->
-          <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full lg:w-auto">
-            <!-- Search Input -->
-            <div class="relative flex-1 sm:w-60">
-              <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500 text-xs pointer-events-none">
-                <i class="fa-solid fa-magnifying-glass"></i>
-              </span>
-              <input type="text" id="album-gallery-search" oninput="filterAlbumGallery()" placeholder="Search albums or artists..."
-                     class="w-full pl-8 pr-8 py-2 text-xs rounded-xl bg-slate-900/90 border border-slate-700/80 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition">
-              <button type="button" id="album-gallery-search-clear" onclick="clearAlbumGallerySearch()" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-0.5 text-xs transition cursor-pointer">
-                <i class="fa-solid fa-xmark"></i>
-              </button>
-            </div>
+        <!-- Filter & Search Toolbar -->
+        <div class="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+          <!-- Search Input -->
+          <div class="relative flex-1 max-w-lg">
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs pointer-events-none"></i>
+            <input type="text" id="album-gallery-search" oninput="filterAlbumGallery()" placeholder="Search albums, artists, songs, or eras..."
+                   class="bg-slate-900/90 border border-slate-700/80 rounded-lg pl-8 pr-8 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 w-full transition">
+            <button type="button" id="album-gallery-search-clear" onclick="clearAlbumGallerySearch()" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-0.5 text-xs transition cursor-pointer" title="Clear search">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
 
-            <!-- Sort Select -->
-            <div class="relative shrink-0">
-              <select id="album-gallery-sort" onchange="sortAlbumGallery()"
-                      class="w-full sm:w-auto pl-3 pr-8 py-2 text-xs rounded-xl bg-slate-900/90 border border-slate-700/80 text-slate-200 font-semibold focus:outline-none focus:border-indigo-500 transition appearance-none cursor-pointer">
-                <option value="plays-desc">Most Heard Live</option>
-                <option value="year-desc">Release Year (Newest)</option>
-                <option value="year-asc">Release Year (Oldest)</option>
-                <option value="artist-asc">Artist (A → Z)</option>
-                <option value="album-asc">Album (A → Z)</option>
-              </select>
-              <i class="fa-solid fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-[10px] pointer-events-none"></i>
-            </div>
+          <!-- Sort Select -->
+          <div class="relative shrink-0">
+            <select id="album-gallery-sort" onchange="sortAlbumGallery()"
+                    class="w-full sm:w-auto pl-3 pr-8 py-2 text-xs rounded-lg bg-slate-900 border border-slate-700/80 text-slate-200 font-semibold focus:outline-none focus:border-indigo-500 transition appearance-none cursor-pointer">
+              <option value="plays-desc">Most Heard Live</option>
+              <option value="year-desc">Release Year (Newest)</option>
+              <option value="year-asc">Release Year (Oldest)</option>
+              <option value="artist-asc">Artist (A → Z)</option>
+              <option value="album-asc">Album (A → Z)</option>
+            </select>
+            <i class="fa-solid fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-[10px] pointer-events-none"></i>
           </div>
         </div>
 
-        <!-- Decade Filters -->
-        <div class="flex items-center gap-1.5 overflow-x-auto pb-1 custom-scrollbar text-xs">
+        <!-- Decade / Era Filter Pills Row -->
+        <div class="flex items-center gap-1.5 overflow-x-auto pt-1 pb-0.5 custom-scrollbar text-xs">
           <button type="button" onclick="setAlbumGalleryDecade('all')" id="album-decade-btn-all" class="album-decade-btn px-3 py-1.5 rounded-lg bg-indigo-600 text-white font-bold transition shrink-0 cursor-pointer shadow-sm">
             All Eras
           </button>
@@ -4493,134 +4491,134 @@
             Covers
           </button>
         </div>
+      </div>
 
-        <!-- Album Cards Grid -->
-        <div id="album-gallery-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-5 pt-2">
-          {% for alb in stats.albums_gallery %}
-          <div class="album-gallery-card group relative flex flex-col justify-between rounded-2xl bg-slate-900/80 border border-slate-800/90 hover:border-indigo-500/50 hover:bg-slate-800/60 transition-all duration-300 p-3 shadow-lg hover:shadow-2xl hover:shadow-indigo-500/10 cursor-pointer"
-               id="album-card-{{ alb.id }}"
-               data-artist="{{ alb.artist|lower }}"
-               data-album="{{ alb.album|lower }}"
-               data-search="{{ alb.artist|lower }} {{ alb.album|lower }} {{ alb.decade|lower }} {% for s in alb.songs %}{{ s.song|lower }} {% endfor %}"
-               data-plays="{{ alb.plays_heard }}"
-               data-year="{{ alb.release_year|default:0 }}"
-               data-decade="{{ alb.decade }}"
-               data-album-idx="{{ forloop.counter0 }}"
-               onclick="openAlbumModal({{ forloop.counter0 }})">
+      <!-- Free-floating Primary Content: Albums Grid -->
+      <div id="album-gallery-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-5">
+        {% for alb in stats.albums_gallery %}
+        <div class="album-gallery-card group relative flex flex-col justify-between rounded-2xl glass-card border border-slate-800/90 hover:border-indigo-500/50 hover:bg-slate-800/60 transition-all duration-300 p-3 shadow-lg hover:shadow-2xl hover:shadow-indigo-500/10 cursor-pointer"
+             id="album-card-{{ alb.id }}"
+             data-artist="{{ alb.artist|lower }}"
+             data-album="{{ alb.album|lower }}"
+             data-search="{{ alb.artist|lower }} {{ alb.album|lower }} {{ alb.decade|lower }} {% for s in alb.songs %}{{ s.song|lower }} {% endfor %}"
+             data-plays="{{ alb.plays_heard }}"
+             data-year="{{ alb.release_year|default:0 }}"
+             data-decade="{{ alb.decade }}"
+             data-album-idx="{{ forloop.counter0 }}"
+             onclick="openAlbumModal({{ forloop.counter0 }})">
 
-            <!-- Vinyl Sleeve & Sliding Record Container -->
-            <div class="relative w-full aspect-square rounded-xl overflow-hidden mb-3 bg-slate-950/80 shadow-inner flex items-center justify-center">
-              <!-- Vinyl Record Disc (Peeking / Sliding out on hover) -->
-              <div class="absolute right-1 w-[88%] h-[88%] rounded-full bg-gradient-to-tr from-black via-slate-900 to-black border-2 border-slate-800 shadow-2xl flex items-center justify-center transform translate-x-0 group-hover:translate-x-6 sm:group-hover:translate-x-8 transition-transform duration-300 z-0 pointer-events-none">
-                <!-- Vinyl Grooves -->
-                <div class="w-[70%] h-[70%] rounded-full border border-slate-800/60 flex items-center justify-center">
-                  <div class="w-[50%] h-[50%] rounded-full border border-slate-800/40 flex items-center justify-center">
-                    <!-- Center Label -->
-                    <div class="w-[34%] h-[34%] rounded-full bg-gradient-to-tr from-indigo-600 to-pink-500 border border-white/40 shadow-sm flex items-center justify-center">
-                      <div class="w-1.5 h-1.5 rounded-full bg-slate-950"></div>
-                    </div>
+          <!-- Vinyl Sleeve & Sliding Record Container -->
+          <div class="relative w-full aspect-square rounded-xl overflow-hidden mb-3 bg-slate-950/80 shadow-inner flex items-center justify-center">
+            <!-- Vinyl Record Disc (Peeking / Sliding out on hover) -->
+            <div class="absolute right-1 w-[88%] h-[88%] rounded-full bg-gradient-to-tr from-black via-slate-900 to-black border-2 border-slate-800 shadow-2xl flex items-center justify-center transform translate-x-0 group-hover:translate-x-6 sm:group-hover:translate-x-8 transition-transform duration-300 z-0 pointer-events-none">
+              <!-- Vinyl Grooves -->
+              <div class="w-[70%] h-[70%] rounded-full border border-slate-800/60 flex items-center justify-center">
+                <div class="w-[50%] h-[50%] rounded-full border border-slate-800/40 flex items-center justify-center">
+                  <!-- Center Label -->
+                  <div class="w-[34%] h-[34%] rounded-full bg-gradient-to-tr from-indigo-600 to-pink-500 border border-white/40 shadow-sm flex items-center justify-center">
+                    <div class="w-1.5 h-1.5 rounded-full bg-slate-950"></div>
                   </div>
                 </div>
               </div>
+            </div>
 
-              <!-- Album Cover Sleeve -->
-              <div class="relative w-full h-full rounded-xl overflow-hidden z-10 shadow-md border border-white/10 bg-slate-900">
-                {% if alb.decade == 'Covers' or alb.album|lower == 'covers' %}
-                <!-- Covers Sleeve (No Album Art) -->
-                <div class="absolute inset-0 bg-gradient-to-br from-pink-950 via-slate-900 to-indigo-950 flex flex-col items-center justify-center p-3 text-center">
-                  <div class="w-10 h-10 rounded-xl bg-pink-500/20 border border-pink-500/30 flex items-center justify-center text-pink-400 mb-2 shadow-inner">
-                    <i class="fa-solid fa-microphone-lines text-lg"></i>
-                  </div>
-                  <p class="text-xs font-bold text-white line-clamp-2">Cover Songs</p>
-                  <p class="text-[11px] text-pink-300 truncate max-w-full">{{ alb.artist }}</p>
+            <!-- Album Cover Sleeve -->
+            <div class="relative w-full h-full rounded-xl overflow-hidden z-10 shadow-md border border-white/10 bg-slate-900">
+              {% if alb.decade == 'Covers' or alb.album|lower == 'covers' %}
+              <!-- Covers Sleeve (No Album Art) -->
+              <div class="absolute inset-0 bg-gradient-to-br from-pink-950 via-slate-900 to-indigo-950 flex flex-col items-center justify-center p-3 text-center">
+                <div class="w-10 h-10 rounded-xl bg-pink-500/20 border border-pink-500/30 flex items-center justify-center text-pink-400 mb-2 shadow-inner">
+                  <i class="fa-solid fa-microphone-lines text-lg"></i>
                 </div>
-                {% else %}
-                <img id="album-cover-img-{{ forloop.counter0 }}"
-                     src=""
-                     data-artist="{{ alb.artist }}"
-                     data-album="{{ alb.album }}"
-                     data-size="medium"
-                     alt="{{ alb.album }} by {{ alb.artist }}"
-                     loading="lazy"
-                     class="album-cover-img w-full h-full object-cover rounded-xl transition-transform duration-500 group-hover:scale-105 opacity-0">
-                
-                <!-- Fallback Sleeve Graphics (shown until art loads) -->
-                <div id="album-cover-fallback-{{ forloop.counter0 }}" class="absolute inset-0 bg-gradient-to-br from-slate-800 via-slate-900 to-indigo-950 flex flex-col items-center justify-center p-3 text-center transition-opacity duration-300">
-                  <i class="fa-solid fa-compact-disc text-indigo-400 text-3xl mb-2 group-hover:rotate-45 transition-transform duration-500"></i>
-                  <p class="text-xs font-bold text-white line-clamp-2">{{ alb.album }}</p>
-                  <p class="text-[11px] text-indigo-300 truncate max-w-full">{{ alb.artist }}</p>
-                </div>
-                {% endif %}
-
-                <!-- Top Right Badge: Plays Heard Count -->
-                <div class="absolute top-2 right-2 z-20">
-                  <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-slate-950/85 text-emerald-400 border border-emerald-500/40 backdrop-blur-md shadow-md">
-                    {{ alb.plays_heard }}x live
-                  </span>
-                </div>
-
-                <!-- Top Left Badge: Release Year -->
-                {% if alb.release_year %}
-                <div class="absolute top-2 left-2 z-20">
-                  <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-slate-950/85 text-slate-300 border border-slate-700/60 backdrop-blur-md">
-                    {{ alb.release_year }}
-                  </span>
-                </div>
-                {% endif %}
+                <p class="text-xs font-bold text-white line-clamp-2">Cover Songs</p>
+                <p class="text-[11px] text-pink-300 truncate max-w-full">{{ alb.artist }}</p>
               </div>
-            </div>
-
-            <!-- Card Meta Details -->
-            <div class="space-y-1 min-w-0 z-20">
-              <h4 class="text-xs font-bold text-white truncate group-hover:text-indigo-300 transition" title="{{ alb.album }}">
-                {{ alb.album }}
-              </h4>
-              <p class="text-[11px] text-indigo-300 truncate font-medium" title="{{ alb.artist }}">
-                {{ alb.artist }}
-              </p>
-              <div class="flex items-center justify-between text-[10px] text-slate-400 pt-1 border-t border-slate-800/60">
-                <span>{{ alb.unique_songs }} song{{ alb.unique_songs|pluralize }} heard</span>
-                {% if alb.last_seen_date %}
-                <span class="text-slate-500 font-mono">{{ alb.last_seen_date|slice:":4" }}</span>
-                {% endif %}
+              {% else %}
+              <img id="album-cover-img-{{ forloop.counter0 }}"
+                   src=""
+                   data-artist="{{ alb.artist }}"
+                   data-album="{{ alb.album }}"
+                   data-size="medium"
+                   alt="{{ alb.album }} by {{ alb.artist }}"
+                   loading="lazy"
+                   class="album-cover-img w-full h-full object-cover rounded-xl transition-transform duration-500 group-hover:scale-105 opacity-0">
+              
+              <!-- Fallback Sleeve Graphics (shown until art loads) -->
+              <div id="album-cover-fallback-{{ forloop.counter0 }}" class="absolute inset-0 bg-gradient-to-br from-slate-800 via-slate-900 to-indigo-950 flex flex-col items-center justify-center p-3 text-center transition-opacity duration-300">
+                <i class="fa-solid fa-compact-disc text-indigo-400 text-3xl mb-2 group-hover:rotate-45 transition-transform duration-500"></i>
+                <p class="text-xs font-bold text-white line-clamp-2">{{ alb.album }}</p>
+                <p class="text-[11px] text-indigo-300 truncate max-w-full">{{ alb.artist }}</p>
               </div>
-            </div>
+              {% endif %}
 
-          </div>
-          {% empty %}
-          <div class="col-span-full py-12 text-center text-slate-500 italic text-xs">
-            No albums recorded yet. Click "Sync" to fetch setlists.
-          </div>
-          {% endfor %}
-        </div>
+              <!-- Top Right Badge: Plays Heard Count -->
+              <div class="absolute top-2 right-2 z-20">
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-slate-950/85 text-emerald-400 border border-emerald-500/40 backdrop-blur-md shadow-md">
+                  {{ alb.plays_heard }}x live
+                </span>
+              </div>
 
-        <!-- Empty Filter Results Message -->
-        <div id="album-gallery-no-results" class="hidden py-12 text-center space-y-2">
-          <i class="fa-solid fa-compact-disc text-3xl text-slate-600"></i>
-          <p class="text-sm font-bold text-slate-300">No matching albums found</p>
-          <p class="text-xs text-slate-500">Try searching for a different album, artist, or decade.</p>
-        </div>
-
-        <!-- Pagination Controls Bar -->
-        <div id="album-gallery-pagination" class="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 pt-4 border-t border-slate-800/80 text-xs">
-          <!-- Range Info & Per Page -->
-          <div class="flex flex-wrap items-center justify-between sm:justify-start w-full sm:w-auto gap-3 text-slate-400">
-            <span id="album-pagination-info" class="font-medium text-slate-300">Showing 1–24 of 120 albums</span>
-            <div class="flex items-center gap-1.5 pl-2 border-l border-slate-800">
-              <span class="text-slate-500">Per page:</span>
-              <select id="album-per-page-select" onchange="setAlbumPageSize(this.value)" class="bg-slate-900 border border-slate-700/80 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-indigo-500 cursor-pointer">
-                <option value="12">12</option>
-                <option value="24" selected>24</option>
-                <option value="48">48</option>
-                <option value="96">96</option>
-                <option value="all">All</option>
-              </select>
+              <!-- Top Left Badge: Release Year -->
+              {% if alb.release_year %}
+              <div class="absolute top-2 left-2 z-20">
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-slate-950/85 text-slate-300 border border-slate-700/60 backdrop-blur-md">
+                  {{ alb.release_year }}
+                </span>
+              </div>
+              {% endif %}
             </div>
           </div>
 
-          <!-- Page Navigation Buttons -->
-          <div class="flex flex-wrap items-center justify-center sm:justify-end gap-1.5 w-full sm:w-auto" id="album-pagination-buttons"></div>
+          <!-- Card Meta Details -->
+          <div class="space-y-1 min-w-0 z-20">
+            <h4 class="text-xs font-bold text-white truncate group-hover:text-indigo-300 transition" title="{{ alb.album }}">
+              {{ alb.album }}
+            </h4>
+            <p class="text-[11px] text-indigo-300 truncate font-medium" title="{{ alb.artist }}">
+              {{ alb.artist }}
+            </p>
+            <div class="flex items-center justify-between text-[10px] text-slate-400 pt-1 border-t border-slate-800/60">
+              <span>{{ alb.unique_songs }} song{{ alb.unique_songs|pluralize }} heard</span>
+              {% if alb.last_seen_date %}
+              <span class="text-slate-500 font-mono">{{ alb.last_seen_date|slice:":4" }}</span>
+              {% endif %}
+            </div>
+          </div>
+
         </div>
+        {% empty %}
+        <div class="col-span-full glass-card py-12 text-center text-slate-500 italic text-xs">
+          No albums recorded yet. Click "Sync" to fetch setlists.
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- Empty Filter Results Message -->
+      <div id="album-gallery-no-results" class="hidden glass-card py-12 text-center space-y-2">
+        <i class="fa-solid fa-compact-disc text-3xl text-slate-600"></i>
+        <p class="text-sm font-bold text-slate-300">No matching albums found</p>
+        <p class="text-xs text-slate-500">Try searching for a different album, artist, or decade.</p>
+      </div>
+
+      <!-- Free-floating Pagination Controls Bar -->
+      <div id="album-gallery-pagination" class="glass-card p-4 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 text-xs">
+        <!-- Range Info & Per Page -->
+        <div class="flex flex-wrap items-center justify-between sm:justify-start w-full sm:w-auto gap-3 text-slate-400">
+          <span id="album-pagination-info" class="font-medium text-slate-300">Showing 1–24 of 120 albums</span>
+          <div class="flex items-center gap-1.5 pl-2 border-l border-slate-800">
+            <span class="text-slate-500">Per page:</span>
+            <select id="album-per-page-select" onchange="setAlbumPageSize(this.value)" class="bg-slate-900 border border-slate-700/80 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-indigo-500 cursor-pointer">
+              <option value="12">12</option>
+              <option value="24" selected>24</option>
+              <option value="48">48</option>
+              <option value="96">96</option>
+              <option value="all">All</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Page Navigation Buttons -->
+        <div class="flex flex-wrap items-center justify-center sm:justify-end gap-1.5 w-full sm:w-auto" id="album-pagination-buttons"></div>
       </div>
 
     </div>
