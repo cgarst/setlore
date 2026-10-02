@@ -103,43 +103,88 @@ if [[ ! -d "$LOCAL_DIR" ]]; then
     mkdir -p "$LOCAL_DIR"
 fi
 
-# Backup existing local DB if it exists
+# Backup existing local DB and associated WAL/SHM files if they exist
 if [[ -f "$LOCAL_PATH" ]]; then
     BACKUP_PATH="${LOCAL_PATH}.bak.$(date +%Y%m%d_%H%M%S)"
     log_warn "Existing database found at $LOCAL_PATH. Creating backup at $BACKUP_PATH..."
     cp "$LOCAL_PATH" "$BACKUP_PATH"
+    if [[ -f "${LOCAL_PATH}-wal" ]]; then
+        cp "${LOCAL_PATH}-wal" "${BACKUP_PATH}-wal" 2>/dev/null || true
+    fi
+    if [[ -f "${LOCAL_PATH}-shm" ]]; then
+        cp "${LOCAL_PATH}-shm" "${BACKUP_PATH}-shm" 2>/dev/null || true
+    fi
 fi
 
 # Temp file for download
 TEMP_DEST="${LOCAL_PATH}.tmp.$$"
+REMOTE_TMP_BACKUP="/tmp/setlore_prod_clone_$$.sqlite3"
 
 cleanup() {
     if [[ -f "$TEMP_DEST" ]]; then
         rm -f "$TEMP_DEST"
     fi
+    # Clean up remote temporary backup if created
+    if [[ -n "${REMOTE_BACKUP_CREATED:-}" ]]; then
+        ssh "$REMOTE_HOST" "rm -f '$REMOTE_TMP_BACKUP'" 2>/dev/null || true
+    fi
 }
 trap cleanup EXIT INT TERM
 
-log_info "Copying database from ${REMOTE_HOST}:${REMOTE_PATH} to ${LOCAL_PATH}..."
+log_info "Initiating clone from ${REMOTE_HOST}:${REMOTE_PATH}..."
 
-# Perform SCP transfer
-if scp "${REMOTE_HOST}:${REMOTE_PATH}" "$TEMP_DEST"; then
-    mv "$TEMP_DEST" "$LOCAL_PATH"
-    log_success "Database cloned successfully to $LOCAL_PATH"
+# Step 1: Attempt remote online atomic backup (handles remote WAL checkpoint cleanly)
+REMOTE_BACKUP_CREATED=""
+if ssh -o BatchMode=yes -o ConnectTimeout=5 "$REMOTE_HOST" "command -v sqlite3 >/dev/null 2>&1 && sqlite3 '$REMOTE_PATH' '.backup $REMOTE_TMP_BACKUP'" 2>/dev/null; then
+    log_info "Created consistent online snapshot on remote host."
+    REMOTE_BACKUP_CREATED="1"
+    SOURCE_PATH="$REMOTE_TMP_BACKUP"
 else
-    log_error "Failed to copy database from ${REMOTE_HOST}:${REMOTE_PATH}"
+    log_warn "Remote online snapshot via sqlite3 .backup unavailable; falling back to direct SCP."
+    SOURCE_PATH="$REMOTE_PATH"
+fi
+
+# Step 2: Download database file to temporary local destination
+log_info "Transferring database from ${REMOTE_HOST}:${SOURCE_PATH} to temporary staging..."
+if scp "${REMOTE_HOST}:${SOURCE_PATH}" "$TEMP_DEST"; then
+    log_success "Transfer complete."
+else
+    log_error "Failed to copy database from ${REMOTE_HOST}:${SOURCE_PATH}"
     exit 1
 fi
 
-# Quick SQLite integrity verification if sqlite3 CLI tool is installed
+# Step 3: Verify integrity on the staging database BEFORE swapping into destination
 if command -v sqlite3 >/dev/null 2>&1; then
-    log_info "Verifying database integrity..."
-    INTEGRITY_CHECK=$(sqlite3 "$LOCAL_PATH" "PRAGMA quick_check;" 2>&1 || true)
-    if [[ "$INTEGRITY_CHECK" == "ok" ]]; then
-        log_success "Database integrity verified (PRAGMA quick_check: ok)."
-    else
-        log_warn "Integrity check output: $INTEGRITY_CHECK"
+    log_info "Verifying downloaded database integrity..."
+    INTEGRITY_CHECK=$(sqlite3 "$TEMP_DEST" "PRAGMA integrity_check;" 2>&1 || true)
+    if [[ "$INTEGRITY_CHECK" != "ok" ]]; then
+        log_error "Integrity check FAILED on downloaded database:"
+        echo "$INTEGRITY_CHECK" >&2
+        log_error "Aborting swap to prevent corrupting local environment."
+        exit 1
     fi
+    log_success "Database integrity verified (PRAGMA integrity_check: ok)."
+fi
+
+# Step 4: Safely remove existing WAL and SHM files to prevent WAL replay corruption
+if [[ -f "${LOCAL_PATH}-wal" || -f "${LOCAL_PATH}-shm" ]]; then
+    log_info "Removing existing local WAL and SHM files to prevent transaction log replay mismatch..."
+    rm -f "${LOCAL_PATH}-wal" "${LOCAL_PATH}-shm"
+fi
+
+# Step 5: Atomic swap into place
+mv "$TEMP_DEST" "$LOCAL_PATH"
+log_success "Database cloned successfully to $LOCAL_PATH"
+
+# Step 6: Post-clone housekeeping - Clear stale Django sessions to prevent 500 auth/session lookup errors
+if command -v sqlite3 >/dev/null 2>&1; then
+    log_info "Clearing stale user sessions from clone to prevent invalid session errors..."
+    sqlite3 "$LOCAL_PATH" "DELETE FROM django_session;" 2>/dev/null || true
+fi
+
+if [[ -f "${REPO_ROOT}/manage.py" ]]; then
+    log_info "Running Django system check..."
+    python3 "${REPO_ROOT}/manage.py" check --fail-level ERROR 2>/dev/null || true
 fi
 
 DB_SIZE=$(du -h "$LOCAL_PATH" | cut -f1)

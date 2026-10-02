@@ -708,9 +708,9 @@ class DjangoAppTests(TestCase):
         self.assertEqual(res.status_code, 200)
         content = res.content.decode('utf-8')
 
-        # Future concert card must have pre-registered styling, no onclick openConcertModal, and Not Going button
+        # Future concert card must have planned styling, no onclick openConcertModal, and Not Going button
         self.assertIn(f'id="concert-card-concert_{future_concert.id}"', content)
-        self.assertIn('Pre-Registered', content)
+        self.assertIn('Planned', content)
         self.assertIn('Not Going', content)
         self.assertIn('cursor-default', content)
 
