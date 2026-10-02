@@ -3736,9 +3736,9 @@
                         <i class="fa-solid fa-users text-indigo-400 text-[10px]"></i> Lineup:
                       </span>
                       {% for m in a.musicians %}
-                      <button type="button" onclick="event.stopPropagation(); jumpToMusicianInDrilldown('{{ m.musician|escapejs }}');"
+                      <button type="button" onclick="event.stopPropagation(); openArtistModalWithMusician('{{ a.artist|escapejs }}', '{{ m.musician|escapejs }}');"
                         class="badge bg-slate-800/90 hover:bg-indigo-600/30 text-slate-300 hover:text-indigo-200 border border-slate-700/80 hover:border-indigo-500/40 text-[10px] transition cursor-pointer flex items-center gap-1"
-                        title="Filter drilldown by {{ m.musician }}">
+                        title="View {{ a.artist }} songs performed with {{ m.musician }}">
                         <span class="font-medium">{{ m.musician }}</span>
                         {% if m.instrument and m.instrument != 'Other' %}
                           <span class="text-slate-500 text-[9px]">({{ m.instrument }})</span>
@@ -3851,9 +3851,9 @@
                   <i class="fa-solid fa-users text-indigo-400 text-[10px]"></i> Lineup ({{ c.year|default:c.date }}):
                 </span>
                 {% for m in a.musicians %}
-                <button type="button" onclick="jumpToMusicianInDrilldown('{{ m.musician|escapejs }}');"
+                <button type="button" onclick="openArtistModalWithMusician('{{ a.artist|escapejs }}', '{{ m.musician|escapejs }}');"
                   class="badge bg-slate-800/90 hover:bg-indigo-600/30 text-slate-300 hover:text-indigo-200 border border-slate-700/80 hover:border-indigo-500/40 text-[10px] transition cursor-pointer flex items-center gap-1"
-                  title="Filter drilldown by {{ m.musician }}">
+                  title="View {{ a.artist }} songs performed with {{ m.musician }}">
                   <span class="font-medium">{{ m.musician }}</span>
                   {% if m.instrument and m.instrument != 'Other' %}
                     <span class="text-slate-500 text-[9px]">({{ m.instrument }})</span>
@@ -3917,7 +3917,7 @@
                           </div>
                           {% endif %}
 
-                          <button type="button" onclick="jumpToSongInDrilldown('{{ a.artist|escapejs }}', '{{ track.song|escapejs }}');" class="text-white font-semibold hover:underline hover:text-indigo-300 text-left">
+                          <button type="button" onclick="openArtistSongModal('{{ a.artist|escapejs }}', '{{ track.song|escapejs }}');" class="text-white font-semibold hover:underline hover:text-indigo-300 text-left">
                             {{ track.song }}
                           </button>
 
@@ -6336,6 +6336,71 @@
       if (typeof filterFn === 'function') {
         filterFn('');
       }
+    function openConcertModalByVenueDate(venueName, date, artistName = '') {
+      const cards = Array.from(document.querySelectorAll('.concert-card'));
+      const dNorm = (date || '').trim().toLowerCase();
+      const vNorm = (venueName || '').trim().toLowerCase();
+      const aNorm = (artistName || '').trim().toLowerCase();
+
+      let match = null;
+      if (dNorm) {
+        match = cards.find(card => {
+          const cDate = (card.getAttribute('data-date') || card.getAttribute('data-raw-date') || '').trim().toLowerCase();
+          const cVenue = (card.getAttribute('data-venue') || '').trim().toLowerCase();
+          return cDate === dNorm && (!vNorm || cVenue.includes(vNorm) || vNorm.includes(cVenue));
+        });
+        if (!match) {
+          match = cards.find(card => {
+            const cDate = (card.getAttribute('data-date') || card.getAttribute('data-raw-date') || '').trim().toLowerCase();
+            return cDate === dNorm;
+          });
+        }
+      }
+
+      if (!match && aNorm && vNorm) {
+        match = cards.find(card => {
+          const cArt = (card.getAttribute('data-primary-artist') || '').trim().toLowerCase();
+          const cVenue = (card.getAttribute('data-venue') || '').trim().toLowerCase();
+          return (cArt.includes(aNorm) || aNorm.includes(cArt)) && (cVenue.includes(vNorm) || vNorm.includes(cVenue));
+        });
+      }
+
+      if (!match && aNorm) {
+        match = cards.find(card => {
+          const cArt = (card.getAttribute('data-primary-artist') || '').trim().toLowerCase();
+          const cSup = (card.getAttribute('data-supporting-artists') || '').trim().toLowerCase();
+          return cArt.includes(aNorm) || aNorm.includes(cArt) || cSup.includes(aNorm);
+        });
+      }
+
+      if (match) {
+        const cid = match.getAttribute('data-id');
+        if (cid) {
+          openConcertModal(cid);
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+    function openConcertModalForArtist(artistName) {
+      if (!artistName) return false;
+      const cards = Array.from(document.querySelectorAll('.concert-card'));
+      const aNorm = artistName.trim().toLowerCase();
+      const match = cards.find(card => {
+        const cArt = (card.getAttribute('data-primary-artist') || '').trim().toLowerCase();
+        const cSup = (card.getAttribute('data-supporting-artists') || '').trim().toLowerCase();
+        return cArt === aNorm || cArt.includes(aNorm) || aNorm.includes(cArt) || cSup.includes(aNorm);
+      });
+      if (match) {
+        const cid = match.getAttribute('data-id');
+        if (cid) {
+          openConcertModal(cid);
+          return true;
+        }
+      }
+      return false;
     }
 
     function jumpToConcertInDrilldown(venueName, date) {
@@ -7335,6 +7400,12 @@
       }, 60);
     }
 
+    function openArtistModalWithMusician(artistName, musicianName) {
+      if (!artistName) return;
+      activeMusicianFilter = musicianName;
+      openArtistSongModal(artistName, '');
+    }
+
     function openArtistSongModal(artistName, songName = '', isBackNav = false) {
       if (!artistName) return;
       if (!isBackNav) {
@@ -7602,7 +7673,7 @@
                 ` : ''}
               </div>
               <div class="flex items-center justify-end shrink-0">
-                <button type="button" onclick="jumpToConcertInDrilldown('${(o.venue || '').replace(/'/g, "\\'")}', '${o.date || ''}')" class="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition inline-flex items-center gap-1.5 cursor-pointer shadow-md shadow-indigo-600/20 group-hover:scale-[1.02]">
+                <button type="button" onclick="if(!openConcertModalByVenueDate('${(o.venue || '').replace(/'/g, "\\'")}', '${o.date || ''}', '${(data.artist || '').replace(/'/g, "\\'")}')) { jumpToConcertInDrilldown('${(o.venue || '').replace(/'/g, "\\'")}', '${o.date || ''}'); }" class="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition inline-flex items-center gap-1.5 cursor-pointer shadow-md shadow-indigo-600/20 group-hover:scale-[1.02]">
                   <span>View Concert</span>
                   <i class="fa-solid fa-arrow-right text-[10px]"></i>
                 </button>
@@ -7626,7 +7697,6 @@
     }
 
     function jumpToSongInDrilldown(artistName, songName = '') {
-      switchTab('songs');
       if (!artistName) return;
 
       if (activeMusicianFilter) {
@@ -7671,7 +7741,7 @@
                     Open your attended concerts for this artist and use the built-in setlist editor to type or paste the tracklist directly.
                   </p>
                 </div>
-                <button type="button" onclick="closeArtistSongModal(); jumpToArtistInConcerts('${(artistName || '').replace(/'/g, "\\'")}')" class="w-full py-2 px-3 rounded-lg bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-200 border border-indigo-500/40 text-xs font-semibold flex items-center justify-center gap-2 transition cursor-pointer">
+                <button type="button" onclick="if(!openConcertModalForArtist('${(artistName || '').replace(/'/g, "\\'")}')) { closeArtistSongModal(); jumpToArtistInConcerts('${(artistName || '').replace(/'/g, "\\'")}'); }" class="w-full py-2 px-3 rounded-lg bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-200 border border-indigo-500/40 text-xs font-semibold flex items-center justify-center gap-2 transition cursor-pointer">
                   <i class="fa-solid fa-ticket"></i> View Shows &amp; Edit Setlist
                 </button>
               </div>
@@ -8926,8 +8996,8 @@
                   <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                     ${occCount}x
                   </span>
-                  <button onclick="jumpToSongInDrilldown('${safeArtist}', '${safeSong}');"
-                          title="View song performances in Drilldown"
+                  <button onclick="openArtistSongModal('${safeArtist}', '${safeSong}');"
+                          title="View song performances"
                           class="px-2 py-1 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/40 text-indigo-300 hover:text-white border border-indigo-500/30 text-[10px] font-semibold transition cursor-pointer">
                     <i class="fa-solid fa-arrow-right text-[9px]"></i>
                   </button>
@@ -8984,8 +9054,8 @@
                   <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                     ${occCount}x
                   </span>
-                  <button onclick="jumpToSongInDrilldown('${safeArtist}', '${safeSong}');"
-                          title="View song performances in Drilldown"
+                  <button onclick="openArtistSongModal('${safeArtist}', '${safeSong}');"
+                          title="View song performances"
                           class="px-2 py-1 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/40 text-indigo-300 hover:text-white border border-indigo-500/30 text-[10px] font-semibold transition cursor-pointer">
                     <i class="fa-solid fa-arrow-right text-[9px]"></i>
                   </button>
@@ -9029,8 +9099,8 @@
                 <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                   ${occCount}x
                 </span>
-                <button onclick="jumpToSongInDrilldown('${safeArtist}', '${safeSong}');"
-                        title="View song performances in Drilldown"
+                <button onclick="openArtistSongModal('${safeArtist}', '${safeSong}');"
+                        title="View song performances"
                         class="px-2 py-1 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/40 text-indigo-300 hover:text-white border border-indigo-500/30 text-[10px] font-semibold transition cursor-pointer">
                   <i class="fa-solid fa-arrow-right text-[9px]"></i>
                 </button>
@@ -9158,10 +9228,10 @@
         const ytQuery = encodeURIComponent(`${alb.artist} ${alb.album}`);
         const safeArtist = (alb.artist || '').replace(/'/g, "\\'");
         actionsEl.innerHTML = `
-          <button onclick="jumpToSongInDrilldown('${safeArtist}', '');" class="px-3 py-1.5 rounded-xl bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 hover:text-white border border-indigo-500/40 font-semibold transition cursor-pointer flex items-center gap-1.5 text-xs">
+          <button onclick="openArtistSongModal('${safeArtist}', '');" class="px-3 py-1.5 rounded-xl bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 hover:text-white border border-indigo-500/40 font-semibold transition cursor-pointer flex items-center gap-1.5 text-xs">
             <i class="fa-solid fa-magnifying-glass-chart"></i> View ${escapeHtml(alb.artist)} Songs
           </button>
-          <button onclick="closeAllModals(); jumpToArtistInConcerts('${safeArtist}')" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold transition cursor-pointer flex items-center gap-1.5 text-xs">
+          <button onclick="if(!openConcertModalForArtist('${safeArtist}')) { closeAllModals(); jumpToArtistInConcerts('${safeArtist}'); }" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold transition cursor-pointer flex items-center gap-1.5 text-xs">
             <i class="fa-solid fa-ticket"></i> View Shows
           </button>
           <a href="https://www.youtube.com/results?search_query=${ytQuery}" target="_blank" rel="noopener noreferrer" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-red-500/20 text-slate-300 hover:text-red-300 border border-slate-700 hover:border-red-500/40 font-semibold transition flex items-center gap-1.5 text-xs">
@@ -12648,7 +12718,7 @@
                 </div>` : ''}
             </td>
             <td class="px-4 py-3.5 align-top">
-              <button onclick="closeUpcomingTableModal(); jumpToSongInDrilldown('${escArtist}', '');" class="font-bold text-sm sm:text-base text-white hover:text-indigo-300 text-left transition block leading-snug">
+              <button onclick="openArtistSongModal('${escArtist}', '');" class="font-bold text-sm sm:text-base text-white hover:text-indigo-300 text-left transition block leading-snug">
                 ${escapeHtml(show.artist)}
               </button>
               <span class="inline-block mt-1 px-2 py-0.5 rounded-md bg-indigo-500/20 text-indigo-300 text-[10px] font-bold border border-indigo-500/30">
@@ -12828,7 +12898,7 @@
             <div class="space-y-2">
               <div class="flex items-start justify-between gap-2">
                 <div class="min-w-0">
-                  <button onclick="jumpToSongInDrilldown('${escArtist}', '');" class="text-sm font-bold text-white hover:text-indigo-300 text-left truncate block max-w-full">
+                  <button onclick="openArtistSongModal('${escArtist}', '');" class="text-sm font-bold text-white hover:text-indigo-300 text-left truncate block max-w-full">
                     ${escapeHtml(show.artist)}
                   </button>
                   <div class="flex flex-wrap items-center gap-1.5 mt-0.5">
