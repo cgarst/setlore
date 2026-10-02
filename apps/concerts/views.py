@@ -394,10 +394,30 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
                             pass
                 if dt:
                     break
-        if dt and dt.month == today_month and dt.day == today_day and dt < today:
+        if dt and dt.month == today_month and dt.day == today_day and dt < today and dt.year < today.year:
             c_otd = dict(c)
             c_otd["years_ago"] = today.year - dt.year
             c_otd["concert_year"] = dt.year
+
+            # Determine full bill (all artists on the show)
+            artists_list = []
+            if c.get("artists"):
+                for art_item in c.get("artists"):
+                    art_name = art_item.get("artist") if isinstance(art_item, dict) else str(art_item)
+                    if art_name and art_name not in artists_list:
+                        artists_list.append(art_name)
+            if not artists_list:
+                if c.get("raw_artists"):
+                    artists_list = [a.strip() for a in str(c.get("raw_artists")).split(",") if a.strip()]
+                elif c.get("primary_artist"):
+                    artists_list = [c.get("primary_artist")]
+                    if c.get("supporting_artists"):
+                        for supp in str(c.get("supporting_artists")).split(","):
+                            if supp.strip() and supp.strip() not in artists_list:
+                                artists_list.append(supp.strip())
+
+            c_otd["full_bill"] = ", ".join(artists_list) if artists_list else (c.get("primary_artist") or "")
+            c_otd["bill_artists"] = artists_list
             on_this_day_list.append(c_otd)
 
     on_this_day_list.sort(key=lambda x: x.get("concert_year", 0), reverse=True)

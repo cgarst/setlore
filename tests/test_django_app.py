@@ -636,8 +636,8 @@ class DjangoAppTests(TestCase):
         past_year = today.year - 3
         past_date_str = f"{past_year}-{today.month:02d}-{today.day:02d}"
         
-        venue = Venue.objects.create(name='9:30 Club', city='Washington', state='DC')
-        artist = Artist.objects.create(name='Between the Buried and Me', normalized_name='between the buried and me')
+        venue, _ = Venue.objects.get_or_create(name='9:30 Club', defaults={'city': 'Washington', 'state': 'DC'})
+        artist, _ = Artist.objects.get_or_create(normalized_name='between the buried and me', defaults={'name': 'Between the Buried and Me'})
         concert = Concert.objects.create(
             user=self.user,
             date=f"{past_year}-{today.month:02d}-{today.day:02d}",
@@ -645,22 +645,43 @@ class DjangoAppTests(TestCase):
             year=past_year,
             venue=venue,
             primary_artist='Between the Buried and Me',
-            raw_artists='Between the Buried and Me'
+            raw_artists='Between the Buried and Me, Animals as Leaders'
         )
-        ConcertArtist.objects.create(concert=concert, artist=artist)
+        artist2, _ = Artist.objects.get_or_create(normalized_name='animals as leaders', defaults={'name': 'Animals as Leaders'})
+        ConcertArtist.objects.create(concert=concert, artist=artist, billing_order=1)
+        ConcertArtist.objects.create(concert=concert, artist=artist2, billing_order=2)
+
+        # Also create a concert registered for TODAY (same month and day, but current year)
+        # to ensure pre-registered shows occurring today are excluded
+        today_concert = Concert.objects.create(
+            user=self.user,
+            date=today,
+            raw_date=today.strftime("%Y-%m-%d"),
+            year=today.year,
+            venue=venue,
+            primary_artist='Today Headliner',
+            raw_artists='Today Headliner'
+        )
+        today_artist, _ = Artist.objects.get_or_create(normalized_name='today headliner', defaults={'name': 'Today Headliner'})
+        ConcertArtist.objects.create(concert=today_concert, artist=today_artist)
 
         self.client.force_login(self.user)
         res = self.client.get('/overview/')
         self.assertEqual(res.status_code, 200)
         self.assertIn('on_this_day', res.context)
+        # Must only contain the past concert, NOT today's concert
         self.assertEqual(len(res.context['on_this_day']), 1)
         self.assertEqual(res.context['on_this_day'][0]['years_ago'], 3)
         self.assertEqual(res.context['on_this_day'][0]['primary_artist'], 'Between the Buried and Me')
+        self.assertIn('Animals as Leaders', res.context['on_this_day'][0]['full_bill'])
 
         content = res.content.decode('utf-8')
         self.assertIn('id="on-this-day-strip"', content)
-        self.assertIn('Between the Buried and Me', content)
-        self.assertIn('(3y)', content)
+        # Extract strip HTML specifically to check strip contents
+        strip_html = content.split('id="on-this-day-strip"')[1].split('<!-- Charts Row')[0]
+        self.assertIn('Between the Buried and Me, Animals as Leaders', strip_html)
+        self.assertNotIn('Today Headliner', strip_html)
+        self.assertIn('(3y)', strip_html)
 
 
 

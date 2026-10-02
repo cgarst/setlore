@@ -2886,7 +2886,7 @@
                 <span class="badge bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[10px] font-bold font-mono px-1.5 py-0.5">
                   {{ otd.concert_year }} ({{ otd.years_ago }}y)
                 </span>
-                <strong class="text-white group-hover/otd:text-indigo-300 transition text-[11px] sm:text-xs">{{ otd.primary_artist }}</strong>
+                <strong class="text-white group-hover/otd:text-indigo-300 transition text-[11px] sm:text-xs font-semibold">{{ otd.full_bill|default:otd.primary_artist }}</strong>
                 {% if otd.venue %}
                 <span class="text-slate-400 hidden md:inline truncate text-[11px]">
                   @ {{ otd.venue }}{% if otd.city %}, {{ otd.city }}{% endif %}
