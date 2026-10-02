@@ -11,6 +11,14 @@ import requests
 from rapidfuzz import fuzz
 from src.config import MB_CACHE_DIR, CONTACT_EMAIL, APP_URL
 
+def clean_track_title(title: str) -> str:
+    """Normalizes track title by standardizing punctuation and correcting known typographical errors."""
+    if not title:
+        return ""
+    cleaned = title.replace("’", "'").replace("‘", "'").replace("–", "-").replace("—", "-").replace("‐", "-").strip()
+    cleaned = re.sub(r'\bThroug\b', 'Through', cleaned, flags=re.IGNORECASE)
+    return cleaned
+
 def clean_album_title(title: str) -> str:
     """Normalizes album title by removing edition/remaster tags and standardizing casing."""
     if not title:
@@ -621,7 +629,7 @@ class AlbumEnricher:
                         t_pos = trk.get("position") or running_track_num
                         candidate_tracks.append({
                             "track_number": running_track_num,
-                            "title": t_title_clean
+                            "title": clean_track_title(t_title_clean)
                         })
                         running_track_num += 1
 

@@ -38,6 +38,7 @@ def normalize_track_title(title: str) -> str:
         return ""
     norm = unicodedata.normalize('NFKD', title).encode('ASCII', 'ignore').decode('utf-8').lower()
     norm = re.sub(r'\s*[\(\[].*?[\)\]]', '', norm).strip()
+    norm = re.sub(r'\bthroug\b', 'through', norm)
     while True:
         prev = norm
         norm = re.sub(r'^(?:act|scene|part|pt|section|movement|side)\s+[a-z0-9ivxlcdm]+[\.\:\s\-]+', '', norm, flags=re.IGNORECASE).strip()
