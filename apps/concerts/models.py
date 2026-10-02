@@ -47,6 +47,9 @@ class ConcertArtist(models.Model):
 
     class Meta:
         ordering = ['concert', 'billing_order']
+        constraints = [
+            models.UniqueConstraint(fields=['concert', 'artist'], name='unique_concert_artist')
+        ]
 
     def __str__(self):
         return f"{self.concert} - {self.artist.name}"
