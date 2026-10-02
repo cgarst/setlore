@@ -158,7 +158,15 @@ class SyncWorker:
 
             for c in db_concerts:
                 ca_list = list(c.artists.all())
-                artist_names = [ca.artist.name for ca in ca_list if ca.artist]
+                artist_names = []
+                seen_anames = set()
+                for ca in ca_list:
+                    if ca.artist:
+                        a_name = ca.artist.name.strip()
+                        a_norm = a_name.lower()
+                        if a_norm not in seen_anames:
+                            seen_anames.add(a_norm)
+                            artist_names.append(a_name)
                 artist_favorites = {ca.artist.name.lower().strip(): bool(ca.is_favorite) for ca in ca_list if ca.artist}
                 artist_ca_ids = {ca.artist.name.lower().strip(): ca.id for ca in ca_list if ca.artist}
                 dt = datetime.combine(c.date, datetime.min.time()) if c.date else None

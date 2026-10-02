@@ -95,9 +95,11 @@ class ConcertAnalytics:
                 yearly_concerts[rec["year"]] += 1
             if rec.get("venue"):
                 venue_counter[rec["venue"]] += 1
+            rec_seen_artists = set()
             for raw_art in rec.get("artists", []):
                 art = self._canonical_name(raw_art)
-                if not self._is_ignored(art):
+                if not self._is_ignored(art) and art.lower().strip() not in rec_seen_artists:
+                    rec_seen_artists.add(art.lower().strip())
                     artist_counter[art] += 1
                     all_artists_seen.add(art)
 
@@ -461,7 +463,15 @@ class ConcertAnalytics:
                 year_val = year
                 display_formatted_date = date_str
 
-            artists = [a for a in rec.get("artists", []) if not self._is_ignored(a)]
+            raw_artists_list = [a for a in rec.get("artists", []) if not self._is_ignored(a)]
+            artists = []
+            seen_concert_arts = set()
+            for a in raw_artists_list:
+                can_a = self._canonical_name(a)
+                a_key = can_a.lower().strip()
+                if a_key and a_key not in seen_concert_arts:
+                    seen_concert_arts.add(a_key)
+                    artists.append(can_a)
             
             artists_data = []
             total_songs_in_event = 0

@@ -89,7 +89,15 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
 
         for c in db_concerts:
             ca_list = list(c.artists.all())
-            artist_names = [ca.artist.name for ca in ca_list if ca.artist]
+            artist_names = []
+            seen_anames = set()
+            for ca in ca_list:
+                if ca.artist:
+                    a_name = ca.artist.name.strip()
+                    a_norm = a_name.lower()
+                    if a_norm not in seen_anames:
+                        seen_anames.add(a_norm)
+                        artist_names.append(a_name)
             artist_favorites = {ca.artist.name.lower().strip(): bool(ca.is_favorite) for ca in ca_list if ca.artist}
             artist_ca_ids = {ca.artist.name.lower().strip(): ca.id for ca in ca_list if ca.artist}
             dt = datetime.combine(c.date, datetime.min.time()) if c.date else None
@@ -927,6 +935,7 @@ def add_concert(request):
 
             # Supporting artists
             artists_list = [can_primary]
+            seen_artists = {can_primary.lower().strip()}
             supporting_objs = []
             if supporting_artists_raw:
                 parts = re.split(r'[,;/]+', supporting_artists_raw)
@@ -934,9 +943,12 @@ def add_concert(request):
                     p_clean = p.strip()
                     if p_clean:
                         can_supp = normalize_artist_name(p_clean) or p_clean
-                        supp_obj, _ = get_or_create_artist(can_supp)
-                        artists_list.append(can_supp)
-                        supporting_objs.append(supp_obj)
+                        supp_key = can_supp.lower().strip()
+                        if supp_key and supp_key not in seen_artists:
+                            seen_artists.add(supp_key)
+                            supp_obj, _ = get_or_create_artist(can_supp)
+                            artists_list.append(can_supp)
+                            supporting_objs.append(supp_obj)
 
             raw_artists = ", ".join(artists_list)
 
@@ -2204,6 +2216,7 @@ def edit_concert(request):
             primary_art_obj, _ = get_or_create_artist(can_primary)
 
             artists_list = [can_primary]
+            seen_artists = {can_primary.lower().strip()}
             supporting_objs = []
             if supporting_artists_raw:
                 parts = re.split(r'[,;/]+', supporting_artists_raw)
@@ -2211,9 +2224,12 @@ def edit_concert(request):
                     p_clean = p.strip()
                     if p_clean:
                         can_supp = normalize_artist_name(p_clean) or p_clean
-                        supp_obj, _ = get_or_create_artist(can_supp)
-                        artists_list.append(can_supp)
-                        supporting_objs.append(supp_obj)
+                        supp_key = can_supp.lower().strip()
+                        if supp_key and supp_key not in seen_artists:
+                            seen_artists.add(supp_key)
+                            supp_obj, _ = get_or_create_artist(can_supp)
+                            artists_list.append(can_supp)
+                            supporting_objs.append(supp_obj)
 
             raw_artists = ", ".join(artists_list)
 

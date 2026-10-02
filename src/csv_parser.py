@@ -52,7 +52,15 @@ def clean_artists_string(artists_raw: str, ignored_list: Optional[List[str]] = N
         raw = artists_part
 
     tokens = [normalize_artist_name(t) for t in raw.split(",") if t.strip()]
-    filtered = [t for t in tokens if not is_ignored_artist(t, ignored_list)]
+    filtered = []
+    seen = set()
+    for t in tokens:
+        if not is_ignored_artist(t, ignored_list):
+            t_clean = t.strip()
+            t_key = t_clean.lower()
+            if t_clean and t_key not in seen:
+                seen.add(t_key)
+                filtered.append(t_clean)
     return filtered
 
 def parse_csv_rows(reader, ignored_list: Optional[List[str]] = None) -> List[Dict[str, Any]]:
