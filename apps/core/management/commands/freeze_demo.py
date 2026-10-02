@@ -50,6 +50,12 @@ class Command(BaseCommand):
             help="Do not clean the output directory before generating files.",
         )
         parser.add_argument(
+            "--emulate-date",
+            dest="emulate_date",
+            default="2026-08-10",
+            help="Emulate a specific date (YYYY-MM-DD) so 'On This Day' anniversaries are populated. (Default: 2026-08-10).",
+        )
+        parser.add_argument(
             "--skip-screenshots",
             "--no-screenshots",
             action="store_true",
@@ -61,6 +67,7 @@ class Command(BaseCommand):
         username = options.get("username")
         output_dir_name = options.get("output_dir", "docs")
         repo_url = options.get("repo_url", "https://github.com/cgarst/setlore")
+        emulate_date = options.get("emulate_date", "2026-08-10") or "2026-08-10"
         no_clean = options.get("no_clean", False)
         skip_screenshots = options.get("skip_screenshots", False)
 
@@ -71,14 +78,16 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.MIGRATE_HEADING("=== Setlore Static Demo Builder ==="))
 
-        # 1. Resolve Target User (Defaults to demouser)
+        # 1. Resolve Target User (Defaults to Zathu, demouser, or active user)
         if username:
             target_user = User.objects.filter(username__iexact=username.strip()).first()
             if not target_user:
                 raise CommandError(f"User with username '{username}' was not found in the database.")
         else:
-            # Prefer 'demouser' if present, otherwise active user with most concerts
-            target_user = User.objects.filter(username__iexact="demouser").first()
+            # Prefer 'Zathu' if present, otherwise 'demouser', otherwise active user with most concerts
+            target_user = User.objects.filter(username__iexact="Zathu").first()
+            if not target_user:
+                target_user = User.objects.filter(username__iexact="demouser").first()
             if not target_user:
                 target_user = (
                     User.objects.filter(is_active=True)
@@ -132,25 +141,16 @@ class Command(BaseCommand):
         # Helper for rewriting absolute static URLs to relative paths
         def make_relative_static(html_content: str, depth: int = 0) -> str:
             prefix = ("../" * depth) + "static/"
-            pattern = r'([\'"/])/static/'
-            
-            def repl(match):
-                delimiter = match.group(1)
-                if delimiter == '/':
-                    return '/' + prefix
-                return delimiter + prefix
-
-            res = re.sub(r'href=([\'"])/static/', r'href=\1' + prefix, html_content)
-            res = re.sub(r'src=([\'"])/static/', r'src=\1' + prefix, res)
+            res = re.sub(r'([\'"])/static/', r'\1' + prefix, html_content)
             res = re.sub(r'url\([\'"]?/static/', r'url(' + prefix, res)
             return res
 
         rf = RequestFactory()
         generated_files = []
 
-        # 4. Generate User Public Profile Demo Page First (Needed for Screenshots)
-        self.stdout.write(f"Generating public profile demo for @{target_user.username}...")
-        req_profile = rf.get(f"/u/{target_user.username}/", HTTP_HOST="localhost")
+        # 4. Generate User Public Profile Demo Page First (with emulated anniversary date)
+        self.stdout.write(f"Generating public profile demo for @{target_user.username} (emulating {emulate_date})...")
+        req_profile = rf.get(f"/u/{target_user.username}/?emulate_date={emulate_date}", HTTP_HOST="localhost")
         req_profile.user = AnonymousUser()
 
         demo_context = get_dashboard_context(req_profile, target_user, is_public_view=True)
@@ -188,7 +188,7 @@ class Command(BaseCommand):
 
         # 5. Capture Fresh UI Screenshots from Authenticated Live Server
         if not skip_screenshots:
-            self.stdout.write(self.style.MIGRATE_HEADING("Refreshing screenshots via live server (logged in as demouser)..."))
+            self.stdout.write(self.style.MIGRATE_HEADING(f"Refreshing screenshots via live server (logged in as @{target_user.username})..."))
             screenshots_src_dir = base_dir / "static" / "img" / "screenshots"
             screenshots_dst_dir = out_dir / "static" / "img" / "screenshots"
             screenshots_src_dir.mkdir(parents=True, exist_ok=True)
@@ -199,6 +199,7 @@ class Command(BaseCommand):
                     target_user.username,
                     screenshots_src_dir,
                     screenshots_dst_dir,
+                    emulate_date=emulate_date,
                 )
             except Exception as exc:
                 import traceback
@@ -307,16 +308,22 @@ class Command(BaseCommand):
             )
         )
 
-    def _capture_demo_screenshots(self, username: str, src_dir: Path, dst_dir: Path):
+    def _capture_demo_screenshots(self, username: str, src_dir: Path, dst_dir: Path, emulate_date: str = "2026-08-10"):
         """Spins up a temporary Django WSGI server, logs in as the target user via a
-        force-login session cookie, and screenshots the authenticated dashboard pages.
+        force-login session cookie, and screenshots the authenticated dashboard pages
+        in both Desktop (1440x900) and Mobile (390x844) viewports.
 
-        Special handling per page:
-        - concerts.png : expands the first concert card, then waits for album art thumbnails.
-        - songs.png    : selects the top-seen artist, then waits for song album art.
-        - theme_palettes.png : opens the theme chooser modal.
-        All screenshots are forced to the "Default" theme via JS regardless of any saved
-        localStorage preference.
+        Screens captured:
+        - overview.png / overview_mobile.png: Overview dashboard with 'On This Day' anniversaries (emulating anniversary date)
+        - concerts.png / concerts_mobile.png: Setlist modal for Haken at Cafe 611
+        - artists.png / artists_mobile.png: Artist modal for Megadeth
+        - songs.png / songs_mobile.png: Song modal for Demon of the Fall (Opeth)
+        - albums.png / albums_mobile.png: Albums gallery with 2000s era selected
+        - album_modal.png / album_modal_mobile.png: Album modal for Train of Thought (Dream Theater)
+        - musicians.png / musicians_mobile.png: Musicians lineup tracker
+        - map.png / map_mobile.png: Interactive venue map
+        - freshness.png / freshness_mobile.png: Song freshness & rarities
+        - theme_palettes.png: Theme selector modal
         """
         try:
             from playwright.sync_api import sync_playwright
@@ -329,8 +336,6 @@ class Command(BaseCommand):
         import socket
         import threading
 
-        from django.contrib.sessions.backends.db import SessionStore
-        from django.contrib.auth import SESSION_KEY, BACKEND_SESSION_KEY, HASH_SESSION_KEY
         from django.contrib.auth.models import User
 
         # ── 1. Find a free port ────────────────────────────────────────────────
@@ -343,7 +348,6 @@ class Command(BaseCommand):
         # ── 2. Start a WSGI server thread ──────────────────────────────────────
         from wsgiref.simple_server import make_server, WSGIServer, WSGIRequestHandler
         from django.core.handlers.wsgi import WSGIHandler
-        import logging
 
         class _QuietHandler(WSGIRequestHandler):
             def log_message(self, fmt, *args):
@@ -365,6 +369,10 @@ class Command(BaseCommand):
             test_client.force_login(target_user)
             session_key = test_client.cookies['sessionid'].value
             self.stdout.write(f"  [auth] Created authenticated session for @{username}")
+
+            # Find Haken at Cafe 611 concert ID dynamically if available
+            haken_concert = target_user.concerts.filter(venue__name__icontains="Cafe 611", raw_artists__icontains="Haken").first()
+            haken_concert_id = str(haken_concert.id) if haken_concert else "55"
 
             FORCE_DEFAULT_THEME_JS = """
                 () => {
@@ -395,137 +403,190 @@ class Command(BaseCommand):
                 page.screenshot(path=str(target))
                 shutil.copy2(target, dst_dir / filename)
 
+            viewports = [
+                ("desktop", {"width": 1440, "height": 900}, False, False, ""),
+                ("mobile", {"width": 390, "height": 844}, True, True, "_mobile"),
+            ]
+
             with sync_playwright() as p:
                 browser = p.chromium.launch(
                     headless=True,
                     args=["--disable-dev-shm-usage", "--no-sandbox"],
                 )
-                context = browser.new_context(viewport={"width": 1440, "height": 900})
-                context.add_cookies([{
-                    "name": "sessionid",
-                    "value": session_key,
-                    "domain": "127.0.0.1",
-                    "path": "/",
-                    "httpOnly": True,
-                    "secure": False,
-                }])
 
-                page = context.new_page()
-                page.goto(f"{base_url}/overview/", wait_until="domcontentloaded", timeout=60000)
-                try:
-                    page.wait_for_function("() => typeof switchTab === 'function'", timeout=30000)
-                except Exception:
-                    page.wait_for_timeout(2000)
-                page.evaluate(FORCE_DEFAULT_THEME_JS)
+                for vp_name, vp_dict, is_mob, has_tch, suffix in viewports:
+                    self.stdout.write(f"  [playwright] Capturing {vp_name} screenshots (viewport={vp_dict['width']}x{vp_dict['height']})...")
+                    context = browser.new_context(
+                        viewport=vp_dict,
+                        is_mobile=is_mob,
+                        has_touch=has_tch,
+                        device_scale_factor=2 if is_mob else 1,
+                    )
+                    context.add_cookies([{
+                        "name": "sessionid",
+                        "value": session_key,
+                        "domain": "127.0.0.1",
+                        "path": "/",
+                        "httpOnly": True,
+                        "secure": False,
+                    }])
 
-                def _show_tab(tab_name="overview", scroll_below_nav=True):
-                    page.evaluate(f"switchTab('{tab_name}')")
-                    page.wait_for_timeout(600)
+                    page = context.new_page()
+                    page.goto(f"{base_url}/overview/?emulate_date={emulate_date}", wait_until="domcontentloaded", timeout=60000)
+                    try:
+                        page.wait_for_function("() => typeof switchTab === 'function'", timeout=30000)
+                    except Exception:
+                        page.wait_for_timeout(2000)
                     page.evaluate(FORCE_DEFAULT_THEME_JS)
-                    if scroll_below_nav:
-                        page.evaluate("""
-                            () => {
-                                const nav = document.getElementById('desktop-nav-bar');
-                                if (nav) {
-                                    const rect = nav.getBoundingClientRect();
-                                    const topOffset = window.pageYOffset + rect.bottom + 12;
-                                    window.scrollTo({ top: topOffset, behavior: 'instant' });
+
+                    def _show_tab(tab_name="overview", scroll_below_nav=True):
+                        page.evaluate("if (typeof closeAllModals === 'function') closeAllModals();")
+                        page.evaluate(f"if (typeof switchTab === 'function') switchTab('{tab_name}');")
+                        page.wait_for_timeout(600)
+                        page.evaluate(FORCE_DEFAULT_THEME_JS)
+                        if scroll_below_nav and not is_mob:
+                            page.evaluate("""
+                                () => {
+                                    const nav = document.getElementById('desktop-nav-bar');
+                                    if (nav) {
+                                        const rect = nav.getBoundingClientRect();
+                                        const topOffset = window.pageYOffset + rect.bottom + 12;
+                                        window.scrollTo({ top: topOffset, behavior: 'instant' });
+                                    }
                                 }
-                            }
-                        """)
-                    else:
-                        page.evaluate("() => window.scrollTo({ top: 0, behavior: 'instant' })")
-                    page.wait_for_timeout(300)
+                            """)
+                        else:
+                            page.evaluate("() => window.scrollTo({ top: 0, behavior: 'instant' })")
+                        page.wait_for_timeout(300)
 
-                # ── overview.png (full view with nav bar) ──────────────────────
-                _show_tab("overview", scroll_below_nav=False)
-                page.wait_for_timeout(400)
-                _save(page, "overview.png")
-                self.stdout.write("  [screenshot] Captured overview.png")
+                    # ── 1. overview.png (with On This Day anniversary banner) ──
+                    _show_tab("overview", scroll_below_nav=False)
+                    page.wait_for_timeout(500)
+                    _save(page, f"overview{suffix}.png")
+                    self.stdout.write(f"    + overview{suffix}.png")
 
-                # ── concerts.png: expand first concert modal + wait for preview ──────
-                _show_tab("concerts", scroll_below_nav=True)
-                first_card_id = page.evaluate("""
-                    () => {
-                        const card = document.querySelector('.concert-card[id^="concert-card-"]');
-                        if (card) return card.id.replace('concert-card-', '');
-                        return null;
-                    }
-                """)
-                if first_card_id:
-                    page.evaluate(f"openConcertModal('{first_card_id}', 1)")
-                    page.wait_for_timeout(600)
+                    # ── 2. concerts.png: Setlist modal for Haken at Cafe 611 ──
+                    _show_tab("concerts", scroll_below_nav=True)
+                    page.evaluate(f"""
+                        () => {{
+                            if (typeof openConcertModal === 'function') {{
+                                openConcertModal('{haken_concert_id}', 1);
+                            }}
+                        }}
+                    """)
+                    page.wait_for_timeout(700)
                     _wait_for_album_art(
                         page,
-                        selector="#concert-modal-body img.lazy-album-art",
+                        selector="#concert-modal-body img.lazy-album-art, #concert-modal img",
                         min_loaded=1,
                         timeout_ms=5000,
                     )
-                _save(page, "concerts.png")
-                self.stdout.write(f"  [screenshot] Captured concerts.png (modal for concert {first_card_id})")
+                    _save(page, f"concerts{suffix}.png")
+                    self.stdout.write(f"    + concerts{suffix}.png (Haken Cafe 611 modal)")
+                    page.evaluate("if (typeof closeAllModals === 'function') closeAllModals();")
 
-                # ── songs.png: select Primus artist + wait for album art ──────
-                _show_tab("songs", scroll_below_nav=True)
-                selected_artist = page.evaluate("""
-                    () => {
-                        const btns = Array.from(document.querySelectorAll('#artist-button-grid .artist-btn, .artist-btn'));
-                        const primusBtn = btns.find(b => (b.dataset.name || b.textContent).toLowerCase().includes('primus'));
-                        const targetBtn = primusBtn || btns[1] || btns[0];
-                        if (!targetBtn) return null;
-                        const span = targetBtn.querySelector('span:first-child');
-                        return span ? span.textContent.trim() : (targetBtn.dataset.name || targetBtn.textContent.trim());
-                    }
-                """)
-                if selected_artist:
-                    page.evaluate(f"selectArtist({repr(selected_artist)})")
-                    page.wait_for_timeout(800)
-                    _wait_for_album_art(page, selector="img.lazy-album-art", min_loaded=1, timeout_ms=8000)
-                _save(page, "songs.png")
-                self.stdout.write(f"  [screenshot] Captured songs.png (artist '{selected_artist}' selected)")
-
-                # ── albums.png ────────────────────────────────────────────────
-                _show_tab("albums", scroll_below_nav=True)
-                _wait_for_album_art(page, selector=".album-cover-img", min_loaded=3, timeout_ms=8000)
-                _save(page, "albums.png")
-                self.stdout.write("  [screenshot] Captured albums.png")
-
-                # ── musicians.png ─────────────────────────────────────────────
-                _show_tab("musicians", scroll_below_nav=True)
-                _save(page, "musicians.png")
-                self.stdout.write("  [screenshot] Captured musicians.png")
-
-                # ── map.png ───────────────────────────────────────────────────
-                _show_tab("map", scroll_below_nav=True)
-                page.wait_for_timeout(1500)
-                _save(page, "map.png")
-                self.stdout.write("  [screenshot] Captured map.png")
-
-                # ── freshness.png ─────────────────────────────────────────────
-                _show_tab("freshness", scroll_below_nav=True)
-                _save(page, "freshness.png")
-                self.stdout.write("  [screenshot] Captured freshness.png")
-
-                # ── theme_palettes.png: open theme modal and crop to dialog ───
-                _show_tab("overview", scroll_below_nav=False)
-                page.evaluate("""
-                    () => {
-                        if (typeof openThemeModal === 'function') {
-                            openThemeModal();
-                        } else {
-                            const btn = document.getElementById('theme-menu-btn') || document.querySelector('[onclick*="openThemeModal"]');
-                            if (btn) btn.click();
+                    # ── 3. artists.png: Artist modal for Megadeth ─────────────
+                    _show_tab("songs", scroll_below_nav=True)
+                    page.evaluate("""
+                        () => {
+                            if (typeof openArtistSongModal === 'function') {
+                                openArtistSongModal('Megadeth', '');
+                            }
                         }
-                    }
-                """)
-                page.wait_for_timeout(600)
-                modal_card = page.query_selector("#theme-modal > div")
-                target = src_dir / "theme_palettes.png"
-                if modal_card:
-                    modal_card.screenshot(path=str(target))
-                    shutil.copy2(target, dst_dir / "theme_palettes.png")
-                else:
-                    _save(page, "theme_palettes.png")
-                self.stdout.write("  [screenshot] Captured theme_palettes.png (cropped to modal)")
+                    """)
+                    page.wait_for_timeout(700)
+                    _wait_for_album_art(page, selector="#artist-modal-body img, #artist-song-modal img", min_loaded=1, timeout_ms=5000)
+                    _save(page, f"artists{suffix}.png")
+                    self.stdout.write(f"    + artists{suffix}.png (Megadeth artist modal)")
+                    page.evaluate("if (typeof closeAllModals === 'function') closeAllModals();")
+
+                    # ── 4. songs.png: Song modal for Demon of the Fall (Opeth) ─
+                    _show_tab("songs", scroll_below_nav=True)
+                    page.evaluate("""
+                        () => {
+                            if (typeof openArtistSongModal === 'function') {
+                                openArtistSongModal('Opeth', 'Demon of the Fall');
+                            }
+                        }
+                    """)
+                    page.wait_for_timeout(700)
+                    _wait_for_album_art(page, selector="#artist-modal-body img, #artist-song-modal img", min_loaded=1, timeout_ms=5000)
+                    _save(page, f"songs{suffix}.png")
+                    self.stdout.write(f"    + songs{suffix}.png (Demon of the Fall song modal)")
+                    page.evaluate("if (typeof closeAllModals === 'function') closeAllModals();")
+
+                    # ── 5. albums.png: Albums gallery with 2000s era selected ──
+                    _show_tab("albums", scroll_below_nav=True)
+                    page.evaluate("""
+                        () => {
+                            if (typeof setAlbumGalleryDecade === 'function') {
+                                setAlbumGalleryDecade('2000s');
+                            }
+                        }
+                    """)
+                    page.wait_for_timeout(600)
+                    _wait_for_album_art(page, selector=".album-cover-img", min_loaded=3, timeout_ms=8000)
+                    _save(page, f"albums{suffix}.png")
+                    self.stdout.write(f"    + albums{suffix}.png (2000s era)")
+
+                    # ── 6. album_modal.png: Album modal for Train of Thought (Dream Theater) ─
+                    page.evaluate("""
+                        () => {
+                            if (typeof openAlbumModalByName === 'function') {
+                                openAlbumModalByName('Dream Theater', 'Train of Thought');
+                            }
+                        }
+                    """)
+                    page.wait_for_timeout(700)
+                    _wait_for_album_art(page, selector="#album-modal-body img, #album-modal img", min_loaded=1, timeout_ms=5000)
+                    _save(page, f"album_modal{suffix}.png")
+                    self.stdout.write(f"    + album_modal{suffix}.png (Train of Thought album modal)")
+                    page.evaluate("if (typeof closeAllModals === 'function') closeAllModals();")
+
+                    # ── 7. musicians.png ──────────────────────────────────────
+                    _show_tab("musicians", scroll_below_nav=True)
+                    page.wait_for_timeout(500)
+                    _save(page, f"musicians{suffix}.png")
+                    self.stdout.write(f"    + musicians{suffix}.png")
+
+                    # ── 8. map.png ────────────────────────────────────────────
+                    _show_tab("map", scroll_below_nav=True)
+                    page.wait_for_timeout(1500)
+                    _save(page, f"map{suffix}.png")
+                    self.stdout.write(f"    + map{suffix}.png")
+
+                    # ── 9. freshness.png ──────────────────────────────────────
+                    _show_tab("freshness", scroll_below_nav=True)
+                    page.wait_for_timeout(500)
+                    _save(page, f"freshness{suffix}.png")
+                    self.stdout.write(f"    + freshness{suffix}.png")
+
+                    # ── 10. theme_palettes.png ────────────────────────────────
+                    _show_tab("overview", scroll_below_nav=False)
+                    page.evaluate("""
+                        () => {
+                            if (typeof openThemeModal === 'function') {
+                                openThemeModal();
+                            } else {
+                                const btn = document.getElementById('theme-menu-btn') || document.querySelector('[onclick*="openThemeModal"]');
+                                if (btn) btn.click();
+                            }
+                        }
+                    """)
+                    page.wait_for_timeout(600)
+                    if not is_mob:
+                        modal_card = page.query_selector("#theme-modal > div")
+                        target = src_dir / "theme_palettes.png"
+                        if modal_card:
+                            modal_card.screenshot(path=str(target))
+                            shutil.copy2(target, dst_dir / "theme_palettes.png")
+                        else:
+                            _save(page, "theme_palettes.png")
+                    else:
+                        _save(page, "theme_palettes_mobile.png")
+                    self.stdout.write(f"    + theme_palettes{suffix}.png")
+
+                    context.close()
 
                 browser.close()
 

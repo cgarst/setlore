@@ -372,7 +372,15 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
         stats = stats_copy
 
     # Compute 'On This Day' concerts occurring on today's month & day in past years
-    today = date.today()
+    emulate_date_str = request.GET.get('emulate_date') if hasattr(request, 'GET') else None
+    if emulate_date_str:
+        try:
+            today = datetime.strptime(emulate_date_str.strip(), "%Y-%m-%d").date()
+        except Exception:
+            today = date.today()
+    else:
+        today = date.today()
+
     today_month = today.month
     today_day = today.day
     on_this_day_list = []

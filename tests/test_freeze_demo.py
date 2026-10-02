@@ -45,6 +45,7 @@ class FreezeDemoCommandTests(TestCase):
             username='demomusicfan',
             output_dir=self.temp_dir,
             repo_url='https://github.com/cgarst/setlore',
+            skip_screenshots=True,
             verbosity=0
         )
 
@@ -65,6 +66,7 @@ class FreezeDemoCommandTests(TestCase):
             username='demomusicfan',
             output_dir=self.temp_dir,
             repo_url='https://github.com/cgarst/setlore',
+            skip_screenshots=True,
             verbosity=0
         )
 
@@ -91,6 +93,7 @@ class FreezeDemoCommandTests(TestCase):
             'freeze_demo',
             username='demomusicfan',
             output_dir=self.temp_dir,
+            skip_screenshots=True,
             verbosity=0
         )
 
@@ -118,6 +121,7 @@ class FreezeDemoCommandTests(TestCase):
             'freeze_demo',
             username='demomusicfan',
             output_dir=self.temp_dir,
+            skip_screenshots=True,
             verbosity=0
         )
 
@@ -132,6 +136,7 @@ class FreezeDemoCommandTests(TestCase):
                 'freeze_demo',
                 username='nonexistent_user_9999',
                 output_dir=self.temp_dir,
+                skip_screenshots=True,
                 verbosity=0
             )
         self.assertIn("User with username 'nonexistent_user_9999' was not found", str(ctx.exception))
@@ -141,6 +146,7 @@ class FreezeDemoCommandTests(TestCase):
             'freeze',
             username='demomusicfan',
             output_dir=self.temp_dir,
+            skip_screenshots=True,
             verbosity=0
         )
         self.assertTrue((Path(self.temp_dir) / 'index.html').exists())
