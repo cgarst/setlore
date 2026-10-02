@@ -1575,6 +1575,37 @@
         {% csrf_token %}
 
         <div class="overflow-y-auto overflow-x-hidden pr-1 space-y-3.5 flex-1 min-h-0 custom-scrollbar">
+          <!-- Add Options Tip / Information Banner -->
+          <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-700/70 text-xs space-y-2">
+            <div class="flex items-center gap-2 text-indigo-300 font-semibold text-xs">
+              <i class="fa-solid fa-circle-info text-indigo-400"></i>
+              <span>Adding Concerts &amp; Setlists</span>
+            </div>
+            <p class="text-slate-300 text-[11.5px] leading-relaxed">
+              You have two options to log shows in Setlore:
+            </p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] pt-0.5">
+              <div class="p-2.5 rounded-lg bg-slate-950/60 border border-slate-800 space-y-1">
+                <div class="font-bold text-slate-200 flex items-center gap-1.5">
+                  <i class="fa-solid fa-pen-to-square text-indigo-400"></i> Option 1: Manual Entry
+                </div>
+                <p class="text-slate-400 leading-snug">Fill in the concert details and optional setlist below, then click Save Concert.</p>
+              </div>
+              <div class="p-2.5 rounded-lg bg-slate-950/60 border border-slate-800 space-y-1">
+                <div class="font-bold text-slate-200 flex items-center gap-1.5">
+                  <i class="fa-brands fa-lastfm text-amber-400"></i> Option 2: Setlist.fm Sync
+                </div>
+                <p class="text-slate-400 leading-snug">
+                  {% if profile.setlistfm_username %}
+                    Select <strong class="text-amber-300 font-medium">"I was there"</strong> on <a href="https://www.setlist.fm" target="_blank" rel="noopener noreferrer" class="text-indigo-400 hover:text-indigo-300 underline">setlist.fm</a>, then click <button type="button" onclick="closeAddConcertModal(); triggerSync();" class="inline text-indigo-400 hover:text-indigo-300 font-bold underline cursor-pointer">Sync</button> in Setlore.
+                  {% else %}
+                    <button type="button" onclick="closeAddConcertModal(); openProfileModal();" class="inline text-amber-400 hover:text-amber-300 font-bold underline cursor-pointer">Bind your Setlist.fm account</button>, select <strong class="text-amber-300 font-medium">"I was there"</strong> on <a href="https://www.setlist.fm" target="_blank" rel="noopener noreferrer" class="text-indigo-400 hover:text-indigo-300 underline">setlist.fm</a>, and click <strong class="text-indigo-400 font-bold">Sync</strong> in Setlore.
+                  {% endif %}
+                </p>
+              </div>
+            </div>
+          </div>
+
           <!-- Date & Venue Name Row -->
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div class="min-w-0">
@@ -4124,7 +4155,7 @@
           <div>
             <div class="flex items-center gap-2.5 flex-wrap">
               <h2 class="text-lg font-bold text-white flex items-center gap-2">
-                <i class="fa-solid fa-microphone-lines text-indigo-400"></i> Live Songs &amp; Artist Catalogs
+                <i class="fa-solid fa-microphone-lines text-indigo-400"></i> Artists &amp; Songs Directory
               </h2>
               <span class="badge bg-indigo-500/20 text-indigo-300 font-bold text-xs border border-indigo-500/30">
                 {{ stats.artist_drilldown|length|intcomma }} Artists Tracked
@@ -4133,7 +4164,7 @@
                 {{ stats.total_songs_heard|intcomma }} Songs Heard
               </span>
             </div>
-            <p class="text-xs text-slate-400 mt-1">Complete live repertoire, song occurrences, debut dates, and album discographies across all attended artists.</p>
+            <p class="text-xs text-slate-400 mt-1">Explore live repertoire, song occurrences, debut dates, and performance history across all attended artists.</p>
           </div>
         </div>
 
