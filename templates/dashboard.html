@@ -8712,7 +8712,7 @@
           gridcolor: activeThemeConfig.gridColor
         }),
         yaxis: Object.assign({}, layoutDefaults.yaxis || {}, timelineData.layout.yaxis || {}, { fixedrange: true, gridcolor: activeThemeConfig.gridColor }),
-        yaxis2: Object.assign({}, layoutDefaults.yaxis2 || {}, timelineData.layout.yaxis2 || {}, { fixedrange: true })
+        yaxis2: Object.assign({}, layoutDefaults.yaxis2 || {}, timelineData.layout.yaxis2 || {}, { fixedrange: true, showgrid: false, zeroline: false })
       }),
       { responsive: true, displayModeBar: false, scrollZoom: false, doubleClick: false }
     );

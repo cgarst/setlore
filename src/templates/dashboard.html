@@ -2861,7 +2861,7 @@
         dragmode: false,
         xaxis: Object.assign({}, layoutDefaults.xaxis || {}, timelineData.layout.xaxis || {}, { fixedrange: true }),
         yaxis: Object.assign({}, layoutDefaults.yaxis || {}, timelineData.layout.yaxis || {}, { fixedrange: true }),
-        yaxis2: Object.assign({}, layoutDefaults.yaxis2 || {}, timelineData.layout.yaxis2 || {}, { fixedrange: true })
+        yaxis2: Object.assign({}, layoutDefaults.yaxis2 || {}, timelineData.layout.yaxis2 || {}, { fixedrange: true, showgrid: false, zeroline: false })
       }),
       { responsive: true, displayModeBar: false, scrollZoom: false, doubleClick: false }
     );

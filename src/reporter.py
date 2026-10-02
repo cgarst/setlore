@@ -43,6 +43,7 @@ def generate_plotly_charts(stats: Dict[str, Any], album_enrichments: Dict[str, A
                 "overlaying": "y",
                 "side": "right",
                 "showgrid": False,
+                "zeroline": False,
                 "automargin": True,
                 "fixedrange": True
             },
