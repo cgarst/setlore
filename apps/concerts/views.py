@@ -1674,6 +1674,7 @@ def format_concert_drilldown_dates(concerts_drilldown):
             if dt:
                 break
 
+        today = date.today()
         if dt:
             month_name = dt.strftime("%b")
             if month_name == "Sep":
@@ -1681,16 +1682,23 @@ def format_concert_drilldown_dates(concerts_drilldown):
             c_copy["month_day"] = f"{month_name} {dt.day}"
             c_copy["year"] = dt.year
             c_copy["formatted_date"] = f"{month_name} {dt.day}, {dt.year}"
+            c_copy["is_future"] = dt > today
+            c_copy["is_preregistered"] = dt > today
         else:
             m = re.match(r'^([A-Za-z]+)\s+(\d{1,2}),?\s+(\d{4})$', date_str)
             if m:
                 c_copy["month_day"] = f"{m.group(1)} {m.group(2)}"
                 c_copy["year"] = int(m.group(3))
                 c_copy["formatted_date"] = f"{m.group(1)} {m.group(2)}, {m.group(3)}"
+                c_copy["is_future"] = int(m.group(3)) > today.year
+                c_copy["is_preregistered"] = c_copy["is_future"]
             else:
                 c_copy["month_day"] = c_copy.get("month_day") or date_str
                 c_copy["year"] = c_copy.get("year") or ""
                 c_copy["formatted_date"] = c_copy.get("formatted_date") or date_str
+                if "is_future" not in c_copy:
+                    c_copy["is_future"] = False
+                    c_copy["is_preregistered"] = False
         formatted.append(c_copy)
     return formatted
 

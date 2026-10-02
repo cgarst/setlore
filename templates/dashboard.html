@@ -3598,12 +3598,14 @@
           </button>
         </div>
         {% for c in stats.concerts_drilldown %}
-        <div class="concert-card glass-card p-3.5 sm:p-4 rounded-xl border border-slate-800/80 hover:border-indigo-500/50 hover:bg-slate-900/60 transition shadow-sm cursor-pointer select-none group"
+        <div class="concert-card glass-card p-3.5 sm:p-4 rounded-xl border {% if c.is_future %}border-slate-800/80 bg-slate-900/30 opacity-75 grayscale-[25%] transition shadow-sm cursor-default select-none group/prereg{% else %}border-slate-800/80 hover:border-indigo-500/50 hover:bg-slate-900/60 transition shadow-sm cursor-pointer select-none group{% endif %}"
              id="concert-card-{{ c.id }}"
-             onclick="openConcertModal('{{ c.id }}')"
+             {% if not c.is_future %}onclick="openConcertModal('{{ c.id }}')"{% endif %}
              data-search="{{ c.date|lower }} {{ c.venue|lower }} {{ c.raw_artists|lower }}{% for a in c.artists %}{% for m in a.musicians %} {{ m.musician|lower }}{% endfor %}{% endfor %}"
              data-id="{{ c.id }}"
              data-db-id="{{ c.db_id }}"
+             data-is-future="{{ c.is_future|yesno:'true,false' }}"
+             data-is-preregistered="{{ c.is_preregistered|yesno:'true,false' }}"
              data-is-favorite="{{ c.is_favorite|yesno:'true,false' }}"
              data-has-favorite-artist="{{ c.has_favorite_artist|yesno:'true,false' }}"
              data-date="{% if c.date %}{{ c.date }}{% else %}{{ c.raw_date }}{% endif %}"
@@ -3626,20 +3628,34 @@
             <!-- Left & Center: Date Badge + Artists + Venue -->
             <div class="flex items-center gap-3.5 min-w-0">
               <!-- Date Badge -->
+              {% if c.is_future %}
+              <div class="shrink-0 flex flex-col items-center justify-center px-2.5 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700/80 min-w-[76px] text-center leading-tight">
+                <span class="text-xs font-bold text-slate-300 whitespace-nowrap">{{ c.month_day }}</span>
+                <span class="text-[10px] font-semibold text-slate-500 font-mono tracking-wider">{{ c.year }}</span>
+              </div>
+              {% else %}
               <div class="shrink-0 flex flex-col items-center justify-center px-2.5 py-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/30 min-w-[76px] text-center leading-tight">
                 <span class="text-xs font-black text-indigo-200 whitespace-nowrap">{{ c.month_day }}</span>
                 <span class="text-[10px] font-bold text-indigo-400 font-mono tracking-wider">{{ c.year }}</span>
               </div>
+              {% endif %}
 
               <!-- Artist & Venue Details -->
               <div class="min-w-0 space-y-0.5">
                 <div class="flex items-center gap-2 flex-wrap">
+                  {% if not c.is_future %}
                   <span id="concert-fav-badge-{{ c.id }}" class="text-amber-400 text-xs {% if not c.has_favorite_artist %}hidden{% endif %}" title="Contains favorited performance">
                     <i class="fa-solid fa-star text-xs"></i>
                   </span>
-                  <h3 class="text-white font-bold text-sm sm:text-base group-hover:text-indigo-200 transition truncate">
+                  {% endif %}
+                  <h3 class="{% if c.is_future %}text-slate-200{% else %}text-white group-hover:text-indigo-200{% endif %} font-bold text-sm sm:text-base transition truncate">
                     {{ c.primary_artist }}
                   </h3>
+                  {% if c.is_future %}
+                  <span class="badge bg-slate-800/90 text-amber-300/90 border border-amber-500/30 text-[10px] font-bold tracking-wider uppercase px-1.5 py-0.5 shadow-xs">
+                    <i class="fa-regular fa-clock text-[9px] mr-1"></i> Pre-Registered
+                  </span>
+                  {% endif %}
                   {% if c.supporting_artists %}
                   <span class="concert-header-artists text-slate-400 text-xs truncate hidden sm:inline" data-full-artists="— {{ c.raw_artists }}">
                     w/ {{ c.supporting_artists }}
@@ -3647,7 +3663,7 @@
                   {% endif %}
                 </div>
                 <p class="text-xs text-slate-400 flex items-center gap-1.5 truncate">
-                  <i class="fa-solid fa-location-dot text-indigo-400 text-[10px]"></i>
+                  <i class="fa-solid fa-location-dot {% if c.is_future %}text-slate-500{% else %}text-indigo-400{% endif %} text-[10px]"></i>
                   <span>{{ c.venue }}</span>
                   {% if c.city %}<span class="text-slate-500">• {{ c.city }}{% if c.state %}, {{ c.state }}{% endif %}</span>{% endif %}
                 </p>
@@ -3659,63 +3675,76 @@
               </div>
             </div>
 
-            <!-- Right: Meta Badges + Actions + Tap Prompt -->
+            <!-- Right: Meta Badges + Actions -->
             <div class="flex items-center gap-2 sm:gap-2.5 shrink-0 self-end md:self-center">
-              {% if is_public_view and request.user.is_authenticated and not is_owner %}
-              <button type="button"
-                      id="attend-btn-{{ c.id }}"
-                      onclick="event.stopPropagation(); toggleConcertAttendance('{{ c.id }}', '{{ c.db_id }}');"
-                      class="attend-btn px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer border {% if c.is_attended_by_viewer %}bg-emerald-500/20 text-emerald-300 border-emerald-500/50 hover:bg-rose-500/20 hover:border-rose-500/40 hover:text-rose-300 active-attended{% else %}bg-slate-800 text-slate-300 border-slate-700 hover:text-white hover:bg-indigo-600/30 hover:border-indigo-500/50{% endif %}"
-                      data-concert-id="{{ c.id }}"
-                      data-db-id="{{ c.db_id }}"
-                      data-attended="{% if c.is_attended_by_viewer %}true{% else %}false{% endif %}"
-                      title="{% if c.is_attended_by_viewer %}Logged on your profile. Click to remove.{% else %}Click to log this concert on your profile{% endif %}">
-                <i class="fa-solid {% if c.is_attended_by_viewer %}fa-circle-check text-emerald-400{% else %}fa-hand-peace text-slate-400{% endif %} attend-icon"></i>
-                <span class="attend-btn-label hidden sm:inline">I Was There</span>
-              </button>
-              {% elif is_public_view and not request.user.is_authenticated %}
-              <a href="{% url 'login' %}?next={{ request.path }}"
-                 onclick="event.stopPropagation();"
-                 class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 border border-slate-700 hover:text-white hover:bg-indigo-600/30 hover:border-indigo-500/50 transition flex items-center gap-1.5"
-                 title="Log in to mark this concert as attended">
-                <i class="fa-solid fa-hand-peace text-slate-400"></i>
-                <span class="hidden sm:inline">I Was There</span>
-              </a>
-              {% endif %}
-
-              {% if not is_public_view or is_owner %}
-              <div class="flex items-center gap-1" onclick="event.stopPropagation();">
+              {% if c.is_future %}
+                <!-- Pre-Registered / Future Shows: Only option is 'Not Going' which deletes the pre-registration -->
+                {% if not is_public_view or is_owner %}
                 <button type="button"
-                        onclick="handleConcertEdit('{{ c.id }}');"
-                        class="px-2 py-1 rounded-lg text-xs font-semibold bg-slate-800/90 text-slate-300 border border-slate-700 hover:text-white hover:bg-indigo-600/30 hover:border-indigo-500/50 transition flex items-center gap-1 cursor-pointer"
-                        title="Edit concert details">
-                  <i class="fa-solid fa-pen-to-square text-[11px]"></i>
+                        onclick="event.stopPropagation(); handleNotGoing('{{ c.id }}', '{{ c.db_id }}');"
+                        class="not-going-btn px-2.5 py-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/35 text-rose-300 hover:text-rose-200 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-sm"
+                        title="Remove pre-registration">
+                  <i class="fa-solid fa-calendar-xmark text-[11px]"></i>
+                  <span>Not Going</span>
                 </button>
-                <button type="button"
-                        onclick="handleConcertDelete('{{ c.id }}');"
-                        class="px-2 py-1 rounded-lg text-xs font-semibold bg-slate-800/90 text-slate-300 border border-slate-700 hover:text-rose-300 hover:bg-rose-500/20 hover:border-rose-500/40 transition flex items-center gap-1 cursor-pointer"
-                        title="Delete concert">
-                  <i class="fa-solid fa-trash-can text-[11px]"></i>
-                </button>
-              </div>
-              {% endif %}
-
-              <span class="badge bg-slate-800 text-slate-300 text-xs border border-slate-700">
-                <i class="fa-solid fa-users text-slate-400 text-[10px] mr-1"></i> {{ c.total_artists|intcomma }}
-              </span>
-              {% if c.total_songs > 0 %}
-              <span class="badge bg-emerald-500/20 text-emerald-300 text-xs border border-emerald-500/30 font-semibold">
-                <i class="fa-solid fa-music text-[10px] mr-1"></i> {{ c.total_songs|intcomma }} Songs
-              </span>
+                {% endif %}
               {% else %}
-              <span class="badge bg-amber-500/15 text-amber-300 text-xs border border-amber-500/30">
-                No Setlist
-              </span>
-              {% endif %}
+                {% if is_public_view and request.user.is_authenticated and not is_owner %}
+                <button type="button"
+                        id="attend-btn-{{ c.id }}"
+                        onclick="event.stopPropagation(); toggleConcertAttendance('{{ c.id }}', '{{ c.db_id }}');"
+                        class="attend-btn px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer border {% if c.is_attended_by_viewer %}bg-emerald-500/20 text-emerald-300 border-emerald-500/50 hover:bg-rose-500/20 hover:border-rose-500/40 hover:text-rose-300 active-attended{% else %}bg-slate-800 text-slate-300 border-slate-700 hover:text-white hover:bg-indigo-600/30 hover:border-indigo-500/50{% endif %}"
+                        data-concert-id="{{ c.id }}"
+                        data-db-id="{{ c.db_id }}"
+                        data-attended="{% if c.is_attended_by_viewer %}true{% else %}false{% endif %}"
+                        title="{% if c.is_attended_by_viewer %}Logged on your profile. Click to remove.{% else %}Click to log this concert on your profile{% endif %}">
+                  <i class="fa-solid {% if c.is_attended_by_viewer %}fa-circle-check text-emerald-400{% else %}fa-hand-peace text-slate-400{% endif %} attend-icon"></i>
+                  <span class="attend-btn-label hidden sm:inline">I Was There</span>
+                </button>
+                {% elif is_public_view and not request.user.is_authenticated %}
+                <a href="{% url 'login' %}?next={{ request.path }}"
+                   onclick="event.stopPropagation();"
+                   class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 border border-slate-700 hover:text-white hover:bg-indigo-600/30 hover:border-indigo-500/50 transition flex items-center gap-1.5"
+                   title="Log in to mark this concert as attended">
+                  <i class="fa-solid fa-hand-peace text-slate-400"></i>
+                  <span class="hidden sm:inline">I Was There</span>
+                </a>
+                {% endif %}
 
-              <div class="w-7 h-7 rounded-lg bg-slate-800/60 border border-slate-700/60 flex items-center justify-center text-slate-400 group-hover:text-white group-hover:bg-indigo-600/30 group-hover:border-indigo-500/50 transition">
-                <i class="fa-solid fa-chevron-right text-xs"></i>
-              </div>
+                {% if not is_public_view or is_owner %}
+                <div class="flex items-center gap-1" onclick="event.stopPropagation();">
+                  <button type="button"
+                          onclick="handleConcertEdit('{{ c.id }}');"
+                          class="px-2 py-1 rounded-lg text-xs font-semibold bg-slate-800/90 text-slate-300 border border-slate-700 hover:text-white hover:bg-indigo-600/30 hover:border-indigo-500/50 transition flex items-center gap-1 cursor-pointer"
+                          title="Edit concert details">
+                    <i class="fa-solid fa-pen-to-square text-[11px]"></i>
+                  </button>
+                  <button type="button"
+                          onclick="handleConcertDelete('{{ c.id }}');"
+                          class="px-2 py-1 rounded-lg text-xs font-semibold bg-slate-800/90 text-slate-300 border border-slate-700 hover:text-rose-300 hover:bg-rose-500/20 hover:border-rose-500/40 transition flex items-center gap-1 cursor-pointer"
+                          title="Delete concert">
+                    <i class="fa-solid fa-trash-can text-[11px]"></i>
+                  </button>
+                </div>
+                {% endif %}
+
+                <span class="badge bg-slate-800 text-slate-300 text-xs border border-slate-700">
+                  <i class="fa-solid fa-users text-slate-400 text-[10px] mr-1"></i> {{ c.total_artists|intcomma }}
+                </span>
+                {% if c.total_songs > 0 %}
+                <span class="badge bg-emerald-500/20 text-emerald-300 text-xs border border-emerald-500/30 font-semibold">
+                  <i class="fa-solid fa-music text-[10px] mr-1"></i> {{ c.total_songs|intcomma }} Songs
+                </span>
+                {% else %}
+                <span class="badge bg-amber-500/15 text-amber-300 text-xs border border-amber-500/30">
+                  No Setlist
+                </span>
+                {% endif %}
+
+                <div class="w-7 h-7 rounded-lg bg-slate-800/60 border border-slate-700/60 flex items-center justify-center text-slate-400 group-hover:text-white group-hover:bg-indigo-600/30 group-hover:border-indigo-500/50 transition">
+                  <i class="fa-solid fa-chevron-right text-xs"></i>
+                </div>
+              {% endif %}
             </div>
           </div>
 
@@ -6981,6 +7010,9 @@
       const modal = document.getElementById('concert-detail-modal');
       const modalBody = document.getElementById('concert-modal-body');
       if (!card || !modal || !modalBody) return;
+      if (card.getAttribute('data-is-future') === 'true' || card.getAttribute('data-is-preregistered') === 'true') {
+        return;
+      }
 
       const payload = document.getElementById('concert-modal-payload-' + concertId);
       if (payload) {
@@ -10552,6 +10584,67 @@
         alert(err.message);
         btn.disabled = false;
         btn.innerHTML = '<i class="fa-solid fa-trash text-[11px]"></i> Delete Concert';
+      }
+    }
+
+    async function handleNotGoing(concertId, dbId) {
+      const card = document.getElementById(`concert-card-${concertId}`);
+      const btn = card ? card.querySelector('.not-going-btn') : null;
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner animate-spin text-[11px]"></i><span>Removing...</span>';
+      }
+
+      const targetId = dbId || concertId;
+      try {
+        const response = await fetch('/api/concerts/delete/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken') || (document.querySelector('[name=csrfmiddlewaretoken]') ? document.querySelector('[name=csrfmiddlewaretoken]').value : '')
+          },
+          body: JSON.stringify({
+            concert_id: targetId,
+            id: targetId
+          })
+        });
+        const data = await response.json();
+        if (response.ok && (data.status === 'success' || data.success)) {
+          if (card) {
+            card.style.transition = 'opacity 0.25s ease, transform 0.25s ease';
+            card.style.opacity = '0';
+            card.style.transform = 'scale(0.96)';
+            setTimeout(() => {
+              card.remove();
+              // Update total count badge if visible
+              const countBadge = document.querySelector('#tab-concerts .badge');
+              if (countBadge) {
+                const cur = parseInt(countBadge.textContent.replace(/[^0-9]/g, '')) || 0;
+                if (cur > 0) {
+                  countBadge.textContent = `${cur - 1} Shows`;
+                }
+              }
+              // Check empty state
+              const remainingCards = document.querySelectorAll('.concert-card');
+              const emptyBox = document.getElementById('concerts-no-results');
+              if (remainingCards.length === 0 && emptyBox) {
+                emptyBox.classList.remove('hidden');
+              }
+            }, 250);
+          }
+        } else {
+          alert(data.error || 'Failed to remove pre-registration');
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-calendar-xmark text-[11px]"></i><span>Not Going</span>';
+          }
+        }
+      } catch (err) {
+        alert(err.message || 'Error removing pre-registration');
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fa-solid fa-calendar-xmark text-[11px]"></i><span>Not Going</span>';
+        }
       }
     }
 

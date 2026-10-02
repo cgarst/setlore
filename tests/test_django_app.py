@@ -683,6 +683,44 @@ class DjangoAppTests(TestCase):
         self.assertNotIn('Today Headliner', strip_html)
         self.assertIn('(3y)', strip_html)
 
+    def test_preregistered_concert_card_rendering_and_not_going_action(self):
+        from datetime import date, timedelta
+        today = date.today()
+        future_date = today + timedelta(days=60)
+        
+        venue, _ = Venue.objects.get_or_create(name='Future Arena', defaults={'city': 'Boston', 'state': 'MA'})
+        artist, _ = Artist.objects.get_or_create(normalized_name='iron maiden', defaults={'name': 'Iron Maiden'})
+        
+        # Create a pre-registered future concert
+        future_concert = Concert.objects.create(
+            user=self.user,
+            date=future_date,
+            raw_date=future_date.strftime("%Y-%m-%d"),
+            year=future_date.year,
+            venue=venue,
+            primary_artist='Iron Maiden',
+            raw_artists='Iron Maiden'
+        )
+        ConcertArtist.objects.create(concert=future_concert, artist=artist)
+
+        self.client.force_login(self.user)
+        res = self.client.get('/concerts/')
+        self.assertEqual(res.status_code, 200)
+        content = res.content.decode('utf-8')
+
+        # Future concert card must have pre-registered styling, no onclick openConcertModal, and Not Going button
+        self.assertIn(f'id="concert-card-concert_{future_concert.id}"', content)
+        self.assertIn('Pre-Registered', content)
+        self.assertIn('Not Going', content)
+        self.assertIn('cursor-default', content)
+
+        # Test Not Going action via delete endpoint
+        del_res = self.client.post('/api/concerts/delete/', json.dumps({
+            'concert_id': future_concert.id
+        }), content_type='application/json')
+        self.assertEqual(del_res.status_code, 200)
+        self.assertFalse(Concert.objects.filter(id=future_concert.id).exists())
+
 
 
 

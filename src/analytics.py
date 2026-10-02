@@ -668,7 +668,9 @@ class ConcertAnalytics:
                 "total_songs": total_songs_in_event,
                 "has_any_setlist": any(a["has_setlist"] for a in artists_data),
                 "is_favorite": bool(rec.get("is_favorite", False)),
-                "has_favorite_artist": has_fav_artist
+                "has_favorite_artist": has_fav_artist,
+                "is_future": not is_occurred,
+                "is_preregistered": not is_occurred
             })
 
         # Return in reverse chronological order (Latest to Oldest)
