@@ -4996,6 +4996,363 @@
 
     </div>
 
+    <!-- 10. MORE / MOBILE NAVIGATION & SETTINGS TAB (Dedicated Page) -->
+    <div id="tab-more" class="{% if initial_tab != 'more' %}hidden {% endif %}space-y-6 pb-24 max-w-3xl mx-auto md:hidden">
+      <!-- Profile & Account Header Card -->
+      <div class="glass-card p-5 border border-slate-800/80 shadow-xl space-y-4">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-800/80">
+          <div class="flex items-center gap-3.5 min-w-0">
+            <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white text-lg shadow-md shrink-0">
+              <i class="fa-solid fa-user"></i>
+            </div>
+            <div class="min-w-0 flex-1">
+              {% if is_public_view %}
+                <p class="text-base font-bold text-white truncate">@{{ profile_user.username }}</p>
+                <p class="text-xs text-indigo-300 truncate flex items-center gap-1.5 mt-0.5">
+                  <i class="fa-solid fa-globe text-[11px]"></i> Public Profile View
+                </p>
+              {% else %}
+                <p class="text-base font-bold text-white truncate">{{ request.user.username }}</p>
+                <div id="mobile-setlist-badge" class="mt-0.5">
+                  {% if profile.setlistfm_username %}
+                    <p class="text-xs text-amber-300 truncate flex items-center gap-1.5">
+                      <i class="fa-brands fa-lastfm text-[11px]"></i> @<span class="user-setlist-name">{{ profile.setlistfm_username }}</span>
+                    </p>
+                  {% else %}
+                    <p class="text-xs text-amber-400/90 flex items-center gap-1.5 cursor-pointer hover:underline" onclick="openProfileModal();">
+                      <i class="fa-brands fa-lastfm text-[11px]"></i> Link Setlist.fm account
+                    </p>
+                  {% endif %}
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Navigation Sections -->
+        <div class="space-y-2.5">
+          <div class="flex items-center justify-between">
+            <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Sections</p>
+            <span class="text-[11px] text-slate-500">Jump to view</span>
+          </div>
+          
+          <div class="space-y-2">
+            <!-- Albums & Eras -->
+            <button onclick="switchTab('albums')" id="mobile-sheet-tab-albums-btn" class="w-full flex items-center justify-between p-3 rounded-xl {% if initial_tab == 'albums' %}bg-indigo-600/20 border border-indigo-500/50 shadow-md shadow-indigo-500/10{% else %}bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600{% endif %} transition text-left group cursor-pointer">
+              <div class="flex items-center gap-3 min-w-0">
+                <div class="w-9 h-9 rounded-xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 group-hover:scale-105 transition shrink-0">
+                  <i class="fa-solid fa-wand-magic-sparkles text-sm"></i>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="text-sm font-semibold text-white group-hover:text-cyan-300 transition truncate">Albums &amp; Eras</p>
+                  <p class="text-xs text-slate-400 truncate">Album coverage, era charts &amp; song age</p>
+                </div>
+              </div>
+              <i class="fa-solid fa-chevron-right text-slate-500 text-xs ml-2 shrink-0"></i>
+            </button>
+
+            <!-- Musicians -->
+            <button onclick="switchTab('musicians')" id="mobile-sheet-tab-musicians-btn" class="w-full flex items-center justify-between p-3 rounded-xl {% if initial_tab == 'musicians' %}bg-indigo-600/20 border border-indigo-500/50 shadow-md shadow-indigo-500/10{% else %}bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600{% endif %} transition text-left group cursor-pointer">
+              <div class="flex items-center gap-3 min-w-0">
+                <div class="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 group-hover:scale-105 transition shrink-0">
+                  <i class="fa-solid fa-users-viewfinder text-sm"></i>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="text-sm font-semibold text-white group-hover:text-amber-300 transition truncate">Musicians</p>
+                  <p class="text-xs text-slate-400 truncate">Band lineups &amp; live musician tracking</p>
+                </div>
+              </div>
+              <i class="fa-solid fa-chevron-right text-slate-500 text-xs ml-2 shrink-0"></i>
+            </button>
+
+            <!-- Venue Map -->
+            <button onclick="switchTab('map')" id="mobile-sheet-tab-map-btn" class="w-full flex items-center justify-between p-3 rounded-xl {% if initial_tab == 'map' %}bg-indigo-600/20 border border-indigo-500/50 shadow-md shadow-indigo-500/10{% else %}bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600{% endif %} transition text-left group cursor-pointer">
+              <div class="flex items-center gap-3 min-w-0">
+                <div class="w-9 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 group-hover:scale-105 transition shrink-0">
+                  <i class="fa-solid fa-map-location-dot text-sm"></i>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="text-sm font-semibold text-white group-hover:text-emerald-300 transition truncate">Venue Map</p>
+                  <p class="text-xs text-slate-400 truncate">Interactive concert venues &amp; geolocation</p>
+                </div>
+              </div>
+              <i class="fa-solid fa-chevron-right text-slate-500 text-xs ml-2 shrink-0"></i>
+            </button>
+
+            <!-- Freshness -->
+            <button onclick="switchTab('freshness')" id="mobile-sheet-tab-freshness-btn" class="w-full flex items-center justify-between p-3 rounded-xl {% if initial_tab == 'freshness' %}bg-indigo-600/20 border border-indigo-500/50 shadow-md shadow-indigo-500/10{% else %}bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600{% endif %} transition text-left group cursor-pointer">
+              <div class="flex items-center gap-3 min-w-0">
+                <div class="w-9 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 group-hover:scale-105 transition shrink-0">
+                  <i class="fa-solid fa-leaf text-sm"></i>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="text-sm font-semibold text-white group-hover:text-emerald-300 transition truncate">Freshness</p>
+                  <p class="text-xs text-slate-400 truncate">Setlist cache freshness &amp; sync state</p>
+                </div>
+              </div>
+              <i class="fa-solid fa-chevron-right text-slate-500 text-xs ml-2 shrink-0"></i>
+            </button>
+
+            {% if not is_public_view %}
+            <!-- Friends -->
+            <button onclick="switchTab('friends')" id="mobile-sheet-tab-friends-btn" class="w-full flex items-center justify-between p-3 rounded-xl {% if initial_tab == 'friends' %}bg-indigo-600/20 border border-indigo-500/50 shadow-md shadow-indigo-500/10{% else %}bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600{% endif %} transition text-left group cursor-pointer">
+              <div class="flex items-center gap-3 min-w-0">
+                <div class="w-9 h-9 rounded-xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400 group-hover:scale-105 transition shrink-0">
+                  <i class="fa-solid fa-user-group text-sm"></i>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="text-sm font-semibold text-white group-hover:text-purple-300 transition truncate">Friends</p>
+                  <p class="text-xs text-slate-400 truncate">View friends, discover members &amp; share profile</p>
+                </div>
+              </div>
+              <i class="fa-solid fa-chevron-right text-slate-500 text-xs ml-2 shrink-0"></i>
+            </button>
+            {% endif %}
+
+            <!-- Setlist Audit -->
+            <button onclick="switchTab('gap')" id="mobile-sheet-tab-gap-btn" class="w-full flex items-center justify-between p-3 rounded-xl {% if initial_tab == 'gap' %}bg-indigo-600/20 border border-indigo-500/50 shadow-md shadow-indigo-500/10{% else %}bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600{% endif %} transition text-left group cursor-pointer">
+              <div class="flex items-center gap-3 min-w-0">
+                <div class="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 group-hover:scale-105 transition shrink-0">
+                  <i class="fa-solid fa-clipboard-check text-sm"></i>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center gap-2">
+                    <p class="text-sm font-semibold text-white group-hover:text-amber-300 transition truncate">Setlist Audit</p>
+                    {% if gap.csv_missing_or_partial|length > 0 %}
+                      <span class="bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold border border-amber-500/30 shrink-0">{{ gap.csv_missing_or_partial|length }}</span>
+                    {% endif %}
+                  </div>
+                  <p class="text-xs text-slate-400 truncate">Missing tracks &amp; setlist discrepancy audit</p>
+                </div>
+              </div>
+              <i class="fa-solid fa-chevron-right text-slate-500 text-xs ml-2 shrink-0"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Theme & Color Palette -->
+        <div class="pt-3 border-t border-slate-800/80">
+          <button type="button" onclick="openThemeModal();" class="w-full flex items-center justify-between p-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600 transition text-left cursor-pointer group">
+            <div class="flex items-center gap-3 min-w-0">
+              <div class="w-9 h-9 rounded-xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400 group-hover:scale-105 transition shrink-0">
+                <i class="fa-solid fa-palette text-sm"></i>
+              </div>
+              <div class="min-w-0 flex-1">
+                <p class="text-sm font-semibold text-white group-hover:text-indigo-300 transition truncate">Theme &amp; Color Palette</p>
+                <p class="text-xs text-slate-400 truncate">Choose dashboard colorway</p>
+              </div>
+            </div>
+            <span id="mobile-sheet-active-theme-label" class="badge bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[10px] font-mono shrink-0 ml-2">
+              Default
+            </span>
+          </button>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="space-y-2.5 pt-3 border-t border-slate-800/80">
+          <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Quick Actions</p>
+          
+          {% if not is_public_view %}
+            <!-- Mobile Sync Button -->
+            <button id="mobile-sync-btn" onclick="triggerSync()" class="w-full flex items-center justify-between p-3 rounded-2xl bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/40 text-indigo-200 transition cursor-pointer shadow-sm group">
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-indigo-500/25 flex items-center justify-center text-indigo-400">
+                  <i id="mobile-sync-btn-icon" class="fa-solid fa-rotate text-sm"></i>
+                </div>
+                <div class="text-left">
+                  <p class="text-xs font-bold text-white"><span id="mobile-sync-btn-text">Sync</span></p>
+                  <p class="text-[11px] text-indigo-300/70">Fetch latest data &amp; update profile</p>
+                </div>
+              </div>
+              <i class="fa-solid fa-chevron-right text-indigo-400/60 text-xs"></i>
+            </button>
+
+            <!-- Import Tools Grid -->
+            <div class="grid grid-cols-2 gap-2">
+              <button type="button" onclick="openUploadModal();" class="flex items-center gap-2.5 p-3 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 text-xs font-semibold text-slate-200 transition cursor-pointer">
+                <i class="fa-solid fa-file-csv text-cyan-400 text-sm"></i>
+                <span>Import CSV</span>
+              </button>
+              <button type="button" onclick="openTicketmasterModal();" class="flex items-center gap-2.5 p-3 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 text-xs font-semibold text-slate-200 transition cursor-pointer">
+                <i class="fa-solid fa-ticket text-emerald-400 text-sm"></i>
+                <span>Import TM</span>
+              </button>
+              <a href="{% if is_public_view %}{% url 'public_export_concerts_csv' username=profile_user.username %}{% else %}{% url 'api_export_concerts_csv' %}{% endif %}" class="flex items-center gap-2.5 p-3 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 text-xs font-semibold text-slate-200 transition cursor-pointer col-span-2">
+                <i class="fa-solid fa-file-export text-emerald-400 text-sm"></i>
+                <span>Export Concerts (CSV)</span>
+              </a>
+            </div>
+          {% else %}
+            <!-- Public View Mobile Quick Actions -->
+            <a href="{% url 'public_export_concerts_csv' username=profile_user.username %}" class="w-full flex items-center justify-between p-3 rounded-2xl bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-200 transition cursor-pointer shadow-sm group mb-2">
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-emerald-500/25 flex items-center justify-center text-emerald-400">
+                  <i class="fa-solid fa-file-csv text-sm"></i>
+                </div>
+                <div class="text-left">
+                  <p class="text-xs font-bold text-white">Export Concerts (CSV)</p>
+                  <p class="text-[11px] text-emerald-300/70">Download concert history &amp; setlists</p>
+                </div>
+              </div>
+              <i class="fa-solid fa-chevron-right text-emerald-400/60 text-xs"></i>
+            </a>
+
+            <button type="button" onclick="copyPublicShareUrl();" class="w-full flex items-center justify-between p-3 rounded-2xl bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/40 text-indigo-200 transition cursor-pointer shadow-sm group">
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-indigo-500/25 flex items-center justify-center text-indigo-400">
+                  <i class="fa-solid fa-share-nodes text-sm"></i>
+                </div>
+                <div class="text-left">
+                  <p class="text-xs font-bold text-white">Share Public Profile</p>
+                  <p class="text-[11px] text-indigo-300/70">Copy public link to clipboard</p>
+                </div>
+              </div>
+              <i class="fa-solid fa-chevron-right text-indigo-400/60 text-xs"></i>
+            </button>
+
+            {% if is_owner %}
+              <a href="{% url 'dashboard' %}" class="w-full flex items-center justify-between p-3 rounded-2xl bg-gradient-to-r from-indigo-600/30 to-purple-600/30 border border-indigo-500/40 text-white transition shadow-sm">
+                <div class="flex items-center gap-3">
+                  <div class="w-9 h-9 rounded-xl bg-indigo-500/30 flex items-center justify-center text-indigo-300">
+                    <i class="fa-solid fa-arrow-left text-sm"></i>
+                  </div>
+                  <div class="text-left">
+                    <p class="text-xs font-bold text-white">Back to Your Overview</p>
+                    <p class="text-[11px] text-indigo-200/70">Return to full manager view</p>
+                  </div>
+                </div>
+                <i class="fa-solid fa-chevron-right text-indigo-300 text-xs"></i>
+              </a>
+            {% elif request.user.is_authenticated %}
+              <a href="{% url 'dashboard' %}" class="w-full flex items-center justify-between p-3 rounded-2xl bg-gradient-to-r from-indigo-600/30 to-purple-600/30 border border-indigo-500/40 text-white transition shadow-sm">
+                <div class="flex items-center gap-3">
+                  <div class="w-9 h-9 rounded-xl bg-indigo-500/30 flex items-center justify-center text-indigo-300">
+                    <i class="fa-solid fa-house text-sm"></i>
+                  </div>
+                  <div class="text-left">
+                    <p class="text-xs font-bold text-white">Go to My Overview</p>
+                    <p class="text-[11px] text-indigo-200/70">View and manage your own shows</p>
+                  </div>
+                </div>
+                <i class="fa-solid fa-chevron-right text-indigo-300 text-xs"></i>
+              </a>
+            {% elif is_demo %}
+              <div class="grid grid-cols-2 gap-2">
+                <a href="{% if is_demo %}{{ home_url|default:'../index.html' }}{% else %}{% url 'home' %}{% endif %}" class="flex items-center justify-center gap-2 p-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 border border-slate-700 transition">
+                  <i class="fa-solid fa-arrow-left text-indigo-400"></i>
+                  <span>Home</span>
+                </a>
+                <a href="{{ repo_url|default:'https://github.com/cgarst/setlore' }}" target="_blank" rel="noopener noreferrer" class="flex items-center justify-center gap-2 p-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-xs font-bold text-white shadow-md transition">
+                  <i class="fa-brands fa-github"></i>
+                  <span>Install</span>
+                </a>
+              </div>
+            {% else %}
+              <div class="grid grid-cols-2 gap-2">
+                <a href="{% url 'login' %}?next={{ request.path }}" class="flex items-center justify-center gap-2 p-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 border border-slate-700 transition">
+                  <i class="fa-solid fa-right-to-bracket text-indigo-400"></i>
+                  <span>Sign In</span>
+                </a>
+                <a href="{% url 'register' %}" class="flex items-center justify-center gap-2 p-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-xs font-bold text-white shadow-md transition">
+                  <i class="fa-solid fa-user-plus"></i>
+                  <span>Create Account</span>
+                </a>
+              </div>
+            {% endif %}
+          {% endif %}
+        </div>
+
+        <!-- Account Settings & Logout (Only if logged in) -->
+        {% if request.user.is_authenticated %}
+          <div class="pt-3 border-t border-slate-800/80 space-y-2.5">
+            <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Account ({{ request.user.username }})</p>
+
+            <div class="space-y-1.5">
+              <button type="button" onclick="openProfileModal();" class="w-full flex items-center justify-between p-3 rounded-xl bg-slate-800/50 hover:bg-slate-800 text-xs text-slate-300 hover:text-white transition cursor-pointer text-left">
+                <div class="flex items-center gap-2.5">
+                  <i class="fa-solid fa-user-gear text-amber-400 w-4 text-center"></i>
+                  <span>Profile &amp; Privacy</span>
+                </div>
+                <i class="fa-solid fa-chevron-right text-slate-500 text-[10px]"></i>
+              </button>
+
+              <button type="button" onclick="openPwaInstallModal();" class="w-full flex items-center justify-between p-3 rounded-xl bg-slate-800/50 hover:bg-slate-800 text-xs text-slate-300 hover:text-white transition cursor-pointer text-left">
+                <div class="flex items-center gap-2.5">
+                  <i class="fa-solid fa-mobile-screen-button text-indigo-400 w-4 text-center"></i>
+                  <span>Save as App (PWA)</span>
+                </div>
+                <span class="badge bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[10px]">Guide</span>
+              </button>
+
+              {% if is_impersonating %}
+                <form method="post" action="{% url 'stop_impersonating' %}" class="block m-0">
+                  {% csrf_token %}
+                  <button type="submit" class="w-full flex items-center justify-between p-3 rounded-xl bg-amber-950/40 hover:bg-amber-900/50 border border-amber-500/30 text-xs text-amber-200 transition cursor-pointer text-left">
+                    <div class="flex items-center gap-2.5">
+                      <i class="fa-solid fa-user-xmark text-amber-400 w-4 text-center"></i>
+                      <span>Exit Impersonation</span>
+                    </div>
+                    <i class="fa-solid fa-arrow-right-from-bracket text-amber-400 text-[10px]"></i>
+                  </button>
+                </form>
+              {% elif request.user.is_staff %}
+                <button type="button" onclick="openImpersonateModal();" class="w-full flex items-center justify-between p-3 rounded-xl bg-purple-950/30 hover:bg-purple-900/40 border border-purple-500/30 text-xs text-purple-200 transition cursor-pointer text-left">
+                  <div class="flex items-center gap-2.5">
+                    <i class="fa-solid fa-user-secret text-purple-400 w-4 text-center"></i>
+                    <span>Impersonate User</span>
+                  </div>
+                  <i class="fa-solid fa-chevron-right text-purple-400/70 text-[10px]"></i>
+                </button>
+              {% endif %}
+
+              {% if request.user.is_staff %}
+                <a href="/admin/" target="_blank" class="flex items-center justify-between p-3 rounded-xl bg-purple-950/30 hover:bg-purple-900/40 border border-purple-500/30 text-xs text-purple-200 transition">
+                  <div class="flex items-center gap-2.5">
+                    <i class="fa-solid fa-sliders text-purple-400 w-4 text-center"></i>
+                    <span>Admin Portal</span>
+                  </div>
+                  <i class="fa-solid fa-arrow-up-right-from-square text-purple-400/70 text-[10px]"></i>
+                </a>
+                <a href="/admin/musicbrainz/" target="_blank" class="flex items-center justify-between p-3 rounded-xl bg-indigo-950/30 hover:bg-indigo-900/40 border border-indigo-500/30 text-xs text-indigo-200 transition">
+                  <div class="flex items-center gap-2.5">
+                    <i class="fa-solid fa-database text-indigo-400 w-4 text-center"></i>
+                    <span>MusicBrainz Dumps</span>
+                  </div>
+                  <i class="fa-solid fa-arrow-up-right-from-square text-indigo-400/70 text-[10px]"></i>
+                </a>
+              {% endif %}
+
+              <form method="post" action="{% url 'logout' %}" class="block m-0 pt-1">
+                {% csrf_token %}
+                <button type="submit" class="w-full flex items-center justify-center gap-2 py-3 px-3 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-xs font-semibold text-rose-400 border border-rose-500/20 transition cursor-pointer">
+                  <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                  <span>Log Out</span>
+                </button>
+              </form>
+            </div>
+          </div>
+        {% endif %}
+
+        <!-- App Links & Info -->
+        <div class="pt-3 border-t border-slate-800/80 space-y-1.5">
+          <a href="https://github.com/cgarst/setlore" target="_blank" rel="noopener noreferrer" class="flex items-center justify-between p-3 rounded-xl bg-slate-800/40 hover:bg-slate-800 text-xs text-slate-300 hover:text-white transition">
+            <div class="flex items-center gap-2.5">
+              <i class="fa-brands fa-github text-slate-400 w-4 text-center"></i>
+              <span>GitHub Repository</span>
+            </div>
+            <i class="fa-solid fa-arrow-up-right-from-square text-slate-500 text-[10px]"></i>
+          </a>
+          <a href="{% url 'privacy' %}" class="flex items-center justify-between p-3 rounded-xl bg-slate-800/40 hover:bg-slate-800 text-xs text-slate-300 hover:text-white transition">
+            <div class="flex items-center gap-2.5">
+              <i class="fa-solid fa-shield-halved text-indigo-400 w-4 text-center"></i>
+              <span>Privacy Policy</span>
+            </div>
+            <i class="fa-solid fa-chevron-right text-slate-500 text-[10px]"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+
   </main>
 
   <!-- Application Center Footer -->
@@ -5084,8 +5441,8 @@
         <span class="text-[10px] tracking-tight truncate mt-0.5">Artists</span>
       </button>
 
-      <!-- 5. More & Profile Menu -->
-      <button onclick="toggleMobileMoreMenu()" id="mobile-tab-more-btn" class="mobile-nav-tab relative flex flex-col items-center justify-center py-1 px-1 rounded-xl {% if initial_tab == 'map' or initial_tab == 'albums' or initial_tab == 'musicians' or initial_tab == 'freshness' or initial_tab == 'friends' or initial_tab == 'gap' %}text-indigo-400 font-bold scale-105{% else %}text-slate-400 hover:text-slate-200 font-medium{% endif %} transition-all group cursor-pointer" title="More sections & profile">
+      <!-- 5. More / Page Button -->
+      <button onclick="switchTab('more')" id="mobile-tab-more-btn" class="mobile-nav-tab relative flex flex-col items-center justify-center py-1 px-1 rounded-xl {% if initial_tab == 'more' or initial_tab == 'map' or initial_tab == 'albums' or initial_tab == 'musicians' or initial_tab == 'freshness' or initial_tab == 'friends' or initial_tab == 'gap' %}text-indigo-400 font-bold scale-105{% else %}text-slate-400 hover:text-slate-200 font-medium{% endif %} transition-all group cursor-pointer" title="More sections & settings">
         <div class="w-8 h-7 flex items-center justify-center rounded-lg transition relative">
           <i id="mobile-more-icon" class="fa-solid fa-ellipsis text-lg transition-transform group-active:scale-90"></i>
           <span id="mobile-more-active-dot" class="{% if initial_tab != 'map' and initial_tab != 'albums' and initial_tab != 'musicians' and initial_tab != 'freshness' and initial_tab != 'friends' and initial_tab != 'gap' %}hidden {% endif %}absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
@@ -5094,370 +5451,6 @@
       </button>
     </div>
   </nav>
-
-  <!-- Mobile "More" Second-Level Navigation & Profile Sheet / Modal -->
-  <div id="mobile-more-sheet" class="hidden fixed inset-0 z-50 md:hidden flex flex-col justify-end">
-    <!-- Backdrop -->
-    <div id="mobile-more-backdrop" onclick="closeMobileMoreMenu()" class="fixed inset-0 bg-black/70 backdrop-blur-sm transition-opacity opacity-0"></div>
-
-    <!-- Sheet Content -->
-    <div id="mobile-more-content" class="relative z-10 bg-slate-900 border-t border-slate-700/80 rounded-t-3xl p-5 shadow-2xl transform translate-y-full transition-transform duration-300 ease-out max-h-[88vh] overflow-y-auto pb-[max(1.5rem,env(safe-area-inset-bottom,0px))] space-y-4">
-      <!-- iOS Drag Handle -->
-      <div class="w-12 h-1.5 bg-slate-700 rounded-full mx-auto cursor-pointer" onclick="closeMobileMoreMenu()"></div>
-
-      <!-- User Profile Header -->
-      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
-        <div class="flex items-center gap-3 min-w-0">
-          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white text-base shadow-sm shrink-0">
-            <i class="fa-solid fa-user"></i>
-          </div>
-          <div class="min-w-0 flex-1">
-            {% if is_public_view %}
-              <p class="text-sm font-bold text-white truncate">@{{ profile_user.username }}</p>
-              <p class="text-[11px] text-indigo-300 truncate flex items-center gap-1">
-                <i class="fa-solid fa-globe text-[10px]"></i> Public Profile View
-              </p>
-            {% else %}
-              <p class="text-sm font-bold text-white truncate">{{ request.user.username }}</p>
-              <div id="mobile-setlist-badge">
-                {% if profile.setlistfm_username %}
-                  <p class="text-[11px] text-amber-300 truncate flex items-center gap-1">
-                    <i class="fa-brands fa-lastfm text-[10px]"></i> @<span class="user-setlist-name">{{ profile.setlistfm_username }}</span>
-                  </p>
-                {% else %}
-                  <p class="text-[11px] text-amber-400/90 flex items-center gap-1 cursor-pointer hover:underline" onclick="openProfileModal(); closeMobileMoreMenu();">
-                    <i class="fa-brands fa-lastfm text-[10px]"></i> Link Setlist.fm account
-                  </p>
-                {% endif %}
-              </div>
-            {% endif %}
-          </div>
-        </div>
-        <button onclick="closeMobileMoreMenu()" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center transition cursor-pointer" aria-label="Close menu">
-          <i class="fa-solid fa-xmark text-sm"></i>
-        </button>
-      </div>
-
-      <!-- Navigation Sections -->
-      <div class="space-y-2">
-        <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Sections</p>
-        
-        <div class="space-y-2">
-          <!-- Albums & Eras -->
-          <button onclick="switchTab('albums'); closeMobileMoreMenu();" id="mobile-sheet-tab-albums-btn" class="w-full flex items-center justify-between p-2.5 rounded-xl {% if initial_tab == 'albums' %}bg-indigo-600/20 border border-indigo-500/50 shadow-md shadow-indigo-500/10{% else %}bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600{% endif %} transition text-left group cursor-pointer">
-            <div class="flex items-center gap-3">
-              <div class="w-8 h-8 rounded-lg bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 group-hover:scale-105 transition shrink-0">
-                <i class="fa-solid fa-wand-magic-sparkles text-sm"></i>
-              </div>
-              <div>
-                <p class="text-xs font-semibold text-white group-hover:text-cyan-300 transition">Albums & Eras</p>
-                <p class="text-[11px] text-slate-400">Album coverage, era charts & song age</p>
-              </div>
-            </div>
-            <i class="fa-solid fa-chevron-right text-slate-500 text-xs"></i>
-          </button>
-
-          <!-- Musicians -->
-          <button onclick="switchTab('musicians'); closeMobileMoreMenu();" id="mobile-sheet-tab-musicians-btn" class="w-full flex items-center justify-between p-2.5 rounded-xl {% if initial_tab == 'musicians' %}bg-indigo-600/20 border border-indigo-500/50 shadow-md shadow-indigo-500/10{% else %}bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600{% endif %} transition text-left group cursor-pointer">
-            <div class="flex items-center gap-3">
-              <div class="w-8 h-8 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 group-hover:scale-105 transition shrink-0">
-                <i class="fa-solid fa-users-viewfinder text-sm"></i>
-              </div>
-              <div>
-                <p class="text-xs font-semibold text-white group-hover:text-amber-300 transition">Musicians</p>
-                <p class="text-[11px] text-slate-400">Band lineups & live musician tracking</p>
-              </div>
-            </div>
-            <i class="fa-solid fa-chevron-right text-slate-500 text-xs"></i>
-          </button>
-
-          <!-- Venue Map -->
-          <button onclick="switchTab('map'); closeMobileMoreMenu();" id="mobile-sheet-tab-map-btn" class="w-full flex items-center justify-between p-2.5 rounded-xl {% if initial_tab == 'map' %}bg-indigo-600/20 border border-indigo-500/50 shadow-md shadow-indigo-500/10{% else %}bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600{% endif %} transition text-left group cursor-pointer">
-            <div class="flex items-center gap-3">
-              <div class="w-8 h-8 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 group-hover:scale-105 transition shrink-0">
-                <i class="fa-solid fa-map-location-dot text-sm"></i>
-              </div>
-              <div>
-                <p class="text-xs font-semibold text-white group-hover:text-emerald-300 transition">Venue Map</p>
-                <p class="text-[11px] text-slate-400">Interactive concert venues & geolocation</p>
-              </div>
-            </div>
-            <i class="fa-solid fa-chevron-right text-slate-500 text-xs"></i>
-          </button>
-
-          <!-- Freshness -->
-          <button onclick="switchTab('freshness'); closeMobileMoreMenu();" id="mobile-sheet-tab-freshness-btn" class="w-full flex items-center justify-between p-2.5 rounded-xl {% if initial_tab == 'freshness' %}bg-indigo-600/20 border border-indigo-500/50 shadow-md shadow-indigo-500/10{% else %}bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600{% endif %} transition text-left group cursor-pointer">
-            <div class="flex items-center gap-3">
-              <div class="w-8 h-8 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 group-hover:scale-105 transition shrink-0">
-                <i class="fa-solid fa-leaf text-sm"></i>
-              </div>
-              <div>
-                <p class="text-xs font-semibold text-white group-hover:text-emerald-300 transition">Freshness</p>
-                <p class="text-[11px] text-slate-400">Setlist cache freshness & sync state</p>
-              </div>
-            </div>
-            <i class="fa-solid fa-chevron-right text-slate-500 text-xs"></i>
-          </button>
-
-          {% if not is_public_view %}
-          <!-- Friends -->
-          <button onclick="switchTab('friends'); closeMobileMoreMenu();" id="mobile-sheet-tab-friends-btn" class="w-full flex items-center justify-between p-2.5 rounded-xl {% if initial_tab == 'friends' %}bg-indigo-600/20 border border-indigo-500/50 shadow-md shadow-indigo-500/10{% else %}bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600{% endif %} transition text-left group cursor-pointer">
-            <div class="flex items-center gap-3">
-              <div class="w-8 h-8 rounded-lg bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400 group-hover:scale-105 transition shrink-0">
-                <i class="fa-solid fa-user-group text-sm"></i>
-              </div>
-              <div>
-                <p class="text-xs font-semibold text-white group-hover:text-purple-300 transition">Friends</p>
-                <p class="text-[11px] text-slate-400">View friends, discover members &amp; share profile</p>
-              </div>
-            </div>
-            <i class="fa-solid fa-chevron-right text-slate-500 text-xs"></i>
-          </button>
-          {% endif %}
-
-          <!-- Setlist Audit -->
-          <button onclick="switchTab('gap'); closeMobileMoreMenu();" id="mobile-sheet-tab-gap-btn" class="w-full flex items-center justify-between p-2.5 rounded-xl {% if initial_tab == 'gap' %}bg-indigo-600/20 border border-indigo-500/50 shadow-md shadow-indigo-500/10{% else %}bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600{% endif %} transition text-left group cursor-pointer">
-            <div class="flex items-center gap-3">
-              <div class="w-8 h-8 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 group-hover:scale-105 transition shrink-0">
-                <i class="fa-solid fa-clipboard-check text-sm"></i>
-              </div>
-              <div>
-                <div class="flex items-center gap-2">
-                  <p class="text-xs font-semibold text-white group-hover:text-amber-300 transition">Setlist Audit</p>
-                  {% if gap.csv_missing_or_partial|length > 0 %}
-                    <span class="bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold border border-amber-500/30">{{ gap.csv_missing_or_partial|length }}</span>
-                  {% endif %}
-                </div>
-                <p class="text-[11px] text-slate-400">Missing tracks & setlist discrepancy audit</p>
-              </div>
-            </div>
-            <i class="fa-solid fa-chevron-right text-slate-500 text-xs"></i>
-          </button>
-        </div>
-      </div>
-
-      <!-- Theme Selector (Mobile Sheet) -->
-      <div class="pt-2 border-t border-slate-800">
-        <button type="button" onclick="openThemeModal(); closeMobileMoreMenu();" class="w-full flex items-center justify-between p-2.5 rounded-xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600 transition text-left cursor-pointer group">
-          <div class="flex items-center gap-3">
-            <div class="w-8 h-8 rounded-lg bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400 group-hover:scale-105 transition shrink-0">
-              <i class="fa-solid fa-palette text-sm"></i>
-            </div>
-            <div>
-              <p class="text-xs font-semibold text-white group-hover:text-indigo-300 transition">Theme & Color Palette</p>
-              <p class="text-[11px] text-slate-400">Choose dashboard colorway</p>
-            </div>
-          </div>
-          <span id="mobile-sheet-active-theme-label" class="badge bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[10px] font-mono shrink-0">
-            Default
-          </span>
-        </button>
-      </div>
-
-      <!-- Quick Actions (Sync, Import Tools or Public Options) -->
-      <div class="space-y-2 pt-2 border-t border-slate-800">
-        <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Quick Actions</p>
-        
-        {% if not is_public_view %}
-          <!-- Mobile Sync Button -->
-          <button id="mobile-sync-btn" onclick="triggerSync()" class="w-full flex items-center justify-between p-3 rounded-2xl bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/40 text-indigo-200 transition cursor-pointer shadow-sm group">
-            <div class="flex items-center gap-3">
-              <div class="w-9 h-9 rounded-xl bg-indigo-500/25 flex items-center justify-center text-indigo-400">
-                <i id="mobile-sync-btn-icon" class="fa-solid fa-rotate text-sm"></i>
-              </div>
-              <div class="text-left">
-                <p class="text-xs font-bold text-white"><span id="mobile-sync-btn-text">Sync</span></p>
-                <p class="text-[11px] text-indigo-300/70">Fetch latest data & update profile</p>
-              </div>
-            </div>
-            <i class="fa-solid fa-chevron-right text-indigo-400/60 text-xs"></i>
-          </button>
-
-          <!-- Import Tools Grid -->
-          <div class="grid grid-cols-2 gap-2">
-            <button type="button" onclick="openUploadModal(); closeMobileMoreMenu();" class="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 text-xs font-semibold text-slate-200 transition cursor-pointer">
-              <i class="fa-solid fa-file-csv text-cyan-400 text-sm"></i>
-              <span>Import CSV</span>
-            </button>
-            <button type="button" onclick="openTicketmasterModal(); closeMobileMoreMenu();" class="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 text-xs font-semibold text-slate-200 transition cursor-pointer">
-              <i class="fa-solid fa-ticket text-emerald-400 text-sm"></i>
-              <span>Import TM</span>
-            </button>
-            <a href="{% if is_public_view %}{% url 'public_export_concerts_csv' username=profile_user.username %}{% else %}{% url 'api_export_concerts_csv' %}{% endif %}" class="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 text-xs font-semibold text-slate-200 transition cursor-pointer col-span-2">
-              <i class="fa-solid fa-file-export text-emerald-400 text-sm"></i>
-              <span>Export Concerts (CSV)</span>
-            </a>
-          </div>
-        {% else %}
-          <!-- Public View Mobile Quick Actions -->
-          <a href="{% url 'public_export_concerts_csv' username=profile_user.username %}" class="w-full flex items-center justify-between p-3 rounded-2xl bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-200 transition cursor-pointer shadow-sm group mb-2">
-            <div class="flex items-center gap-3">
-              <div class="w-9 h-9 rounded-xl bg-emerald-500/25 flex items-center justify-center text-emerald-400">
-                <i class="fa-solid fa-file-csv text-sm"></i>
-              </div>
-              <div class="text-left">
-                <p class="text-xs font-bold text-white">Export Concerts (CSV)</p>
-                <p class="text-[11px] text-emerald-300/70">Download concert history & setlists</p>
-              </div>
-            </div>
-            <i class="fa-solid fa-chevron-right text-emerald-400/60 text-xs"></i>
-          </a>
-
-          <button type="button" onclick="copyPublicShareUrl(); closeMobileMoreMenu();" class="w-full flex items-center justify-between p-3 rounded-2xl bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/40 text-indigo-200 transition cursor-pointer shadow-sm group">
-            <div class="flex items-center gap-3">
-              <div class="w-9 h-9 rounded-xl bg-indigo-500/25 flex items-center justify-center text-indigo-400">
-                <i class="fa-solid fa-share-nodes text-sm"></i>
-              </div>
-              <div class="text-left">
-                <p class="text-xs font-bold text-white">Share Public Profile</p>
-                <p class="text-[11px] text-indigo-300/70">Copy public link to clipboard</p>
-              </div>
-            </div>
-            <i class="fa-solid fa-chevron-right text-indigo-400/60 text-xs"></i>
-          </button>
-
-          {% if is_owner %}
-            <a href="{% url 'dashboard' %}" class="w-full flex items-center justify-between p-3 rounded-2xl bg-gradient-to-r from-indigo-600/30 to-purple-600/30 border border-indigo-500/40 text-white transition shadow-sm">
-              <div class="flex items-center gap-3">
-                <div class="w-9 h-9 rounded-xl bg-indigo-500/30 flex items-center justify-center text-indigo-300">
-                  <i class="fa-solid fa-arrow-left text-sm"></i>
-                </div>
-                <div class="text-left">
-                  <p class="text-xs font-bold text-white">Back to Your Overview</p>
-                  <p class="text-[11px] text-indigo-200/70">Return to full manager view</p>
-                </div>
-              </div>
-              <i class="fa-solid fa-chevron-right text-indigo-300 text-xs"></i>
-            </a>
-          {% elif request.user.is_authenticated %}
-            <a href="{% url 'dashboard' %}" class="w-full flex items-center justify-between p-3 rounded-2xl bg-gradient-to-r from-indigo-600/30 to-purple-600/30 border border-indigo-500/40 text-white transition shadow-sm">
-              <div class="flex items-center gap-3">
-                <div class="w-9 h-9 rounded-xl bg-indigo-500/30 flex items-center justify-center text-indigo-300">
-                  <i class="fa-solid fa-house text-sm"></i>
-                </div>
-                <div class="text-left">
-                  <p class="text-xs font-bold text-white">Go to My Overview</p>
-                  <p class="text-[11px] text-indigo-200/70">View and manage your own shows</p>
-                </div>
-              </div>
-              <i class="fa-solid fa-chevron-right text-indigo-300 text-xs"></i>
-            </a>
-          {% elif is_demo %}
-            <div class="grid grid-cols-2 gap-2">
-              <a href="{% if is_demo %}{{ home_url|default:'../index.html' }}{% else %}{% url 'home' %}{% endif %}" class="flex items-center justify-center gap-2 p-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 border border-slate-700 transition">
-                <i class="fa-solid fa-arrow-left text-indigo-400"></i>
-                <span>Home</span>
-              </a>
-              <a href="{{ repo_url|default:'https://github.com/cgarst/setlore' }}" target="_blank" rel="noopener noreferrer" class="flex items-center justify-center gap-2 p-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-xs font-bold text-white shadow-md transition">
-                <i class="fa-brands fa-github"></i>
-                <span>Install</span>
-              </a>
-            </div>
-          {% else %}
-            <div class="grid grid-cols-2 gap-2">
-              <a href="{% url 'login' %}?next={{ request.path }}" class="flex items-center justify-center gap-2 p-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 border border-slate-700 transition">
-                <i class="fa-solid fa-right-to-bracket text-indigo-400"></i>
-                <span>Sign In</span>
-              </a>
-              <a href="{% url 'register' %}" class="flex items-center justify-center gap-2 p-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-xs font-bold text-white shadow-md transition">
-                <i class="fa-solid fa-user-plus"></i>
-                <span>Create Account</span>
-              </a>
-            </div>
-          {% endif %}
-        {% endif %}
-      </div>
-
-      <!-- Account Settings & Logout (Only if logged in) -->
-      {% if request.user.is_authenticated %}
-        <div class="pt-2 border-t border-slate-800 space-y-2">
-          <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Account ({{ request.user.username }})</p>
-
-          <div class="space-y-1.5">
-            <button type="button" onclick="openProfileModal(); closeMobileMoreMenu();" class="w-full flex items-center justify-between p-2.5 rounded-xl bg-slate-800/50 hover:bg-slate-800 text-xs text-slate-300 hover:text-white transition cursor-pointer text-left">
-              <div class="flex items-center gap-2.5">
-                <i class="fa-solid fa-user-gear text-amber-400 w-4 text-center"></i>
-                <span>Profile & Privacy</span>
-              </div>
-              <i class="fa-solid fa-chevron-right text-slate-500 text-[10px]"></i>
-            </button>
-
-            <button type="button" onclick="openPwaInstallModal(); closeMobileMoreMenu();" class="w-full flex items-center justify-between p-2.5 rounded-xl bg-slate-800/50 hover:bg-slate-800 text-xs text-slate-300 hover:text-white transition cursor-pointer text-left">
-              <div class="flex items-center gap-2.5">
-                <i class="fa-solid fa-mobile-screen-button text-indigo-400 w-4 text-center"></i>
-                <span>Save as App (PWA)</span>
-              </div>
-              <span class="badge bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[10px]">Guide</span>
-            </button>
-
-            {% if is_impersonating %}
-              <form method="post" action="{% url 'stop_impersonating' %}" class="block m-0">
-                {% csrf_token %}
-                <button type="submit" class="w-full flex items-center justify-between p-2.5 rounded-xl bg-amber-950/40 hover:bg-amber-900/50 border border-amber-500/30 text-xs text-amber-200 transition cursor-pointer text-left">
-                  <div class="flex items-center gap-2.5">
-                    <i class="fa-solid fa-user-xmark text-amber-400 w-4 text-center"></i>
-                    <span>Exit Impersonation</span>
-                  </div>
-                  <i class="fa-solid fa-arrow-right-from-bracket text-amber-400 text-[10px]"></i>
-                </button>
-              </form>
-            {% elif request.user.is_staff %}
-              <button type="button" onclick="openImpersonateModal(); closeMobileMoreMenu();" class="w-full flex items-center justify-between p-2.5 rounded-xl bg-purple-950/30 hover:bg-purple-900/40 border border-purple-500/30 text-xs text-purple-200 transition cursor-pointer text-left">
-                <div class="flex items-center gap-2.5">
-                  <i class="fa-solid fa-user-secret text-purple-400 w-4 text-center"></i>
-                  <span>Impersonate User</span>
-                </div>
-                <i class="fa-solid fa-chevron-right text-purple-400/70 text-[10px]"></i>
-              </button>
-            {% endif %}
-
-            {% if request.user.is_staff %}
-              <a href="/admin/" target="_blank" class="flex items-center justify-between p-2.5 rounded-xl bg-purple-950/30 hover:bg-purple-900/40 border border-purple-500/30 text-xs text-purple-200 transition">
-                <div class="flex items-center gap-2.5">
-                  <i class="fa-solid fa-sliders text-purple-400 w-4 text-center"></i>
-                  <span>Admin Portal</span>
-                </div>
-                <i class="fa-solid fa-arrow-up-right-from-square text-purple-400/70 text-[10px]"></i>
-              </a>
-              <a href="/admin/musicbrainz/" target="_blank" class="flex items-center justify-between p-2.5 rounded-xl bg-indigo-950/30 hover:bg-indigo-900/40 border border-indigo-500/30 text-xs text-indigo-200 transition">
-                <div class="flex items-center gap-2.5">
-                  <i class="fa-solid fa-database text-indigo-400 w-4 text-center"></i>
-                  <span>MusicBrainz Dumps</span>
-                </div>
-                <i class="fa-solid fa-arrow-up-right-from-square text-indigo-400/70 text-[10px]"></i>
-              </a>
-            {% endif %}
-
-            <form method="post" action="{% url 'logout' %}" class="block m-0 pt-1">
-              {% csrf_token %}
-              <button type="submit" class="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-xs font-semibold text-rose-400 border border-rose-500/20 transition cursor-pointer">
-                <i class="fa-solid fa-arrow-right-from-bracket"></i>
-                <span>Log Out</span>
-              </button>
-            </form>
-          </div>
-        </div>
-      {% endif %}
-
-      <!-- App Links & Info -->
-      <div class="pt-2 border-t border-slate-800 space-y-1.5">
-        <a href="https://github.com/cgarst/setlore" target="_blank" rel="noopener noreferrer" class="flex items-center justify-between p-2.5 rounded-xl bg-slate-800/40 hover:bg-slate-800 text-xs text-slate-300 hover:text-white transition">
-          <div class="flex items-center gap-2.5">
-            <i class="fa-brands fa-github text-slate-400 w-4 text-center"></i>
-            <span>GitHub Repository</span>
-          </div>
-          <i class="fa-solid fa-arrow-up-right-from-square text-slate-500 text-[10px]"></i>
-        </a>
-        <a href="{% url 'privacy' %}" class="flex items-center justify-between p-2.5 rounded-xl bg-slate-800/40 hover:bg-slate-800 text-xs text-slate-300 hover:text-white transition">
-          <div class="flex items-center gap-2.5">
-            <i class="fa-solid fa-shield-halved text-indigo-400 w-4 text-center"></i>
-            <span>Privacy Policy</span>
-          </div>
-          <i class="fa-solid fa-chevron-right text-slate-500 text-[10px]"></i>
-        </a>
-      </div>
-    </div>
-  </div>
 
   <!-- Plotly Data & Interactive Logic -->
   <script>
@@ -5495,7 +5488,8 @@
         'setlists': 'freshness',
         'gap': 'gap',
         'audit': 'gap',
-        'friends': 'friends'
+        'friends': 'friends',
+        'more': 'more'
       };
       return aliasMap[String(tabId || '').toLowerCase().trim()] || 'overview';
     }
@@ -5508,7 +5502,7 @@
       if (tabId === 'friends' && window.isPublicView) {
         tabId = 'overview';
       }
-      const validTabs = ['overview', 'concerts', 'songs', 'albums', 'musicians', 'map', 'freshness', 'gap', 'friends'];
+      const validTabs = ['overview', 'concerts', 'songs', 'albums', 'musicians', 'map', 'freshness', 'gap', 'friends', 'more'];
 
       validTabs.forEach(t => {
         const tabEl = document.getElementById('tab-' + t);
@@ -5533,7 +5527,7 @@
         }
       }
 
-      // Sync Mobile Bottom Tab Navigator & More Sheet
+      // Sync Mobile Bottom Tab Navigator & More
       const primaryTabs = ['overview', 'concerts', 'songs'];
       primaryTabs.forEach(t => {
         const mBtn = document.getElementById('mobile-tab-' + t + '-btn');
@@ -5548,12 +5542,19 @@
 
       const secondaryTabs = ['albums', 'musicians', 'map', 'freshness', 'friends', 'gap'];
       const isSecondary = secondaryTabs.includes(tabId);
+      const isMore = tabId === 'more';
       const moreBtn = document.getElementById('mobile-tab-more-btn');
       const moreDot = document.getElementById('mobile-more-active-dot');
       if (moreBtn) {
-        if (isSecondary) {
+        if (isMore || isSecondary) {
           moreBtn.className = 'mobile-nav-tab relative flex flex-col items-center justify-center py-1 px-1 rounded-xl text-indigo-400 font-bold transition-all group scale-105';
-          if (moreDot) moreDot.classList.remove('hidden');
+          if (moreDot) {
+            if (isSecondary) {
+              moreDot.classList.remove('hidden');
+            } else {
+              moreDot.classList.add('hidden');
+            }
+          }
         } else {
           moreBtn.className = 'mobile-nav-tab relative flex flex-col items-center justify-center py-1 px-1 rounded-xl text-slate-400 hover:text-slate-200 font-medium transition-all group';
           if (moreDot) moreDot.classList.add('hidden');
@@ -5564,9 +5565,9 @@
         const sheetBtn = document.getElementById('mobile-sheet-tab-' + st + '-btn');
         if (sheetBtn) {
           if (st === tabId) {
-            sheetBtn.className = 'w-full flex items-center justify-between p-2.5 rounded-xl bg-indigo-600/20 border border-indigo-500/50 shadow-md shadow-indigo-500/10 transition text-left group cursor-pointer';
+            sheetBtn.className = 'w-full flex items-center justify-between p-3 rounded-xl bg-indigo-600/20 border border-indigo-500/50 shadow-md shadow-indigo-500/10 transition text-left group cursor-pointer';
           } else {
-            sheetBtn.className = 'w-full flex items-center justify-between p-2.5 rounded-xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600 transition text-left group cursor-pointer';
+            sheetBtn.className = 'w-full flex items-center justify-between p-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600 transition text-left group cursor-pointer';
           }
         }
       });
@@ -5629,42 +5630,15 @@
     }
 
     function openMobileMoreMenu() {
-      const sheet = document.getElementById('mobile-more-sheet');
-      const backdrop = document.getElementById('mobile-more-backdrop');
-      const content = document.getElementById('mobile-more-content');
-      if (sheet && backdrop && content) {
-        sheet.classList.remove('hidden');
-        requestAnimationFrame(() => {
-          backdrop.classList.remove('opacity-0');
-          backdrop.classList.add('opacity-100');
-          content.classList.remove('translate-y-full');
-          content.classList.add('translate-y-0');
-        });
-      }
+      switchTab('more');
     }
 
     function closeMobileMoreMenu() {
-      const sheet = document.getElementById('mobile-more-sheet');
-      const backdrop = document.getElementById('mobile-more-backdrop');
-      const content = document.getElementById('mobile-more-content');
-      if (sheet && backdrop && content) {
-        backdrop.classList.remove('opacity-100');
-        backdrop.classList.add('opacity-0');
-        content.classList.remove('translate-y-0');
-        content.classList.add('translate-y-full');
-        setTimeout(() => {
-          sheet.classList.add('hidden');
-        }, 300);
-      }
+      // Retained for backward compatibility
     }
 
     function toggleMobileMoreMenu() {
-      const sheet = document.getElementById('mobile-more-sheet');
-      if (sheet && !sheet.classList.contains('hidden')) {
-        closeMobileMoreMenu();
-      } else {
-        openMobileMoreMenu();
-      }
+      switchTab('more');
     }
 
     // URL path & legacy hash deep linking support on page load and back/forward navigation

@@ -48,6 +48,7 @@ urlpatterns = [
     path('friends/', concerts_views.dashboard_view, {'tab_name': 'friends'}, name='dashboard_friends'),
     path('gap/', concerts_views.dashboard_view, {'tab_name': 'gap'}, name='dashboard_gap'),
     path('audit/', concerts_views.dashboard_view, {'tab_name': 'gap'}, name='dashboard_audit'),
+    path('more/', concerts_views.dashboard_view, {'tab_name': 'more'}, name='dashboard_more'),
 
     # Public Profile
     path('u/<str:username>/export/', concerts_views.export_concerts_csv, name='public_export_concerts_csv'),

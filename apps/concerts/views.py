@@ -65,6 +65,7 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
         'gap': 'gap',
         'audit': 'gap',
         'friends': 'friends',
+        'more': 'more',
     }
     initial_tab = alias_map.get(str(tab_name).lower().strip('/'), 'overview')
     if is_public_view and initial_tab == 'friends':
