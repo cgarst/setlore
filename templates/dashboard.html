@@ -631,6 +631,18 @@
                 </button>
               {% endif %}
 
+              {% if profile.setlistfm_username %}
+                <button type="button" onclick="switchTab('gap'); closeUserMenu();" class="w-full flex items-center justify-between px-3.5 py-2 text-xs font-medium text-slate-200 hover:text-white hover:bg-amber-500/10 transition text-left cursor-pointer group">
+                  <div class="flex items-center gap-2.5">
+                    <i class="fa-solid fa-clipboard-check text-amber-400 w-4 text-center"></i>
+                    <span>Setlist Audit</span>
+                  </div>
+                  {% if gap.csv_missing_or_partial|length > 0 %}
+                    <span class="bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold border border-amber-500/30 shrink-0">{{ gap.csv_missing_or_partial|length }}</span>
+                  {% endif %}
+                </button>
+              {% endif %}
+
               <button type="button" onclick="openUploadModal(); closeUserMenu();" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-slate-200 hover:text-white hover:bg-indigo-600/20 transition text-left cursor-pointer">
                 <i class="fa-solid fa-file-csv text-cyan-400 w-4 text-center"></i>
                 <span>Import CSV</span>
@@ -2867,8 +2879,8 @@
 
   <!-- Navigation Tabs (Modern Segmented Pill Bar - Desktop/Tablet) -->
   <div id="desktop-nav-bar" class="hidden md:block max-w-7xl mx-auto mb-8">
-    <div class="glass-card p-1.5 flex flex-col lg:flex-row items-center justify-between gap-3 shadow-2xl border border-slate-800/80 bg-slate-900/90 backdrop-blur-xl">
-      <nav class="flex flex-wrap items-center gap-1.5 w-full lg:w-auto">
+    <div class="glass-card p-1.5 flex items-center justify-between shadow-2xl border border-slate-800/80 bg-slate-900/90 backdrop-blur-xl">
+      <nav class="flex flex-wrap items-center gap-1.5 w-full">
         <button onclick="switchTab('overview')" id="tab-overview-btn" class="nav-tab-btn px-3.5 py-2 rounded-xl text-xs {% if initial_tab == 'overview' or not initial_tab %}font-bold bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-500/25{% else %}font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/60{% endif %} flex items-center gap-2 transition-all">
           <i class="fa-solid fa-chart-pie"></i> Overview
         </button>
@@ -2896,15 +2908,6 @@
         </button>
         {% endif %}
       </nav>
-
-      <div class="flex items-center gap-2 w-full lg:w-auto justify-end border-t lg:border-t-0 border-slate-800/80 pt-2 lg:pt-0">
-        <button onclick="switchTab('gap')" id="tab-gap-btn" class="nav-tab-btn px-3.5 py-2 rounded-xl text-xs {% if initial_tab == 'gap' %}font-bold bg-amber-500/20 text-amber-300 border border-amber-500/50 shadow-md shadow-amber-500/10{% else %}font-semibold text-slate-300 hover:text-white bg-slate-800/80 border border-slate-700 hover:border-amber-500/50 shadow-sm{% endif %} flex items-center gap-2 transition-all">
-          <i class="fa-solid fa-clipboard-check text-amber-400"></i> Setlist Audit
-          {% if gap.csv_missing_or_partial|length > 0 %}
-            <span class="bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-md text-[11px] font-mono font-bold border border-amber-500/30">{{ gap.csv_missing_or_partial|length }}</span>
-          {% endif %}
-        </button>
-      </div>
     </div>
   </div>
 
@@ -5712,6 +5715,7 @@
             {% endif %}
 
             <!-- Setlist Audit -->
+            {% if profile.setlistfm_username %}
             <button onclick="switchTab('gap')" id="mobile-sheet-tab-gap-btn" class="w-full flex items-center justify-between p-3 rounded-xl {% if initial_tab == 'gap' %}bg-indigo-600/20 border border-indigo-500/50 shadow-md shadow-indigo-500/10{% else %}bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600{% endif %} transition text-left group cursor-pointer">
               <div class="flex items-center gap-3 min-w-0">
                 <div class="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 group-hover:scale-105 transition shrink-0">
@@ -5729,6 +5733,7 @@
               </div>
               <i class="fa-solid fa-chevron-right text-slate-500 text-xs ml-2 shrink-0"></i>
             </button>
+            {% endif %}
           </div>
         </div>
 
