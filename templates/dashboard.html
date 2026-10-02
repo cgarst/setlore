@@ -2516,6 +2516,103 @@
     </div>
   </div>
 
+  <!-- Artist Songs & Catalog Modal (2-Step Flow: Repertoire Catalog -> Song Live History) -->
+  <div id="artist-song-modal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-2.5 sm:p-4 lg:p-6 hidden" onclick="if(event.target === this) closeArtistSongModal();">
+    <div class="max-w-3xl w-full glass-card p-4 sm:p-6 shadow-2xl space-y-4 border border-slate-700/80 max-h-[92vh] flex flex-col rounded-2xl relative">
+      <!-- Modal Header -->
+      <div class="border-b border-slate-800 pb-3.5 shrink-0 space-y-3">
+        <!-- Step 1 Header (Artist Songs Repertoire Overview) -->
+        <div id="modal-artist-header-catalog" class="space-y-3">
+          <!-- Title & Badges Row -->
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-2.5 flex-wrap min-w-0">
+                <h3 id="modal-artist-title" class="text-base sm:text-lg font-bold text-white truncate flex items-center gap-2">
+                  <i class="fa-solid fa-microphone-lines text-indigo-400"></i>
+                  <span id="modal-artist-name-text"></span>
+                </h3>
+                <div id="modal-artist-badges" class="flex items-center gap-1.5 flex-wrap"></div>
+              </div>
+              <p id="modal-artist-subtitle" class="text-xs text-slate-400 mt-1 flex items-center gap-1.5"></p>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+              <button type="button" onclick="closeArtistSongModal()" class="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition cursor-pointer" aria-label="Close modal">
+                <i class="fa-solid fa-xmark text-lg"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- In-Modal Filter & Search Toolbar -->
+          <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-0.5">
+            <!-- Search Song Input -->
+            <div class="relative flex-1">
+              <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 text-[11px] pointer-events-none"></i>
+              <input type="text"
+                     id="modal-song-search-input"
+                     placeholder="Filter songs in catalog..."
+                     oninput="handleFilterInput('modal-song-search-input', 'modal-song-search-clear', filterModalSongs)"
+                     class="bg-slate-900/90 border border-slate-700/80 rounded-lg pl-7 pr-7 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 w-full transition">
+              <button type="button"
+                      id="modal-song-search-clear"
+                      onclick="clearFilterField('modal-song-search-input', 'modal-song-search-clear', filterModalSongs)"
+                      class="hidden absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-0.5 cursor-pointer text-xs transition"
+                      title="Clear filter">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+
+            <!-- Album Filter Dropdown -->
+            <div class="flex items-center gap-1.5 shrink-0">
+              <span class="text-[11px] text-slate-400 font-medium shrink-0"><i class="fa-solid fa-compact-disc text-indigo-400 mr-1"></i>Album:</span>
+              <select id="modal-song-album-filter" onchange="filterModalSongs()" class="bg-slate-900 border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500 max-w-[190px] truncate cursor-pointer">
+                <option value="ALL">All Albums</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2 Header (Single Song Occurrences Breadcrumb) -->
+        <div id="modal-artist-header-occurrences" class="hidden flex items-start justify-between gap-3 min-w-0">
+          <div class="flex flex-col gap-1.5 min-w-0 flex-1">
+            <div class="flex items-center gap-2.5 flex-wrap min-w-0">
+              <button type="button" onclick="showArtistCatalogInModal()" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs font-semibold transition inline-flex items-center gap-1.5 cursor-pointer shrink-0">
+                <i class="fa-solid fa-arrow-left text-[11px]"></i>
+                <span>All Songs</span>
+              </button>
+              <h3 id="modal-song-detail-title" class="text-base sm:text-lg font-bold text-white truncate flex items-center gap-1.5"></h3>
+            </div>
+            <div class="flex items-center gap-2 flex-wrap text-xs text-slate-400 min-w-0">
+              <span id="modal-song-detail-artist-badge" class="badge bg-indigo-500/20 text-indigo-300 text-xs font-bold border border-indigo-500/30 px-2 py-0.5 shrink-0"></span>
+              <span id="modal-song-detail-plays-badge" class="badge bg-emerald-500/20 text-emerald-300 text-xs font-bold border border-emerald-500/30 px-2 py-0.5 shrink-0"></span>
+              <p id="modal-song-detail-album-sub" class="flex items-center gap-1.5 truncate"></p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <button type="button" onclick="closeArtistSongModal()" class="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition cursor-pointer" aria-label="Close modal">
+              <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Body (Dynamic Step 1 Catalog / Step 2 Occurrences) -->
+      <div id="artist-song-modal-body" class="flex-1 overflow-y-auto space-y-2.5 custom-scrollbar pr-1 min-h-[220px]">
+        <!-- Step 1 Catalog Container -->
+        <div id="modal-artist-catalog-view" class="space-y-2.5"></div>
+        <!-- Step 2 Occurrences Container -->
+        <div id="modal-artist-occurrences-view" class="hidden space-y-3"></div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="flex items-center justify-between border-t border-slate-800 pt-3 shrink-0 text-xs">
+        <div id="modal-artist-footer-info" class="text-slate-400 text-xs truncate"></div>
+        <button type="button" onclick="closeArtistSongModal()" class="px-4 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold transition cursor-pointer">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Overview Chart Modal (Full View for Mobile) -->
   <div id="overview-chart-modal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 hidden">
     <div class="max-w-2xl w-full glass-card p-4 sm:p-6 shadow-2xl space-y-4 border border-slate-700/80 max-h-[92vh] flex flex-col">
@@ -3773,91 +3870,157 @@
     <!-- 3. ARTIST & SONG DRILLDOWN TAB -->
     <div id="tab-songs" class="{% if initial_tab != 'songs' %}hidden {% endif %}space-y-6">
       
-      <!-- Artist Selection Cards -->
-      <div class="glass-card p-6">
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+      <!-- Top Bar: Search / Filter & Actions (Master Control Section) -->
+      <div class="glass-card p-4 sm:p-5 space-y-3.5">
+        <!-- Header Info Row -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/60 pb-3">
           <div>
-            <h2 class="text-lg font-bold text-white flex items-center gap-2">
-              <i class="fa-solid fa-microphone-lines text-indigo-400"></i> Select an Artist to Explore
-            </h2>
-            <p class="text-xs text-slate-400">Click any artist below to inspect all songs heard, filtered by album, ranked by play count, or filter artists by musician.</p>
+            <div class="flex items-center gap-2.5 flex-wrap">
+              <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-microphone-lines text-indigo-400"></i> Live Songs &amp; Artist Catalogs
+              </h2>
+              <span class="badge bg-indigo-500/20 text-indigo-300 font-bold text-xs border border-indigo-500/30">
+                {{ stats.artist_drilldown|length|intcomma }} Artists Tracked
+              </span>
+              <span class="badge bg-purple-500/20 text-purple-300 font-bold text-xs border border-purple-500/30">
+                {{ stats.total_songs_heard|intcomma }} Songs Heard
+              </span>
+            </div>
+            <p class="text-xs text-slate-400 mt-1">Complete live repertoire, song occurrences, debut dates, and album discographies across all attended artists.</p>
           </div>
-          <div class="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
+        </div>
+
+        <!-- Filter & Search Toolbar -->
+        <div class="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+          <!-- Search Box -->
+          <div class="relative flex-1 max-w-lg">
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs pointer-events-none"></i>
+            <input type="text"
+                   id="artist-search-input"
+                   placeholder="Search artist name, songs, or albums..."
+                   oninput="handleFilterInput('artist-search-input', 'artist-search-clear', filterArtistButtons)"
+                   class="bg-slate-900/90 border border-slate-700/80 rounded-lg pl-8 pr-8 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 w-full transition">
+            <button type="button"
+                    id="artist-search-clear"
+                    onclick="clearFilterField('artist-search-input', 'artist-search-clear', filterArtistButtons)"
+                    class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-0.5 cursor-pointer text-xs transition"
+                    title="Clear filter">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+
+          <!-- Quick Controls (Musician Dropdown + Sort Pills) -->
+          <div class="flex flex-wrap items-center gap-2.5 justify-end">
             <!-- Musician Filter Dropdown -->
-            <div class="relative flex items-center w-full sm:w-auto">
-              <select id="drilldown-musician-filter" onchange="handleMusicianFilterChange(this.value)" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500 w-full sm:w-auto sm:max-w-[190px] truncate cursor-pointer" title="Filter bands by musician">
+            <div class="relative flex items-center">
+              <select id="drilldown-musician-filter" onchange="handleMusicianFilterChange(this.value)" class="bg-slate-900 border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500 max-w-[190px] truncate cursor-pointer" title="Filter bands by musician">
                 <option value="">All Musicians</option>
                 {% for m in stats.musicians.top_musicians %}
                 <option value="{{ m.musician }}">{{ m.musician }} ({{ m.bands|length|intcomma }} {% if m.bands|length == 1 %}band{% else %}bands{% endif %})</option>
                 {% endfor %}
               </select>
             </div>
-            <!-- Artist Search Input -->
-            <div class="relative flex items-center w-full sm:w-52">
-              <input type="text" id="artist-search-input" placeholder="Filter artist name..." oninput="handleFilterInput('artist-search-input', 'artist-search-clear', filterArtistButtons)" class="bg-slate-900 border border-slate-700 rounded-lg pl-3 pr-7 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 w-full">
-              <button type="button" id="artist-search-clear" onclick="clearFilterField('artist-search-input', 'artist-search-clear', filterArtistButtons)" class="hidden absolute right-2 text-slate-400 hover:text-white p-0.5 cursor-pointer text-xs transition" title="Clear filter">
-                <i class="fa-solid fa-xmark"></i>
+
+            <!-- Sort Pills -->
+            <div class="inline-flex rounded-lg p-0.5 bg-slate-900 border border-slate-700/80 text-xs font-semibold">
+              <button type="button"
+                      id="artist-sort-songs-btn"
+                      onclick="setArtistSort('songs')"
+                      class="px-2.5 py-1.5 rounded-md transition cursor-pointer bg-indigo-600 text-white shadow-sm font-bold">
+                Most Songs
+              </button>
+              <button type="button"
+                      id="artist-sort-shows-btn"
+                      onclick="setArtistSort('shows')"
+                      class="px-2.5 py-1.5 rounded-md transition cursor-pointer text-slate-400 hover:text-white">
+                Most Shows
+              </button>
+              <button type="button"
+                      id="artist-sort-alpha-btn"
+                      onclick="setArtistSort('alpha')"
+                      class="px-2.5 py-1.5 rounded-md transition cursor-pointer text-slate-400 hover:text-white">
+                A &ndash; Z
               </button>
             </div>
           </div>
         </div>
 
         <!-- Active Musician Filter Indicator -->
-        <div id="drilldown-musician-active-badge" class="hidden flex items-center gap-2 mb-3 px-3 py-1.5 rounded-lg bg-indigo-600/20 border border-indigo-500/40 text-xs text-indigo-200">
+        <div id="drilldown-musician-active-badge" class="hidden flex items-center gap-2 px-3 py-1.5 rounded-lg bg-indigo-600/20 border border-indigo-500/40 text-xs text-indigo-200">
           <i class="fa-solid fa-user-tag text-indigo-400"></i>
           <span>Filtered by Musician: <strong id="drilldown-musician-active-name" class="text-white font-bold"></strong></span>
           <button type="button" onclick="clearMusicianFilter()" class="ml-auto text-indigo-300 hover:text-white flex items-center gap-1 font-semibold cursor-pointer">
-            <i class="fa-solid fa-xmark text-xs"></i> Show All Bands
+            <i class="fa-solid fa-xmark text-xs"></i> Show All Artists
           </button>
-        </div>
-
-        <div id="artist-button-grid" class="flex flex-wrap gap-2 max-h-48 overflow-y-auto p-1">
-          {% for a in stats.artist_drilldown.values %}
-          <button onclick="selectArtist('{{ a.artist|escapejs }}', '', true)" class="artist-btn px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-indigo-600/30 text-slate-200 hover:text-indigo-200 border border-slate-700 hover:border-indigo-500/50 text-xs font-medium transition flex items-center gap-2" data-name="{{ a.artist|lower }}">
-            <span>{{ a.artist }}</span>
-            <span class="badge bg-indigo-500/20 text-indigo-300 text-[10px]">{% if a.unique_songs %}{{ a.unique_songs|intcomma }} songs{% else %}{{ a.concert_count|default:1|intcomma }} shows{% endif %}</span>
-          </button>
-          {% empty %}
-          <p class="text-xs text-slate-500 italic py-2">No artists found in concert history.</p>
-          {% endfor %}
         </div>
       </div>
 
-      <!-- Active Artist Drilldown View -->
-      <div id="drilldown-display" class="glass-card p-6 space-y-4">
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-4">
-          <div>
-            <span class="text-xs font-semibold text-indigo-400 uppercase tracking-wider">Artist Live Song & Album History</span>
-            <h2 id="active-artist-title" class="text-2xl font-black text-white mt-0.5">Select an Artist Above</h2>
+      <!-- Artist Directory Cards List -->
+      <div id="artist-cards-list" class="space-y-3">
+        <!-- Empty State (Hidden by default) -->
+        <div id="artists-no-results" class="hidden glass-card p-10 text-center space-y-3">
+          <div class="w-12 h-12 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center mx-auto text-lg">
+            <i class="fa-solid fa-microphone-lines"></i>
           </div>
-          <div id="active-artist-badges" class="flex gap-2"></div>
+          <h3 class="text-base font-bold text-white">No matching artists found</h3>
+          <p class="text-xs text-slate-400 max-w-sm mx-auto">Try adjusting your search terms or clearing the musician filter.</p>
+          <button type="button" onclick="clearFilterField('artist-search-input', 'artist-search-clear', filterArtistButtons); clearMusicianFilter();" class="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-bold text-white transition shadow-sm cursor-pointer">
+            Reset Filters
+          </button>
         </div>
 
-        <!-- Filter Controls Row (Song Search & Album Dropdown) -->
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-slate-900/50 p-3 rounded-xl border border-slate-800">
-          <div class="flex flex-wrap items-center gap-3 w-full md:w-auto min-w-0">
-            <div class="relative flex items-center w-full sm:w-64">
-              <input type="text" id="drilldown-song-filter" placeholder="Search song title..." oninput="handleFilterInput('drilldown-song-filter', 'drilldown-song-clear', filterDrilldownSongs)" class="bg-slate-900 border border-slate-700 rounded-lg pl-3 pr-7 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 w-full">
-              <button type="button" id="drilldown-song-clear" onclick="clearFilterField('drilldown-song-filter', 'drilldown-song-clear', filterDrilldownSongs)" class="hidden absolute right-2 text-slate-400 hover:text-white p-0.5 cursor-pointer text-xs transition" title="Clear filter">
-                <i class="fa-solid fa-xmark"></i>
-              </button>
+        {% for a in stats.artist_drilldown.values %}
+        <div class="artist-card artist-btn glass-card p-4 rounded-xl border border-slate-800/80 hover:border-indigo-500/50 hover:bg-slate-900/60 transition shadow-sm cursor-pointer select-none group flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+             id="artist-card-{{ forloop.counter }}"
+             onclick="openArtistSongModal('{{ a.artist|escapejs }}')"
+             data-name="{{ a.artist|lower }}"
+             data-artist="{{ a.artist|lower }}"
+             data-search="{{ a.artist|lower }} {% for s in a.songs %}{{ s.song|lower }} {{ s.album|lower }} {% endfor %}"
+             data-unique-songs="{{ a.unique_songs|default:0 }}"
+             data-total-plays="{{ a.total_plays|default:0 }}"
+             data-concert-count="{{ a.concert_count|default:1 }}">
+          
+          <!-- Left side: Artist Name, Badges & Album Summary -->
+          <div class="min-w-0 flex-1 space-y-1.5">
+            <div class="flex items-center gap-2.5 flex-wrap">
+              <h3 class="text-base font-bold text-white group-hover:text-indigo-200 transition truncate flex items-center gap-2">
+                <span>{{ a.artist }}</span>
+              </h3>
+              <span class="badge bg-purple-500/20 text-purple-300 border border-purple-500/30 text-xs font-semibold">
+                <i class="fa-solid fa-music text-[9px] mr-1"></i> {{ a.unique_songs|default:0|intcomma }} Songs
+              </span>
+              <span class="badge bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-semibold">
+                <i class="fa-solid fa-headphones text-[9px] mr-1"></i> {{ a.total_plays|default:0|intcomma }} Plays
+              </span>
+              <span class="badge bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-xs font-semibold">
+                <i class="fa-solid fa-ticket text-[9px] mr-1"></i> {{ a.concert_count|default:1|intcomma }} Shows
+              </span>
             </div>
-            
-            <div class="flex items-center gap-2 w-full sm:w-auto min-w-0">
-              <span class="text-xs text-slate-400 font-medium shrink-0"><i class="fa-solid fa-compact-disc text-indigo-400 mr-1"></i>Album:</span>
-              <select id="drilldown-album-filter" onchange="filterDrilldownSongs()" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500 flex-1 sm:flex-initial min-w-0 max-w-full truncate cursor-pointer">
-                <option value="ALL">All Albums</option>
-              </select>
-            </div>
+            {% if a.albums_list and a.albums_list|length > 0 %}
+            <p class="text-xs text-slate-400 truncate flex items-center gap-1.5">
+              <i class="fa-solid fa-compact-disc text-indigo-400 text-[10px] shrink-0"></i>
+              <span class="truncate">{{ a.albums_list|length }} Album{{ a.albums_list|length|pluralize }}: {{ a.albums_list|slice:":4"|join:", " }}{% if a.albums_list|length > 4 %}...{% endif %}</span>
+            </p>
+            {% endif %}
           </div>
 
-          <button onclick="toggleAllOccurrences()" class="text-xs text-indigo-400 hover:text-indigo-300 font-medium">Expand / Collapse All Occurrences</button>
+          <!-- Right side: View Songs CTA Button -->
+          <div class="flex items-center justify-end shrink-0">
+            <button type="button"
+                    onclick="event.stopPropagation(); openArtistSongModal('{{ a.artist|escapejs }}')"
+                    class="px-3.5 py-1.5 rounded-xl bg-slate-800 group-hover:bg-indigo-600 text-slate-300 group-hover:text-white border border-slate-700 group-hover:border-indigo-500 text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer shadow-sm">
+              <i class="fa-solid fa-list-music text-[11px]"></i>
+              <span>View Songs</span>
+              <i class="fa-solid fa-arrow-right text-[10px] group-hover:translate-x-0.5 transition-transform"></i>
+            </button>
+          </div>
         </div>
-
-        <!-- Songs Accordion List -->
-        <div id="drilldown-songs-container" class="space-y-2">
-          <p class="text-sm text-slate-500 italic py-8 text-center">Click any artist above to load their full live catalog and occurrences.</p>
+        {% empty %}
+        <div class="glass-card p-10 text-center space-y-2">
+          <i class="fa-solid fa-microphone-lines text-3xl text-slate-600 block mb-2"></i>
+          <p class="text-sm font-semibold text-slate-300">No artists found in concert history.</p>
         </div>
+        {% endfor %}
       </div>
 
     </div>
@@ -5665,6 +5828,9 @@
       if (typeof closeConcertModal === 'function') {
         closeConcertModal();
       }
+      if (typeof closeArtistSongModal === 'function') {
+        closeArtistSongModal();
+      }
       tabId = normalizeTab(tabId);
       if (tabId === 'friends' && window.isPublicView) {
         tabId = 'overview';
@@ -6017,6 +6183,12 @@
     }
 
     function jumpToConcertInDrilldown(venueName, date) {
+      if (typeof closeArtistSongModal === 'function') {
+        closeArtistSongModal();
+      }
+      if (typeof closeConcertModal === 'function') {
+        closeConcertModal();
+      }
       switchTab('concerts');
       const searchInput = document.getElementById('concert-search-input');
       const clearBtn = document.getElementById('concert-search-clear');
@@ -6036,9 +6208,13 @@
         }
       });
       if (firstMatch) {
+        const cid = firstMatch.getAttribute('data-id');
         setTimeout(() => {
           firstMatch.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }, 60);
+          if (cid && typeof openConcertModal === 'function') {
+            openConcertModal(cid);
+          }
+        }, 80);
       }
     }
 
@@ -6148,6 +6324,9 @@
     let activeModalArtistIndex = null;
 
     function openConcertModal(concertId, initialArtistIndex = null) {
+      if (typeof closeArtistSongModal === 'function') {
+        closeArtistSongModal();
+      }
       activeModalConcertId = concertId;
       const card = document.getElementById('concert-card-' + concertId);
       const modal = document.getElementById('concert-detail-modal');
@@ -6624,26 +6803,72 @@
     }
 
     let activeMusicianFilter = '';
+    let currentArtistSort = 'songs';
+    let activeModalArtistName = null;
 
     function filterArtistButtons(query) {
-      filterArtistsCombined();
+      filterArtistCards(query);
     }
 
     function handleMusicianFilterChange(musicianName) {
       activeMusicianFilter = (musicianName || '').trim();
-      filterArtistsCombined();
+      filterArtistCards();
     }
 
     function clearMusicianFilter() {
       activeMusicianFilter = '';
       const select = document.getElementById('drilldown-musician-filter');
       if (select) select.value = '';
-      filterArtistsCombined();
+      filterArtistCards();
     }
 
-    function filterArtistsCombined() {
+    function setArtistSort(sortType) {
+      currentArtistSort = sortType;
+      const songsBtn = document.getElementById('artist-sort-songs-btn');
+      const showsBtn = document.getElementById('artist-sort-shows-btn');
+      const alphaBtn = document.getElementById('artist-sort-alpha-btn');
+
+      if (songsBtn && showsBtn && alphaBtn) {
+        songsBtn.className = sortType === 'songs'
+          ? 'px-2.5 py-1.5 rounded-md transition cursor-pointer bg-indigo-600 text-white shadow-sm font-bold'
+          : 'px-2.5 py-1.5 rounded-md transition cursor-pointer text-slate-400 hover:text-white';
+        showsBtn.className = sortType === 'shows'
+          ? 'px-2.5 py-1.5 rounded-md transition cursor-pointer bg-indigo-600 text-white shadow-sm font-bold'
+          : 'px-2.5 py-1.5 rounded-md transition cursor-pointer text-slate-400 hover:text-white';
+        alphaBtn.className = sortType === 'alpha'
+          ? 'px-2.5 py-1.5 rounded-md transition cursor-pointer bg-indigo-600 text-white shadow-sm font-bold'
+          : 'px-2.5 py-1.5 rounded-md transition cursor-pointer text-slate-400 hover:text-white';
+      }
+
+      const container = document.getElementById('artist-cards-list');
+      if (!container) return;
+
+      const cards = Array.from(container.querySelectorAll('.artist-card'));
+      cards.sort((a, b) => {
+        if (sortType === 'alpha') {
+          const nameA = (a.getAttribute('data-artist') || '').toLowerCase();
+          const nameB = (b.getAttribute('data-artist') || '').toLowerCase();
+          return nameA.localeCompare(nameB);
+        } else if (sortType === 'shows') {
+          const showsA = parseInt(a.getAttribute('data-concert-count') || '0', 10);
+          const showsB = parseInt(b.getAttribute('data-concert-count') || '0', 10);
+          return showsB - showsA;
+        } else {
+          const songsA = parseInt(a.getAttribute('data-unique-songs') || '0', 10);
+          const songsB = parseInt(b.getAttribute('data-unique-songs') || '0', 10);
+          if (songsB !== songsA) return songsB - songsA;
+          const playsA = parseInt(a.getAttribute('data-total-plays') || '0', 10);
+          const playsB = parseInt(b.getAttribute('data-total-plays') || '0', 10);
+          return playsB - playsA;
+        }
+      });
+
+      cards.forEach(c => container.appendChild(c));
+    }
+
+    function filterArtistCards(query) {
       const searchInp = document.getElementById('artist-search-input');
-      const q = searchInp ? searchInp.value.toLowerCase().trim() : '';
+      const q = (query !== undefined ? query : (searchInp ? searchInp.value : '')).toLowerCase().trim();
       const mLow = activeMusicianFilter.toLowerCase().trim();
       const allowedBands = mLow ? (musicianToBands[mLow] || []) : null;
 
@@ -6658,43 +6883,34 @@
         }
       }
 
-      let firstVisibleKey = null;
+      let matchCount = 0;
 
-      document.querySelectorAll('.artist-btn').forEach(btn => {
-        const btnName = (btn.getAttribute('data-name') || '').toLowerCase().trim();
+      document.querySelectorAll('.artist-card').forEach(card => {
+        const artName = (card.getAttribute('data-artist') || '').toLowerCase().trim();
+        const searchData = (card.getAttribute('data-search') || artName).toLowerCase();
         let visible = true;
 
         if (allowedBands !== null) {
-          const inBands = allowedBands.some(b => b === btnName || btnName.includes(b) || b.includes(btnName));
+          const inBands = allowedBands.some(b => b === artName || artName.includes(b) || b.includes(artName));
           if (!inBands) visible = false;
         }
 
         if (visible && q) {
-          if (!btnName.includes(q)) visible = false;
+          if (!searchData.includes(q)) visible = false;
         }
 
-        btn.style.display = visible ? 'inline-flex' : 'none';
-        if (visible && !firstVisibleKey) {
-          for (const k of Object.keys(drilldownData)) {
-            if (k.toLowerCase().trim() === btnName) {
-              firstVisibleKey = k;
-              break;
-            }
-          }
-        }
+        card.style.display = visible ? '' : 'none';
+        if (visible) matchCount++;
       });
 
-      if (firstVisibleKey) {
-        const currentLow = (currentArtistName || '').toLowerCase().trim();
-        const isCurrentVisible = allowedBands === null || allowedBands.some(b => b === currentLow || currentLow.includes(b) || b.includes(currentLow));
-        if (currentArtistName && isCurrentVisible) {
-          selectArtist(currentArtistName);
-        } else {
-          selectArtist(firstVisibleKey);
-        }
-      } else if (allowedBands !== null) {
-        deselectArtist();
+      const noRes = document.getElementById('artists-no-results');
+      if (noRes) {
+        noRes.style.display = matchCount === 0 ? 'block' : 'none';
       }
+    }
+
+    function filterArtistsCombined() {
+      filterArtistCards();
     }
 
     function isOccurrenceInMusicianTenure(occ, artistName, musicianName) {
@@ -6703,7 +6919,6 @@
       if (occ && occ.musicians && Array.isArray(occ.musicians) && occ.musicians.length > 0) {
         return occ.musicians.some(m => String(m).toLowerCase().trim() === mLow);
       }
-      // Fallback matching against musiciansData shows
       const musicianObj = Array.isArray(musiciansData) ? musiciansData.find(m => (m.musician || '').toLowerCase().trim() === mLow) : null;
       if (musicianObj && Array.isArray(musicianObj.shows)) {
         const artNorm = (artistName || '').toLowerCase().trim();
@@ -6721,6 +6936,8 @@
     }
 
     function jumpToMusicianInDrilldown(musicianName) {
+      if (typeof closeConcertModal === 'function') closeConcertModal();
+      if (typeof closeArtistSongModal === 'function') closeArtistSongModal();
       switchTab('songs');
       if (!musicianName) return;
 
@@ -6737,166 +6954,322 @@
       }
 
       activeMusicianFilter = matchedVal;
-      filterArtistsCombined();
+      filterArtistCards();
 
       setTimeout(() => {
-        const display = document.getElementById('drilldown-display');
-        if (display) {
-          display.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const container = document.getElementById('artist-cards-list');
+        if (container) {
+          container.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
-      }, 80);
+      }, 60);
     }
 
-    let currentArtistName = null;
-    let allExpanded = false;
-
-    function jumpToSongInDrilldown(artistName, songName = '') {
-      switchTab('songs');
+    function openArtistSongModal(artistName, songName = '') {
       if (!artistName) return;
-
-      // Clear musician filter if jumping directly to a specific artist
-      if (activeMusicianFilter) {
-        clearMusicianFilter();
-      }
+      if (typeof closeConcertModal === 'function') closeConcertModal();
+      if (typeof closeAlbumModal === 'function') closeAlbumModal();
 
       let matchedKey = Object.keys(drilldownData).find(k => k.toLowerCase() === artistName.toLowerCase());
       if (!matchedKey) {
         matchedKey = Object.keys(drilldownData).find(k => k.toLowerCase().includes(artistName.toLowerCase()) || artistName.toLowerCase().includes(k.toLowerCase()));
       }
+      if (!matchedKey) return;
 
-      if (matchedKey) {
-        selectArtist(matchedKey, songName);
-        setTimeout(() => {
-          const display = document.getElementById('drilldown-display');
-          if (display) {
-            display.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }
-        }, 80);
-      } else {
-        const songFilterInput = document.getElementById('drilldown-song-filter');
-        if (songFilterInput) {
-          songFilterInput.value = songName || '';
-          filterDrilldownSongs();
-        }
-      }
-    }
-
-    function deselectArtist() {
-      currentArtistName = null;
-      document.querySelectorAll('.artist-btn').forEach(btn => {
-        btn.className = 'artist-btn px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-indigo-600/30 text-slate-200 hover:text-indigo-200 border border-slate-700 hover:border-indigo-500/50 text-xs font-medium transition flex items-center gap-2';
-      });
-
-      const titleEl = document.getElementById('active-artist-title');
-      if (titleEl) titleEl.innerText = 'Select an Artist Above';
-
-      const badgesEl = document.getElementById('active-artist-badges');
-      if (badgesEl) badgesEl.innerHTML = '';
-
-      const albumSelect = document.getElementById('drilldown-album-filter');
-      if (albumSelect) albumSelect.innerHTML = '<option value="ALL">All Albums</option>';
-
-      const songFilterInput = document.getElementById('drilldown-song-filter');
-      const songClearBtn = document.getElementById('drilldown-song-clear');
-      if (songFilterInput) {
-        songFilterInput.value = '';
-        if (songClearBtn) songClearBtn.classList.add('hidden');
-      }
-
-      const container = document.getElementById('drilldown-songs-container');
-      if (container) {
-        container.innerHTML = '<p class="text-sm text-slate-500 italic py-8 text-center">Click any artist above to load their full live catalog and occurrences.</p>';
-      }
-    }
-
-    function selectArtist(artistName, songName = '', isToggle = false) {
-      if (isToggle && currentArtistName === artistName && !songName) {
-        deselectArtist();
-        return;
-      }
-      currentArtistName = artistName;
-      const data = drilldownData[artistName];
+      activeModalArtistName = matchedKey;
+      const data = drilldownData[matchedKey];
       if (!data) return;
 
-      document.querySelectorAll('.artist-btn').forEach(btn => {
-        if (btn.getAttribute('data-name') === artistName.toLowerCase()) {
-          btn.className = 'artist-btn px-3 py-1.5 rounded-lg bg-indigo-600 text-white border border-indigo-400 text-xs font-semibold shadow-lg shadow-indigo-600/30 flex items-center gap-2';
-          btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-        } else {
-          btn.className = 'artist-btn px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-indigo-600/30 text-slate-200 hover:text-indigo-200 border border-slate-700 hover:border-indigo-500/50 text-xs font-medium transition flex items-center gap-2';
-        }
-      });
+      const modal = document.getElementById('artist-song-modal');
+      const titleText = document.getElementById('modal-artist-name-text');
+      const badgesEl = document.getElementById('modal-artist-badges');
+      const subtitleEl = document.getElementById('modal-artist-subtitle');
+      const albumSelect = document.getElementById('modal-song-album-filter');
+      const searchInput = document.getElementById('modal-song-search-input');
+      const clearBtn = document.getElementById('modal-song-search-clear');
+      const footerInfo = document.getElementById('modal-artist-footer-info');
 
-      document.getElementById('active-artist-title').innerText = data.artist;
+      if (!modal) return;
+
+      if (titleText) titleText.textContent = data.artist;
 
       const mLow = (activeMusicianFilter || '').toLowerCase().trim();
-      const currentArtist = data.artist;
-
       if (mLow) {
         let uniqueFilteredSongs = 0;
         let totalFilteredPlays = 0;
         (data.songs || []).forEach(s => {
-          const occs = (s.occurrences || []).filter(o => isOccurrenceInMusicianTenure(o, currentArtist, activeMusicianFilter));
+          const occs = (s.occurrences || []).filter(o => isOccurrenceInMusicianTenure(o, data.artist, activeMusicianFilter));
           if (occs.length > 0) {
             uniqueFilteredSongs++;
             totalFilteredPlays += occs.length;
           }
         });
-
-        document.getElementById('active-artist-badges').innerHTML = `
-          <span class="badge bg-purple-500/20 text-purple-300 border border-purple-500/30 font-semibold flex items-center gap-1.5">
-            <i class="fa-solid fa-user-tag text-purple-400 text-[10px]"></i> ${uniqueFilteredSongs.toLocaleString()} Unique Songs (with ${escapeHtml(activeMusicianFilter)})
-          </span>
-          <span class="badge bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-semibold flex items-center gap-1.5">
-            <i class="fa-solid fa-headphones text-emerald-400 text-[10px]"></i> ${totalFilteredPlays.toLocaleString()} Plays with ${escapeHtml(activeMusicianFilter)}
-          </span>
-        `;
+        if (badgesEl) {
+          badgesEl.innerHTML = `
+            <span class="badge bg-purple-500/20 text-purple-300 border border-purple-500/30 text-xs font-semibold">
+              <i class="fa-solid fa-music text-[9px] mr-1"></i> ${uniqueFilteredSongs.toLocaleString()} Songs (with ${escapeHtml(activeMusicianFilter)})
+            </span>
+            <span class="badge bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-semibold">
+              <i class="fa-solid fa-headphones text-[9px] mr-1"></i> ${totalFilteredPlays.toLocaleString()} Plays
+            </span>
+          `;
+        }
+        if (subtitleEl) {
+          subtitleEl.innerHTML = `<span class="badge bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[10px]"><i class="fa-solid fa-user-tag text-indigo-400 mr-1"></i>Filtered during ${escapeHtml(activeMusicianFilter)}'s tenure</span>`;
+        }
       } else {
-        document.getElementById('active-artist-badges').innerHTML = `
-          <span class="badge bg-purple-500/20 text-purple-300 border border-purple-500/30 font-semibold">${(data.unique_songs || 0).toLocaleString()} Unique Songs</span>
-          <span class="badge bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-semibold">${(data.total_plays || 0).toLocaleString()} Total Plays Heard</span>
-        `;
-      }
-
-      // Populate album dropdown
-      const albumSelect = document.getElementById('drilldown-album-filter');
-      albumSelect.innerHTML = '<option value="ALL">All Albums</option>';
-      (data.albums_list || []).forEach(alb => {
-        const opt = document.createElement('option');
-        opt.value = alb;
-        opt.innerText = alb;
-        albumSelect.appendChild(opt);
-      });
-
-      const songFilterInput = document.getElementById('drilldown-song-filter');
-      const songClearBtn = document.getElementById('drilldown-song-clear');
-      if (songFilterInput) {
-        songFilterInput.value = songName || '';
-        if (songClearBtn) {
-          if (songName) songClearBtn.classList.remove('hidden');
-          else songClearBtn.classList.add('hidden');
+        if (badgesEl) {
+          badgesEl.innerHTML = `
+            <span class="badge bg-purple-500/20 text-purple-300 border border-purple-500/30 text-xs font-semibold">
+              <i class="fa-solid fa-music text-[9px] mr-1"></i> ${(data.unique_songs || 0).toLocaleString()} Songs Heard
+            </span>
+            <span class="badge bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-semibold">
+              <i class="fa-solid fa-headphones text-[9px] mr-1"></i> ${(data.total_plays || 0).toLocaleString()} Total Plays
+            </span>
+            <span class="badge bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-xs font-semibold">
+              <i class="fa-solid fa-ticket text-[9px] mr-1"></i> ${(data.concert_count || 1).toLocaleString()} Shows
+            </span>
+          `;
+        }
+        if (subtitleEl) {
+          const albCount = (data.albums_list || []).length;
+          subtitleEl.innerHTML = `<span>${albCount} Album${albCount === 1 ? '' : 's'} / Releases tracked in live setlists</span>`;
         }
       }
 
-      renderArtistSongs(data.songs, data.artist);
+      if (albumSelect) {
+        albumSelect.innerHTML = '<option value="ALL">All Albums</option>';
+        (data.albums_list || []).forEach(alb => {
+          const opt = document.createElement('option');
+          opt.value = alb;
+          opt.innerText = alb;
+          albumSelect.appendChild(opt);
+        });
+      }
+
+      if (searchInput) {
+        searchInput.value = '';
+        if (clearBtn) clearBtn.classList.add('hidden');
+      }
+
+      if (footerInfo) {
+        footerInfo.innerHTML = `Viewing live catalog for <strong class="text-slate-200">${escapeHtml(data.artist)}</strong>`;
+      }
+
+      renderArtistSongsInModal(data.songs, data.artist, songName);
+      showArtistCatalogInModal();
+
+      modal.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
 
       if (songName) {
-        filterDrilldownSongs();
-        setTimeout(() => {
-          const firstMatch = document.querySelector('.song-item:not([style*="display: none"])');
-          if (firstMatch) {
-            const occList = firstMatch.querySelector('[id^="occ-list-"]');
-            const chevron = firstMatch.querySelector('[id^="chevron-"]');
-            if (occList) occList.classList.remove('hidden');
-            if (chevron) chevron.classList.add('rotate-180');
-            firstMatch.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const sLow = songName.toLowerCase().trim();
+        const exactIdx = (data.songs || []).findIndex(s => s.song.toLowerCase() === sLow);
+        if (exactIdx !== -1) {
+          showSongOccurrencesInModal(exactIdx);
+        } else {
+          const partialIdx = (data.songs || []).findIndex(s => s.song.toLowerCase().includes(sLow));
+          if (partialIdx !== -1) {
+            showSongOccurrencesInModal(partialIdx);
+          } else {
+            if (searchInput) {
+              searchInput.value = songName;
+              if (clearBtn) clearBtn.classList.remove('hidden');
+              filterModalSongs();
+            }
           }
-        }, 50);
+        }
       }
     }
 
-    function renderArtistSongs(songs, artistName = currentArtistName) {
-      const container = document.getElementById('drilldown-songs-container');
+    function showArtistCatalogInModal() {
+      const headerCatalog = document.getElementById('modal-artist-header-catalog');
+      const headerOccurrences = document.getElementById('modal-artist-header-occurrences');
+      const viewCatalog = document.getElementById('modal-artist-catalog-view');
+      const viewOccurrences = document.getElementById('modal-artist-occurrences-view');
+      const footerInfo = document.getElementById('modal-artist-footer-info');
+
+      if (headerCatalog) headerCatalog.classList.remove('hidden');
+      if (headerOccurrences) headerOccurrences.classList.add('hidden');
+      if (viewCatalog) viewCatalog.classList.remove('hidden');
+      if (viewOccurrences) viewOccurrences.classList.add('hidden');
+
+      if (activeModalArtistName && footerInfo) {
+        footerInfo.innerHTML = `Viewing live catalog for <strong class="text-slate-200">${escapeHtml(activeModalArtistName)}</strong>`;
+      }
+
+      const body = document.getElementById('artist-song-modal-body');
+      if (body) body.scrollTop = 0;
+    }
+
+    function showSongOccurrencesInModal(songIdx) {
+      if (!activeModalArtistName || !drilldownData[activeModalArtistName]) return;
+      const data = drilldownData[activeModalArtistName];
+      const s = (data.songs || [])[songIdx];
+      if (!s) return;
+
+      const headerCatalog = document.getElementById('modal-artist-header-catalog');
+      const headerOccurrences = document.getElementById('modal-artist-header-occurrences');
+      const viewCatalog = document.getElementById('modal-artist-catalog-view');
+      const viewOccurrences = document.getElementById('modal-artist-occurrences-view');
+      const songTitleEl = document.getElementById('modal-song-detail-title');
+      const artistBadgeEl = document.getElementById('modal-song-detail-artist-badge');
+      const playsBadgeEl = document.getElementById('modal-song-detail-plays-badge');
+      const albumSubEl = document.getElementById('modal-song-detail-album-sub');
+      const footerInfo = document.getElementById('modal-artist-footer-info');
+
+      if (headerCatalog) headerCatalog.classList.add('hidden');
+      if (headerOccurrences) headerOccurrences.classList.remove('hidden');
+      if (viewCatalog) viewCatalog.classList.add('hidden');
+      if (viewOccurrences) viewOccurrences.classList.remove('hidden');
+
+      if (songTitleEl) {
+        songTitleEl.innerHTML = `<i class="fa-solid fa-music text-indigo-400 text-sm"></i><span class="truncate">${escapeHtml(s.song)}</span>`;
+      }
+
+      if (artistBadgeEl) {
+        artistBadgeEl.textContent = data.artist;
+      }
+
+      let occsToRender = s.occurrences || [];
+      if (activeMusicianFilter) {
+        occsToRender = occsToRender.filter(o => isOccurrenceInMusicianTenure(o, data.artist, activeMusicianFilter));
+      }
+
+      if (playsBadgeEl) {
+        playsBadgeEl.innerHTML = `<i class="fa-solid fa-headphones text-[9px] mr-1"></i> ${occsToRender.length.toLocaleString()} ${occsToRender.length === 1 ? 'Play' : 'Plays'}`;
+      }
+
+      const sAlbum = s.album || 'Non-Album / Singles';
+      const isCover = sAlbum === 'Covers';
+      const isNonAlbum = sAlbum.toLowerCase().includes('non-album') || sAlbum.toLowerCase().includes('singles');
+
+      let albHtml = '';
+      if (!isCover && !isNonAlbum) {
+        albHtml = `
+          <button type="button"
+                  onclick="closeArtistSongModal(); openAlbumModalByName('${(data.artist || '').replace(/'/g, "\\'")}', '${(sAlbum || '').replace(/'/g, "\\'")}');"
+                  class="badge bg-slate-800 hover:bg-slate-700 text-indigo-300 hover:text-indigo-200 border border-indigo-500/30 text-[11px] cursor-pointer transition flex items-center gap-1 shrink-0"
+                  title="Inspect album: ${escapeHtml(s.album_display || sAlbum)}">
+            <i class="fa-solid fa-compact-disc text-indigo-400 text-[10px]"></i>
+            <span>${escapeHtml(s.album_display || sAlbum)}</span>
+          </button>
+        `;
+      } else if (isCover) {
+        albHtml = `<span class="badge bg-pink-500/20 text-pink-300 border border-pink-500/30 text-[11px]"><i class="fa-solid fa-microphone-lines mr-1"></i>Cover Song</span>`;
+      } else {
+        albHtml = `<span class="badge bg-slate-800 text-slate-400 border border-slate-700 text-[11px]"><i class="fa-solid fa-compact-disc mr-1"></i>Non-Album / Singles</span>`;
+      }
+
+      const firstDate = occsToRender.length > 0 ? occsToRender[0].date : s.first_heard;
+      if (albumSubEl) {
+        albumSubEl.innerHTML = `
+          ${albHtml}
+          <span>&bull;</span>
+          <span class="text-slate-400 text-xs">${activeMusicianFilter ? 'First with ' + escapeHtml(activeMusicianFilter) + ': ' : 'First heard: '}<span class="text-indigo-300 font-mono">${firstDate}</span></span>
+        `;
+      }
+
+      if (footerInfo) {
+        footerInfo.innerHTML = `Performance history for <strong class="text-white">${escapeHtml(s.song)}</strong> &bull; <span class="text-slate-300">${escapeHtml(data.artist)}</span>`;
+      }
+
+      if (viewOccurrences) {
+        viewOccurrences.innerHTML = '';
+        if (occsToRender.length === 0) {
+          viewOccurrences.innerHTML = `
+            <div class="p-8 text-center glass-card rounded-xl border border-slate-800 space-y-2">
+              <i class="fa-solid fa-circle-exclamation text-2xl text-slate-600 block mb-2"></i>
+              <p class="text-sm font-semibold text-slate-300">No recorded performances matching the active filter.</p>
+            </div>
+          `;
+        } else {
+          occsToRender.forEach((o, oIdx) => {
+            let posBadge = '';
+            if (o.slot) {
+              let colorClasses = 'bg-indigo-500/15 text-indigo-300 border-indigo-500/30';
+              let icon = 'fa-music';
+              if (o.slot_category === 'opener') {
+                colorClasses = 'bg-amber-500/20 text-amber-300 border-amber-500/30 font-semibold';
+                icon = 'fa-bolt';
+              } else if (o.slot_category === 'encore' || o.slot_category === 'closer') {
+                colorClasses = 'bg-purple-500/20 text-purple-300 border-purple-500/30 font-semibold';
+                icon = 'fa-fire';
+              } else if (o.slot_category === 'early') {
+                colorClasses = 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30';
+                icon = 'fa-forward-step';
+              } else if (o.slot_category === 'late') {
+                colorClasses = 'bg-rose-500/15 text-rose-300 border-rose-500/30';
+                icon = 'fa-forward-fast';
+              }
+              posBadge = `<span class="badge ${colorClasses} text-[10px] border flex items-center gap-1 shrink-0">
+                <i class="fa-solid ${icon} text-[9px]"></i> ${o.slot} (${o.pct}% • #${o.track_num}/${o.total_tracks})
+              </span>`;
+            }
+
+            const occCard = document.createElement('div');
+            occCard.className = 'p-3.5 sm:p-4 rounded-xl bg-slate-900/80 border border-slate-800/80 hover:border-slate-700 hover:bg-slate-900 transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 group';
+            occCard.innerHTML = `
+              <div class="space-y-1.5 min-w-0 flex-1">
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="px-2 py-0.5 rounded-md bg-indigo-500/20 border border-indigo-500/30 font-mono text-indigo-300 font-bold text-xs">#${oIdx + 1}</span>
+                  <span class="font-mono text-slate-100 font-bold text-sm">${o.date}</span>
+                  <span class="text-xs text-slate-400 inline-flex items-center"><i class="fa-solid fa-location-dot text-[11px] text-indigo-400 mr-1.5"></i>${escapeHtml(o.venue)}</span>
+                  ${posBadge}
+                  ${o.is_cover ? `<span class="badge bg-pink-500/20 text-pink-300 text-[10px] border border-pink-500/30 font-semibold">Cover${(o.cover_original && o.cover_original !== 'Cover') ? ` (${escapeHtml(o.cover_original)})` : ''}</span>` : ''}
+                </div>
+                ${(o.with_guest || o.info) ? `
+                  <div class="text-xs text-slate-400 pl-1 flex flex-wrap items-center gap-1.5 italic">
+                    ${o.with_guest ? `<span>with <strong class="text-slate-300">${escapeHtml(o.with_guest)}</strong></span>` : ''}
+                    ${(o.with_guest && o.info) ? `<span>&bull;</span>` : ''}
+                    ${o.info ? `<span>${escapeHtml(o.info)}</span>` : ''}
+                  </div>
+                ` : ''}
+              </div>
+              <div class="flex items-center justify-end shrink-0">
+                <button type="button" onclick="jumpToConcertInDrilldown('${(o.venue || '').replace(/'/g, "\\'")}', '${o.date || ''}')" class="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition inline-flex items-center gap-1.5 cursor-pointer shadow-md shadow-indigo-600/20 group-hover:scale-[1.02]">
+                  <span>View Concert</span>
+                  <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                </button>
+              </div>
+            `;
+            viewOccurrences.appendChild(occCard);
+          });
+        }
+      }
+
+      const body = document.getElementById('artist-song-modal-body');
+      if (body) body.scrollTop = 0;
+    }
+
+    function closeArtistSongModal() {
+      const modal = document.getElementById('artist-song-modal');
+      if (modal) {
+        modal.classList.add('hidden');
+      }
+      document.body.style.overflow = '';
+      activeModalArtistName = null;
+    }
+
+    function selectArtist(artistName, songName = '', isToggle = false) {
+      openArtistSongModal(artistName, songName);
+    }
+
+    function jumpToSongInDrilldown(artistName, songName = '') {
+      if (typeof closeConcertModal === 'function') closeConcertModal();
+      if (typeof closeAlbumModal === 'function') closeAlbumModal();
+      switchTab('songs');
+      if (!artistName) return;
+
+      if (activeMusicianFilter) {
+        clearMusicianFilter();
+      }
+
+      openArtistSongModal(artistName, songName);
+    }
+
+    function renderArtistSongsInModal(songs, artistName, highlightSong = '') {
+      const container = document.getElementById('modal-artist-catalog-view');
+      if (!container) return;
       container.innerHTML = '';
 
       if (!songs || songs.length === 0) {
@@ -6929,7 +7302,7 @@
                     Open your attended concerts for this artist and use the built-in setlist editor to type or paste the tracklist directly.
                   </p>
                 </div>
-                <button type="button" onclick="jumpToArtistInConcerts('${(artistName || '').replace(/'/g, "\\'")}')" class="w-full py-2 px-3 rounded-lg bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-200 border border-indigo-500/40 text-xs font-semibold flex items-center justify-center gap-2 transition cursor-pointer">
+                <button type="button" onclick="closeArtistSongModal(); jumpToArtistInConcerts('${(artistName || '').replace(/'/g, "\\'")}')" class="w-full py-2 px-3 rounded-lg bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-200 border border-indigo-500/40 text-xs font-semibold flex items-center justify-center gap-2 transition cursor-pointer">
                   <i class="fa-solid fa-ticket"></i> View Shows &amp; Edit Setlist
                 </button>
               </div>
@@ -6984,54 +7357,10 @@
 
         renderedCount++;
         const item = document.createElement('div');
-        item.className = 'song-item rounded-xl bg-slate-900/60 border border-slate-800/80 hover:border-slate-700 transition';
+        item.className = 'song-item rounded-xl bg-slate-900/70 border border-slate-800/80 hover:border-indigo-500/50 hover:bg-slate-900 transition flex items-center justify-between p-3 cursor-pointer select-none group';
         item.setAttribute('data-song-name', s.song.toLowerCase());
         item.setAttribute('data-album-name', s.album || 'Non-Album / Singles');
-
-        let occHtml = occsToRender.map((o, oIdx) => {
-          let posBadge = '';
-          if (o.slot) {
-            let colorClasses = 'bg-indigo-500/15 text-indigo-300 border-indigo-500/30';
-            let icon = 'fa-music';
-            if (o.slot_category === 'opener') {
-              colorClasses = 'bg-amber-500/20 text-amber-300 border-amber-500/30 font-semibold';
-              icon = 'fa-bolt';
-            } else if (o.slot_category === 'encore' || o.slot_category === 'closer') {
-              colorClasses = 'bg-purple-500/20 text-purple-300 border-purple-500/30 font-semibold';
-              icon = 'fa-fire';
-            } else if (o.slot_category === 'early') {
-              colorClasses = 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30';
-              icon = 'fa-forward-step';
-            } else if (o.slot_category === 'late') {
-              colorClasses = 'bg-rose-500/15 text-rose-300 border-rose-500/30';
-              icon = 'fa-forward-fast';
-            }
-            posBadge = `<span class="badge ${colorClasses} text-[10px] border flex items-center gap-1">
-              <i class="fa-solid ${icon} text-[9px]"></i> ${o.slot} (${o.pct}% • #${o.track_num}/${o.total_tracks})
-            </span>`;
-          }
-
-          return `
-          <div class="flex items-center justify-between p-2 rounded-lg bg-slate-950/40 border border-slate-800/50 text-xs">
-            <div class="flex flex-wrap items-center gap-3">
-              <span class="font-mono text-indigo-300">#${oIdx + 1}</span>
-              <button onclick="jumpToConcertInDrilldown('${(o.venue || '').replace(/'/g, "\\'")}', '${o.date || ''}')" class="font-mono text-slate-300 hover:text-white hover:underline font-semibold text-left">
-                ${o.date}
-              </button>
-              <button onclick="jumpToConcertInDrilldown('${(o.venue || '').replace(/'/g, "\\'")}', '${o.date || ''}')" class="text-slate-400 hover:text-indigo-300 hover:underline text-left inline-flex items-center">
-                <i class="fa-solid fa-location-dot text-[10px] text-slate-500 mr-1"></i>${o.venue}
-              </button>
-              ${posBadge}
-              ${o.is_cover ? `<span class="badge bg-pink-500/20 text-pink-300 text-[10px]">Cover${(o.cover_original && o.cover_original !== 'Cover') ? ` (${o.cover_original})` : ''}</span>` : ''}
-              ${o.with_guest ? `<span class="text-slate-500 text-[11px] italic">(with ${o.with_guest})</span>` : ''}
-              ${o.info ? `<span class="text-slate-500 text-[11px] italic">(${o.info})</span>` : ''}
-            </div>
-            <button onclick="jumpToConcertInDrilldown('${(o.venue || '').replace(/'/g, "\\'")}', '${o.date || ''}')" class="px-2.5 py-1 rounded bg-indigo-500/20 hover:bg-indigo-500/35 text-indigo-300 hover:text-white border border-indigo-500/30 text-[11px] font-semibold transition inline-flex items-center gap-1.5 cursor-pointer">
-              View Setlist <i class="fa-solid fa-arrow-right text-[9px]"></i>
-            </button>
-          </div>
-          `;
-        }).join('');
+        item.setAttribute('onclick', `showSongOccurrencesInModal(${idx})`);
 
         const playCount = occsToRender.length;
         const firstDate = occsToRender.length > 0 ? occsToRender[0].date : s.first_heard;
@@ -7044,7 +7373,7 @@
         if (!isCover && !isNonAlbum) {
           thumbHtml = `
             <div class="album-thumb-btn relative w-6 h-6 rounded-md overflow-hidden shrink-0 bg-slate-800 border border-slate-700/70 hover:border-indigo-400 hover:scale-110 transition shadow-sm cursor-pointer group/thumb"
-                 onclick="event.stopPropagation(); openAlbumModalByName('${(artistName || '').replace(/'/g, "\\'")}', '${(sAlbum || '').replace(/'/g, "\\'")}');"
+                 onclick="event.stopPropagation(); closeArtistSongModal(); openAlbumModalByName('${(artistName || '').replace(/'/g, "\\'")}', '${(sAlbum || '').replace(/'/g, "\\'")}');"
                  title="Inspect album: ${escapeHtml(s.album_display || sAlbum)}">
               <img class="lazy-album-art w-full h-full object-cover opacity-0 transition-opacity duration-300"
                    data-artist="${escapeHtml(artistName)}"
@@ -7059,7 +7388,7 @@
         } else if (isCover) {
           thumbHtml = `
             <div class="relative w-6 h-6 rounded-md overflow-hidden shrink-0 bg-pink-500/10 border border-pink-500/30 flex items-center justify-center text-[10px] text-pink-400 hover:scale-110 transition shadow-sm cursor-pointer"
-                 onclick="event.stopPropagation(); openAlbumModalByName('${(artistName || '').replace(/'/g, "\\'")}', 'Covers');"
+                 onclick="event.stopPropagation(); closeArtistSongModal(); openAlbumModalByName('${(artistName || '').replace(/'/g, "\\'")}', 'Covers');"
                  title="Inspect Covers">
               <i class="fa-solid fa-microphone-lines"></i>
             </div>
@@ -7067,85 +7396,74 @@
         } else {
           thumbHtml = `
             <div class="relative w-6 h-6 rounded-md overflow-hidden shrink-0 bg-slate-800/60 border border-slate-700/40 flex items-center justify-center text-[10px] text-slate-500 hover:scale-110 hover:text-indigo-300 transition shadow-sm cursor-pointer"
-                 onclick="event.stopPropagation(); openAlbumModalByName('${(artistName || '').replace(/'/g, "\\'")}', 'Non-Album / Singles');"
+                 onclick="event.stopPropagation(); closeArtistSongModal(); openAlbumModalByName('${(artistName || '').replace(/'/g, "\\'")}', 'Non-Album / Singles');"
                  title="Inspect Non-Album / Singles">
               <i class="fa-solid fa-compact-disc"></i>
             </div>
           `;
         }
 
+        const isHighlighted = highlightSong && s.song.toLowerCase().includes(highlightSong.toLowerCase());
+
         item.innerHTML = `
-          <div class="p-3 flex items-center justify-between cursor-pointer select-none" onclick="toggleSongOccurrences(${idx})">
-            <div class="flex flex-wrap items-center gap-2.5 min-w-0">
-              <span class="text-xs font-mono text-slate-500 w-6 shrink-0">#${renderedCount}</span>
-              ${thumbHtml}
-              <span class="font-semibold text-white text-sm truncate">${escapeHtml(s.song)}</span>
-              <button type="button"
-                      onclick="event.stopPropagation(); openAlbumModalByName('${(artistName || '').replace(/'/g, "\\'")}', '${(sAlbum || '').replace(/'/g, "\\'")}');"
-                      class="badge bg-slate-800/80 hover:bg-slate-800 hover:text-indigo-200 hover:border-indigo-500/50 text-indigo-300 border border-indigo-500/30 text-[11px] cursor-pointer transition flex items-center gap-1 shrink-0"
-                      title="Inspect album: ${escapeHtml(s.album_display || sAlbum)}">
-                <i class="fa-solid fa-compact-disc text-[10px] text-indigo-400"></i>
-                <span>${escapeHtml(s.album_display || sAlbum)}</span>
-              </button>
-              <span class="text-xs text-slate-400">(${activeMusicianFilter ? 'First with ' + escapeHtml(activeMusicianFilter) + ': ' : 'First heard: '}<span class="text-indigo-300 font-mono">${firstDate}</span>)</span>
-            </div>
-            <div class="flex items-center gap-3 shrink-0">
-              <span class="badge bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">${playCount}x</span>
-              <i id="chevron-${idx}" class="fa-solid fa-chevron-down text-slate-400 text-xs transition-transform duration-200"></i>
-            </div>
+          <div class="flex flex-wrap items-center gap-2.5 min-w-0 flex-1 pr-2">
+            <span class="text-xs font-mono text-slate-500 w-6 shrink-0">#${renderedCount}</span>
+            ${thumbHtml}
+            <span class="font-bold text-white text-sm truncate group-hover:text-indigo-200 transition ${isHighlighted ? 'text-indigo-300' : ''}">${escapeHtml(s.song)}</span>
+            <button type="button"
+                    onclick="event.stopPropagation(); closeArtistSongModal(); openAlbumModalByName('${(artistName || '').replace(/'/g, "\\'")}', '${(sAlbum || '').replace(/'/g, "\\'")}');"
+                    class="badge bg-slate-800/80 hover:bg-slate-800 hover:text-indigo-200 hover:border-indigo-500/50 text-indigo-300 border border-indigo-500/30 text-[11px] cursor-pointer transition flex items-center gap-1 shrink-0"
+                    title="Inspect album: ${escapeHtml(s.album_display || sAlbum)}">
+              <i class="fa-solid fa-compact-disc text-[10px] text-indigo-400"></i>
+              <span>${escapeHtml(s.album_display || sAlbum)}</span>
+            </button>
+            <span class="text-xs text-slate-400">(${activeMusicianFilter ? 'First with ' + escapeHtml(activeMusicianFilter) + ': ' : 'First heard: '}<span class="text-indigo-300 font-mono">${firstDate}</span>)</span>
           </div>
-          <div id="occ-list-${idx}" class="hidden px-4 pb-3 pt-1 space-y-1.5 border-t border-slate-800/40">
-            ${occHtml}
+          <div class="flex items-center gap-2 shrink-0">
+            <button type="button"
+                    onclick="event.stopPropagation(); showSongOccurrencesInModal(${idx})"
+                    class="px-3 py-1.5 rounded-lg bg-slate-800 group-hover:bg-indigo-600 text-slate-300 group-hover:text-white border border-slate-700 group-hover:border-indigo-500 text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer shadow-sm">
+              <span>${playCount}x</span>
+              <i class="fa-solid fa-chevron-right text-[10px] group-hover:translate-x-0.5 transition-transform"></i>
+            </button>
           </div>
         `;
         container.appendChild(item);
       });
 
-      initLazyAlbumThumbnails(container);
+      if (typeof initLazyAlbumThumbnails === 'function') {
+        initLazyAlbumThumbnails(container);
+      }
 
       if (renderedCount === 0) {
         container.innerHTML = `
           <div class="p-8 text-center glass-card rounded-xl border border-slate-800 space-y-2">
             <i class="fa-solid fa-user-slash text-3xl text-slate-600 block mb-2"></i>
             <p class="text-sm font-semibold text-slate-300">No performances found for ${escapeHtml(artistName || 'this artist')} during ${escapeHtml(activeMusicianFilter)}'s tenure.</p>
-            <p class="text-xs text-slate-500">Try selecting another band above or clear the musician filter.</p>
+            <p class="text-xs text-slate-500">Try selecting another band or clear the musician filter.</p>
           </div>
         `;
       }
     }
 
-    function toggleSongOccurrences(idx) {
-      const list = document.getElementById('occ-list-' + idx);
-      const chevron = document.getElementById('chevron-' + idx);
-      if (list.classList.contains('hidden')) {
-        list.classList.remove('hidden');
-        chevron.classList.add('rotate-180');
-      } else {
-        list.classList.add('hidden');
-        chevron.classList.remove('rotate-180');
-      }
-    }
+    function filterModalSongs() {
+      const searchInp = document.getElementById('modal-song-search-input');
+      const songQuery = searchInp ? searchInp.value.toLowerCase().trim() : '';
+      const albumSelect = document.getElementById('modal-song-album-filter');
+      const albumQuery = albumSelect ? albumSelect.value : 'ALL';
 
-    function toggleAllOccurrences() {
-      allExpanded = !allExpanded;
-      document.querySelectorAll('[id^="occ-list-"]').forEach(el => {
-        if (allExpanded) el.classList.remove('hidden');
-        else el.classList.add('hidden');
-      });
-      document.querySelectorAll('[id^="chevron-"]').forEach(el => {
-        if (allExpanded) el.classList.add('rotate-180');
-        else el.classList.remove('rotate-180');
-      });
-    }
+      const container = document.getElementById('modal-artist-catalog-view');
+      if (!container) return;
 
-    function filterDrilldownSongs() {
-      const songQuery = document.getElementById('drilldown-song-filter').value.toLowerCase();
-      const albumQuery = document.getElementById('drilldown-album-filter').value;
-
-      document.querySelectorAll('.song-item').forEach(item => {
-        const matchSong = item.getAttribute('data-song-name').includes(songQuery);
-        const matchAlbum = albumQuery === 'ALL' || item.getAttribute('data-album-name') === albumQuery;
-        item.style.display = (matchSong && matchAlbum) ? '' : 'none';
+      let visibleCount = 0;
+      container.querySelectorAll('.song-item').forEach(item => {
+        const songName = item.getAttribute('data-song-name') || '';
+        const albumName = item.getAttribute('data-album-name') || '';
+        const matchSong = !songQuery || songName.includes(songQuery);
+        const matchAlbum = albumQuery === 'ALL' || albumName === albumQuery;
+        const show = matchSong && matchAlbum;
+        item.style.display = show ? '' : 'none';
+        if (show) visibleCount++;
       });
     }
 
@@ -7172,19 +7490,10 @@
     }
 
     window.addEventListener('DOMContentLoaded', () => {
-      let topArtist = null;
-      let maxPlays = -1;
-      for (const [art, d] of Object.entries(drilldownData)) {
-        const plays = (d.total_plays !== undefined) ? d.total_plays : (d.songs ? d.songs.length : 0);
-        if (plays > maxPlays) {
-          maxPlays = plays;
-          topArtist = art;
-        }
+      // Initialize artist cards filter state
+      if (typeof filterArtistCards === 'function') {
+        filterArtistCards();
       }
-      if (!topArtist) {
-        topArtist = Object.keys(drilldownData)[0];
-      }
-      if (topArtist) selectArtist(topArtist);
     });
 
     /* ==========================================================================
