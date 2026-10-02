@@ -2,7 +2,7 @@ import io
 import csv
 import json
 import re
-from datetime import datetime
+from datetime import datetime, date
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponseBadRequest, HttpResponse
@@ -362,6 +362,48 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
         stats_copy["concerts_drilldown"] = drilldown_list
         stats = stats_copy
 
+    # Compute 'On This Day' concerts occurring on today's month & day in past years
+    today = date.today()
+    today_month = today.month
+    today_day = today.day
+    on_this_day_list = []
+    for c in stats.get("concerts_drilldown", []):
+        raw_str = str(c.get("raw_date") or "").strip()
+        date_str = str(c.get("date") or "").strip()
+        dt = None
+        for candidate in (raw_str, date_str):
+            if not candidate:
+                continue
+            for fmt in ("%Y-%m-%d", "%m/%d/%Y", "%m-%d-%Y", "%d-%m-%Y", "%Y/%m/%d", "%d/%m/%Y", "%b %d, %Y", "%B %d, %Y"):
+                try:
+                    dt = datetime.strptime(candidate[:12].strip(), fmt).date()
+                    break
+                except (ValueError, TypeError):
+                    pass
+            if dt:
+                break
+        if not dt:
+            for candidate in (raw_str, date_str):
+                m = re.match(r'^([A-Za-z]+)\s+(\d{1,2}),?\s+(\d{4})$', candidate)
+                if m:
+                    for m_fmt in ("%B %d %Y", "%b %d %Y"):
+                        try:
+                            dt = datetime.strptime(f"{m.group(1)} {m.group(2)} {m.group(3)}", m_fmt).date()
+                            break
+                        except ValueError:
+                            pass
+                if dt:
+                    break
+        if dt and dt.month == today_month and dt.day == today_day and dt < today:
+            c_otd = dict(c)
+            c_otd["years_ago"] = today.year - dt.year
+            c_otd["concert_year"] = dt.year
+            on_this_day_list.append(c_otd)
+
+    on_this_day_list.sort(key=lambda x: x.get("concert_year", 0), reverse=True)
+    stats["on_this_day"] = on_this_day_list
+    today_display = f"{today.strftime('%B')} {today.day}"
+
     is_friend = False
     is_mutual_friend = False
     has_friended_you = False
@@ -598,6 +640,8 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
         'share_url': share_url,
         'tab_url_base': tab_url_base,
         'carto_api_key': CARTO_API_KEY,
+        'today_display': today_display,
+        'on_this_day': on_this_day_list,
         **charts
     }
 
@@ -1595,14 +1639,20 @@ def format_concert_drilldown_dates(concerts_drilldown):
     formatted = []
     for c in concerts_drilldown:
         c_copy = dict(c)
-        date_str = str(c_copy.get("date") or c_copy.get("raw_date") or "").strip()
+        raw_str = str(c_copy.get("raw_date") or "").strip()
+        date_str = str(c_copy.get("date") or "").strip()
         dt = None
-        for fmt in ("%Y-%m-%d", "%d-%m-%Y", "%m-%d-%Y", "%Y/%m/%d", "%m/%d/%Y", "%d/%m/%Y", "%b %d, %Y", "%B %d, %Y"):
-            try:
-                dt = datetime.strptime(date_str[:12].strip(), fmt).date()
+        for candidate in (raw_str, date_str):
+            if not candidate:
+                continue
+            for fmt in ("%Y-%m-%d", "%m/%d/%Y", "%m-%d-%Y", "%d-%m-%Y", "%Y/%m/%d", "%d/%m/%Y", "%b %d, %Y", "%B %d, %Y"):
+                try:
+                    dt = datetime.strptime(candidate[:12].strip(), fmt).date()
+                    break
+                except (ValueError, TypeError):
+                    pass
+            if dt:
                 break
-            except (ValueError, TypeError):
-                pass
 
         if dt:
             month_name = dt.strftime("%b")

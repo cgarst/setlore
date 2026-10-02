@@ -580,7 +580,7 @@ class DjangoAppTests(TestCase):
         res_albums = self.client.get('/albums/')
         self.assertEqual(res_albums.status_code, 200)
         content_albums = res_albums.content.decode('utf-8')
-        self.assertIn('id="tab-albums" class="space-y-6"', content_albums)
+        self.assertIn('id="tab-albums" class="space-y-6 pb-24 md:pb-8"', content_albums)
         self.assertIn('id="tab-overview" class="hidden space-y-6"', content_albums)
 
         # 3. /songs/ should render tab-songs without hidden and tab-overview with hidden
@@ -628,6 +628,40 @@ class DjangoAppTests(TestCase):
         self.assertIn('id="table-top-venues-desktop-slot"', content)
         # Mobile upcoming shows trigger
         self.assertIn('onclick="openUpcomingTableModal()"', content)
+
+    def test_on_this_day_banner_display(self):
+        from datetime import date
+        today = date.today()
+        # Create a concert occurring on today's month and day, but 3 years ago
+        past_year = today.year - 3
+        past_date_str = f"{past_year}-{today.month:02d}-{today.day:02d}"
+        
+        venue = Venue.objects.create(name='9:30 Club', city='Washington', state='DC')
+        artist = Artist.objects.create(name='Between the Buried and Me', normalized_name='between the buried and me')
+        concert = Concert.objects.create(
+            user=self.user,
+            date=f"{past_year}-{today.month:02d}-{today.day:02d}",
+            raw_date=past_date_str,
+            year=past_year,
+            venue=venue,
+            primary_artist='Between the Buried and Me',
+            raw_artists='Between the Buried and Me'
+        )
+        ConcertArtist.objects.create(concert=concert, artist=artist)
+
+        self.client.force_login(self.user)
+        res = self.client.get('/overview/')
+        self.assertEqual(res.status_code, 200)
+        self.assertIn('on_this_day', res.context)
+        self.assertEqual(len(res.context['on_this_day']), 1)
+        self.assertEqual(res.context['on_this_day'][0]['years_ago'], 3)
+        self.assertEqual(res.context['on_this_day'][0]['primary_artist'], 'Between the Buried and Me')
+
+        content = res.content.decode('utf-8')
+        self.assertIn('id="on-this-day-strip"', content)
+        self.assertIn('Between the Buried and Me', content)
+        self.assertIn('3 yrs ago', content)
+
 
 
 
