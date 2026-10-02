@@ -288,6 +288,7 @@ class MusicianEnricher:
 
             musician = r.get("artist", {})
             m_name = (musician.get("name") or "").strip()
+            m_mbid = (musician.get("id") or "").strip() or None
             if not m_name:
                 continue
 
@@ -335,11 +336,14 @@ class MusicianEnricher:
             if key not in raw_members:
                 raw_members[key] = {
                     "musician": m_name,
+                    "musician_mbid": m_mbid,
                     "start": start_yr,
                     "end": end_yr,
                     "ended": ended,
                     "attributes": set()
                 }
+            elif m_mbid and not raw_members[key].get("musician_mbid"):
+                raw_members[key]["musician_mbid"] = m_mbid
 
             for a in r_attrs:
                 raw_members[key]["attributes"].add(a)
@@ -351,6 +355,7 @@ class MusicianEnricher:
             role = self.format_role(attrs)
             parsed_list.append({
                 "musician": m["musician"],
+                "musician_mbid": m.get("musician_mbid"),
                 "role": role,
                 "instrument": instr,
                 "start": m["start"],
@@ -408,6 +413,7 @@ class MusicianEnricher:
 
         for inc in incoming_tenures:
             m_name = inc["musician"].strip()
+            m_mbid = inc.get("musician_mbid") or None
             start_yr = inc["start"]
             end_yr = inc["end"]
             role = inc["role"]
@@ -416,11 +422,15 @@ class MusicianEnricher:
             # Check if this tenure matches an existing DB record
             matched = None
             for ex in existing_tenures:
+                # 1. Exact MBID match (strongest identity signal)
+                mbid_match = bool(m_mbid and ex.musician_mbid and ex.musician_mbid == m_mbid)
+                
+                # 2. Name match (case-insensitive or high fuzzy similarity)
                 name_match = (
                     ex.musician_name.lower().strip() == m_name.lower() or
                     fuzz.ratio(ex.musician_name.lower(), m_name.lower()) >= 88
                 )
-                if not name_match:
+                if not (mbid_match or name_match):
                     continue
 
                 # Check if tenure windows match or overlap
@@ -429,16 +439,20 @@ class MusicianEnricher:
                 inc_end = end_yr or 9999
 
                 # Matching conditions:
-                # 1. Start years match closely (within 2 years)
-                # 2. Or the tenure periods overlap significantly
-                if start_diff <= 2 or (max(ex.start_year, start_yr) <= min(ex_end, inc_end) + 1):
+                # - Same start year and end year
+                # - Close start year (within 2 years) or overlapping period
+                if (ex.start_year == start_yr and ex.end_year == end_yr) or \
+                   start_diff <= 2 or (max(ex.start_year, start_yr) <= min(ex_end, inc_end) + 1):
                     matched = ex
                     break
 
             if matched:
                 # Deduplication: already exists! Check if we can enhance missing metadata
                 changed = False
-                if matched.end_year != end_yr:
+                if m_mbid and not matched.musician_mbid:
+                    matched.musician_mbid = m_mbid
+                    changed = True
+                if matched.end_year != end_yr and end_yr is not None:
                     matched.end_year = end_yr
                     changed = True
                 if matched.start_year == 1900 and start_yr != 1900:
@@ -447,7 +461,10 @@ class MusicianEnricher:
                 if matched.instrument == 'Other' and instr != 'Other':
                     matched.instrument = instr
                     changed = True
-                if matched.role == 'Musician' and role != 'Musician':
+                if matched.role in ['Musician', 'Other'] and role not in ['Musician', 'Other']:
+                    matched.role = role
+                    changed = True
+                elif len(role) > len(matched.role) and matched.role in ['Guitar', 'Bass', 'Vocals', 'Keyboards', 'Drums']:
                     matched.role = role
                     changed = True
 
@@ -459,6 +476,7 @@ class MusicianEnricher:
                 new_obj = MusicianTenure.objects.create(
                     artist=artist_obj,
                     musician_name=m_name,
+                    musician_mbid=m_mbid,
                     role=role,
                     instrument=instr,
                     start_year=start_yr,

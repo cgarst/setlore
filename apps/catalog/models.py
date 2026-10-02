@@ -108,6 +108,7 @@ class Venue(models.Model):
 
 class MusicianTenure(models.Model):
     musician_name = models.CharField(max_length=255, db_index=True)
+    musician_mbid = models.CharField(max_length=36, blank=True, null=True, db_index=True, help_text="MusicBrainz Artist UUID for the musician")
     artist = models.ForeignKey(Artist, on_delete=models.CASCADE, related_name='members')
     role = models.CharField(max_length=255, default='Musician')
     instrument = models.CharField(max_length=100, default='Other')
@@ -117,6 +118,12 @@ class MusicianTenure(models.Model):
 
     class Meta:
         ordering = ['artist', 'start_year', 'musician_name']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['artist', 'musician_name', 'start_year', 'end_year'],
+                name='unique_artist_musician_tenure'
+            )
+        ]
 
     def __str__(self):
         span = f"{self.start_year}-{self.end_year or 'Present'}"

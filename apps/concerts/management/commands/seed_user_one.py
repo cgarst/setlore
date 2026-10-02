@@ -97,10 +97,10 @@ class Command(BaseCommand):
                         artist=artist_obj,
                         musician_name=m_name,
                         start_year=m_start,
+                        end_year=m_end,
                         defaults={
                             'role': m_role,
-                            'instrument': instr,
-                            'end_year': m_end
+                            'instrument': instr
                         }
                     )
                     if is_m_new:

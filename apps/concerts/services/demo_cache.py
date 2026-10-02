@@ -332,14 +332,17 @@ def populate_user_data_from_cache(
                 m_name = mt_entry.get("musician_name", "").strip()
                 s_yr = mt_entry.get("start_year", 1900)
                 if m_name:
+                    e_yr = mt_entry.get("end_year")
+                    m_mbid = mt_entry.get("musician_mbid")
                     _, is_mt_new = MusicianTenure.objects.using(database).get_or_create(
                         artist=art_obj,
                         musician_name=m_name,
                         start_year=s_yr,
+                        end_year=e_yr,
                         defaults={
                             "role": mt_entry.get("role", "Musician"),
                             "instrument": mt_entry.get("instrument", "Other"),
-                            "end_year": mt_entry.get("end_year")
+                            "musician_mbid": m_mbid
                         }
                     )
                     if is_mt_new:
