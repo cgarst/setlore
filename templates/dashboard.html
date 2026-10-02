@@ -11,7 +11,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Setlore">
   <meta name="application-name" content="Setlore">
-  <meta name="theme-color" content="#0f172a">
+  <meta name="theme-color" content="#06050a">
   <meta name="mobile-web-app-capable" content="yes">
   <link rel="icon" type="image/png" href="{% static 'img/setlore_icon.png' %}">
   <link rel="apple-touch-icon" href="{% static 'img/setlore_icon.png' %}">
@@ -23,7 +23,7 @@
   <script>
     (function() {
       try {
-        var savedTheme = localStorage.getItem('setlore_theme') || '{{ profile.theme|default:"Default"|escapejs }}';
+        var savedTheme = localStorage.getItem('setlore_theme') || '{{ profile.theme|default:"Mystic Dream"|escapejs }}';
         if (savedTheme) {
           document.documentElement.setAttribute('data-theme', savedTheme);
         }
@@ -44,28 +44,28 @@
     /* ==========================================================================
        GUITAR FINISH THEMES PALETTES (Homages to iconic guitar finishes)
        ========================================================================== */
-    :root, [data-theme="Default"] {
-      --bg-body: #0f172a;
-      --bg-ambient-1: rgba(99, 102, 241, 0.08);
-      --bg-ambient-2: rgba(168, 85, 247, 0.05);
-      --bg-card: rgba(30, 41, 59, 0.7);
-      --bg-card-solid: #1e293b;
-      --bg-card-hover: #334155;
-      --bg-elevated: #0f172a;
-      --bg-modal: #0f172a;
-      --border-subtle: rgba(255, 255, 255, 0.08);
-      --border-prominent: #334155;
+    :root, [data-theme="Mystic Dream"] {
+      --bg-body: #06050a;
+      --bg-ambient-1: rgba(147, 51, 234, 0.25);
+      --bg-ambient-2: rgba(16, 185, 129, 0.22);
+      --bg-card: rgba(18, 14, 28, 0.88);
+      --bg-card-solid: #151022;
+      --bg-card-hover: #231838;
+      --bg-elevated: #0f0b1a;
+      --bg-modal: #0a0714;
+      --border-subtle: rgba(147, 51, 234, 0.28);
+      --border-prominent: rgba(16, 185, 129, 0.45);
       --text-primary: #f8fafc;
-      --text-muted: #94a3b8;
+      --text-muted: #cbd5e1;
       --text-dim: #64748b;
-      --accent-primary: #6366f1;
-      --accent-secondary: #a855f7;
-      --accent-gradient: linear-gradient(135deg, #6366f1, #a855f7);
-      --accent-gradient-hover: linear-gradient(135deg, #4f46e5, #9333ea);
-      --accent-glow: rgba(99, 102, 241, 0.5);
-      --accent-primary-alpha: rgba(99, 102, 241, 0.2);
-      --accent-border-alpha: rgba(99, 102, 241, 0.4);
-      --accent-text: #a5b4fc;
+      --accent-primary: #a855f7;
+      --accent-secondary: #10b981;
+      --accent-gradient: linear-gradient(135deg, #9333ea 0%, #06b6d4 50%, #10b981 100%);
+      --accent-gradient-hover: linear-gradient(135deg, #a855f7 0%, #0891b2 50%, #059669 100%);
+      --accent-glow: rgba(16, 185, 129, 0.45);
+      --accent-primary-alpha: rgba(147, 51, 234, 0.24);
+      --accent-border-alpha: rgba(16, 185, 129, 0.45);
+      --accent-text: #a7f3d0;
       --logo-filter: none;
       --logo-overlay-bg: transparent;
       --logo-tint-opacity: 0;
@@ -212,36 +212,8 @@
       --logo-blend-mode: normal;
     }
 
-    [data-theme="Mystic Dream"] {
-      --bg-body: #06050a;
-      --bg-ambient-1: rgba(147, 51, 234, 0.25);
-      --bg-ambient-2: rgba(16, 185, 129, 0.22);
-      --bg-card: rgba(18, 14, 28, 0.88);
-      --bg-card-solid: #151022;
-      --bg-card-hover: #231838;
-      --bg-elevated: #0f0b1a;
-      --bg-modal: #0a0714;
-      --border-subtle: rgba(147, 51, 234, 0.28);
-      --border-prominent: rgba(16, 185, 129, 0.45);
-      --text-primary: #f8fafc;
-      --text-muted: #cbd5e1;
-      --text-dim: #64748b;
-      --accent-primary: #a855f7;
-      --accent-secondary: #10b981;
-      --accent-gradient: linear-gradient(135deg, #9333ea 0%, #06b6d4 50%, #10b981 100%);
-      --accent-gradient-hover: linear-gradient(135deg, #a855f7 0%, #0891b2 50%, #059669 100%);
-      --accent-glow: rgba(16, 185, 129, 0.45);
-      --accent-primary-alpha: rgba(147, 51, 234, 0.24);
-      --accent-border-alpha: rgba(16, 185, 129, 0.45);
-      --accent-text: #a7f3d0;
-      --logo-filter: grayscale(100%);
-      --logo-overlay-bg: transparent;
-      --logo-tint-opacity: 0;
-      --logo-blend-mode: normal;
-    }
-
-    /* ChromaFlair Color-Shifting chameleon sheen & flip-flop effects for Mystic Dream */
-    [data-theme="Mystic Dream"] body {
+    /* ChromaFlair Color-Shifting chameleon sheen & flip-flop effects for Mystic Dream (Default Theme) */
+    :root body, [data-theme="Mystic Dream"] body {
       background-image: 
         radial-gradient(circle at 15% 10%, rgba(147, 51, 234, 0.28) 0%, transparent 45%),
         radial-gradient(circle at 85% 15%, rgba(16, 185, 129, 0.24) 0%, transparent 45%),
@@ -249,16 +221,16 @@
         radial-gradient(circle at 50% 50%, #06050a 0%, #030205 100%);
       background-attachment: fixed;
     }
-    [data-theme="Mystic Dream"] .glass-card {
+    :root .glass-card, [data-theme="Mystic Dream"] .glass-card {
       border: 1px solid rgba(147, 51, 234, 0.24) !important;
       box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.6), inset 0 1px 0 0 rgba(16, 185, 129, 0.2);
       transition: border-color 0.4s ease, box-shadow 0.4s ease, transform 0.2s ease;
     }
-    [data-theme="Mystic Dream"] .glass-card:hover {
+    :root .glass-card:hover, [data-theme="Mystic Dream"] .glass-card:hover {
       border-color: rgba(16, 185, 129, 0.45) !important;
       box-shadow: 0 8px 30px -4px rgba(0, 0, 0, 0.7), 0 0 16px -2px rgba(16, 185, 129, 0.25), inset 0 1px 0 0 rgba(168, 85, 247, 0.4);
     }
-    [data-theme="Mystic Dream"] .tab-btn.active {
+    :root .tab-btn.active, [data-theme="Mystic Dream"] .tab-btn.active {
       background: linear-gradient(135deg, rgba(147, 51, 234, 0.35) 0%, rgba(6, 182, 212, 0.2) 50%, rgba(16, 185, 129, 0.35) 100%) !important;
       border-color: rgba(16, 185, 129, 0.5) !important;
       box-shadow: 0 0 15px -3px rgba(16, 185, 129, 0.35);
@@ -417,7 +389,7 @@
       filter: var(--logo-filter, none);
       transition: filter 0.3s ease, transform 0.2s ease;
     }
-    [data-theme]:not([data-theme="Default"]) .logo-img {
+    [data-theme]:not([data-theme="Mystic Dream"]) .logo-img {
       filter: grayscale(100%);
     }
     .logo-tint-overlay {
@@ -552,7 +524,7 @@
         <!-- Theme Switcher (Desktop for non-logged in visitors) -->
         <button id="theme-menu-btn" onclick="openThemeModal()" class="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-600 text-xs text-slate-200 transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500/50" aria-label="Select theme" title="Theme">
           <span class="theme-btn-swatch inline-block w-3.5 h-3.5 rounded-full border border-white/30 shadow-inner" id="header-theme-swatch"></span>
-          <span class="font-medium text-slate-200" id="header-theme-label">Default</span>
+          <span class="font-medium text-slate-200" id="header-theme-label">Mystic Dream</span>
           <i class="fa-solid fa-palette text-[11px] text-slate-400 ml-0.5"></i>
         </button>
       {% endif %}
@@ -936,7 +908,7 @@
         </div>
         <div class="flex items-center gap-2">
           <span id="theme-modal-active-theme-badge" class="badge bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[10px] font-mono">
-            Default
+            Mystic Dream
           </span>
           <button type="button" onclick="closeThemeModal()" class="text-slate-400 hover:text-white p-1 cursor-pointer">
             <i class="fa-solid fa-xmark text-lg"></i>
@@ -5143,7 +5115,7 @@
               </div>
             </div>
             <span id="mobile-sheet-active-theme-label" class="badge bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[10px] font-mono shrink-0 ml-2">
-              Default
+              Mystic Dream
             </span>
           </button>
         </div>
@@ -6957,24 +6929,24 @@
        ========================================================================== */
     const THEMES = [
       {
-        id: 'Default',
-        name: 'Default',
-        subtitle: 'Setlore Original',
-        gradient: 'linear-gradient(135deg, #6366f1, #a855f7)',
-        bg: '#0f172a',
-        accent: '#6366f1',
-        secondary: '#a855f7',
-        colorway: ['#6366f1', '#a855f7', '#ec4899', '#10b981', '#f59e0b', '#3b82f6'],
-        timelineBar: '#6366f1',
-        timelineLine: '#ec4899',
-        topArtistsScale: 'Purples',
-        treemapScale: 'Sunsetdark',
-        sunburstScale: 'Magma',
+        id: 'Mystic Dream',
+        name: 'Mystic Dream',
+        subtitle: 'ChromaFlair Chameleon (Purple / Emerald / Obsidian)',
+        gradient: 'linear-gradient(135deg, #9333ea 0%, #06b6d4 50%, #10b981 100%)',
+        bg: '#06050a',
+        accent: '#a855f7',
+        secondary: '#10b981',
+        colorway: ['#9333ea', '#10b981', '#06b6d4', '#c084fc', '#34d399', '#7e22ce', '#059669'],
+        timelineBar: '#a855f7',
+        timelineLine: '#10b981',
+        topArtistsScale: 'Viridis',
+        treemapScale: 'Tealgrn',
+        sunburstScale: 'Viridis',
         eraBar: '#10b981',
         eraLine: '#064e3b',
-        songAgeBar: '#ec4899',
-        gridColor: '#1e293b',
-        textColor: '#94a3b8'
+        songAgeBar: '#34d399',
+        gridColor: '#1d1728',
+        textColor: '#cbd5e1'
       },
       {
         id: 'Blue Pearl',
@@ -7057,26 +7029,6 @@
         textColor: '#c59e86'
       },
       {
-        id: 'Mystic Dream',
-        name: 'Mystic Dream',
-        subtitle: 'ChromaFlair Chameleon (Purple / Emerald / Obsidian)',
-        gradient: 'linear-gradient(135deg, #9333ea 0%, #06b6d4 50%, #10b981 100%)',
-        bg: '#06050a',
-        accent: '#a855f7',
-        secondary: '#10b981',
-        colorway: ['#9333ea', '#10b981', '#06b6d4', '#c084fc', '#34d399', '#7e22ce', '#059669'],
-        timelineBar: '#a855f7',
-        timelineLine: '#10b981',
-        topArtistsScale: 'Viridis',
-        treemapScale: 'Tealgrn',
-        sunburstScale: 'Viridis',
-        eraBar: '#10b981',
-        eraLine: '#064e3b',
-        songAgeBar: '#34d399',
-        gridColor: '#1d1728',
-        textColor: '#cbd5e1'
-      },
-      {
         id: 'Purple Nebula',
         name: 'Purple Nebula',
         subtitle: 'Galactic Violet & Magenta',
@@ -7114,7 +7066,7 @@
         eraLine: '#475569',
         songAgeBar: '#f43f5e',
         gridColor: '#2d141c',
-        textColor: '#b99ca3'
+        textColor: '#b997c4'
       },
       {
         id: 'Red Pearl Burst',
@@ -7142,7 +7094,7 @@
       return document.documentElement.getAttribute('data-theme') ||
              localStorage.getItem('setlore_theme') ||
              (window.userProfile && window.userProfile.theme) ||
-             'Default';
+             'Mystic Dream';
     }
 
     function setTheme(themeName, persistToServer = true) {

@@ -26,12 +26,11 @@ class UserProfile(models.Model):
     ])
     sync_progress = models.CharField(max_length=255, blank=True, default='')
     THEME_CHOICES = [
-        ('Default', 'Default'),
+        ('Mystic Dream', 'Mystic Dream'),
         ('Blue Pearl', 'Blue Pearl'),
         ('Cerulean Paradise', 'Cerulean Paradise'),
         ('Dark Side', 'Dark Side'),
         ('Ember Glow', 'Ember Glow'),
-        ('Mystic Dream', 'Mystic Dream'),
         ('Purple Nebula', 'Purple Nebula'),
         ('Red Nebula', 'Red Nebula'),
         ('Red Pearl Burst', 'Red Pearl Burst'),
@@ -39,7 +38,7 @@ class UserProfile(models.Model):
 
     theme = models.CharField(
         max_length=50,
-        default='Default',
+        default='Mystic Dream',
         choices=THEME_CHOICES,
         help_text="UI color theme homage to guitar finish"
     )

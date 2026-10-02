@@ -369,7 +369,7 @@ class Command(BaseCommand):
             FORCE_DEFAULT_THEME_JS = """
                 () => {
                     try { localStorage.removeItem('setlore_theme'); } catch(e) {}
-                    document.documentElement.setAttribute('data-theme', 'Default');
+                    document.documentElement.setAttribute('data-theme', 'Mystic Dream');
                 }
             """
 

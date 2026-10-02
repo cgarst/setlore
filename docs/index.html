@@ -11,7 +11,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Setlore">
   <meta name="application-name" content="Setlore">
-  <meta name="theme-color" content="#0f172a">
+  <meta name="theme-color" content="#06050a">
   <meta name="mobile-web-app-capable" content="yes">
   <link rel="icon" type="image/png" href="static/img/setlore_icon.png">
   <link rel="apple-touch-icon" href="static/img/setlore_icon.png">
@@ -23,32 +23,40 @@
 
   <style>
     html, body {
-      background-color: #090d16;
+      background-color: #06050a;
+      background-image: 
+        radial-gradient(circle at 15% 10%, rgba(147, 51, 234, 0.22) 0%, transparent 45%),
+        radial-gradient(circle at 85% 15%, rgba(16, 185, 129, 0.18) 0%, transparent 45%),
+        radial-gradient(circle at 50% 85%, rgba(6, 182, 212, 0.12) 0%, transparent 50%),
+        radial-gradient(circle at 50% 50%, #06050a 0%, #030205 100%);
+      background-attachment: fixed;
       color: #f8fafc;
       font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
       touch-action: manipulation;
       -webkit-font-smoothing: antialiased;
     }
     .glass-card {
-      background: rgba(15, 23, 42, 0.75);
+      background: rgba(18, 14, 28, 0.82);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(147, 51, 234, 0.24);
+      box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.6), inset 0 1px 0 0 rgba(16, 185, 129, 0.2);
     }
     .glass-card-interactive {
-      background: rgba(15, 23, 42, 0.75);
+      background: rgba(18, 14, 28, 0.82);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(147, 51, 234, 0.24);
+      box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.6), inset 0 1px 0 0 rgba(16, 185, 129, 0.15);
       transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
     }
     .glass-card-interactive:hover {
-      border-color: rgba(99, 102, 241, 0.4);
+      border-color: rgba(16, 185, 129, 0.45);
       transform: translateY(-2px);
-      box-shadow: 0 16px 30px -10px rgba(99, 102, 241, 0.15);
+      box-shadow: 0 16px 30px -10px rgba(16, 185, 129, 0.2), 0 0 16px -2px rgba(16, 185, 129, 0.25), inset 0 1px 0 0 rgba(168, 85, 247, 0.4);
     }
     .gradient-text {
-      background: linear-gradient(135deg, #818cf8 0%, #c084fc 50%, #f472b6 100%);
+      background: linear-gradient(135deg, #a855f7 0%, #06b6d4 50%, #10b981 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
@@ -61,21 +69,22 @@
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     }
     .screenshot-frame {
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.1);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(147, 51, 234, 0.2);
     }
     ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: #090d16; }
-    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+    ::-webkit-scrollbar-track { background: #06050a; }
+    ::-webkit-scrollbar-thumb { background: #1f1730; border: 1px solid rgba(147, 51, 234, 0.2); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #2e1e4a; }
   </style>
 </head>
-<body class="min-h-screen selection:bg-indigo-500 selection:text-white flex flex-col justify-between">
+<body class="min-h-screen selection:bg-purple-600 selection:text-white flex flex-col justify-between">
 
-  <!-- Floating Background Ambient Light -->
+  <!-- Floating Background Ambient Light (Mystic Dream ChromaFlair Shift) -->
   <div class="fixed inset-0 pointer-events-none overflow-hidden -z-10">
-    <div class="absolute -top-40 left-1/2 -translate-x-1/2 w-[700px] h-[500px] bg-indigo-600/15 rounded-full blur-3xl"></div>
-    <div class="absolute top-[30%] -left-32 w-[500px] h-[500px] bg-purple-600/10 rounded-full blur-3xl"></div>
-    <div class="absolute top-[60%] -right-32 w-[500px] h-[500px] bg-pink-600/10 rounded-full blur-3xl"></div>
-    <div class="absolute top-[85%] left-1/3 w-[600px] h-[400px] bg-cyan-600/10 rounded-full blur-3xl"></div>
+    <div class="absolute -top-40 left-1/2 -translate-x-1/2 w-[700px] h-[500px] bg-purple-600/20 rounded-full blur-3xl"></div>
+    <div class="absolute top-[30%] -left-32 w-[500px] h-[500px] bg-emerald-600/15 rounded-full blur-3xl"></div>
+    <div class="absolute top-[60%] -right-32 w-[500px] h-[500px] bg-cyan-600/15 rounded-full blur-3xl"></div>
+    <div class="absolute top-[85%] left-1/3 w-[600px] h-[400px] bg-purple-600/15 rounded-full blur-3xl"></div>
   </div>
 
   <!-- Navigation Bar -->
@@ -104,89 +113,89 @@
         </a>
       </nav>
 
-      <!-- User Auth Actions -->
-      <div class="flex items-center gap-2.5">
-        
-          <!-- No upper-right demo/github buttons on static demo landing page -->
-        
+        <!-- User Auth Actions -->
+        <div class="flex items-center gap-2.5">
+          
+            <!-- No upper-right demo/github buttons on static demo landing page -->
+          
+        </div>
       </div>
-    </div>
-  </header>
+    </header>
 
-  <!-- Main Landing Content -->
-  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-16 space-y-20 md:space-y-28">
+    <!-- Main Landing Content -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-16 space-y-20 md:space-y-28">
 
-    <!-- 1. HERO SECTION -->
-    <section class="text-center space-y-6 max-w-4xl mx-auto pt-4">
-      <!-- Tagline Pill -->
-      <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 text-xs font-semibold shadow-inner">
-        <i class="fa-solid fa-compact-disc animate-spin" style="animation-duration: 8s;"></i>
-        <span>100% Open Source &amp; Self-Hosted Concert Intelligence</span>
-      </div>
+      <!-- 1. HERO SECTION -->
+      <section class="text-center space-y-6 max-w-4xl mx-auto pt-4">
+        <!-- Tagline Pill -->
+        <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-purple-500/15 border border-purple-500/30 text-purple-200 text-xs font-semibold shadow-inner">
+          <i class="fa-solid fa-compact-disc animate-spin text-emerald-400" style="animation-duration: 8s;"></i>
+          <span>100% Open Source &amp; Self-Hosted Concert Intelligence</span>
+        </div>
 
-      <!-- Main Headline -->
-      <h1 class="text-3xl sm:text-5xl md:text-6xl font-black tracking-tight leading-tight md:leading-tight">
-        Your Live Music History,<br>
-        <span class="gradient-text">Decoded &amp; Preserved.</span>
-      </h1>
+        <!-- Main Headline -->
+        <h1 class="text-3xl sm:text-5xl md:text-6xl font-black tracking-tight leading-tight md:leading-tight">
+          Your Live Music History,<br>
+          <span class="gradient-text">Decoded &amp; Preserved.</span>
+        </h1>
 
-      <!-- Subtitle -->
-      <p class="text-sm sm:text-base md:text-lg text-slate-300 leading-relaxed max-w-2xl mx-auto font-normal">
-        Track every show you’ve ever attended with rich discography insights, musician lineup tenures, upcoming tour radars, friend attendance overlaps, and custom guitar-finish themes. Built for music obsessives who value data ownership and privacy.
-      </p>
-
-      <!-- Hero Action Buttons -->
-      <div class="flex flex-wrap items-center justify-center gap-3 pt-2">
-        
-          <a href="demo/" class="px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-sm shadow-xl shadow-indigo-500/30 transition transform hover:-translate-y-0.5 flex items-center gap-2">
-            <i class="fa-solid fa-play"></i>
-            <span>Demo Setlore Live</span>
-          </a>
-          <a href="https://github.com/cgarst/setlore" target="_blank" rel="noopener noreferrer" class="px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-semibold text-sm shadow-lg transition transform hover:-translate-y-0.5 flex items-center gap-2">
-            <i class="fa-brands fa-github text-indigo-400"></i>
-            <span>Install via GitHub</span>
-          </a>
-        
-      </div>
-
-      <!-- Feature Badges Row -->
-      <div class="flex flex-wrap items-center justify-center gap-2 pt-4 text-xs text-slate-400 font-medium">
-        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-900/80 border border-slate-800">
-          <i class="fa-brands fa-docker text-sky-400"></i> Easy Docker Self-Host
-        </span>
-        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-900/80 border border-slate-800">
-          <i class="fa-solid fa-lock text-emerald-400"></i> 100% Private &amp; Zero Ads
-        </span>
-        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-900/80 border border-slate-800">
-          <i class="fa-solid fa-arrows-rotate text-purple-400"></i> 2-Way Setlist.fm Sync
-        </span>
-        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-900/80 border border-slate-800">
-          <i class="fa-solid fa-calendar-check text-cyan-400"></i> Upcoming Tour Radar
-        </span>
-        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-900/80 border border-slate-800">
-          <i class="fa-solid fa-users text-pink-400"></i> Social &amp; Friend Overlaps
-        </span>
-        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-900/80 border border-slate-800">
-          <i class="fa-solid fa-palette text-amber-400"></i> 8 Guitar Finish Themes
-        </span>
-      </div>
-    </section>
-
-    <!-- 2. INTERACTIVE SCREENSHOT SHOWCASE -->
-    <section id="showcase" class="space-y-6">
-      <div class="text-center space-y-2 max-w-3xl mx-auto">
-        <h2 class="text-xs font-bold uppercase tracking-widest text-indigo-400">Live Interface Preview</h2>
-        <p class="text-2xl sm:text-3xl font-extrabold text-white">Experience Setlore's Deep Analytics</p>
-        <p class="text-xs sm:text-sm text-slate-400">
-          Real screenshots rendered directly from our demo dataset of 970+ live concerts. Explore how Setlore brings concert lore to life.
+        <!-- Subtitle -->
+        <p class="text-sm sm:text-base md:text-lg text-slate-300 leading-relaxed max-w-2xl mx-auto font-normal">
+          Track every show you’ve ever attended with rich discography insights, musician lineup tenures, upcoming tour radars, friend attendance overlaps, and custom guitar-finish themes. Built for music obsessives who value data ownership and privacy.
         </p>
-      </div>
 
-      <!-- Showcase Tabs -->
-      <div class="flex flex-wrap items-center justify-center gap-1.5 p-1.5 rounded-2xl bg-slate-900/90 border border-slate-800 max-w-4xl mx-auto">
-        <button type="button" onclick="switchShowcaseTab('overview')" id="sc-btn-overview" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 text-white shadow transition cursor-pointer flex items-center gap-1.5">
-          <i class="fa-solid fa-chart-pie"></i> Overview
-        </button>
+        <!-- Hero Action Buttons -->
+        <div class="flex flex-wrap items-center justify-center gap-3 pt-2">
+          
+            <a href="demo/" class="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 via-cyan-600 to-emerald-600 hover:from-purple-500 hover:via-cyan-500 hover:to-emerald-500 text-white font-bold text-sm shadow-xl shadow-purple-500/30 transition transform hover:-translate-y-0.5 flex items-center gap-2">
+              <i class="fa-solid fa-play"></i>
+              <span>Demo Setlore Live</span>
+            </a>
+            <a href="https://github.com/cgarst/setlore" target="_blank" rel="noopener noreferrer" class="px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-semibold text-sm shadow-lg transition transform hover:-translate-y-0.5 flex items-center gap-2">
+              <i class="fa-brands fa-github text-emerald-400"></i>
+              <span>Install via GitHub</span>
+            </a>
+          
+        </div>
+
+        <!-- Feature Badges Row -->
+        <div class="flex flex-wrap items-center justify-center gap-2 pt-4 text-xs text-slate-400 font-medium">
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-900/80 border border-slate-800">
+            <i class="fa-brands fa-docker text-sky-400"></i> Easy Docker Self-Host
+          </span>
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-900/80 border border-slate-800">
+            <i class="fa-solid fa-lock text-emerald-400"></i> 100% Private &amp; Zero Ads
+          </span>
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-900/80 border border-slate-800">
+            <i class="fa-solid fa-arrows-rotate text-purple-400"></i> 2-Way Setlist.fm Sync
+          </span>
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-900/80 border border-slate-800">
+            <i class="fa-solid fa-calendar-check text-cyan-400"></i> Upcoming Tour Radar
+          </span>
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-900/80 border border-slate-800">
+            <i class="fa-solid fa-users text-pink-400"></i> Social &amp; Friend Overlaps
+          </span>
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-900/80 border border-slate-800">
+            <i class="fa-solid fa-palette text-emerald-400"></i> 8 Guitar Finish Themes
+          </span>
+        </div>
+      </section>
+
+      <!-- 2. INTERACTIVE SCREENSHOT SHOWCASE -->
+      <section id="showcase" class="space-y-6">
+        <div class="text-center space-y-2 max-w-3xl mx-auto">
+          <h2 class="text-xs font-bold uppercase tracking-widest text-purple-400">Live Interface Preview</h2>
+          <p class="text-2xl sm:text-3xl font-extrabold text-white">Experience Setlore's Deep Analytics</p>
+          <p class="text-xs sm:text-sm text-slate-400">
+            Real screenshots rendered directly from our demo dataset of 970+ live concerts. Explore how Setlore brings concert lore to life.
+          </p>
+        </div>
+
+        <!-- Showcase Tabs -->
+        <div class="flex flex-wrap items-center justify-center gap-1.5 p-1.5 rounded-2xl bg-slate-900/90 border border-slate-800 max-w-4xl mx-auto">
+          <button type="button" onclick="switchShowcaseTab('overview')" id="sc-btn-overview" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-purple-600 to-emerald-600 text-white shadow transition cursor-pointer flex items-center gap-1.5">
+            <i class="fa-solid fa-chart-pie"></i> Overview
+          </button>
         <button type="button" onclick="switchShowcaseTab('concerts')" id="sc-btn-concerts" class="px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition cursor-pointer flex items-center gap-1.5">
           <i class="fa-solid fa-ticket text-purple-400"></i> Concerts
         </button>
@@ -450,20 +459,27 @@
 
     <!-- 5. GUITAR FINISH THEMES & COLOR PALETTES -->
     <section id="themes" class="space-y-8">
-      <div class="glass-card p-6 sm:p-10 rounded-3xl border border-indigo-500/30 bg-gradient-to-br from-slate-900/95 via-indigo-950/20 to-slate-900/95 shadow-2xl">
+      <div class="glass-card p-6 sm:p-10 rounded-3xl border border-purple-500/30 bg-gradient-to-br from-slate-900/95 via-purple-950/20 to-slate-900/95 shadow-2xl">
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
           
           <div class="space-y-4">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-semibold">
+              <i class="fa-solid fa-palette text-xs"></i>
+              <span>Default Theme: Mystic Dream</span>
+            </div>
             <h2 class="text-2xl sm:text-3xl font-extrabold text-white">Guitar Inspired Themes</h2>
             <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
-              Personalize your concert analytics dashboard with bespoke color schemes created as homages to legendary electric guitar finishes and bursts.
+              Personalize your concert analytics dashboard with bespoke color schemes created as homages to legendary electric guitar finishes and bursts, with <strong>Mystic Dream</strong> set as the signature default.
             </p>
 
             <!-- Theme Swatches Grid -->
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2">
-              <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
-                <div class="w-full h-4 rounded bg-gradient-to-r from-purple-700 via-indigo-600 to-emerald-500"></div>
-                <p class="text-[11px] font-bold text-white truncate">Mystic Dream</p>
+              <div class="p-2.5 rounded-xl bg-purple-950/40 border border-emerald-500/50 ring-1 ring-emerald-500/40 space-y-1 relative">
+                <div class="w-full h-4 rounded bg-gradient-to-r from-purple-700 via-cyan-500 to-emerald-500 shadow-inner"></div>
+                <div class="flex items-center justify-between">
+                  <p class="text-[11px] font-bold text-white truncate">Mystic Dream</p>
+                  <span class="text-[8px] font-mono px-1 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold">Default</span>
+                </div>
                 <p class="text-[9px] text-slate-400">Iridescent shift</p>
               </div>
               <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
@@ -1010,7 +1026,7 @@
         }
         if (btn) {
           if (t === tab) {
-            btn.className = 'px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 text-white shadow transition cursor-pointer flex items-center gap-1.5';
+            btn.className = 'px-3 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-purple-600 to-emerald-600 text-white shadow transition cursor-pointer flex items-center gap-1.5';
           } else {
             btn.className = 'px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition cursor-pointer flex items-center gap-1.5';
           }

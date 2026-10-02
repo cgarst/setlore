@@ -259,7 +259,9 @@ def populate_user_data_from_cache(
             stats["user_created"] = True
 
         profile, _ = UserProfile.objects.using(database).get_or_create(user=user)
-        profile.theme = user_meta.get("theme", profile.theme or "Default")
+        profile.theme = user_meta.get("theme", profile.theme or "Mystic Dream")
+        if profile.theme == "Default":
+            profile.theme = "Mystic Dream"
         profile.time_format = user_meta.get("time_format", profile.time_format or "12")
         profile.is_public = user_meta.get("is_public", profile.is_public)
         if user_meta.get("setlistfm_username"):

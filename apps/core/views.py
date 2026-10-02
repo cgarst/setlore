@@ -356,10 +356,10 @@ def set_theme_view(request):
             data = json.loads(request.body.decode('utf-8'))
         else:
             data = request.POST
-        theme_val = str(data.get('theme', 'Default')).strip()
+        theme_val = str(data.get('theme', 'Mystic Dream')).strip()
         valid_themes = [t[0] for t in UserProfile.THEME_CHOICES]
         if theme_val not in valid_themes:
-            theme_val = 'Default'
+            theme_val = 'Mystic Dream'
         if request.user.is_authenticated and hasattr(request.user, 'profile'):
             request.user.profile.theme = theme_val
             request.user.profile.save(update_fields=['theme', 'updated_at'])

@@ -10,22 +10,22 @@ class GuitarThemesTestCase(TestCase):
         self.client = Client()
 
     def test_theme_choices_and_default(self):
-        """Ensure UserProfile default theme is 'Default' and all 7 guitar colors are valid choices."""
+        """Ensure UserProfile default theme is 'Mystic Dream' and all 8 guitar colors are valid choices."""
         expected_themes = [
-            'Default',
+            'Mystic Dream',
             'Blue Pearl',
             'Cerulean Paradise',
             'Dark Side',
             'Ember Glow',
-            'Mystic Dream',
             'Purple Nebula',
             'Red Nebula',
             'Red Pearl Burst'
         ]
         available_choices = [c[0] for c in UserProfile.THEME_CHOICES]
+        self.assertEqual(len(available_choices), 8)
         for t in expected_themes:
             self.assertIn(t, available_choices)
-        self.assertEqual(self.profile.theme, 'Default')
+        self.assertEqual(self.profile.theme, 'Mystic Dream')
 
     def test_set_theme_api_authenticated(self):
         """Ensure /api/theme/ persists theme to user profile when authenticated."""
