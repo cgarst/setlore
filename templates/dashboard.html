@@ -4153,12 +4153,6 @@
                 <i class="fa-solid fa-ticket text-[9px] mr-1"></i> {{ a.concert_count|default:1|intcomma }} Shows
               </span>
             </div>
-            {% if a.albums_list and a.albums_list|length > 0 %}
-            <p class="text-xs text-slate-400 truncate flex items-center gap-1.5">
-              <i class="fa-solid fa-compact-disc text-indigo-400 text-[10px] shrink-0"></i>
-              <span class="truncate">{{ a.albums_list|length }} Album{{ a.albums_list|length|pluralize }}: {{ a.albums_list|slice:":4"|join:", " }}{% if a.albums_list|length > 4 %}...{% endif %}</span>
-            </p>
-            {% endif %}
           </div>
 
           <!-- Right side: View Songs CTA Button -->
