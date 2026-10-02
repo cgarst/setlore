@@ -2832,6 +2832,12 @@
             </div>
           </div>
           <div class="flex items-center gap-2 shrink-0">
+            <a id="modal-song-setlistfm-link" href="#" target="_blank" rel="noopener noreferrer"
+               class="px-2.5 py-1.5 rounded-xl bg-slate-800/90 hover:bg-indigo-600/30 text-slate-300 hover:text-indigo-300 border border-slate-700/80 hover:border-indigo-500/40 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shrink-0 shadow-sm"
+               title="View song stats on Setlist.fm">
+              <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+              <span class="hidden sm:inline">Setlist.fm Stats</span>
+            </a>
             <button type="button" onclick="closeArtistSongModal()" class="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition cursor-pointer" aria-label="Close modal">
               <i class="fa-solid fa-xmark text-lg"></i>
             </button>
@@ -7985,12 +7991,23 @@
         albHtml = `<span class="badge bg-slate-800 text-slate-400 border border-slate-700 text-[11px]"><i class="fa-solid fa-compact-disc mr-1"></i>Non-Album / Singles</span>`;
       }
 
+      const setlistFmLink = document.getElementById('modal-song-setlistfm-link');
+      const searchUrl = `https://www.setlist.fm/search?query=${encodeURIComponent((data.artist || '').trim() + ' ' + (s.song || '').trim())}`;
+      if (setlistFmLink) {
+        setlistFmLink.href = searchUrl;
+        setlistFmLink.title = `View stats for "${escapeHtml(s.song)}" by ${escapeHtml(data.artist)} on Setlist.fm`;
+      }
+
       const firstDate = occsToRender.length > 0 ? occsToRender[0].date : s.first_heard;
       if (albumSubEl) {
         albumSubEl.innerHTML = `
           ${albHtml}
           <span>&bull;</span>
           <span class="text-slate-400 text-xs">${activeMusicianFilter ? 'First with ' + escapeHtml(activeMusicianFilter) + ': ' : 'First heard: '}<span class="text-indigo-300 font-mono">${firstDate}</span></span>
+          <span>&bull;</span>
+          <a href="${searchUrl}" target="_blank" rel="noopener noreferrer" class="badge bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 border border-indigo-500/30 text-[11px] inline-flex items-center gap-1 transition" title="View song stats on Setlist.fm">
+            <i class="fa-solid fa-arrow-up-right-from-square text-[9px]"></i>Setlist.fm Stats
+          </a>
         `;
       }
 
