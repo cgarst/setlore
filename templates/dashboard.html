@@ -3930,7 +3930,7 @@
     </div>
 
     <!-- 6. ALBUMS & ERAS TAB -->
-    <div id="tab-albums" class="{% if initial_tab != 'albums' %}hidden {% endif %}space-y-6">
+    <div id="tab-albums" class="{% if initial_tab != 'albums' %}hidden {% endif %}space-y-6 pb-24 md:pb-8">
       
       <!-- Albums & Eras Wall Gallery -->
       <div id="album-wall-section" class="glass-card p-6 space-y-5">
@@ -4118,13 +4118,14 @@
         </div>
 
         <!-- Pagination Controls Bar -->
-        <div id="album-gallery-pagination" class="hidden flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-slate-800/80 text-xs">
+        <div id="album-gallery-pagination" class="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 pt-4 border-t border-slate-800/80 text-xs">
           <!-- Range Info & Per Page -->
-          <div class="flex items-center gap-3 text-slate-400">
+          <div class="flex flex-wrap items-center justify-between sm:justify-start w-full sm:w-auto gap-3 text-slate-400">
             <span id="album-pagination-info" class="font-medium text-slate-300">Showing 1–24 of 120 albums</span>
             <div class="flex items-center gap-1.5 pl-2 border-l border-slate-800">
               <span class="text-slate-500">Per page:</span>
               <select id="album-per-page-select" onchange="setAlbumPageSize(this.value)" class="bg-slate-900 border border-slate-700/80 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-indigo-500 cursor-pointer">
+                <option value="12">12</option>
                 <option value="24" selected>24</option>
                 <option value="48">48</option>
                 <option value="96">96</option>
@@ -4134,7 +4135,7 @@
           </div>
 
           <!-- Page Navigation Buttons -->
-          <div class="flex items-center gap-1.5" id="album-pagination-buttons"></div>
+          <div class="flex flex-wrap items-center justify-center sm:justify-end gap-1.5 w-full sm:w-auto" id="album-pagination-buttons"></div>
         </div>
       </div>
 
@@ -5142,20 +5143,6 @@
         <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Sections</p>
         
         <div class="space-y-2">
-          <!-- Venue Map -->
-          <button onclick="switchTab('map'); closeMobileMoreMenu();" id="mobile-sheet-tab-map-btn" class="w-full flex items-center justify-between p-2.5 rounded-xl {% if initial_tab == 'map' %}bg-indigo-600/20 border border-indigo-500/50 shadow-md shadow-indigo-500/10{% else %}bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600{% endif %} transition text-left group cursor-pointer">
-            <div class="flex items-center gap-3">
-              <div class="w-8 h-8 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 group-hover:scale-105 transition shrink-0">
-                <i class="fa-solid fa-map-location-dot text-sm"></i>
-              </div>
-              <div>
-                <p class="text-xs font-semibold text-white group-hover:text-emerald-300 transition">Venue Map</p>
-                <p class="text-[11px] text-slate-400">Interactive concert venues & geolocation</p>
-              </div>
-            </div>
-            <i class="fa-solid fa-chevron-right text-slate-500 text-xs"></i>
-          </button>
-
           <!-- Albums & Eras -->
           <button onclick="switchTab('albums'); closeMobileMoreMenu();" id="mobile-sheet-tab-albums-btn" class="w-full flex items-center justify-between p-2.5 rounded-xl {% if initial_tab == 'albums' %}bg-indigo-600/20 border border-indigo-500/50 shadow-md shadow-indigo-500/10{% else %}bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600{% endif %} transition text-left group cursor-pointer">
             <div class="flex items-center gap-3">
@@ -5179,6 +5166,20 @@
               <div>
                 <p class="text-xs font-semibold text-white group-hover:text-amber-300 transition">Musicians</p>
                 <p class="text-[11px] text-slate-400">Band lineups & live musician tracking</p>
+              </div>
+            </div>
+            <i class="fa-solid fa-chevron-right text-slate-500 text-xs"></i>
+          </button>
+
+          <!-- Venue Map -->
+          <button onclick="switchTab('map'); closeMobileMoreMenu();" id="mobile-sheet-tab-map-btn" class="w-full flex items-center justify-between p-2.5 rounded-xl {% if initial_tab == 'map' %}bg-indigo-600/20 border border-indigo-500/50 shadow-md shadow-indigo-500/10{% else %}bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600{% endif %} transition text-left group cursor-pointer">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 group-hover:scale-105 transition shrink-0">
+                <i class="fa-solid fa-map-location-dot text-sm"></i>
+              </div>
+              <div>
+                <p class="text-xs font-semibold text-white group-hover:text-emerald-300 transition">Venue Map</p>
+                <p class="text-[11px] text-slate-400">Interactive concert venues & geolocation</p>
               </div>
             </div>
             <i class="fa-solid fa-chevron-right text-slate-500 text-xs"></i>
@@ -5545,7 +5546,7 @@
         }
       });
 
-      const secondaryTabs = ['map', 'musicians', 'albums', 'freshness', 'gap', 'friends'];
+      const secondaryTabs = ['albums', 'musicians', 'map', 'freshness', 'friends', 'gap'];
       const isSecondary = secondaryTabs.includes(tabId);
       const moreBtn = document.getElementById('mobile-tab-more-btn');
       const moreDot = document.getElementById('mobile-more-active-dot');
@@ -7972,6 +7973,187 @@
       filterAlbumGallery(true);
     }
 
+    window._albumTracklistsCache = window._albumTracklistsCache || {};
+
+    function _cleanTitle(t) {
+      return (t || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    }
+
+    function renderAlbumModalSongs(alb, tracklist) {
+      const songsList = document.getElementById('modal-album-songs-list');
+      const statsEl = document.getElementById('modal-album-stats');
+      const countEl = document.getElementById('modal-album-track-count');
+      if (!songsList) return;
+
+      const safeArtist = (alb.artist || '').replace(/'/g, "\\'");
+      const heardSongs = alb.songs || [];
+      const heardMap = new Map();
+      heardSongs.forEach(s => {
+        heardMap.set(_cleanTitle(s.song), s);
+      });
+
+      const firstSeenStr = alb.first_seen_date ? `First heard: ${alb.first_seen_date}` : '';
+      const lastSeenStr = alb.last_seen_date ? `Last: ${alb.last_seen_date}` : '';
+      const dateRange = [firstSeenStr, lastSeenStr].filter(Boolean).join(' • ');
+
+      if (tracklist && Array.isArray(tracklist) && tracklist.length > 0) {
+        // Render full tracklist with heard and never heard status
+        const renderedHeardClean = new Set();
+        let totalAlbumTracks = tracklist.length;
+        let heardCount = 0;
+
+        let tracksHtml = tracklist.map((trk, tIdx) => {
+          const tClean = _cleanTitle(trk.title);
+          const s = heardMap.get(tClean);
+          const trackNum = trk.track_number || (tIdx + 1);
+
+          if (s) {
+            renderedHeardClean.add(tClean);
+            heardCount++;
+            const occCount = s.plays || (s.occurrences ? s.occurrences.length : 1);
+            const firstDate = s.first_heard || (s.occurrences && s.occurrences.length > 0 ? s.occurrences[0].date : '');
+            const lastDate = s.last_heard || (s.occurrences && s.occurrences.length > 0 ? s.occurrences[s.occurrences.length - 1].date : '');
+            const safeSong = (s.song || '').replace(/'/g, "\\'");
+
+            return `
+              <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/80 hover:bg-slate-800/80 border border-slate-800 transition group">
+                <div class="flex items-center gap-2.5 min-w-0">
+                  <span class="text-xs font-mono font-bold text-indigo-400 w-6 shrink-0 text-center">#${trackNum}</span>
+                  <div class="min-w-0">
+                    <p class="text-xs font-bold text-white group-hover:text-indigo-300 transition truncate">${escapeHtml(s.song || trk.title)}</p>
+                    <p class="text-[10px] text-slate-400 truncate">
+                      ${firstDate ? `First: <span class="font-mono text-slate-300">${firstDate}</span>` : ''}
+                      ${lastDate && lastDate !== firstDate ? ` • Last: <span class="font-mono text-slate-300">${lastDate}</span>` : ''}
+                    </p>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                  <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    ${occCount}x
+                  </span>
+                  <button onclick="closeAlbumModal(); jumpToSongInDrilldown('${safeArtist}', '${safeSong}');"
+                          title="View song performances in Drilldown"
+                          class="px-2 py-1 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/40 text-indigo-300 hover:text-white border border-indigo-500/30 text-[10px] font-semibold transition cursor-pointer">
+                    <i class="fa-solid fa-arrow-right text-[9px]"></i>
+                  </button>
+                </div>
+              </div>
+            `;
+          } else {
+            // Never heard live
+            return `
+              <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/30 hover:bg-slate-900/60 border border-slate-800/50 opacity-60 hover:opacity-100 transition group">
+                <div class="flex items-center gap-2.5 min-w-0">
+                  <span class="text-xs font-mono text-slate-500 w-6 shrink-0 text-center">#${trackNum}</span>
+                  <div class="min-w-0">
+                    <p class="text-xs font-medium text-slate-300 group-hover:text-slate-100 transition truncate">${escapeHtml(trk.title)}</p>
+                    <p class="text-[10px] text-slate-500 flex items-center gap-1">
+                      <i class="fa-regular fa-circle-xmark text-[9px] text-slate-500"></i> Never heard live
+                    </p>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                  <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-medium bg-slate-800/80 text-slate-400 border border-slate-700/60">
+                    0x
+                  </span>
+                </div>
+              </div>
+            `;
+          }
+        }).join('');
+
+        // Append any extra heard songs that were not in canonical tracklist
+        heardSongs.forEach(s => {
+          const sClean = _cleanTitle(s.song);
+          if (!renderedHeardClean.has(sClean)) {
+            heardCount++;
+            totalAlbumTracks++;
+            const occCount = s.plays || (s.occurrences ? s.occurrences.length : 1);
+            const firstDate = s.first_heard || (s.occurrences && s.occurrences.length > 0 ? s.occurrences[0].date : '');
+            const lastDate = s.last_heard || (s.occurrences && s.occurrences.length > 0 ? s.occurrences[s.occurrences.length - 1].date : '');
+            const safeSong = (s.song || '').replace(/'/g, "\\'");
+            const trkNum = s.track_number ? `#${s.track_number}` : `+`;
+
+            tracksHtml += `
+              <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/80 hover:bg-slate-800/80 border border-slate-800 transition group">
+                <div class="flex items-center gap-2.5 min-w-0">
+                  <span class="text-xs font-mono font-bold text-indigo-400 w-6 shrink-0 text-center">${trkNum}</span>
+                  <div class="min-w-0">
+                    <p class="text-xs font-bold text-white group-hover:text-indigo-300 transition truncate">${escapeHtml(s.song)}</p>
+                    <p class="text-[10px] text-slate-400 truncate">
+                      ${firstDate ? `First: <span class="font-mono text-slate-300">${firstDate}</span>` : ''}
+                      ${lastDate && lastDate !== firstDate ? ` • Last: <span class="font-mono text-slate-300">${lastDate}</span>` : ''}
+                    </p>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                  <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    ${occCount}x
+                  </span>
+                  <button onclick="closeAlbumModal(); jumpToSongInDrilldown('${safeArtist}', '${safeSong}');"
+                          title="View song performances in Drilldown"
+                          class="px-2 py-1 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/40 text-indigo-300 hover:text-white border border-indigo-500/30 text-[10px] font-semibold transition cursor-pointer">
+                    <i class="fa-solid fa-arrow-right text-[9px]"></i>
+                  </button>
+                </div>
+              </div>
+            `;
+          }
+        });
+
+        songsList.innerHTML = tracksHtml;
+
+        const covPct = totalAlbumTracks > 0 ? Math.round((heardCount / totalAlbumTracks) * 100) : 0;
+        if (countEl) {
+          countEl.innerText = `${heardCount} of ${totalAlbumTracks} tracks heard (${covPct}%)`;
+        }
+        if (statsEl) {
+          statsEl.innerText = `${alb.plays_heard} total play${alb.plays_heard === 1 ? '' : 's'} across ${heardCount} of ${totalAlbumTracks} tracks (${covPct}% album coverage)${dateRange ? ' • ' + dateRange : ''}`;
+        }
+      } else {
+        // Fallback: render heard songs with known track numbers
+        songsList.innerHTML = heardSongs.map((s, sIdx) => {
+          const occCount = s.plays || (s.occurrences ? s.occurrences.length : 1);
+          const firstDate = s.first_heard || (s.occurrences && s.occurrences.length > 0 ? s.occurrences[0].date : '');
+          const lastDate = s.last_heard || (s.occurrences && s.occurrences.length > 0 ? s.occurrences[s.occurrences.length - 1].date : '');
+          const safeSong = (s.song || '').replace(/'/g, "\\'");
+          const trackNum = s.track_number || (sIdx + 1);
+
+          return `
+            <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/80 hover:bg-slate-800/80 border border-slate-800 transition group">
+              <div class="flex items-center gap-2.5 min-w-0">
+                <span class="text-xs font-mono font-bold text-indigo-400 w-6 shrink-0 text-center">#${trackNum}</span>
+                <div class="min-w-0">
+                  <p class="text-xs font-bold text-white group-hover:text-indigo-300 transition truncate">${escapeHtml(s.song)}</p>
+                  <p class="text-[10px] text-slate-400 truncate">
+                    ${firstDate ? `First: <span class="font-mono text-slate-300">${firstDate}</span>` : ''}
+                    ${lastDate && lastDate !== firstDate ? ` • Last: <span class="font-mono text-slate-300">${lastDate}</span>` : ''}
+                  </p>
+                </div>
+              </div>
+              <div class="flex items-center gap-2 shrink-0">
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  ${occCount}x
+                </span>
+                <button onclick="closeAlbumModal(); jumpToSongInDrilldown('${safeArtist}', '${safeSong}');"
+                        title="View song performances in Drilldown"
+                        class="px-2 py-1 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/40 text-indigo-300 hover:text-white border border-indigo-500/30 text-[10px] font-semibold transition cursor-pointer">
+                  <i class="fa-solid fa-arrow-right text-[9px]"></i>
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        if (countEl) {
+          countEl.innerText = `${alb.unique_songs} track${alb.unique_songs === 1 ? '' : 's'} heard`;
+        }
+        if (statsEl) {
+          statsEl.innerText = `${alb.plays_heard} total play${alb.plays_heard === 1 ? '' : 's'} across ${alb.unique_songs} song${alb.unique_songs === 1 ? '' : 's'}${dateRange ? ' • ' + dateRange : ''}`;
+        }
+      }
+    }
+
     function openAlbumModal(idx) {
       if (!albumsGalleryData || !albumsGalleryData[idx]) return;
       const alb = albumsGalleryData[idx];
@@ -8035,39 +8217,42 @@
         });
       }
 
-      // Songs List
-      if (songsList) {
-        const safeArtist = (alb.artist || '').replace(/'/g, "\\'");
-        songsList.innerHTML = (alb.songs || []).map((s, sIdx) => {
-          const occCount = s.plays || (s.occurrences ? s.occurrences.length : 1);
-          const firstDate = s.first_heard || (s.occurrences && s.occurrences.length > 0 ? s.occurrences[0].date : '');
-          const lastDate = s.last_heard || (s.occurrences && s.occurrences.length > 0 ? s.occurrences[s.occurrences.length - 1].date : '');
-          const safeSong = (s.song || '').replace(/'/g, "\\'");
-          return `
-            <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/80 hover:bg-slate-800/80 border border-slate-800 transition group">
-              <div class="flex items-center gap-2.5 min-w-0">
-                <span class="text-xs font-mono text-slate-500 w-5">#${sIdx + 1}</span>
-                <div class="min-w-0">
-                  <p class="text-xs font-bold text-white group-hover:text-indigo-300 transition truncate">${escapeHtml(s.song)}</p>
-                  <p class="text-[10px] text-slate-400 truncate">
-                    ${firstDate ? `First: <span class="font-mono text-slate-300">${firstDate}</span>` : ''}
-                    ${lastDate && lastDate !== firstDate ? ` • Last: <span class="font-mono text-slate-300">${lastDate}</span>` : ''}
-                  </p>
-                </div>
-              </div>
-              <div class="flex items-center gap-2 shrink-0">
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                  ${occCount}x
-                </span>
-                <button onclick="closeAlbumModal(); jumpToSongInDrilldown('${safeArtist}', '${safeSong}');"
-                        title="View song performances in Drilldown"
-                        class="px-2 py-1 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/40 text-indigo-300 hover:text-white border border-indigo-500/30 text-[10px] font-semibold transition cursor-pointer">
-                  <i class="fa-solid fa-arrow-right text-[9px]"></i>
-                </button>
-              </div>
-            </div>
-          `;
-        }).join('');
+      // Render songs and handle full tracklist
+      const cacheKey = (alb.artist + ':::' + alb.album).toLowerCase();
+      let currentTracklist = alb.tracklist || window._albumTracklistsCache[cacheKey];
+
+      renderAlbumModalSongs(alb, currentTracklist);
+
+      // Dynamically fetch tracklist if not yet cached
+      if (!currentTracklist && alb.decade !== 'Covers' && (alb.album || '').toLowerCase() !== 'covers' && (alb.album || '').toLowerCase() !== 'non-album / singles') {
+        if (countEl) {
+          countEl.innerHTML = `<span class="inline-flex items-center gap-1 text-slate-400"><i class="fa-solid fa-circle-notch fa-spin text-[10px] text-indigo-400"></i> ${alb.unique_songs} heard &bull; Loading full album...</span>`;
+        }
+
+        fetch(`/api/album-tracklist/?artist=${encodeURIComponent(alb.artist)}&album=${encodeURIComponent(alb.album)}`)
+          .then(res => res.json())
+          .then(data => {
+            if (data && data.status === 'success' && Array.isArray(data.tracks) && data.tracks.length > 0) {
+              window._albumTracklistsCache[cacheKey] = data.tracks;
+              alb.tracklist = data.tracks;
+              if (data.release_year && !alb.release_year) {
+                alb.release_year = data.release_year;
+                if (yearEl) {
+                  yearEl.innerText = `${alb.release_year}`;
+                  yearEl.style.display = 'inline-block';
+                }
+              }
+              const currentOpenTitle = document.getElementById('modal-album-title');
+              if (currentOpenTitle && currentOpenTitle.innerText === alb.album) {
+                renderAlbumModalSongs(alb, data.tracks);
+              }
+            } else {
+              renderAlbumModalSongs(alb, null);
+            }
+          })
+          .catch(() => {
+            renderAlbumModalSongs(alb, null);
+          });
       }
 
       // Modal Actions

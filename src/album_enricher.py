@@ -478,3 +478,126 @@ class AlbumEnricher:
             uncached.append((key, art, song))
 
         return results, uncached, total_unique
+
+    def get_album_tracklist(self, artist_name: str, album_name: str) -> Dict[str, Any]:
+        """
+        Retrieves the canonical studio album tracklist with track numbers and titles,
+        caching the result to disk for instant subsequent lookups.
+        """
+        if not artist_name or not album_name:
+            return {"artist": artist_name, "album": album_name, "tracks": [], "release_year": None}
+
+        clean_alb = clean_album_title(album_name)
+        if clean_alb in ["Covers", "Non-Album / Singles"] or clean_alb.lower() in ["covers", "non-album / singles"]:
+            return {"artist": artist_name, "album": clean_alb, "tracks": [], "release_year": None}
+
+        tracklist_dir = MB_CACHE_DIR / "tracklists"
+        tracklist_dir.mkdir(parents=True, exist_ok=True)
+        cache_key = "".join(c if c.isalnum() else "_" for c in f"{artist_name}_{clean_alb}".lower())
+        cache_file = tracklist_dir / f"{cache_key}.json"
+
+        if cache_file.exists():
+            try:
+                with open(cache_file, "r", encoding="utf-8") as f:
+                    cached = json.load(f)
+                    if cached and isinstance(cached.get("tracks"), list) and len(cached["tracks"]) > 0:
+                        return cached
+            except Exception:
+                pass
+
+        # Query MusicBrainz release endpoint
+        queries = [
+            f'release:"{clean_alb}" AND artist:"{artist_name}" AND primarytype:Album',
+            f'release:"{clean_alb}" AND artist:"{artist_name}"'
+        ]
+
+        tracks = []
+        release_yr = None
+
+        for q_str in queries:
+            url = f'https://musicbrainz.org/ws/2/release?query={urllib.parse.quote(q_str)}&limit=5&fmt=json'
+            resp = self._rate_limited_get(url)
+            if not resp or resp.status_code != 200:
+                continue
+
+            try:
+                data = resp.json()
+            except Exception:
+                continue
+
+            releases = data.get("releases", [])
+            if not releases:
+                continue
+
+            # Prioritize official studio album releases
+            candidates = []
+            for r in releases:
+                rg = r.get("release-group", {})
+                p_type = rg.get("primary-type") or ""
+                s_types = rg.get("secondary-types") or []
+                status = r.get("status") or ""
+                if any(st.lower() in ["live", "demo", "remix", "soundtrack"] for st in s_types):
+                    continue
+                score = 100
+                if p_type == "Album":
+                    score += 50
+                if status == "Official":
+                    score += 40
+                candidates.append((score, r))
+
+            candidates.sort(key=lambda x: x[0], reverse=True)
+            chosen_rel = candidates[0][1] if candidates else releases[0]
+            rel_id = chosen_rel.get("id")
+            if not rel_id:
+                continue
+
+            # Extract release year
+            d_str = chosen_rel.get("date") or chosen_rel.get("release-group", {}).get("first-release-date") or ""
+            if d_str and len(d_str) >= 4 and d_str[:4].isdigit():
+                y = int(d_str[:4])
+                if 1950 <= y <= 2030:
+                    release_yr = y
+
+            # Fetch release with recordings
+            rel_url = f'https://musicbrainz.org/ws/2/release/{rel_id}?inc=recordings&fmt=json'
+            rel_resp = self._rate_limited_get(rel_url)
+            if not rel_resp or rel_resp.status_code != 200:
+                continue
+
+            try:
+                rel_data = rel_resp.json()
+            except Exception:
+                continue
+
+            running_track_num = 1
+            for m in rel_data.get("media", []):
+                for trk in m.get("tracks", []):
+                    t_title = trk.get("title") or (trk.get("recording") or {}).get("title")
+                    if not t_title:
+                        continue
+                    t_pos = trk.get("position") or running_track_num
+                    tracks.append({
+                        "track_number": t_pos,
+                        "title": t_title.strip()
+                    })
+                    running_track_num += 1
+
+            if tracks:
+                break
+
+        result = {
+            "artist": artist_name,
+            "album": clean_alb,
+            "release_year": release_yr,
+            "tracks": tracks
+        }
+
+        if tracks:
+            try:
+                with open(cache_file, "w", encoding="utf-8") as f:
+                    json.dump(result, f, indent=2)
+            except Exception:
+                pass
+
+        return result
+

@@ -90,6 +90,7 @@ urlpatterns = [
     path('api/upcoming/track/', concerts_views.track_upcoming_show, name='api_track_upcoming_show'),
     path('api/upcoming/toggle-hidden/', concerts_views.toggle_upcoming_hidden_artist, name='api_toggle_upcoming_hidden_artist'),
     path('api/upcoming/settings/', concerts_views.save_upcoming_settings, name='api_save_upcoming_settings'),
+    path('api/album-tracklist/', concerts_views.api_album_tracklist, name='api_album_tracklist'),
 
     # MusicBrainz Dump & Catalog Refresh API
     path('api/admin/musicbrainz-dump/status/', catalog_views.api_musicbrainz_dump_status, name='api_mb_dump_status'),

@@ -805,6 +805,24 @@ class UpcomingShowsTests(TestCase):
         self.assertEqual(parsed_rh['city'], 'Annapolis')
         self.assertEqual(parsed_jj['city'], 'Vienna')
 
+    def test_api_album_tracklist(self):
+        # Missing parameters error
+        res = self.client.get('/api/album-tracklist/')
+        self.assertEqual(res.status_code, 400)
+
+        # Successful tracklist lookup for Master of Puppets
+        res = self.client.get('/api/album-tracklist/?artist=Metallica&album=Master%20of%20Puppets')
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data['status'], 'success')
+        self.assertEqual(data['artist'], 'Metallica')
+        self.assertEqual(data['album'], 'Master of Puppets')
+        self.assertIsInstance(data['tracks'], list)
+        if data['tracks']:
+            self.assertEqual(data['tracks'][0]['track_number'], 1)
+            self.assertEqual(data['tracks'][0]['title'], 'Battery')
+
+
 
 
 

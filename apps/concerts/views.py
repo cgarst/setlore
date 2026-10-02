@@ -6,7 +6,7 @@ from datetime import datetime
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponseBadRequest, HttpResponse
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_POST, require_http_methods, require_GET
 from django.db import transaction
 from django.db.models import Count
 
@@ -25,7 +25,7 @@ from src.album_enricher import AlbumEnricher
 from src.musician_enricher import MusicianEnricher
 from src.venue_mapper import generate_venue_map_data
 from src.musician_tracker import analyze_musicians_live, consolidate_musician_bands
-from src.config import SETLISTFM_API_KEY, CARTO_API_KEY, USER_CACHE_DIR
+from src.config import SETLISTFM_API_KEY, CARTO_API_KEY, USER_CACHE_DIR, MB_CACHE_DIR
 from src.upcoming_events import get_upcoming_shows_for_user, get_user_seen_artists_summary
 from .services.sync_worker import sync_worker
 
@@ -238,6 +238,7 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
         art_data["albums_list"] = sorted(list(albums_set))
 
     # Build comprehensive albums gallery dataset for Vinyl Album Wall
+    tracklist_dir = MB_CACHE_DIR / "tracklists"
     albums_dict = {}
     for artist_name, art_data in drilldown.items():
         for s in art_data.get("songs", []):
@@ -252,6 +253,20 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
             album_key = f"{artist_name}:::{album_title}"
             if album_key not in albums_dict:
                 decade = f"{(rel_year // 10) * 10}s" if rel_year else ("Covers" if album_title == "Covers" else "Other")
+                
+                # Check for cached album tracklist
+                cached_tracklist = []
+                cache_key = "".join(c if c.isalnum() else "_" for c in f"{artist_name}_{album_title}".lower())
+                cache_file = tracklist_dir / f"{cache_key}.json"
+                if cache_file.exists():
+                    try:
+                        with open(cache_file, "r", encoding="utf-8") as f:
+                            t_data = json.load(f)
+                            if t_data and isinstance(t_data.get("tracks"), list):
+                                cached_tracklist = t_data["tracks"]
+                    except Exception:
+                        pass
+
                 albums_dict[album_key] = {
                     "id": f"album_{len(albums_dict) + 1}",
                     "artist": artist_name,
@@ -262,6 +277,7 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
                     "plays_heard": 0,
                     "unique_songs": 0,
                     "songs": [],
+                    "tracklist": cached_tracklist,
                     "first_seen_date": None,
                     "first_seen_venue": None,
                     "last_seen_date": None,
@@ -270,9 +286,21 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
             alb_entry = albums_dict[album_key]
             alb_entry["plays_heard"] += song_count
             alb_entry["unique_songs"] += 1
+
+            # Match track number from tracklist if available
+            track_num = None
+            if alb_entry.get("tracklist"):
+                s_clean = re.sub(r'[^a-z0-9]', '', song_name.lower())
+                for t in alb_entry["tracklist"]:
+                    t_clean = re.sub(r'[^a-z0-9]', '', (t.get("title") or "").lower())
+                    if s_clean == t_clean or (len(s_clean) >= 4 and (s_clean in t_clean or t_clean in s_clean)):
+                        track_num = t.get("track_number")
+                        break
+
             alb_entry["songs"].append({
                 "song": song_name,
                 "count": song_count,
+                "track_number": track_num,
                 "occurrences": occurrences
             })
             for occ in occurrences:
@@ -288,7 +316,8 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
 
     albums_gallery = list(albums_dict.values())
     for alb in albums_gallery:
-        alb["songs"].sort(key=lambda x: x["count"], reverse=True)
+        # Sort songs by track number if present, else by count
+        alb["songs"].sort(key=lambda x: (0 if x.get("track_number") is not None else 1, x.get("track_number") or 0, -x["count"]))
     albums_gallery.sort(key=lambda x: x["plays_heard"], reverse=True)
 
     for idx, alb in enumerate(albums_gallery):
@@ -2698,6 +2727,29 @@ def track_upcoming_show(request):
         })
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+
+@require_http_methods(["GET"])
+def api_album_tracklist(request):
+    """Returns canonical studio album tracklist with track numbers and titles."""
+    artist = request.GET.get('artist', '').strip()
+    album = request.GET.get('album', '').strip()
+    if not artist or not album:
+        return JsonResponse({'status': 'error', 'message': 'artist and album parameters required'}, status=400)
+
+    try:
+        enricher = AlbumEnricher()
+        tracklist_data = enricher.get_album_tracklist(artist, album)
+        return JsonResponse({
+            'status': 'success',
+            'artist': artist,
+            'album': album,
+            'tracks': tracklist_data.get('tracks', []),
+            'release_year': tracklist_data.get('release_year')
+        })
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e), 'tracks': []}, status=500)
+
 
 
 
