@@ -437,6 +437,30 @@ class ConcertAnalytics:
             date_str = rec.get("display_date", rec.get("raw_date", ""))
             venue = rec.get("venue", "")
             year = rec.get("year")
+
+            dt = rec.get("date_obj")
+            if not dt and date_str:
+                for fmt in ("%Y-%m-%d", "%d-%m-%Y", "%m-%d-%Y", "%Y/%m/%d", "%m/%d/%Y", "%d/%m/%Y", "%b %d, %Y"):
+                    try:
+                        dt = datetime.strptime(str(date_str).strip()[:10], fmt).date()
+                        break
+                    except (ValueError, TypeError):
+                        pass
+
+            if dt:
+                if isinstance(dt, datetime):
+                    dt = dt.date()
+                month_name = dt.strftime("%b")
+                if month_name == "Sep":
+                    month_name = "Sept"
+                month_day_str = f"{month_name} {dt.day}"
+                year_val = dt.year
+                display_formatted_date = f"{month_name} {dt.day}, {dt.year}"
+            else:
+                month_day_str = date_str
+                year_val = year
+                display_formatted_date = date_str
+
             artists = [a for a in rec.get("artists", []) if not self._is_ignored(a)]
             
             artists_data = []
@@ -624,11 +648,13 @@ class ConcertAnalytics:
                 "db_id": rec.get("db_id"),
                 "date": date_str,
                 "raw_date": rec.get("raw_date", date_str),
+                "month_day": month_day_str,
+                "formatted_date": display_formatted_date,
                 "venue": venue,
                 "city": rec.get("city", ""),
                 "state": rec.get("state", ""),
                 "country": rec.get("country", "United States"),
-                "year": year,
+                "year": year_val or year,
                 "primary_artist": primary_art,
                 "supporting_artists": supporting_arts,
                 "raw_artists": rec.get("raw_artists", ", ".join(artists)),

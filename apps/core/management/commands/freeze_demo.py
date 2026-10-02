@@ -443,36 +443,26 @@ class Command(BaseCommand):
                 _save(page, "overview.png")
                 self.stdout.write("  [screenshot] Captured overview.png")
 
-                # ── concerts.png: expand first card + wait for album art ──────
+                # ── concerts.png: expand first concert modal + wait for preview ──────
                 _show_tab("concerts", scroll_below_nav=True)
                 first_card_id = page.evaluate("""
                     () => {
-                        const details = document.querySelector('[id^="concert-details-"]');
-                        if (details) return details.id.replace('concert-details-', '');
                         const card = document.querySelector('.concert-card[id^="concert-card-"]');
                         if (card) return card.id.replace('concert-card-', '');
                         return null;
                     }
                 """)
                 if first_card_id:
-                    page.evaluate(f"toggleConcertDetails('{first_card_id}')")
+                    page.evaluate(f"openConcertModal('{first_card_id}', 1)")
                     page.wait_for_timeout(600)
-                    page.evaluate(f"""
-                        (() => {{
-                            const el = document.getElementById('concert-details-{first_card_id}');
-                            if (el && typeof initLazyAlbumThumbnails === 'function') {{
-                                initLazyAlbumThumbnails(el);
-                            }}
-                        }})()
-                    """)
                     _wait_for_album_art(
                         page,
-                        selector=f"#concert-details-{first_card_id} img.lazy-album-art",
+                        selector="#concert-modal-body img.lazy-album-art",
                         min_loaded=1,
-                        timeout_ms=8000,
+                        timeout_ms=5000,
                     )
                 _save(page, "concerts.png")
-                self.stdout.write(f"  [screenshot] Captured concerts.png (card {first_card_id} expanded)")
+                self.stdout.write(f"  [screenshot] Captured concerts.png (modal for concert {first_card_id})")
 
                 # ── songs.png: select Primus artist + wait for album art ──────
                 _show_tab("songs", scroll_below_nav=True)

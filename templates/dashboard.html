@@ -2464,6 +2464,58 @@
     </div>
   </div>
 
+  <!-- Concert History Detail Modal (2-Step Flow: Lineup Overview -> Band Setlist) -->
+  <div id="concert-detail-modal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-2.5 sm:p-4 lg:p-6 hidden" onclick="if(event.target === this) closeConcertModal();">
+    <div class="max-w-3xl w-full glass-card p-4 sm:p-6 shadow-2xl space-y-4 border border-slate-700/80 max-h-[92vh] flex flex-col rounded-2xl relative">
+      <!-- Modal Header -->
+      <div class="flex items-start justify-between gap-3 border-b border-slate-800 pb-3.5 shrink-0">
+        <div class="min-w-0 flex-1">
+          <!-- Step 1 Header (Overview) -->
+          <div id="concert-modal-header-overview" class="flex flex-col gap-1">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span id="concert-modal-date-badge" class="badge bg-indigo-500/20 text-indigo-300 font-mono text-xs font-bold border border-indigo-500/30 px-2.5 py-1"></span>
+              <h3 id="modal-concert-venue" class="text-base sm:text-lg font-bold text-white truncate"></h3>
+            </div>
+            <p id="modal-concert-location" class="text-xs text-slate-400 flex items-center gap-1.5"></p>
+          </div>
+          <!-- Step 2 Header (Band Setlist Breadcrumb) -->
+          <div id="concert-modal-header-setlist" class="hidden flex flex-col gap-1.5 min-w-0">
+            <div class="flex items-center gap-2.5 flex-wrap min-w-0">
+              <button type="button" onclick="showConcertOverviewInModal()" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs font-semibold transition inline-flex items-center gap-1.5 cursor-pointer shrink-0">
+                <i class="fa-solid fa-arrow-left text-[11px]"></i>
+                <span>All Bands</span>
+              </button>
+              <h3 id="modal-concert-artist-title" class="text-base sm:text-lg font-bold text-white truncate flex items-center gap-1.5"></h3>
+            </div>
+            <div class="flex items-center gap-2 flex-wrap text-xs text-slate-400 min-w-0">
+              <span id="modal-concert-setlist-date-badge" class="badge bg-indigo-500/20 text-indigo-300 font-mono text-xs font-bold border border-indigo-500/30 px-2 py-0.5 shrink-0"></span>
+              <p id="modal-concert-setlist-venue-sub" class="flex items-center gap-1.5 truncate"></p>
+            </div>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <div id="modal-concert-actions" class="flex items-center gap-1.5"></div>
+          <button type="button" onclick="closeConcertModal()" class="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition cursor-pointer" aria-label="Close modal">
+            <i class="fa-solid fa-xmark text-lg"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Modal Body (Dynamic Step Content) -->
+      <div id="concert-modal-body" class="flex-1 overflow-y-auto space-y-4 custom-scrollbar pr-1 min-h-[220px]">
+        <!-- Rendered dynamically by openConcertModal / showBandSetlistInModal -->
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="flex items-center justify-between border-t border-slate-800 pt-3 shrink-0 text-xs">
+        <div id="concert-modal-footer-info" class="text-slate-400 text-xs truncate"></div>
+        <button type="button" onclick="closeConcertModal()" class="px-4 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold transition cursor-pointer">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Overview Chart Modal (Full View for Mobile) -->
   <div id="overview-chart-modal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 hidden">
     <div class="max-w-2xl w-full glass-card p-4 sm:p-6 shadow-2xl space-y-4 border border-slate-700/80 max-h-[92vh] flex flex-col">
@@ -3161,10 +3213,10 @@
     <!-- 2. CONCERT DRILLDOWN TAB (Chronological Latest to Oldest) -->
     <div id="tab-concerts" class="{% if initial_tab != 'concerts' %}hidden {% endif %}space-y-6">
       
-      <!-- Top Bar: Search / Filter & Actions -->
-      <div class="glass-card p-5 space-y-4">
+      <!-- Top Bar: Search / Filter & Actions (Master Control Section) -->
+      <div class="glass-card p-4 sm:p-5 space-y-3.5">
         <!-- Header Info Row -->
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/60 pb-3.5">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/60 pb-3">
           <div>
             <div class="flex items-center gap-2.5 flex-wrap">
               <h2 class="text-lg font-bold text-white flex items-center gap-2">
@@ -3175,15 +3227,6 @@
               </span>
             </div>
             <p class="text-xs text-slate-400 mt-1">Chronological archive of live concerts, setlists, artist lineups, and track occurrences.</p>
-          </div>
-          <div class="flex items-center gap-2 shrink-0">
-            <button type="button"
-                    id="concert-expand-all-btn"
-                    onclick="toggleAllConcertCards()"
-                    class="px-3 py-1.5 rounded-lg bg-slate-800/90 hover:bg-slate-700 text-xs font-semibold text-slate-300 hover:text-white border border-slate-700 transition flex items-center gap-1.5 cursor-pointer shadow-sm">
-              <i class="fa-solid fa-up-right-and-down-left-from-center text-xs text-indigo-400" id="concert-expand-all-icon"></i>
-              <span id="concert-expand-all-text">Expand All</span>
-            </button>
           </div>
         </div>
 
@@ -3227,8 +3270,8 @@
         </div>
       </div>
 
-      <!-- Concert Cards List -->
-      <div id="concert-cards-list" class="space-y-4">
+      <!-- Concert Timeline List -->
+      <div id="concert-cards-list" class="space-y-3">
         <!-- Empty State (Hidden by default) -->
         <div id="concerts-no-results" class="hidden glass-card p-10 text-center space-y-3">
           <div class="w-12 h-12 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center mx-auto text-lg">
@@ -3241,14 +3284,16 @@
           </button>
         </div>
         {% for c in stats.concerts_drilldown %}
-        <div class="concert-card glass-card p-5 space-y-4 border border-slate-800/80 hover:border-slate-700/80 transition"
+        <div class="concert-card glass-card p-3.5 sm:p-4 rounded-xl border border-slate-800/80 hover:border-indigo-500/50 hover:bg-slate-900/60 transition shadow-sm cursor-pointer select-none group"
              id="concert-card-{{ c.id }}"
+             onclick="openConcertModal('{{ c.id }}')"
              data-search="{{ c.date|lower }} {{ c.venue|lower }} {{ c.raw_artists|lower }}{% for a in c.artists %}{% for m in a.musicians %} {{ m.musician|lower }}{% endfor %}{% endfor %}"
              data-id="{{ c.id }}"
              data-db-id="{{ c.db_id }}"
              data-is-favorite="{{ c.is_favorite|yesno:'true,false' }}"
              data-has-favorite-artist="{{ c.has_favorite_artist|yesno:'true,false' }}"
              data-date="{% if c.date %}{{ c.date }}{% else %}{{ c.raw_date }}{% endif %}"
+             data-formatted-date="{% if c.formatted_date %}{{ c.formatted_date }}{% elif c.date %}{{ c.date }}{% else %}{{ c.raw_date }}{% endif %}"
              data-raw-date="{{ c.raw_date }}"
              data-venue="{{ c.venue }}"
              data-city="{{ c.city }}"
@@ -3262,24 +3307,45 @@
              data-setlist-url="{{ c.artists.0.setlist_url|default:'' }}"
              data-setlist-text="{{ c.setlist_text }}">
           
-          <!-- Concert Event Header -->
-          <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 cursor-pointer select-none" onclick="toggleConcertDetails('{{ c.id }}')">
-            <div class="flex flex-wrap items-center gap-3">
-              <span id="concert-fav-badge-{{ c.id }}" class="text-amber-400 text-xs px-1 {% if not c.has_favorite_artist %}hidden{% endif %}" title="Contains favorited performance">
-                <i class="fa-solid fa-star text-sm"></i>
-              </span>
-              <span class="badge bg-indigo-500/20 text-indigo-300 font-mono text-xs font-bold border border-indigo-500/30 px-2.5 py-1">
-                <i class="fa-solid fa-calendar mr-1.5"></i>{{ c.date }}
-              </span>
-              <span class="text-white font-bold text-base flex items-center gap-2">
-                <i class="fa-solid fa-location-dot text-indigo-400 text-xs"></i> {{ c.venue }}
-              </span>
-              <span class="concert-header-artists text-slate-400 text-xs truncate max-w-md" data-full-artists="— {{ c.raw_artists }}">
-                — {{ c.raw_artists }}
-              </span>
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <!-- Left & Center: Date Badge + Artists + Venue -->
+            <div class="flex items-center gap-3.5 min-w-0">
+              <!-- Date Badge -->
+              <div class="shrink-0 flex flex-col items-center justify-center px-2.5 py-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/30 min-w-[76px] text-center leading-tight">
+                <span class="text-xs font-black text-indigo-200 whitespace-nowrap">{{ c.month_day }}</span>
+                <span class="text-[10px] font-bold text-indigo-400 font-mono tracking-wider">{{ c.year }}</span>
+              </div>
+
+              <!-- Artist & Venue Details -->
+              <div class="min-w-0 space-y-0.5">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span id="concert-fav-badge-{{ c.id }}" class="text-amber-400 text-xs {% if not c.has_favorite_artist %}hidden{% endif %}" title="Contains favorited performance">
+                    <i class="fa-solid fa-star text-xs"></i>
+                  </span>
+                  <h3 class="text-white font-bold text-sm sm:text-base group-hover:text-indigo-200 transition truncate">
+                    {{ c.primary_artist }}
+                  </h3>
+                  {% if c.supporting_artists %}
+                  <span class="concert-header-artists text-slate-400 text-xs truncate hidden sm:inline" data-full-artists="— {{ c.raw_artists }}">
+                    w/ {{ c.supporting_artists }}
+                  </span>
+                  {% endif %}
+                </div>
+                <p class="text-xs text-slate-400 flex items-center gap-1.5 truncate">
+                  <i class="fa-solid fa-location-dot text-indigo-400 text-[10px]"></i>
+                  <span>{{ c.venue }}</span>
+                  {% if c.city %}<span class="text-slate-500">• {{ c.city }}{% if c.state %}, {{ c.state }}{% endif %}</span>{% endif %}
+                </p>
+                {% if c.supporting_artists %}
+                <p class="text-[11px] text-slate-500 truncate sm:hidden">
+                  w/ {{ c.supporting_artists }}
+                </p>
+                {% endif %}
+              </div>
             </div>
 
-            <div class="flex items-center gap-2.5">
+            <!-- Right: Meta Badges + Actions + Tap Prompt -->
+            <div class="flex items-center gap-2 sm:gap-2.5 shrink-0 self-end md:self-center">
               {% if is_public_view and request.user.is_authenticated and not is_owner %}
               <button type="button"
                       id="attend-btn-{{ c.id }}"
@@ -3290,7 +3356,7 @@
                       data-attended="{% if c.is_attended_by_viewer %}true{% else %}false{% endif %}"
                       title="{% if c.is_attended_by_viewer %}Logged on your profile. Click to remove.{% else %}Click to log this concert on your profile{% endif %}">
                 <i class="fa-solid {% if c.is_attended_by_viewer %}fa-circle-check text-emerald-400{% else %}fa-hand-peace text-slate-400{% endif %} attend-icon"></i>
-                <span class="attend-btn-label">I Was There</span>
+                <span class="attend-btn-label hidden sm:inline">I Was There</span>
               </button>
               {% elif is_public_view and not request.user.is_authenticated %}
               <a href="{% url 'login' %}?next={{ request.path }}"
@@ -3298,7 +3364,7 @@
                  class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 border border-slate-700 hover:text-white hover:bg-indigo-600/30 hover:border-indigo-500/50 transition flex items-center gap-1.5"
                  title="Log in to mark this concert as attended">
                 <i class="fa-solid fa-hand-peace text-slate-400"></i>
-                <span>I Was There</span>
+                <span class="hidden sm:inline">I Was There</span>
               </a>
               {% endif %}
 
@@ -3320,7 +3386,7 @@
               {% endif %}
 
               <span class="badge bg-slate-800 text-slate-300 text-xs border border-slate-700">
-                <i class="fa-solid fa-users text-slate-400 text-[10px] mr-1"></i> {{ c.total_artists|intcomma }} {% if c.total_artists == 1 %}Artist{% else %}Artists{% endif %}
+                <i class="fa-solid fa-users text-slate-400 text-[10px] mr-1"></i> {{ c.total_artists|intcomma }}
               </span>
               {% if c.total_songs > 0 %}
               <span class="badge bg-emerald-500/20 text-emerald-300 text-xs border border-emerald-500/30 font-semibold">
@@ -3331,25 +3397,155 @@
                 No Setlist
               </span>
               {% endif %}
-              <i id="concert-chevron-{{ c.id }}" class="fa-solid fa-chevron-down text-slate-400 text-xs transition-transform duration-200"></i>
+
+              <div class="w-7 h-7 rounded-lg bg-slate-800/60 border border-slate-700/60 flex items-center justify-center text-slate-400 group-hover:text-white group-hover:bg-indigo-600/30 group-hover:border-indigo-500/50 transition">
+                <i class="fa-solid fa-chevron-right text-xs"></i>
+              </div>
             </div>
           </div>
 
-          <!-- Concert Artists & Sets Body -->
-          <div id="concert-details-{{ c.id }}" class="hidden space-y-6 pt-4 border-t border-slate-800/60">
+          <!-- Hidden Modal Content Payload (Cloned into #concert-detail-modal when opened) -->
+          <div id="concert-modal-payload-{{ c.id }}" class="hidden">
+            <!-- STEP 1: CONCERT OVERVIEW & BAND CHOICES -->
+            <div id="concert-modal-overview-{{ c.id }}" class="space-y-4">
+              {% if c.notes %}
+              <div class="p-3 rounded-xl bg-slate-900/60 border border-slate-800 text-xs text-slate-300 flex items-start gap-2.5">
+                <i class="fa-solid fa-note-sticky text-indigo-400 mt-0.5"></i>
+                <span class="leading-relaxed">{{ c.notes }}</span>
+              </div>
+              {% endif %}
+
+              <div class="flex items-center justify-between border-b border-slate-800/60 pb-2">
+                <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                  <i class="fa-solid fa-users text-indigo-400"></i>
+                  <span>Lineup & Performances ({{ c.artists|length }} {% if c.artists|length == 1 %}Artist{% else %}Artists{% endif %})</span>
+                </h4>
+                <span class="text-[11px] text-slate-500">Tap a band to view their full setlist</span>
+              </div>
+
+              <!-- Band Cards Grid -->
+              <div class="grid grid-cols-1 gap-3">
+                {% for a in c.artists %}
+                <div class="artist-set-card rounded-xl bg-slate-900/60 hover:bg-slate-900 border border-slate-800/90 hover:border-indigo-500/60 p-4 transition-all duration-150 cursor-pointer select-none group/choice shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3.5 relative overflow-hidden"
+                     id="artist-set-{{ c.id }}-{{ forloop.counter }}"
+                     data-action="view-band-setlist"
+                     data-concert-id="{{ c.id }}"
+                     data-artist-index="{{ forloop.counter }}"
+                     onclick="showBandSetlistInModal('{{ c.id }}', '{{ forloop.counter }}')"
+                     data-artist="{{ a.artist }}"
+                     data-musicians="{% for m in a.musicians %} {{ m.musician|lower }} {% endfor %}"
+                     data-is-favorite="{{ a.is_favorite|yesno:'true,false' }}">
+                  
+                  <!-- Left accent highlight on hover -->
+                  <div class="absolute left-0 top-0 bottom-0 w-1 bg-indigo-500 opacity-0 group-hover/choice:opacity-100 transition-opacity"></div>
+
+                  <!-- Left: Artist Name, Badges, Lineup -->
+                  <div class="space-y-2 min-w-0 flex-1 pl-1">
+                    <div class="flex items-center gap-2.5 flex-wrap">
+                      {% if not is_public_view or is_owner %}
+                      <button type="button"
+                              id="favorite-artist-btn-{{ c.id }}-{{ forloop.counter }}"
+                              onclick="event.stopPropagation(); toggleConcertArtistFavorite('{{ c.id }}', '{{ a.ca_id|default:'' }}', '{{ a.artist|escapejs }}', '{{ forloop.counter }}');"
+                              class="favorite-artist-btn p-1 rounded-lg text-xs transition cursor-pointer {% if a.is_favorite %}text-amber-400 hover:text-amber-300{% else %}text-slate-500 hover:text-amber-400{% endif %}"
+                              data-favorite="{% if a.is_favorite %}true{% else %}false{% endif %}"
+                              title="{% if a.is_favorite %}Favorited artist performance. Click to unfavorite.{% else %}Click to favorite this artist performance{% endif %}">
+                        <i class="fa-{% if a.is_favorite %}solid{% else %}regular{% endif %} fa-star text-sm"></i>
+                      </button>
+                      {% elif a.is_favorite %}
+                      <span class="p-1 text-amber-400 text-xs" title="Favorited artist performance">
+                        <i class="fa-solid fa-star text-sm"></i>
+                      </span>
+                      {% endif %}
+
+                      <h3 class="text-white font-black text-base group-hover/choice:text-indigo-200 transition tracking-wide">
+                        {{ a.artist }}
+                      </h3>
+
+                      <span class="badge bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 text-[11px] font-bold">
+                        <i class="fa-solid fa-eye text-[9px] mr-1"></i> {% if a.artist_seen_nth == 1 %}1st Time Seen (Debut){% elif a.artist_seen_nth == 2 %}2nd Time Seen{% elif a.artist_seen_nth == 3 %}3rd Time Seen{% else %}{{ a.artist_seen_nth }}th Time Seen{% endif %}
+                      </span>
+
+                      {% if a.total_songs > 0 %}
+                      <span class="badge bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 text-[11px] font-semibold">
+                        <i class="fa-solid fa-music text-[9px] mr-1"></i> {{ a.total_songs }} Songs
+                      </span>
+                      {% else %}
+                      <span class="badge bg-amber-500/15 text-amber-300 border border-amber-500/30 text-[11px]">
+                        No Setlist
+                      </span>
+                      {% endif %}
+                    </div>
+
+                    <!-- Lineup Chips -->
+                    {% if a.musicians and a.musicians|length > 0 %}
+                    <div class="flex flex-wrap items-center gap-1.5 pt-0.5" onclick="event.stopPropagation();">
+                      <span class="text-[11px] font-semibold text-slate-400 flex items-center gap-1 shrink-0">
+                        <i class="fa-solid fa-users text-indigo-400 text-[10px]"></i> Lineup:
+                      </span>
+                      {% for m in a.musicians %}
+                      <button type="button" onclick="event.stopPropagation(); jumpToMusicianInDrilldown('{{ m.musician|escapejs }}');"
+                        class="badge bg-slate-800/90 hover:bg-indigo-600/30 text-slate-300 hover:text-indigo-200 border border-slate-700/80 hover:border-indigo-500/40 text-[10px] transition cursor-pointer flex items-center gap-1"
+                        title="Filter drilldown by {{ m.musician }}">
+                        <span class="font-medium">{{ m.musician }}</span>
+                        {% if m.instrument and m.instrument != 'Other' %}
+                          <span class="text-slate-500 text-[9px]">({{ m.instrument }})</span>
+                        {% elif m.role and m.role != 'Musician' %}
+                          <span class="text-slate-500 text-[9px]">({{ m.role }})</span>
+                        {% endif %}
+                      </button>
+                      {% endfor %}
+                    </div>
+                    {% endif %}
+                  </div>
+
+                  <!-- Right: Prominent View Setlist CTA + Secondary Action Links -->
+                  <div class="flex flex-col sm:flex-row md:flex-col items-stretch sm:items-center md:items-end justify-between sm:justify-end gap-2 shrink-0">
+                    <!-- Primary CTA: View Setlist Button -->
+                    <button type="button"
+                            onclick="event.stopPropagation(); showBandSetlistInModal('{{ c.id }}', '{{ forloop.counter }}')"
+                            class="px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs shadow-md shadow-indigo-600/25 transition-all flex items-center justify-center gap-2 cursor-pointer group-hover/choice:scale-[1.02] w-full sm:w-auto">
+                      <i class="fa-solid fa-list-music text-xs"></i>
+                      <span>View Setlist</span>
+                      <i class="fa-solid fa-arrow-right text-[10px] opacity-80 group-hover/choice:translate-x-0.5 transition-transform"></i>
+                    </button>
+
+                    <!-- Secondary Links (Playlist, YouTube, Setlist.fm) -->
+                    <div class="flex items-center gap-1.5 justify-end" onclick="event.stopPropagation();">
+                      {% if a.setify_url or a.setlist_url %}
+                      <a href="{% if a.setify_url %}{{ a.setify_url }}{% else %}https://setify.co/s/{{ a.setlist_url|slice:'-13:-5' }}{% endif %}" target="_blank" rel="noopener noreferrer" class="px-2 py-0.5 rounded-md bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-emerald-300 border border-slate-700/60 text-[11px] font-medium transition inline-flex items-center gap-1" title="Export setlist via Setify">
+                        <i class="fa-solid fa-music text-[10px] text-emerald-400"></i>
+                        <span>Playlist</span>
+                      </a>
+                      {% endif %}
+
+                      <a href="https://www.youtube.com/results?search_query={{ a.artist|urlencode }}+{{ c.venue|urlencode }}+{% if c.year %}{{ c.year }}{% elif c.date %}{{ c.date|slice:':4' }}{% else %}{{ c.raw_date|slice:':4' }}{% endif %}" target="_blank" rel="noopener noreferrer" class="px-2 py-0.5 rounded-md bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-rose-300 border border-slate-700/60 text-[11px] font-medium transition inline-flex items-center gap-1" title="Search live concert videos on YouTube">
+                        <i class="fa-brands fa-youtube text-[10px] text-rose-500"></i>
+                        <span>YouTube</span>
+                      </a>
+
+                      {% if a.setlist_url %}
+                      <a href="{{ a.setlist_url }}" target="_blank" rel="noopener noreferrer" class="px-2 py-0.5 rounded-md bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-amber-300 border border-slate-700/60 text-[11px] font-medium transition inline-flex items-center gap-1" title="View official setlist on Setlist.fm">
+                        <i class="fa-brands fa-lastfm text-[10px] text-amber-400"></i>
+                        <span>Setlist.fm</span>
+                      </a>
+                      {% endif %}
+                    </div>
+                  </div>
+
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+
+            <!-- STEP 2: BAND SETLIST VIEWS (One for each band) -->
             {% for a in c.artists %}
-            <div class="artist-set-card rounded-xl bg-slate-900/40 border border-slate-800/80 p-4 space-y-3"
-                 id="artist-set-{{ c.id }}-{{ forloop.counter }}"
-                 data-artist="{{ a.artist }}"
-                 data-musicians="{% for m in a.musicians %} {{ m.musician|lower }} {% endfor %}"
-                 data-is-favorite="{{ a.is_favorite|yesno:'true,false' }}">
-              
-              <!-- Artist Subheader -->
-              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/50 pb-2.5">
+            <div id="concert-modal-setlist-view-{{ c.id }}-{{ forloop.counter }}" class="hidden space-y-4" data-artist-name="{{ a.artist }}">
+              <!-- Band Performance Meta Bar (Favorite, Seen Badge, Total Songs, Export Links) -->
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3 border-b border-slate-800/60">
                 <div class="flex flex-wrap items-center gap-2">
                   {% if not is_public_view or is_owner %}
                   <button type="button"
-                          id="favorite-artist-btn-{{ c.id }}-{{ forloop.counter }}"
+                          id="favorite-artist-setlist-btn-{{ c.id }}-{{ forloop.counter }}"
                           onclick="event.stopPropagation(); toggleConcertArtistFavorite('{{ c.id }}', '{{ a.ca_id|default:'' }}', '{{ a.artist|escapejs }}', '{{ forloop.counter }}');"
                           class="favorite-artist-btn p-1 rounded-lg text-xs transition cursor-pointer {% if a.is_favorite %}text-amber-400 hover:text-amber-300{% else %}text-slate-500 hover:text-amber-400{% endif %}"
                           data-favorite="{% if a.is_favorite %}true{% else %}false{% endif %}"
@@ -3362,11 +3558,6 @@
                   </span>
                   {% endif %}
 
-                  <h3 class="text-white font-black text-sm tracking-wide flex items-center gap-2">
-                    <button onclick="event.stopPropagation(); jumpToSongInDrilldown('{{ a.artist|escapejs }}', '');" class="hover:underline hover:text-indigo-300 flex items-center gap-2 text-left font-black">
-                      <i class="fa-solid fa-microphone-lines text-indigo-400"></i> {{ a.artist }}
-                    </button>
-                  </h3>
                   <span class="badge bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 text-[11px] font-bold">
                     <i class="fa-solid fa-eye text-[9px] mr-1"></i> {% if a.artist_seen_nth == 1 %}1st Time Seen (Debut){% elif a.artist_seen_nth == 2 %}2nd Time Seen{% elif a.artist_seen_nth == 3 %}3rd Time Seen{% else %}{{ a.artist_seen_nth }}th Time Seen{% endif %}
                   </span>
@@ -3375,7 +3566,7 @@
                   {% endif %}
                 </div>
 
-                <div class="flex flex-wrap items-center gap-1.5 self-start sm:self-auto">
+                <div class="flex flex-wrap items-center gap-1.5">
                   {% if a.setify_url or a.setlist_url %}
                   <a href="{% if a.setify_url %}{{ a.setify_url }}{% else %}https://setify.co/s/{{ a.setlist_url|slice:'-13:-5' }}{% endif %}" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 hover:text-white text-xs font-semibold transition inline-flex items-center gap-1.5 shadow-sm" title="Export setlist to Spotify / Apple Music playlist via Setify">
                     <i class="fa-solid fa-music text-emerald-400 text-xs"></i>
@@ -3384,7 +3575,7 @@
                   </a>
                   {% endif %}
 
-                  <a href="https://www.youtube.com/results?search_query={{ a.artist|urlencode }}+{{ c.venue|urlencode }}+{% if c.year %}{{ c.year }}{% elif c.date %}{{ c.date|slice:':4' }}{% else %}{{ c.raw_date|slice:':4' }}{% endif %}" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-300 hover:text-white text-xs font-semibold transition inline-flex items-center gap-1.5 shadow-sm" title="Search YouTube for live concert recordings of {{ a.artist }} @ {{ c.venue }} ({% if c.year %}{{ c.year }}{% elif c.date %}{{ c.date|slice:':4' }}{% endif %})">
+                  <a href="https://www.youtube.com/results?search_query={{ a.artist|urlencode }}+{{ c.venue|urlencode }}+{% if c.year %}{{ c.year }}{% elif c.date %}{{ c.date|slice:':4' }}{% else %}{{ c.raw_date|slice:':4' }}{% endif %}" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-300 hover:text-white text-xs font-semibold transition inline-flex items-center gap-1.5 shadow-sm" title="Search YouTube for live concert recordings">
                     <i class="fa-brands fa-youtube text-rose-500 text-xs"></i>
                     <span>YouTube</span>
                     <i class="fa-solid fa-arrow-up-right-from-square text-[8px] opacity-70"></i>
@@ -3407,7 +3598,7 @@
                   <i class="fa-solid fa-users text-indigo-400 text-[10px]"></i> Lineup ({{ c.year|default:c.date }}):
                 </span>
                 {% for m in a.musicians %}
-                <button type="button" onclick="event.stopPropagation(); jumpToMusicianInDrilldown('{{ m.musician|escapejs }}');"
+                <button type="button" onclick="jumpToMusicianInDrilldown('{{ m.musician|escapejs }}');"
                   class="badge bg-slate-800/90 hover:bg-indigo-600/30 text-slate-300 hover:text-indigo-200 border border-slate-700/80 hover:border-indigo-500/40 text-[10px] transition cursor-pointer flex items-center gap-1"
                   title="Filter drilldown by {{ m.musician }}">
                   <span class="font-medium">{{ m.musician }}</span>
@@ -3423,7 +3614,7 @@
 
               <!-- Artist Setlist Sets (Set 1 / Set 2 / Encore / etc.) -->
               {% if a.grouped_sets and a.grouped_sets|length > 0 %}
-                <div class="space-y-3">
+                <div class="space-y-3.5">
                   {% for s_group in a.grouped_sets %}
                   <div class="space-y-1.5">
                     
@@ -3439,7 +3630,7 @@
                     <!-- Tracks List -->
                     <div class="grid grid-cols-1 gap-1.5">
                       {% for track in s_group.songs %}
-                      <div class="flex flex-col sm:flex-row sm:items-center justify-between p-2 rounded-lg bg-slate-950/40 border border-slate-800/40 hover:border-slate-700/60 text-xs gap-2 transition">
+                      <div class="flex flex-col sm:flex-row sm:items-center justify-between p-2 rounded-lg bg-slate-950/50 border border-slate-800/60 hover:border-slate-700/70 text-xs gap-2 transition">
                         
                         <!-- Track Name & Thumbnail & Nth-Time-Heard & Song Age -->
                         <div class="flex flex-wrap items-center gap-2 min-w-0">
@@ -3473,7 +3664,7 @@
                           </div>
                           {% endif %}
 
-                          <button onclick="jumpToSongInDrilldown('{{ a.artist|escapejs }}', '{{ track.song|escapejs }}');" class="text-white font-semibold hover:underline hover:text-indigo-300 text-left">
+                          <button type="button" onclick="jumpToSongInDrilldown('{{ a.artist|escapejs }}', '{{ track.song|escapejs }}');" class="text-white font-semibold hover:underline hover:text-indigo-300 text-left">
                             {{ track.song }}
                           </button>
 
@@ -3492,7 +3683,7 @@
 
                           <!-- Album Tag Button -->
                           <button type="button"
-                                  onclick="event.stopPropagation(); openAlbumModalByName('{{ a.artist|escapejs }}', '{{ track.album|escapejs }}');"
+                                  onclick="openAlbumModalByName('{{ a.artist|escapejs }}', '{{ track.album|escapejs }}');"
                                   class="badge bg-slate-800/80 hover:bg-slate-800 hover:text-indigo-200 hover:border-indigo-500/50 text-indigo-300 border border-indigo-500/20 text-[10px] cursor-pointer transition flex items-center gap-1 shrink-0"
                                   title="Inspect album: {{ track.album_display }}">
                             <i class="fa-solid fa-compact-disc text-[8px] text-indigo-400"></i>
@@ -3523,7 +3714,7 @@
                       <span>No setlist recorded for this performance.</span>
                     </p>
                     <div class="flex flex-wrap items-center gap-2">
-                      <a href="https://www.youtube.com/results?search_query={{ a.artist|urlencode }}+{{ c.venue|urlencode }}+{% if c.year %}{{ c.year }}{% elif c.date %}{{ c.date|slice:':4' }}{% else %}{{ c.raw_date|slice:':4' }}{% endif %}" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-300 hover:text-white text-xs font-semibold transition inline-flex items-center gap-1.5 shadow-sm" title="Search YouTube for live concert recordings of {{ a.artist }} @ {{ c.venue }} ({% if c.year %}{{ c.year }}{% elif c.date %}{{ c.date|slice:':4' }}{% endif %})">
+                      <a href="https://www.youtube.com/results?search_query={{ a.artist|urlencode }}+{{ c.venue|urlencode }}+{% if c.year %}{{ c.year }}{% elif c.date %}{{ c.date|slice:':4' }}{% else %}{{ c.raw_date|slice:':4' }}{% endif %}" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-300 hover:text-white text-xs font-semibold transition inline-flex items-center gap-1.5 shadow-sm" title="Search YouTube for live concert recordings">
                         <i class="fa-brands fa-youtube text-rose-500 text-xs"></i>
                         <span>YouTube</span>
                         <i class="fa-solid fa-arrow-up-right-from-square text-[8px] opacity-70"></i>
@@ -3570,6 +3761,7 @@
 
             </div>
             {% endfor %}
+
           </div>
 
         </div>
@@ -5834,17 +6026,10 @@
         }
         filterConcertCards(query);
       }
-      // Expand matching concert cards when jumping to them and smoothly scroll to the first match
       let firstMatch = null;
       document.querySelectorAll('.concert-card').forEach(card => {
-        if (card.style.display !== 'none') {
-          if (!firstMatch) firstMatch = card;
-          const details = card.querySelector('[id^="concert-details-"]');
-          const chevron = card.querySelector('[id^="concert-chevron-"]');
-          if (details) {
-            details.classList.remove('hidden');
-            if (chevron) chevron.classList.add('rotate-180');
-          }
+        if (card.style.display !== 'none' && !firstMatch) {
+          firstMatch = card;
         }
       });
       if (firstMatch) {
@@ -5869,14 +6054,8 @@
       }
       let firstMatch = null;
       document.querySelectorAll('.concert-card').forEach(card => {
-        if (card.style.display !== 'none') {
-          if (!firstMatch) firstMatch = card;
-          const details = card.querySelector('[id^="concert-details-"]');
-          const chevron = card.querySelector('[id^="concert-chevron-"]');
-          if (details) {
-            details.classList.remove('hidden');
-            if (chevron) chevron.classList.add('rotate-180');
-          }
+        if (card.style.display !== 'none' && !firstMatch) {
+          firstMatch = card;
         }
       });
       if (firstMatch) {
@@ -5923,12 +6102,6 @@
           card.style.display = 'block';
           visibleCount++;
           if (!firstMatch) firstMatch = card;
-          const details = card.querySelector('[id^="concert-details-"]');
-          const chevron = card.querySelector('[id^="concert-chevron-"]');
-          if (details) {
-            details.classList.remove('hidden');
-            if (chevron) chevron.classList.add('rotate-180');
-          }
         } else {
           card.style.display = 'none';
         }
@@ -5968,54 +6141,141 @@
       });
     }
 
-    let allConcertsExpanded = false;
-    function toggleConcertDetails(id) {
-      const el = document.getElementById('concert-details-' + id);
-      const ch = document.getElementById('concert-chevron-' + id);
-      if (el.classList.contains('hidden')) {
-        el.classList.remove('hidden');
-        if (ch) ch.classList.add('rotate-180');
-        if (typeof initLazyAlbumThumbnails === 'function') {
-          initLazyAlbumThumbnails(el);
-        }
+    let activeModalConcertId = null;
+    let activeModalArtistIndex = null;
+
+    function openConcertModal(concertId, initialArtistIndex = null) {
+      activeModalConcertId = concertId;
+      const card = document.getElementById('concert-card-' + concertId);
+      const modal = document.getElementById('concert-detail-modal');
+      const modalBody = document.getElementById('concert-modal-body');
+      if (!card || !modal || !modalBody) return;
+
+      const date = card.getAttribute('data-formatted-date') || card.getAttribute('data-date') || '';
+      const venue = card.getAttribute('data-venue') || '';
+      const city = card.getAttribute('data-city') || '';
+      const state = card.getAttribute('data-state') || '';
+
+      const dateBadge = document.getElementById('concert-modal-date-badge');
+      const venueElem = document.getElementById('modal-concert-venue');
+      const locElem = document.getElementById('modal-concert-location');
+
+      if (dateBadge) dateBadge.textContent = date;
+      if (venueElem) venueElem.textContent = venue;
+      if (locElem) {
+        let locStr = '';
+        if (city) locStr += city;
+        if (state) locStr += (locStr ? ', ' : '') + state;
+        locElem.innerHTML = locStr ? `<i class="fa-solid fa-location-dot text-indigo-400 text-[10px]"></i> <span>${locStr}</span>` : '';
+      }
+
+      const payload = document.getElementById('concert-modal-payload-' + concertId);
+      if (payload) {
+        modalBody.innerHTML = payload.innerHTML;
+        modalBody.querySelectorAll('[data-action="view-band-setlist"], .artist-set-card').forEach(row => {
+          row.onclick = (e) => {
+            if (e.target.closest('a, .favorite-artist-btn, button:not([class*="bg-gradient"])')) {
+              return;
+            }
+            const cId = row.getAttribute('data-concert-id') || activeModalConcertId;
+            const artIdx = row.getAttribute('data-artist-index');
+            if (cId && artIdx) {
+              showBandSetlistInModal(cId, artIdx);
+            }
+          };
+        });
+      }
+
+      modal.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+
+      if (initialArtistIndex) {
+        showBandSetlistInModal(concertId, initialArtistIndex);
       } else {
-        el.classList.add('hidden');
-        if (ch) ch.classList.remove('rotate-180');
+        showConcertOverviewInModal(concertId);
       }
     }
 
-    function toggleAllConcertCards() {
-      allConcertsExpanded = !allConcertsExpanded;
-      const expandBtn = document.getElementById('concert-expand-all-btn');
-      const expandIcon = document.getElementById('concert-expand-all-icon');
-      const expandText = document.getElementById('concert-expand-all-text');
+    function showConcertOverviewInModal(concertId) {
+      const cid = concertId || activeModalConcertId;
+      const headerOverview = document.getElementById('concert-modal-header-overview');
+      const headerSetlist = document.getElementById('concert-modal-header-setlist');
+      if (headerOverview) headerOverview.classList.remove('hidden');
+      if (headerSetlist) headerSetlist.classList.add('hidden');
 
-      if (expandText) expandText.textContent = allConcertsExpanded ? 'Collapse All' : 'Expand All';
-      if (expandIcon) {
-        if (allConcertsExpanded) {
-          expandIcon.className = 'fa-solid fa-down-left-and-up-right-to-center text-xs text-indigo-400';
-        } else {
-          expandIcon.className = 'fa-solid fa-up-right-and-down-left-from-center text-xs text-indigo-400';
+      const modalBody = document.getElementById('concert-modal-body');
+      if (modalBody) {
+        const overviewEl = modalBody.querySelector('[id^="concert-modal-overview-"]');
+        if (overviewEl) overviewEl.classList.remove('hidden');
+        modalBody.querySelectorAll('[id^="concert-modal-setlist-view-"]').forEach(el => el.classList.add('hidden'));
+        modalBody.scrollTop = 0;
+      }
+    }
+
+    function showBandSetlistInModal(concertId, artistIndex) {
+      const cid = concertId || activeModalConcertId;
+      activeModalArtistIndex = artistIndex;
+
+      const headerOverview = document.getElementById('concert-modal-header-overview');
+      const headerSetlist = document.getElementById('concert-modal-header-setlist');
+      const artistTitle = document.getElementById('modal-concert-artist-title');
+
+      const modalBody = document.getElementById('concert-modal-body');
+      if (!modalBody) return;
+
+      const overviewEl = modalBody.querySelector('[id^="concert-modal-overview-"]');
+      if (overviewEl) overviewEl.classList.add('hidden');
+
+      modalBody.querySelectorAll('[id^="concert-modal-setlist-view-"]').forEach(el => el.classList.add('hidden'));
+
+      const card = document.getElementById('concert-card-' + cid);
+      const date = card ? (card.getAttribute('data-formatted-date') || card.getAttribute('data-date') || '') : '';
+      const venue = card ? (card.getAttribute('data-venue') || '') : '';
+      const city = card ? (card.getAttribute('data-city') || '') : '';
+      const state = card ? (card.getAttribute('data-state') || '') : '';
+
+      const setlistDateBadge = document.getElementById('modal-concert-setlist-date-badge');
+      if (setlistDateBadge) setlistDateBadge.textContent = date;
+
+      const setlistVenueSub = document.getElementById('modal-concert-setlist-venue-sub');
+      if (setlistVenueSub) {
+        let locPart = '';
+        if (city) locPart += city;
+        if (state) locPart += (locPart ? ', ' : '') + state;
+        setlistVenueSub.innerHTML = `<i class="fa-solid fa-location-dot text-indigo-400 text-[10px]"></i> <span class="font-semibold text-slate-300">${venue}</span>${locPart ? `<span class="text-slate-500">• ${locPart}</span>` : ''}`;
+      }
+
+      const targetSetView = modalBody.querySelector(`[id="concert-modal-setlist-view-${cid}-${artistIndex}"]`);
+      if (targetSetView) {
+        targetSetView.classList.remove('hidden');
+        const artName = targetSetView.getAttribute('data-artist-name') || '';
+        if (artistTitle) {
+          artistTitle.innerHTML = `<i class="fa-solid fa-microphone-lines text-indigo-400 text-sm"></i> <span>${artName}</span>`;
         }
       }
 
-      document.querySelectorAll('.concert-card').forEach(card => {
-        const details = card.querySelector('[id^="concert-details-"]');
-        const chevron = card.querySelector('[id^="concert-chevron-"]');
-        if (details) {
-          if (allConcertsExpanded) {
-            details.classList.remove('hidden');
-            if (chevron) chevron.classList.add('rotate-180');
-          } else {
-            details.classList.add('hidden');
-            if (chevron) chevron.classList.remove('rotate-180');
-          }
-        }
-      });
+      if (headerOverview) headerOverview.classList.add('hidden');
+      if (headerSetlist) headerSetlist.classList.remove('hidden');
 
-      if (allConcertsExpanded && typeof initLazyAlbumThumbnails === 'function') {
-        initLazyAlbumThumbnails(document.getElementById('tab-concerts'));
+      if (typeof initLazyAlbumThumbnails === 'function') {
+        initLazyAlbumThumbnails(modalBody);
       }
+      modalBody.scrollTop = 0;
+    }
+
+    function closeConcertModal() {
+      const modal = document.getElementById('concert-detail-modal');
+      if (modal) {
+        modal.classList.add('hidden');
+      }
+      document.body.style.overflow = '';
+      activeModalConcertId = null;
+      activeModalArtistIndex = null;
+    }
+
+    // Backwards-compatible shim
+    function toggleConcertDetails(id) {
+      openConcertModal(id);
     }
 
     let showOnlyFavorites = false;
@@ -7671,14 +7931,14 @@
       cards.forEach((card, idx) => {
         const img = card.querySelector('.album-cover-img');
         const fallback = card.querySelector('[id^="album-cover-fallback-"]');
-        if (img) {
+        if (img && img.dataset.loaded !== 'true') {
           if (albumIntersectionObserver) {
             albumIntersectionObserver.observe(card);
-          }
-          if (idx < 12) {
+            if (idx < 6) {
+              prioritizeAlbumCardArt(img, fallback);
+            }
+          } else if (idx < 12) {
             prioritizeAlbumCardArt(img, fallback);
-          } else {
-            loadSingleAlbumCardArt(img, fallback);
           }
         }
       });
@@ -8283,13 +8543,57 @@
       }
     }
 
+    let lazyThumbnailObserver = null;
+
+    function getLazyThumbnailObserver() {
+      if (!lazyThumbnailObserver && 'IntersectionObserver' in window) {
+        lazyThumbnailObserver = new IntersectionObserver((entries, observer) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              const img = entry.target;
+              observer.unobserve(img);
+              if (img.dataset.loaded !== 'true') {
+                const fallback = img.parentElement ? img.parentElement.querySelector('.album-thumb-fallback') : null;
+                loadSingleAlbumCardArt(img, fallback, img.dataset.size || 'small');
+              }
+            }
+          });
+        }, {
+          rootMargin: '100px 0px',
+          threshold: 0.01
+        });
+      }
+      return lazyThumbnailObserver;
+    }
+
     function initLazyAlbumThumbnails(container = document) {
       if (!container) return;
       const imgs = container.querySelectorAll('img.lazy-album-art');
+      const observer = getLazyThumbnailObserver();
+
       imgs.forEach(img => {
         if (img.dataset.loaded === 'true') return;
-        const fallback = img.parentElement ? img.parentElement.querySelector('.album-thumb-fallback') : null;
-        loadSingleAlbumCardArt(img, fallback);
+        const artist = img.dataset.artist;
+        const album = img.dataset.album;
+        if (!artist || !album) return;
+
+        const cleanAlbum = album.replace(/\s*\([^)]*\)/g, '').trim();
+        const cacheKey = `setlore_art_${artist.toLowerCase()}_${cleanAlbum.toLowerCase()}`;
+
+        // If already cached in memory or localStorage, apply immediately without waiting for scroll
+        if (albumArtCache[cacheKey] || localStorage.getItem(cacheKey)) {
+          const fallback = img.parentElement ? img.parentElement.querySelector('.album-thumb-fallback') : null;
+          loadSingleAlbumCardArt(img, fallback, img.dataset.size || 'small');
+          return;
+        }
+
+        // Otherwise, only load network asset when scrolled into view
+        if (observer) {
+          observer.observe(img);
+        } else {
+          const fallback = img.parentElement ? img.parentElement.querySelector('.album-thumb-fallback') : null;
+          loadSingleAlbumCardArt(img, fallback, img.dataset.size || 'small');
+        }
       });
     }
 
@@ -8466,6 +8770,7 @@
     // Modal listeners
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
+        closeConcertModal();
         closeAlbumModal();
         closeOverviewChartModal();
       }
