@@ -6336,6 +6336,8 @@
       if (typeof filterFn === 'function') {
         filterFn('');
       }
+    }
+
     function findArtistIndexInConcertPayload(cid, artistName) {
       if (!cid || !artistName) return null;
       const payload = document.getElementById('concert-modal-payload-' + cid);
