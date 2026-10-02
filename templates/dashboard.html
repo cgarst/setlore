@@ -2611,15 +2611,15 @@
             <!-- Step 2 Header (Band Setlist Breadcrumb) -->
             <div id="concert-modal-header-setlist" class="hidden flex flex-col gap-1.5 min-w-0">
               <div class="flex items-center gap-2.5 flex-wrap min-w-0">
-                <button type="button" onclick="showConcertOverviewInModal()" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs font-semibold transition inline-flex items-center gap-1.5 cursor-pointer shrink-0">
-                  <i class="fa-solid fa-arrow-left text-[11px]"></i>
-                  <span>All Bands</span>
-                </button>
                 <h3 id="modal-concert-artist-title" class="text-base sm:text-lg font-bold text-white truncate flex items-center gap-1.5"></h3>
               </div>
               <div class="flex items-center gap-2 flex-wrap text-xs text-slate-400 min-w-0">
                 <span id="modal-concert-setlist-date-badge" class="badge bg-indigo-500/20 text-indigo-300 font-mono text-xs font-bold border border-indigo-500/30 px-2 py-0.5 shrink-0"></span>
                 <p id="modal-concert-setlist-venue-sub" class="flex items-center gap-1.5 truncate"></p>
+                <button type="button" onclick="showConcertOverviewInModal()" class="px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/80 text-[11px] font-medium transition inline-flex items-center gap-1 cursor-pointer shrink-0 shadow-sm" title="View all bands from this concert">
+                  <i class="fa-solid fa-users text-indigo-400 text-[10px]"></i>
+                  <span>All Bands</span>
+                </button>
               </div>
             </div>
           </div>
