@@ -307,7 +307,7 @@
       -webkit-touch-callout: none;
       -webkit-text-size-adjust: 100%;
       transition: background-color 0.25s ease, color 0.25s ease;
-      padding-top: max(0.5rem, env(safe-area-inset-top, 0px)) !important;
+      padding-top: max(1rem, calc(env(safe-area-inset-top, 0px) + 0.5rem)) !important;
       padding-left: max(0.75rem, env(safe-area-inset-left, 0px)) !important;
       padding-right: max(0.75rem, env(safe-area-inset-right, 0px)) !important;
       padding-bottom: max(5.5rem, calc(env(safe-area-inset-bottom, 0px) + 4.5rem)) !important;
@@ -315,7 +315,36 @@
     @media (min-width: 768px) {
       body {
         padding: 2rem !important;
-        padding-top: max(1.5rem, env(safe-area-inset-top, 0px)) !important;
+        padding-top: max(1.5rem, calc(env(safe-area-inset-top, 0px) + 0.5rem)) !important;
+      }
+    }
+
+    /* Modal Backdrop & Safe Area Protection for iOS PWA / Mobile */
+    .modal-overlay,
+    [id$="-modal"] {
+      padding-top: max(2rem, calc(env(safe-area-inset-top, 0px) + 1.25rem)) !important;
+      padding-bottom: max(2rem, calc(env(safe-area-inset-bottom, 0px) + 1.25rem)) !important;
+      padding-left: max(0.75rem, calc(env(safe-area-inset-left, 0px) + 0.5rem)) !important;
+      padding-right: max(0.75rem, calc(env(safe-area-inset-right, 0px) + 0.5rem)) !important;
+      box-sizing: border-box !important;
+    }
+
+    /* Constrain modal dialog cards on mobile to avoid touching or clipping into system safe areas */
+    [id$="-modal"] > div.glass-card,
+    [id$="-modal"] > div[class*="glass-card"] {
+      max-height: min(88vh, calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 3rem)) !important;
+    }
+
+    @media (min-width: 640px) {
+      .modal-overlay,
+      [id$="-modal"] {
+        padding: 2rem !important;
+        padding-top: max(2rem, calc(env(safe-area-inset-top, 0px) + 1.5rem)) !important;
+        padding-bottom: max(2rem, calc(env(safe-area-inset-bottom, 0px) + 1.5rem)) !important;
+      }
+      [id$="-modal"] > div.glass-card,
+      [id$="-modal"] > div[class*="glass-card"] {
+        max-height: 90vh !important;
       }
     }
     button, a, input, select, textarea {
@@ -885,7 +914,6 @@
       </div>
     </div>
     <div class="flex items-center gap-3">
-      <span class="text-[11px] font-mono text-slate-400 hidden sm:inline">Polling status...</span>
       <button type="button" onclick="cancelOngoingSync()" class="px-2.5 py-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer" title="Cancel ongoing sync">
         <i class="fa-solid fa-xmark"></i>
         <span>Cancel</span>
@@ -3122,9 +3150,9 @@
             </div>
             <p class="text-xs text-slate-400">
               {% if is_public_view %}
-                {{ profile_user.username }} has <span id="upcoming-overview-count" class="text-white font-semibold">{{ upcoming_shows|length|intcomma }}</span> upcoming show{{ upcoming_shows|length|pluralize }} near them, which will they catch next?
+                {{ profile_user.username }} has <span id="upcoming-overview-count" class="text-white font-semibold">{{ upcoming_shows|length|intcomma }}</span> upcoming show{{ upcoming_shows|length|pluralize }} near them from previously seen artists, which will they catch next?
               {% else %}
-                You have <span id="upcoming-overview-count" class="text-white font-semibold">{{ upcoming_shows|length|intcomma }}</span> upcoming show{{ upcoming_shows|length|pluralize }} near you, which will you catch next?
+                You have <span id="upcoming-overview-count" class="text-white font-semibold">{{ upcoming_shows|length|intcomma }}</span> upcoming show{{ upcoming_shows|length|pluralize }} near you from previously seen artists, which will you catch next?
               {% endif %}
             </p>
           </div>
@@ -4005,7 +4033,7 @@
                     <!-- Tracks List -->
                     <div class="grid grid-cols-1 gap-1.5">
                       {% for track in s_group.songs %}
-                      <div class="flex flex-col sm:flex-row sm:items-center justify-between p-2 rounded-lg bg-slate-950/50 border border-slate-800/60 hover:border-slate-700/70 text-xs gap-2 transition">
+                      <div onclick="openArtistSongModal('{{ a.artist|escapejs }}', '{{ track.song|escapejs }}');" class="flex flex-col sm:flex-row sm:items-center justify-between p-2 rounded-lg bg-slate-950/50 border border-slate-800/60 hover:border-indigo-500/50 hover:bg-slate-900 text-xs gap-2 transition cursor-pointer select-none group">
                         
                         <!-- Track Name & Thumbnail & Nth-Time-Heard & Song Age -->
                         <div class="flex flex-wrap items-center gap-2 min-w-0">
@@ -7966,12 +7994,13 @@
             }
 
             const occCard = document.createElement('div');
-            occCard.className = 'p-3.5 sm:p-4 rounded-xl bg-slate-900/80 border border-slate-800/80 hover:border-slate-700 hover:bg-slate-900 transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 group';
+            occCard.className = 'p-3.5 sm:p-4 rounded-xl bg-slate-900/80 border border-slate-800/80 hover:border-indigo-500/50 hover:bg-slate-900 transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 group cursor-pointer select-none';
+            occCard.setAttribute('onclick', `openConcertModalByVenueDate('${(o.venue || '').replace(/'/g, "\\'")}', '${o.date || ''}', '${(data.artist || '').replace(/'/g, "\\'")}')`);
             occCard.innerHTML = `
               <div class="space-y-1.5 min-w-0 flex-1">
                 <div class="flex flex-wrap items-center gap-2">
                   <span class="px-2 py-0.5 rounded-md bg-indigo-500/20 border border-indigo-500/30 font-mono text-indigo-300 font-bold text-xs">#${oIdx + 1}</span>
-                  <span class="font-mono text-slate-100 font-bold text-sm">${o.date}</span>
+                  <span class="font-mono text-slate-100 font-bold text-sm group-hover:text-indigo-200 transition">${o.date}</span>
                   <span class="text-xs text-slate-400 inline-flex items-center"><i class="fa-solid fa-location-dot text-[11px] text-indigo-400 mr-1.5"></i>${escapeHtml(o.venue)}</span>
                   ${posBadge}
                   ${o.is_cover ? `<span class="badge bg-pink-500/20 text-pink-300 text-[10px] border border-pink-500/30 font-semibold">Cover${(o.cover_original && o.cover_original !== 'Cover') ? ` (${escapeHtml(o.cover_original)})` : ''}</span>` : ''}
@@ -7985,9 +8014,9 @@
                 ` : ''}
               </div>
               <div class="flex items-center justify-end shrink-0">
-                <button type="button" onclick="openConcertModalByVenueDate('${(o.venue || '').replace(/'/g, "\\'")}', '${o.date || ''}', '${(data.artist || '').replace(/'/g, "\\'")}')" class="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition inline-flex items-center gap-1.5 cursor-pointer shadow-md shadow-indigo-600/20 group-hover:scale-[1.02]">
+                <button type="button" class="px-3.5 py-1.5 rounded-xl bg-indigo-600 group-hover:bg-indigo-500 text-white font-semibold text-xs transition inline-flex items-center gap-1.5 cursor-pointer shadow-md shadow-indigo-600/20 group-hover:scale-[1.02]">
                   <span>View Concert</span>
-                  <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                  <i class="fa-solid fa-arrow-right text-[10px] group-hover:translate-x-0.5 transition-transform"></i>
                 </button>
               </div>
             `;
@@ -9293,7 +9322,7 @@
             const safeSong = (s.song || '').replace(/'/g, "\\'");
 
             return `
-              <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/80 hover:bg-slate-800/80 border border-slate-800 transition group">
+              <div onclick="openArtistSongModal('${safeArtist}', '${safeSong}');" class="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/80 hover:bg-slate-800/80 hover:border-indigo-500/50 border border-slate-800 transition group cursor-pointer select-none">
                 <div class="flex items-center gap-2.5 min-w-0">
                   <span class="text-xs font-mono font-bold text-indigo-400 w-6 shrink-0 text-center">#${trackNum}</span>
                   <div class="min-w-0">
@@ -9308,10 +9337,9 @@
                   <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                     ${occCount}x
                   </span>
-                  <button onclick="openArtistSongModal('${safeArtist}', '${safeSong}');"
-                          title="View song performances"
-                          class="px-2 py-1 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/40 text-indigo-300 hover:text-white border border-indigo-500/30 text-[10px] font-semibold transition cursor-pointer">
-                    <i class="fa-solid fa-arrow-right text-[9px]"></i>
+                  <button type="button" title="View song performances"
+                          class="px-2 py-1 rounded-lg bg-indigo-500/20 group-hover:bg-indigo-500/40 text-indigo-300 group-hover:text-white border border-indigo-500/30 text-[10px] font-semibold transition cursor-pointer">
+                    <i class="fa-solid fa-arrow-right text-[9px] group-hover:translate-x-0.5 transition-transform"></i>
                   </button>
                 </div>
               </div>
@@ -9351,7 +9379,7 @@
             const trkNum = s.track_number ? `#${s.track_number}` : `+`;
 
             tracksHtml += `
-              <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/80 hover:bg-slate-800/80 border border-slate-800 transition group">
+              <div onclick="openArtistSongModal('${safeArtist}', '${safeSong}');" class="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/80 hover:bg-slate-800/80 hover:border-indigo-500/50 border border-slate-800 transition group cursor-pointer select-none">
                 <div class="flex items-center gap-2.5 min-w-0">
                   <span class="text-xs font-mono font-bold text-indigo-400 w-6 shrink-0 text-center">${trkNum}</span>
                   <div class="min-w-0">
@@ -9366,10 +9394,9 @@
                   <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                     ${occCount}x
                   </span>
-                  <button onclick="openArtistSongModal('${safeArtist}', '${safeSong}');"
-                          title="View song performances"
-                          class="px-2 py-1 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/40 text-indigo-300 hover:text-white border border-indigo-500/30 text-[10px] font-semibold transition cursor-pointer">
-                    <i class="fa-solid fa-arrow-right text-[9px]"></i>
+                  <button type="button" title="View song performances"
+                          class="px-2 py-1 rounded-lg bg-indigo-500/20 group-hover:bg-indigo-500/40 text-indigo-300 group-hover:text-white border border-indigo-500/30 text-[10px] font-semibold transition cursor-pointer">
+                    <i class="fa-solid fa-arrow-right text-[9px] group-hover:translate-x-0.5 transition-transform"></i>
                   </button>
                 </div>
               </div>
@@ -9396,7 +9423,7 @@
           const trackNum = s.track_number || (sIdx + 1);
 
           return `
-            <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/80 hover:bg-slate-800/80 border border-slate-800 transition group">
+            <div onclick="openArtistSongModal('${safeArtist}', '${safeSong}');" class="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/80 hover:bg-slate-800/80 hover:border-indigo-500/50 border border-slate-800 transition group cursor-pointer select-none">
               <div class="flex items-center gap-2.5 min-w-0">
                 <span class="text-xs font-mono font-bold text-indigo-400 w-6 shrink-0 text-center">#${trackNum}</span>
                 <div class="min-w-0">
@@ -9411,10 +9438,9 @@
                 <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                   ${occCount}x
                 </span>
-                <button onclick="openArtistSongModal('${safeArtist}', '${safeSong}');"
-                        title="View song performances"
-                        class="px-2 py-1 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/40 text-indigo-300 hover:text-white border border-indigo-500/30 text-[10px] font-semibold transition cursor-pointer">
-                  <i class="fa-solid fa-arrow-right text-[9px]"></i>
+                <button type="button" title="View song performances"
+                        class="px-2 py-1 rounded-lg bg-indigo-500/20 group-hover:bg-indigo-500/40 text-indigo-300 group-hover:text-white border border-indigo-500/30 text-[10px] font-semibold transition cursor-pointer">
+                  <i class="fa-solid fa-arrow-right text-[9px] group-hover:translate-x-0.5 transition-transform"></i>
                 </button>
               </div>
             </div>

@@ -34,6 +34,13 @@
       font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
       touch-action: manipulation;
       -webkit-font-smoothing: antialiased;
+      padding-top: max(0rem, env(safe-area-inset-top, 0px));
+      padding-left: max(0rem, env(safe-area-inset-left, 0px));
+      padding-right: max(0rem, env(safe-area-inset-right, 0px));
+      padding-bottom: max(1.5rem, calc(env(safe-area-inset-bottom, 0px) + 1rem));
+    }
+    header.sticky.top-0 {
+      padding-top: max(0rem, env(safe-area-inset-top, 0px));
     }
     .glass-card {
       background: rgba(18, 14, 28, 0.82);
