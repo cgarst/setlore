@@ -660,7 +660,7 @@ class DjangoAppTests(TestCase):
         content = res.content.decode('utf-8')
         self.assertIn('id="on-this-day-strip"', content)
         self.assertIn('Between the Buried and Me', content)
-        self.assertIn('3 yrs ago', content)
+        self.assertIn('(3y)', content)
 
 
 

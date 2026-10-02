@@ -2857,53 +2857,59 @@
       
       <!-- On This Day Banner (When past concerts occurred on this calendar day) -->
       {% if on_this_day and on_this_day|length > 0 %}
-      <div id="on-this-day-strip" class="glass-card p-3 sm:p-3.5 rounded-xl border border-indigo-500/35 bg-gradient-to-r from-indigo-950/50 via-purple-950/40 to-slate-900/80 shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-3 relative overflow-hidden group">
+      <div id="on-this-day-strip" class="glass-card py-2 px-2.5 sm:py-3 sm:px-3.5 rounded-xl border border-indigo-500/35 bg-gradient-to-r from-indigo-950/60 via-purple-950/40 to-slate-900/80 shadow-md flex items-center justify-between gap-2.5 relative overflow-hidden group">
         <div class="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-indigo-400 to-pink-500"></div>
 
-        <div class="flex items-center gap-3 min-w-0 flex-1 pl-1">
-          <div class="w-8 h-8 rounded-lg bg-indigo-500/20 border border-indigo-500/40 flex items-center justify-center text-indigo-300 shrink-0 shadow-sm">
-            <i class="fa-solid fa-calendar-star text-sm"></i>
+        <div class="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 pl-1">
+          <!-- Desktop/Tablet Icon Square -->
+          <div class="hidden sm:flex w-8 h-8 rounded-lg bg-pink-500/20 border border-pink-500/40 items-center justify-center text-pink-300 shrink-0 shadow-sm">
+            <i class="fa-solid fa-cake-candles text-sm"></i>
           </div>
-          <div class="min-w-0 space-y-0.5">
-            <div class="flex items-center gap-2 flex-wrap">
-              <span class="text-[10px] uppercase tracking-wider font-extrabold px-1.5 py-0.5 rounded bg-indigo-500/25 text-indigo-200 border border-indigo-500/40 shadow-xs">
+
+          <!-- Mobile Minimal Icon -->
+          <i class="fa-solid fa-cake-candles text-pink-400 text-xs sm:hidden shrink-0"></i>
+
+          <div class="min-w-0 flex-1 space-y-0.5">
+            <div class="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+              <span class="text-[9px] sm:text-[10px] uppercase tracking-wider font-extrabold px-1.5 py-0.5 rounded bg-indigo-500/25 text-indigo-200 border border-indigo-500/40 shadow-xs">
                 On This Day
               </span>
-              <span class="text-xs text-slate-400 font-medium">
+              <span class="text-[11px] sm:text-xs text-slate-400 font-medium">
                 {{ today_display }}
               </span>
             </div>
-            <div class="flex items-center gap-x-3 gap-y-1.5 flex-wrap text-xs pt-0.5">
+            <div class="flex items-center gap-x-2.5 gap-y-1 overflow-x-auto no-scrollbar text-xs pt-0.5 whitespace-nowrap sm:whitespace-normal sm:flex-wrap">
               {% for otd in on_this_day %}
               <button type="button"
                       onclick="openConcertModal('{{ otd.id }}')"
-                      class="hover:text-white transition flex items-center gap-1.5 cursor-pointer text-left group/otd py-0.5">
-                <span class="badge bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[10px] font-bold font-mono">
-                  {{ otd.concert_year }} ({{ otd.years_ago }} yr{{ otd.years_ago|pluralize }} ago)
+                      class="hover:text-white transition flex items-center gap-1.5 cursor-pointer text-left group/otd py-0.5 shrink-0">
+                <span class="badge bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[10px] font-bold font-mono px-1.5 py-0.5">
+                  {{ otd.concert_year }} ({{ otd.years_ago }}y)
                 </span>
-                <strong class="text-white group-hover/otd:text-indigo-300 transition">{{ otd.primary_artist }}</strong>
+                <strong class="text-white group-hover/otd:text-indigo-300 transition text-[11px] sm:text-xs">{{ otd.primary_artist }}</strong>
                 {% if otd.venue %}
-                <span class="text-slate-400 truncate text-[11px] flex items-center gap-1">
-                  <i class="fa-solid fa-location-dot text-[9px] text-slate-500"></i>
-                  {{ otd.venue }}{% if otd.city %}, {{ otd.city }}{% endif %}
+                <span class="text-slate-400 hidden md:inline truncate text-[11px]">
+                  @ {{ otd.venue }}{% if otd.city %}, {{ otd.city }}{% endif %}
                 </span>
                 {% endif %}
               </button>
               {% if not forloop.last %}
-              <span class="text-slate-700 hidden sm:inline select-none">•</span>
+              <span class="text-slate-700 select-none">•</span>
               {% endif %}
               {% endfor %}
             </div>
           </div>
         </div>
 
-        <div class="flex items-center gap-2 shrink-0 self-end sm:self-center pl-1 sm:pl-0">
+        <div class="flex items-center gap-2 shrink-0">
           <button type="button"
                   onclick="openConcertModal('{{ on_this_day.0.id }}')"
-                  class="px-2.5 py-1.5 rounded-lg bg-indigo-600/30 hover:bg-indigo-600 text-indigo-200 hover:text-white border border-indigo-500/40 text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer shadow-sm">
-            <i class="fa-solid fa-ticket text-[11px]"></i>
-            <span>View {% if on_this_day|length > 1 %}Shows{% else %}Show{% endif %}</span>
-            <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                  class="px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg bg-indigo-600/30 hover:bg-indigo-600 text-indigo-200 hover:text-white border border-indigo-500/40 text-[11px] sm:text-xs font-semibold transition flex items-center gap-1 sm:gap-1.5 cursor-pointer shadow-sm"
+                  title="View concert details">
+            <i class="fa-solid fa-ticket text-[10px] sm:text-[11px]"></i>
+            <span class="hidden sm:inline">{% if on_this_day|length > 1 %}View Shows{% else %}View Show{% endif %}</span>
+            <span class="inline sm:hidden">View</span>
+            <i class="fa-solid fa-arrow-right text-[9px] sm:text-[10px]"></i>
           </button>
         </div>
       </div>
