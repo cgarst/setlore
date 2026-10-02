@@ -2070,10 +2070,10 @@ def toggle_concert_artist_favorite(request):
         if ca_id_raw:
             try:
                 target_ca = ConcertArtist.objects.select_related('concert', 'artist').filter(
-                    id=int(ca_id_raw),
+                    id=str(ca_id_raw).strip(),
                     concert__user=request.user
                 ).first()
-            except (ValueError, TypeError):
+            except Exception:
                 pass
 
         if not target_ca and concert_id_raw and artist_name:

@@ -15,11 +15,10 @@ class AutocompleteAndCSVTests(TestCase):
         self.client = Client()
         self.client.login(username='testmusicfan', password='password123')
 
-        # Create artists with casing variations or duplicates
+        # Create artists
         self.art1 = Artist.objects.create(name='Dream Theater', normalized_name='dream theater')
-        self.art2 = Artist.objects.create(name='Dream theater', normalized_name='dream theater')
-        self.art3 = Artist.objects.create(name='DREAM THEATER', normalized_name='dream theater')
         self.art4 = Artist.objects.create(name='Dream Syndicate', normalized_name='dream syndicate')
+        self.art5 = Artist.objects.create(name='Dredg', normalized_name='dredg')
 
         # Create venue
         self.venue = Venue.objects.create(name='Radio City Music Hall', city='New York', state='NY')

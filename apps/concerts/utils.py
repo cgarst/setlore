@@ -422,7 +422,9 @@ def import_setlistfm_shows_into_database(user, user_attended: List[Dict[str, Any
 
     with transaction.atomic():
         for sl in user_attended:
-            art_name = (sl.get("artist", {}).get("name") or "").strip()
+            art_dict = sl.get("artist") or {}
+            art_name = (art_dict.get("name") or "").strip()
+            art_mbid = (art_dict.get("mbid") or "").strip() or None
             if not art_name or is_ignored_artist(art_name, ignored_list):
                 continue
 
@@ -430,8 +432,14 @@ def import_setlistfm_shows_into_database(user, user_attended: List[Dict[str, Any
             norm_art = can_art.lower()
             if norm_art in artists_cache:
                 art_obj = artists_cache[norm_art]
+                if art_mbid and not art_obj.mbid:
+                    art_obj.mbid = art_mbid
+                    try:
+                        art_obj.save(update_fields=['mbid'])
+                    except Exception:
+                        pass
             else:
-                art_obj, _ = Artist.get_or_create_artist(can_art)
+                art_obj, _ = Artist.get_or_create_artist(can_art, mbid=art_mbid)
                 if art_obj:
                     artists_cache[norm_art] = art_obj
 
@@ -450,6 +458,7 @@ def import_setlistfm_shows_into_database(user, user_attended: List[Dict[str, Any
             year = d_obj.year if d_obj else None
 
             v_dict = sl.get("venue") or {}
+            v_id = (v_dict.get("id") or "").strip()
             v_name = (v_dict.get("name") or "").strip()
             city_dict = v_dict.get("city") or {}
             city_name = (city_dict.get("name") or "").strip()
@@ -465,6 +474,12 @@ def import_setlistfm_shows_into_database(user, user_attended: List[Dict[str, Any
                 v_low = v_name.lower()
                 if v_low in venues_cache:
                     venue_obj = venues_cache[v_low]
+                    if v_id and not venue_obj.setlistfm_id:
+                        venue_obj.setlistfm_id = v_id
+                        try:
+                            venue_obj.save(update_fields=['setlistfm_id'])
+                        except Exception:
+                            pass
                     if (venue_obj.latitude is None or venue_obj.longitude is None) and (lat is not None and lng is not None):
                         venue_obj.latitude = lat
                         venue_obj.longitude = lng
@@ -472,12 +487,14 @@ def import_setlistfm_shows_into_database(user, user_attended: List[Dict[str, Any
                         venue_obj.save(update_fields=['latitude', 'longitude', 'geocode_source'])
                 else:
                     venue_obj = Venue.objects.create(
+                        id=v_id or None,
                         name=v_name,
                         city=city_name,
                         state=state_name,
                         country=country_name,
                         latitude=lat,
                         longitude=lng,
+                        setlistfm_id=v_id,
                         geocode_source='setlistfm' if (lat is not None and lng is not None) else 'unresolved'
                     )
                     venues_cache[v_low] = venue_obj

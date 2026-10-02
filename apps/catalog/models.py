@@ -1,10 +1,19 @@
 from django.db import models
 from django.core.serializers.json import DjangoJSONEncoder
+from src.id_utils import (
+    generate_offline_artist_id,
+    generate_offline_album_id,
+    generate_offline_song_id,
+    generate_offline_venue_id,
+    is_offline_id
+)
 
 class Artist(models.Model):
+    id = models.CharField(max_length=64, primary_key=True, help_text="MusicBrainz Artist MBID or offline:artist:<uuid>")
     name = models.CharField(max_length=255, unique=True)
     normalized_name = models.CharField(max_length=255, db_index=True)
     mbid = models.CharField(max_length=36, blank=True, null=True, help_text="MusicBrainz Artist UUID")
+    is_custom_offline = models.BooleanField(default=False, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -13,14 +22,27 @@ class Artist(models.Model):
     def __str__(self):
         return self.name
 
+    def save(self, *args, **kwargs):
+        if not self.id:
+            if self.mbid:
+                self.id = self.mbid
+            else:
+                self.id = generate_offline_artist_id(self.name)
+        self.is_custom_offline = is_offline_id(self.id)
+        super().save(*args, **kwargs)
+
     @classmethod
-    def get_or_create_artist(cls, name: str):
+    def get_or_create_artist(cls, name: str, mbid: str = None):
         from src.csv_parser import normalize_artist_name
         can_name = (normalize_artist_name(name) if normalize_artist_name else "") or (name or "").strip()
         if not can_name:
             return None, False
         norm = can_name.lower()
-        art = cls.objects.filter(normalized_name=norm).first()
+        art = None
+        if mbid:
+            art = cls.objects.filter(id=mbid).first() or cls.objects.filter(mbid=mbid).first()
+        if not art:
+            art = cls.objects.filter(normalized_name=norm).first()
         if not art:
             art = cls.objects.filter(name__iexact=can_name).first()
             if art and not art.normalized_name:
@@ -39,26 +61,43 @@ class Artist(models.Model):
                         art.save(update_fields=['name'])
                     except Exception:
                         pass
+            if mbid and not art.mbid:
+                art.mbid = mbid
+                try:
+                    art.save(update_fields=['mbid'])
+                except Exception:
+                    pass
             return art, False
 
         # If incoming name is all-lowercase, give it Title Case for display
         display_name = can_name.title() if can_name.islower() else can_name
+        artist_id = mbid or generate_offline_artist_id(display_name)
         try:
-            return cls.objects.create(name=display_name, normalized_name=norm), True
+            return cls.objects.create(
+                id=artist_id,
+                name=display_name,
+                normalized_name=norm,
+                mbid=mbid or None,
+                is_custom_offline=is_offline_id(artist_id)
+            ), True
         except Exception:
-            existing = cls.objects.filter(normalized_name=norm).first() or cls.objects.filter(name__iexact=can_name).first()
+            existing = (cls.objects.filter(id=artist_id).first()
+                        or cls.objects.filter(normalized_name=norm).first()
+                        or cls.objects.filter(name__iexact=can_name).first())
             if existing:
                 return existing, False
             raise
 
 
 class Album(models.Model):
+    id = models.CharField(max_length=64, primary_key=True, help_text="MusicBrainz Release Group MBID or offline:album:<uuid>")
     artist = models.ForeignKey(Artist, on_delete=models.CASCADE, related_name='albums')
     title = models.CharField(max_length=255)
     clean_title = models.CharField(max_length=255, db_index=True)
     release_year = models.IntegerField(null=True, blank=True, db_index=True)
     album_type = models.CharField(max_length=50, default='album')
     mbid = models.CharField(max_length=36, blank=True, null=True, help_text="MusicBrainz Release Group UUID")
+    is_custom_offline = models.BooleanField(default=False, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -70,7 +109,18 @@ class Album(models.Model):
     def __str__(self):
         return f"{self.artist.name} - {self.title} ({self.release_year or 'Unknown'})"
 
+    def save(self, *args, **kwargs):
+        if not self.id:
+            if self.mbid:
+                self.id = self.mbid
+            else:
+                self.id = generate_offline_album_id(self.artist_id, self.clean_title)
+        self.is_custom_offline = is_offline_id(self.id)
+        super().save(*args, **kwargs)
+
+
 class Song(models.Model):
+    id = models.CharField(max_length=64, primary_key=True, help_text="MusicBrainz Recording MBID or offline:song:<uuid>")
     artist = models.ForeignKey(Artist, on_delete=models.CASCADE, related_name='songs')
     album = models.ForeignKey(Album, on_delete=models.SET_NULL, null=True, blank=True, related_name='songs')
     title = models.CharField(max_length=255)
@@ -78,6 +128,8 @@ class Song(models.Model):
     release_year = models.IntegerField(null=True, blank=True)
     is_cover = models.BooleanField(default=False)
     original_artist = models.CharField(max_length=255, blank=True, null=True)
+    mbid = models.CharField(max_length=36, blank=True, null=True, help_text="MusicBrainz Recording UUID")
+    is_custom_offline = models.BooleanField(default=False, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -89,7 +141,18 @@ class Song(models.Model):
     def __str__(self):
         return f"{self.artist.name} - {self.title}"
 
+    def save(self, *args, **kwargs):
+        if not self.id:
+            if self.mbid:
+                self.id = self.mbid
+            else:
+                self.id = generate_offline_song_id(self.artist_id, self.clean_title)
+        self.is_custom_offline = is_offline_id(self.id)
+        super().save(*args, **kwargs)
+
+
 class Venue(models.Model):
+    id = models.CharField(max_length=64, primary_key=True, help_text="Setlist.fm Venue ID or offline:venue:<uuid>")
     name = models.CharField(max_length=255, unique=True)
     city = models.CharField(max_length=150, blank=True, default='')
     state = models.CharField(max_length=100, blank=True, default='')
@@ -97,6 +160,8 @@ class Venue(models.Model):
     latitude = models.FloatField(null=True, blank=True)
     longitude = models.FloatField(null=True, blank=True)
     geocode_source = models.CharField(max_length=50, default='unknown')
+    setlistfm_id = models.CharField(max_length=100, blank=True, default='', db_index=True)
+    is_custom_offline = models.BooleanField(default=False, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -105,6 +170,16 @@ class Venue(models.Model):
     def __str__(self):
         loc = f" ({self.city}, {self.state})" if self.city and self.state else ""
         return f"{self.name}{loc}"
+
+    def save(self, *args, **kwargs):
+        if not self.id:
+            if self.setlistfm_id:
+                self.id = self.setlistfm_id
+            else:
+                self.id = generate_offline_venue_id(self.name, self.city, self.state, self.country)
+        self.is_custom_offline = is_offline_id(self.id)
+        super().save(*args, **kwargs)
+
 
 class MusicianTenure(models.Model):
     musician_name = models.CharField(max_length=255, db_index=True)
@@ -129,6 +204,7 @@ class MusicianTenure(models.Model):
         span = f"{self.start_year}-{self.end_year or 'Present'}"
         return f"{self.musician_name} ({self.artist.name}: {self.role}, {span})"
 
+
 class ApiCache(models.Model):
     cache_key = models.CharField(max_length=255, primary_key=True)
     endpoint = models.CharField(max_length=100, db_index=True)
@@ -142,9 +218,9 @@ class ApiCache(models.Model):
     def __str__(self):
         return f"[{self.endpoint}] {self.cache_key}"
 
+
 class MusicBrainzDump(models.Model):
     class Meta:
         managed = False
         verbose_name = "MusicBrainz Dump Manager"
         verbose_name_plural = "MusicBrainz Dump Manager"
-

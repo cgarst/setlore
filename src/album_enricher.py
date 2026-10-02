@@ -626,10 +626,11 @@ class AlbumEnricher:
                         if any(b_tag in t_lower for b_tag in ["(bonus track", "(bonus demo", "[bonus track", "(live at", "(live in", "(demo version", "(instrumental)"]):
                             continue
 
-                        t_pos = trk.get("position") or running_track_num
+                        rec_id = (trk.get("recording") or {}).get("id") or trk.get("id") or None
                         candidate_tracks.append({
                             "track_number": running_track_num,
-                            "title": clean_track_title(t_title_clean)
+                            "title": clean_track_title(t_title_clean),
+                            "mbid": rec_id
                         })
                         running_track_num += 1
 
@@ -644,6 +645,7 @@ class AlbumEnricher:
             "artist": artist_name,
             "album": clean_alb,
             "release_year": release_yr,
+            "mbid": rg_id if 'rg_id' in locals() else None,
             "tracks": tracks
         }
 

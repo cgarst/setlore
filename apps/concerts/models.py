@@ -35,7 +35,10 @@ class Concert(models.Model):
         d_str = self.date.strftime("%m-%d-%Y") if self.date else self.raw_date
         return f"{d_str}: {self.primary_artist} @ {self.venue.name if self.venue else self.raw_venue}"
 
+from src.id_utils import generate_offline_concert_artist_id, is_offline_id
+
 class ConcertArtist(models.Model):
+    id = models.CharField(max_length=100, primary_key=True, help_text="Setlist.fm Setlist ID or offline:ca:<uuid>")
     concert = models.ForeignKey(Concert, on_delete=models.CASCADE, related_name='artists')
     artist = models.ForeignKey('catalog.Artist', on_delete=models.CASCADE, related_name='concert_appearances')
     billing_order = models.IntegerField(default=0)
@@ -53,6 +56,14 @@ class ConcertArtist(models.Model):
 
     def __str__(self):
         return f"{self.concert} - {self.artist.name}"
+
+    def save(self, *args, **kwargs):
+        if not self.id:
+            if self.setlistfm_id:
+                self.id = self.setlistfm_id
+            else:
+                self.id = generate_offline_concert_artist_id(self.concert_id, self.artist_id)
+        super().save(*args, **kwargs)
 
 class ConcertSong(models.Model):
     concert_artist = models.ForeignKey(ConcertArtist, on_delete=models.CASCADE, related_name='songs')
