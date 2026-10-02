@@ -4417,14 +4417,27 @@
             </button>
           </div>
 
-          <!-- Instrument Selector Pills -->
-          <div class="flex items-center gap-1.5 overflow-x-auto pt-1 lg:pt-0 pb-0.5 custom-scrollbar text-xs">
-            <button type="button" onclick="filterMusicianInstrument('all')" id="btn-instr-all" class="px-3 py-1.5 rounded-lg bg-indigo-600 text-white font-bold transition shrink-0 cursor-pointer shadow-sm">All</button>
-            <button type="button" onclick="filterMusicianInstrument('Guitar')" id="btn-instr-Guitar" class="px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 font-semibold transition shrink-0 cursor-pointer">Guitars</button>
-            <button type="button" onclick="filterMusicianInstrument('Drums')" id="btn-instr-Drums" class="px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 font-semibold transition shrink-0 cursor-pointer">Drums</button>
-            <button type="button" onclick="filterMusicianInstrument('Bass')" id="btn-instr-Bass" class="px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 font-semibold transition shrink-0 cursor-pointer">Bass</button>
-            <button type="button" onclick="filterMusicianInstrument('Vocals')" id="btn-instr-Vocals" class="px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 font-semibold transition shrink-0 cursor-pointer">Vocals</button>
-            <button type="button" onclick="filterMusicianInstrument('Keyboards')" id="btn-instr-Keyboards" class="px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 font-semibold transition shrink-0 cursor-pointer">Keys</button>
+          <!-- Filter Controls (Multi-Project Toggle + Instrument Selector Pills) -->
+          <div class="flex flex-wrap items-center gap-2 text-xs">
+            <!-- Multi-Project Only Toggle Button -->
+            <button type="button"
+                    id="btn-musician-multiproject"
+                    onclick="toggleMusicianMultiProject()"
+                    class="px-3 py-1.5 rounded-lg border border-slate-700/80 bg-slate-800/80 hover:bg-slate-700 text-slate-300 font-semibold transition shrink-0 cursor-pointer flex items-center gap-1.5 shadow-sm"
+                    title="Show only musicians seen in 2 or more bands/projects">
+              <i class="fa-solid fa-diagram-project text-indigo-400 text-xs"></i>
+              <span>Multi-Project Only</span>
+            </button>
+
+            <!-- Instrument Selector Pills -->
+            <div class="flex items-center gap-1.5 overflow-x-auto pt-1 lg:pt-0 pb-0.5 custom-scrollbar text-xs">
+              <button type="button" onclick="filterMusicianInstrument('all')" id="btn-instr-all" class="px-3 py-1.5 rounded-lg bg-indigo-600 text-white font-bold transition shrink-0 cursor-pointer shadow-sm">All</button>
+              <button type="button" onclick="filterMusicianInstrument('Guitar')" id="btn-instr-Guitar" class="px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 font-semibold transition shrink-0 cursor-pointer">Guitars</button>
+              <button type="button" onclick="filterMusicianInstrument('Drums')" id="btn-instr-Drums" class="px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 font-semibold transition shrink-0 cursor-pointer">Drums</button>
+              <button type="button" onclick="filterMusicianInstrument('Bass')" id="btn-instr-Bass" class="px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 font-semibold transition shrink-0 cursor-pointer">Bass</button>
+              <button type="button" onclick="filterMusicianInstrument('Vocals')" id="btn-instr-Vocals" class="px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 font-semibold transition shrink-0 cursor-pointer">Vocals</button>
+              <button type="button" onclick="filterMusicianInstrument('Keyboards')" id="btn-instr-Keyboards" class="px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 font-semibold transition shrink-0 cursor-pointer">Keys</button>
+            </div>
           </div>
         </div>
       </div>
@@ -4435,6 +4448,7 @@
         <div class="musician-card rounded-2xl glass-card border border-slate-800/90 hover:border-indigo-500/50 hover:bg-slate-800/60 p-4 space-y-3 transition shadow-lg hover:shadow-2xl hover:shadow-indigo-500/10 flex flex-col justify-between"
              data-musician-name="{{ m.musician|lower }}"
              data-instrument="{{ m.instrument }}"
+             data-bands-count="{{ m.unique_bands_count|default:m.bands|length|default:1 }}"
              data-search="{{ m.musician|lower }} {{ m.role|lower }} {{ m.instrument|lower }} {% for b_name in m.bands.keys %}{{ b_name|lower }} {% endfor %}">
           
           <div>
@@ -6355,9 +6369,25 @@
     });
 
     let currentMusicianInstrument = 'all';
+    let musicianMultiProjectOnly = false;
     let currentMusicianPage = 1;
     let musicianPageSize = 24;
     let currentFilteredMusicianCards = [];
+
+    function toggleMusicianMultiProject() {
+      musicianMultiProjectOnly = !musicianMultiProjectOnly;
+      const btn = document.getElementById('btn-musician-multiproject');
+      if (btn) {
+        if (musicianMultiProjectOnly) {
+          btn.className = 'px-3 py-1.5 rounded-lg bg-indigo-600 border border-indigo-500 text-white font-bold transition shrink-0 cursor-pointer flex items-center gap-1.5 shadow-md shadow-indigo-500/25';
+          btn.innerHTML = '<i class="fa-solid fa-check text-xs"></i> <span>Multi-Project Only</span>';
+        } else {
+          btn.className = 'px-3 py-1.5 rounded-lg border border-slate-700/80 bg-slate-800/80 hover:bg-slate-700 text-slate-300 font-semibold transition shrink-0 cursor-pointer flex items-center gap-1.5 shadow-sm';
+          btn.innerHTML = '<i class="fa-solid fa-diagram-project text-indigo-400 text-xs"></i> <span>Multi-Project Only</span>';
+        }
+      }
+      applyMusicianFilters(true);
+    }
 
     function filterMusicianInstrument(instr) {
       currentMusicianInstrument = instr;
@@ -6411,9 +6441,12 @@
       allCards.forEach(card => {
         const searchData = (card.getAttribute('data-search') || '').toLowerCase();
         const mInstr = card.getAttribute('data-instrument') || '';
+        const bandsCount = parseInt(card.getAttribute('data-bands-count') || '1', 10);
         const matchInstr = currentMusicianInstrument === 'all' || mInstr === currentMusicianInstrument;
         const matchSearch = !q || searchData.includes(q);
-        if (matchInstr && matchSearch) {
+        const matchMulti = !musicianMultiProjectOnly || bandsCount > 1;
+
+        if (matchInstr && matchSearch && matchMulti) {
           currentFilteredMusicianCards.push(card);
         }
       });
@@ -6421,7 +6454,7 @@
       const totalCount = currentFilteredMusicianCards.length;
       const countBadge = document.getElementById('musicians-count-badge');
       if (countBadge) {
-        if (!q && currentMusicianInstrument === 'all') {
+        if (!q && currentMusicianInstrument === 'all' && !musicianMultiProjectOnly) {
           countBadge.innerText = `${(allCards.length || 0).toLocaleString()} Musicians`;
         } else {
           countBadge.innerText = `${totalCount.toLocaleString()} of ${(allCards.length || 0).toLocaleString()} Musicians`;
