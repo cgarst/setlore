@@ -898,6 +898,13 @@
     <div class="max-w-2xl w-full glass-card p-6 shadow-2xl space-y-4 border border-slate-700 max-h-[90vh] overflow-y-auto">
       <div class="flex items-center justify-between border-b border-slate-800 pb-3">
         <div class="flex items-center gap-2.5">
+          <button type="button"
+                  onclick="navigateModalBack()"
+                  class="modal-back-btn px-2.5 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/80 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shrink-0 shadow-sm group"
+                  title="Go back">
+            <i class="fa-solid fa-arrow-left text-[11px] group-hover:-translate-x-0.5 transition-transform"></i>
+            <span class="hidden sm:inline">Back</span>
+          </button>
           <div class="w-9 h-9 rounded-xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
             <i class="fa-solid fa-palette text-sm"></i>
           </div>
@@ -910,7 +917,7 @@
           <span id="theme-modal-active-theme-badge" class="badge bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[10px] font-mono">
             Mystic Dream
           </span>
-          <button type="button" onclick="closeThemeModal()" class="text-slate-400 hover:text-white p-1 cursor-pointer">
+          <button type="button" onclick="closeThemeModal()" class="text-slate-400 hover:text-white p-1 cursor-pointer" aria-label="Close modal">
             <i class="fa-solid fa-xmark text-lg"></i>
           </button>
         </div>
@@ -927,6 +934,13 @@
     <div class="max-w-md w-full glass-card p-6 shadow-2xl space-y-4 border border-slate-700 max-h-[90vh] overflow-y-auto">
       <div class="flex items-center justify-between border-b border-slate-800 pb-3">
         <div class="flex items-center gap-2.5">
+          <button type="button"
+                  onclick="navigateModalBack()"
+                  class="modal-back-btn px-2.5 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/80 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shrink-0 shadow-sm group"
+                  title="Go back">
+            <i class="fa-solid fa-arrow-left text-[11px] group-hover:-translate-x-0.5 transition-transform"></i>
+            <span class="hidden sm:inline">Back</span>
+          </button>
           <div class="w-9 h-9 rounded-xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
             <i class="fa-solid fa-mobile-screen-button text-sm"></i>
           </div>
@@ -935,7 +949,7 @@
             <p class="text-[11px] text-slate-400">Install to your home screen for full-screen standalone mode</p>
           </div>
         </div>
-        <button type="button" onclick="closePwaInstallModal()" class="text-slate-400 hover:text-white p-1 cursor-pointer">
+        <button type="button" onclick="closePwaInstallModal()" class="text-slate-400 hover:text-white p-1 cursor-pointer" aria-label="Close modal">
           <i class="fa-solid fa-xmark text-lg"></i>
         </button>
       </div>
@@ -1052,6 +1066,13 @@
     <div class="max-w-md w-full glass-card p-6 shadow-2xl space-y-4 border border-slate-700 max-h-[90vh] overflow-y-auto">
       <div class="flex items-center justify-between border-b border-slate-800 pb-3">
         <div class="flex items-center gap-2.5">
+          <button type="button"
+                  onclick="navigateModalBack()"
+                  class="modal-back-btn px-2.5 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/80 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shrink-0 shadow-sm group"
+                  title="Go back">
+            <i class="fa-solid fa-arrow-left text-[11px] group-hover:-translate-x-0.5 transition-transform"></i>
+            <span class="hidden sm:inline">Back</span>
+          </button>
           <div class="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400">
             <i class="fa-solid fa-user-gear text-sm"></i>
           </div>
@@ -1060,7 +1081,7 @@
             <p class="text-[11px] text-slate-400">Manage account, connected logins, Setlist.fm & privacy preferences</p>
           </div>
         </div>
-        <button type="button" onclick="closeProfileModal()" class="text-slate-400 hover:text-white p-1 cursor-pointer">
+        <button type="button" onclick="closeProfileModal()" class="text-slate-400 hover:text-white p-1 cursor-pointer" aria-label="Close modal">
           <i class="fa-solid fa-xmark text-lg"></i>
         </button>
       </div>
@@ -1278,7 +1299,14 @@
   <div id="setlist-prompt-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
     <div class="max-w-md w-full glass-card p-6 shadow-2xl space-y-4 border border-amber-500/40">
       <div class="flex items-start justify-between">
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2.5">
+          <button type="button"
+                  onclick="navigateModalBack()"
+                  class="modal-back-btn px-2.5 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/80 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shrink-0 shadow-sm group"
+                  title="Go back">
+            <i class="fa-solid fa-arrow-left text-[11px] group-hover:-translate-x-0.5 transition-transform"></i>
+            <span class="hidden sm:inline">Back</span>
+          </button>
           <div class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 text-lg shrink-0">
             <i class="fa-brands fa-lastfm"></i>
           </div>
@@ -1287,7 +1315,7 @@
             <p class="text-xs text-slate-400">Sync attended concerts & tracklists</p>
           </div>
         </div>
-        <button type="button" onclick="closeSetlistPromptModal()" class="text-slate-400 hover:text-white p-1 cursor-pointer">
+        <button type="button" onclick="closeSetlistPromptModal()" class="text-slate-400 hover:text-white p-1 cursor-pointer" aria-label="Close modal">
           <i class="fa-solid fa-xmark text-lg"></i>
         </button>
       </div>
@@ -1335,10 +1363,19 @@
   <div id="upload-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
     <div class="max-w-lg w-full glass-card p-6 shadow-2xl space-y-4 border border-slate-700">
       <div class="flex items-center justify-between">
-        <h3 class="text-lg font-bold text-white flex items-center gap-2">
-          <i class="fa-solid fa-file-csv text-cyan-400"></i> Import Concert CSV
-        </h3>
-        <button onclick="closeUploadModal()" class="text-slate-400 hover:text-white p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
+        <div class="flex items-center gap-2.5">
+          <button type="button"
+                  onclick="navigateModalBack()"
+                  class="modal-back-btn px-2.5 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/80 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shrink-0 shadow-sm group"
+                  title="Go back">
+            <i class="fa-solid fa-arrow-left text-[11px] group-hover:-translate-x-0.5 transition-transform"></i>
+            <span class="hidden sm:inline">Back</span>
+          </button>
+          <h3 class="text-lg font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-file-csv text-cyan-400"></i> Import Concert CSV
+          </h3>
+        </div>
+        <button onclick="closeUploadModal()" class="text-slate-400 hover:text-white p-1 cursor-pointer" aria-label="Close modal"><i class="fa-solid fa-xmark text-lg"></i></button>
       </div>
 
       <!-- Format Guidance Section -->
@@ -1405,13 +1442,22 @@
       <!-- Step 1: Paste View -->
       <div id="tm-step-input" class="space-y-4">
         <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-          <div>
-            <h3 class="text-lg font-bold text-white flex items-center gap-2">
-              <i class="fa-solid fa-ticket text-emerald-400"></i> Import from Ticketmaster
-            </h3>
-            <p class="text-xs text-slate-400 mt-0.5">Quickly import your past concert attendance directly from Ticketmaster order history.</p>
+          <div class="flex items-center gap-2.5">
+            <button type="button"
+                    onclick="navigateModalBack()"
+                    class="modal-back-btn px-2.5 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/80 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shrink-0 shadow-sm group"
+                    title="Go back">
+              <i class="fa-solid fa-arrow-left text-[11px] group-hover:-translate-x-0.5 transition-transform"></i>
+              <span class="hidden sm:inline">Back</span>
+            </button>
+            <div>
+              <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-ticket text-emerald-400"></i> Import from Ticketmaster
+              </h3>
+              <p class="text-xs text-slate-400 mt-0.5">Quickly import your past concert attendance directly from Ticketmaster order history.</p>
+            </div>
           </div>
-          <button type="button" onclick="closeTicketmasterModal()" class="text-slate-400 hover:text-white p-1 cursor-pointer"><i class="fa-solid fa-xmark text-lg"></i></button>
+          <button type="button" onclick="closeTicketmasterModal()" class="text-slate-400 hover:text-white p-1 cursor-pointer" aria-label="Close modal"><i class="fa-solid fa-xmark text-lg"></i></button>
         </div>
 
         <!-- Instructions -->
@@ -1454,13 +1500,22 @@
       <!-- Step 2: Confirmation & Review View -->
       <div id="tm-step-preview" class="space-y-4 hidden flex-1 flex flex-col min-h-0">
         <div class="flex items-center justify-between border-b border-slate-800 pb-3 flex-shrink-0">
-          <div>
-            <h3 class="text-lg font-bold text-white flex items-center gap-2">
-              <i class="fa-solid fa-clipboard-check text-emerald-400"></i> Review & Confirm Matches
-            </h3>
-            <p id="tm-preview-summary" class="text-xs text-slate-400 mt-0.5">Found events. Confirm selections and Setlist.fm links before importing.</p>
+          <div class="flex items-center gap-2.5">
+            <button type="button"
+                    onclick="navigateModalBack()"
+                    class="modal-back-btn px-2.5 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/80 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shrink-0 shadow-sm group"
+                    title="Go back">
+              <i class="fa-solid fa-arrow-left text-[11px] group-hover:-translate-x-0.5 transition-transform"></i>
+              <span class="hidden sm:inline">Back</span>
+            </button>
+            <div>
+              <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-clipboard-check text-emerald-400"></i> Review & Confirm Matches
+              </h3>
+              <p id="tm-preview-summary" class="text-xs text-slate-400 mt-0.5">Found events. Confirm selections and Setlist.fm links before importing.</p>
+            </div>
           </div>
-          <button type="button" onclick="closeTicketmasterModal()" class="text-slate-400 hover:text-white p-1 cursor-pointer"><i class="fa-solid fa-xmark text-lg"></i></button>
+          <button type="button" onclick="closeTicketmasterModal()" class="text-slate-400 hover:text-white p-1 cursor-pointer" aria-label="Close modal"><i class="fa-solid fa-xmark text-lg"></i></button>
         </div>
 
         <!-- Filter / Quick Action Bar -->
@@ -1499,9 +1554,18 @@
   <div id="add-concert-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto overscroll-contain overflow-x-hidden hidden">
     <div class="relative w-full max-w-lg glass-card p-4 sm:p-6 shadow-2xl border border-slate-700/80 rounded-2xl max-h-[92vh] my-auto flex flex-col overflow-hidden">
       <div class="shrink-0 flex items-center justify-between border-b border-slate-800 pb-3">
-        <h3 class="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-          <i class="fa-solid fa-ticket text-indigo-400"></i> Log Concert
-        </h3>
+        <div class="flex items-center gap-2.5">
+          <button type="button"
+                  onclick="navigateModalBack()"
+                  class="modal-back-btn px-2.5 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/80 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shrink-0 shadow-sm group"
+                  title="Go back">
+            <i class="fa-solid fa-arrow-left text-[11px] group-hover:-translate-x-0.5 transition-transform"></i>
+            <span class="hidden sm:inline">Back</span>
+          </button>
+          <h3 class="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-ticket text-indigo-400"></i> Log Concert
+          </h3>
+        </div>
         <button type="button" onclick="closeAddConcertModal()" class="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition cursor-pointer" aria-label="Close modal">
           <i class="fa-solid fa-xmark text-lg"></i>
         </button>
@@ -1596,9 +1660,18 @@
   <div id="edit-concert-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto overscroll-contain overflow-x-hidden hidden">
     <div class="relative w-full max-w-lg glass-card p-4 sm:p-6 shadow-2xl border border-slate-700/80 rounded-2xl max-h-[92vh] my-auto flex flex-col overflow-hidden">
       <div class="shrink-0 flex items-center justify-between border-b border-slate-800 pb-3">
-        <h3 class="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-          <i class="fa-solid fa-pen-to-square text-indigo-400"></i> Edit Concert
-        </h3>
+        <div class="flex items-center gap-2.5">
+          <button type="button"
+                  onclick="navigateModalBack()"
+                  class="modal-back-btn px-2.5 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/80 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shrink-0 shadow-sm group"
+                  title="Go back">
+            <i class="fa-solid fa-arrow-left text-[11px] group-hover:-translate-x-0.5 transition-transform"></i>
+            <span class="hidden sm:inline">Back</span>
+          </button>
+          <h3 class="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-pen-to-square text-indigo-400"></i> Edit Concert
+          </h3>
+        </div>
         <button type="button" onclick="closeEditConcertModal()" class="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition cursor-pointer" aria-label="Close modal">
           <i class="fa-solid fa-xmark text-lg"></i>
         </button>
@@ -1703,10 +1776,17 @@
   <div id="synced-edit-advisory-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 hidden">
     <div class="relative w-full max-w-md glass-card p-5 sm:p-6 shadow-2xl border border-amber-500/40 rounded-2xl flex flex-col space-y-4">
       <div class="flex items-start gap-3">
+        <button type="button"
+                onclick="navigateModalBack()"
+                class="modal-back-btn px-2.5 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/80 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shrink-0 shadow-sm group mt-0.5"
+                title="Go back">
+          <i class="fa-solid fa-arrow-left text-[11px] group-hover:-translate-x-0.5 transition-transform"></i>
+          <span class="hidden sm:inline">Back</span>
+        </button>
         <div class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0 mt-0.5">
           <i class="fa-solid fa-arrows-rotate text-lg"></i>
         </div>
-        <div>
+        <div class="min-w-0 flex-1">
           <h3 class="text-base font-bold text-white">Setlist.fm Synced Concert</h3>
           <p class="text-xs text-slate-400 mt-0.5" id="synced-edit-advisory-subtitle">This concert is synced with your Setlist.fm account.</p>
         </div>
@@ -1743,10 +1823,17 @@
   <div id="delete-concert-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 hidden">
     <div class="relative w-full max-w-md glass-card p-5 sm:p-6 shadow-2xl border border-rose-500/40 rounded-2xl flex flex-col space-y-4">
       <div class="flex items-start gap-3">
+        <button type="button"
+                onclick="navigateModalBack()"
+                class="modal-back-btn px-2.5 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/80 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shrink-0 shadow-sm group mt-0.5"
+                title="Go back">
+          <i class="fa-solid fa-arrow-left text-[11px] group-hover:-translate-x-0.5 transition-transform"></i>
+          <span class="hidden sm:inline">Back</span>
+        </button>
         <div class="w-10 h-10 rounded-xl bg-rose-500/20 border border-rose-500/30 flex items-center justify-center text-rose-400 shrink-0 mt-0.5">
           <i class="fa-solid fa-trash-can text-lg"></i>
         </div>
-        <div>
+        <div class="min-w-0 flex-1">
           <h3 class="text-base font-bold text-white" id="delete-modal-title">Delete Concert</h3>
           <p class="text-xs text-slate-400 mt-0.5" id="delete-modal-subtitle">Are you sure you want to remove this concert?</p>
         </div>
@@ -1790,6 +1877,13 @@
     <div class="max-w-md w-full glass-card p-5 sm:p-6 shadow-2xl border border-slate-700/80 rounded-2xl max-h-[90vh] flex flex-col overflow-hidden">
       <div class="flex items-center justify-between border-b border-slate-800 pb-3 shrink-0">
         <div class="flex items-center gap-2.5">
+          <button type="button"
+                  onclick="navigateModalBack()"
+                  class="modal-back-btn px-2.5 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/80 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shrink-0 shadow-sm group"
+                  title="Go back">
+            <i class="fa-solid fa-arrow-left text-[11px] group-hover:-translate-x-0.5 transition-transform"></i>
+            <span class="hidden sm:inline">Back</span>
+          </button>
           <div class="w-9 h-9 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-purple-400">
             <i class="fa-solid fa-user-secret text-base"></i>
           </div>
@@ -1859,6 +1953,13 @@
       <div class="shrink-0 border-b border-slate-800 pb-4">
         <div class="flex items-center justify-between mb-3">
           <div class="flex items-center gap-2.5">
+            <button type="button"
+                    onclick="navigateModalBack()"
+                    class="modal-back-btn px-2.5 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/80 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shrink-0 shadow-sm group"
+                    title="Go back">
+              <i class="fa-solid fa-arrow-left text-[11px] group-hover:-translate-x-0.5 transition-transform"></i>
+              <span class="hidden sm:inline">Back</span>
+            </button>
             <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-md shadow-indigo-500/30">
               <i class="fa-solid fa-wand-magic-sparkles text-sm"></i>
             </div>
@@ -2219,6 +2320,13 @@
       <!-- Modal Header -->
       <div class="flex items-center justify-between border-b border-slate-800 pb-3 shrink-0">
         <div class="flex items-center gap-2.5">
+          <button type="button"
+                  onclick="navigateModalBack()"
+                  class="modal-back-btn px-2.5 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/80 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shrink-0 shadow-sm group"
+                  title="Go back">
+            <i class="fa-solid fa-arrow-left text-[11px] group-hover:-translate-x-0.5 transition-transform"></i>
+            <span class="hidden sm:inline">Back</span>
+          </button>
           <div class="w-9 h-9 rounded-xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
             <i class="fa-solid fa-sliders text-sm"></i>
           </div>
@@ -2348,6 +2456,13 @@
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3 shrink-0">
         <div class="flex items-center justify-between w-full sm:w-auto">
           <div class="flex items-center gap-3">
+            <button type="button"
+                    onclick="navigateModalBack()"
+                    class="modal-back-btn px-2.5 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/80 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shrink-0 shadow-sm group"
+                    title="Go back">
+              <i class="fa-solid fa-arrow-left text-[11px] group-hover:-translate-x-0.5 transition-transform"></i>
+              <span class="hidden sm:inline">Back</span>
+            </button>
             <div class="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
               <i class="fa-solid fa-calendar-days text-base"></i>
             </div>
@@ -2421,6 +2536,13 @@
       <!-- Modal Header -->
       <div class="flex items-start justify-between gap-3 border-b border-slate-800 pb-3.5 shrink-0">
         <div class="flex items-center gap-3.5 min-w-0">
+          <button type="button"
+                  onclick="navigateModalBack()"
+                  class="modal-back-btn px-2.5 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/80 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shrink-0 shadow-sm group"
+                  title="Go back">
+            <i class="fa-solid fa-arrow-left text-[11px] group-hover:-translate-x-0.5 transition-transform"></i>
+            <span class="hidden sm:inline">Back</span>
+          </button>
           <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden shadow-xl border border-white/10 shrink-0 bg-slate-900 flex items-center justify-center relative">
             <img id="modal-album-cover-img" src="" alt="Album Cover" class="w-full h-full object-cover">
             <div id="modal-album-cover-fallback" class="absolute inset-0 bg-gradient-to-br from-slate-800 to-indigo-950 flex items-center justify-center text-indigo-400">
@@ -2469,27 +2591,36 @@
     <div class="max-w-3xl w-full glass-card p-4 sm:p-6 shadow-2xl space-y-4 border border-slate-700/80 max-h-[92vh] flex flex-col rounded-2xl relative">
       <!-- Modal Header -->
       <div class="flex items-start justify-between gap-3 border-b border-slate-800 pb-3.5 shrink-0">
-        <div class="min-w-0 flex-1">
-          <!-- Step 1 Header (Overview) -->
-          <div id="concert-modal-header-overview" class="flex flex-col gap-1">
-            <div class="flex items-center gap-2 flex-wrap">
-              <span id="concert-modal-date-badge" class="badge bg-indigo-500/20 text-indigo-300 font-mono text-xs font-bold border border-indigo-500/30 px-2.5 py-1"></span>
-              <h3 id="modal-concert-venue" class="text-base sm:text-lg font-bold text-white truncate"></h3>
+        <div class="flex items-center gap-2.5 min-w-0 flex-1">
+          <button type="button"
+                  onclick="navigateModalBack()"
+                  class="modal-back-btn px-2.5 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/80 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shrink-0 shadow-sm group"
+                  title="Go back">
+            <i class="fa-solid fa-arrow-left text-[11px] group-hover:-translate-x-0.5 transition-transform"></i>
+            <span class="hidden sm:inline">Back</span>
+          </button>
+          <div class="min-w-0 flex-1">
+            <!-- Step 1 Header (Overview) -->
+            <div id="concert-modal-header-overview" class="flex flex-col gap-1">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span id="concert-modal-date-badge" class="badge bg-indigo-500/20 text-indigo-300 font-mono text-xs font-bold border border-indigo-500/30 px-2.5 py-1"></span>
+                <h3 id="modal-concert-venue" class="text-base sm:text-lg font-bold text-white truncate"></h3>
+              </div>
+              <p id="modal-concert-location" class="text-xs text-slate-400 flex items-center gap-1.5"></p>
             </div>
-            <p id="modal-concert-location" class="text-xs text-slate-400 flex items-center gap-1.5"></p>
-          </div>
-          <!-- Step 2 Header (Band Setlist Breadcrumb) -->
-          <div id="concert-modal-header-setlist" class="hidden flex flex-col gap-1.5 min-w-0">
-            <div class="flex items-center gap-2.5 flex-wrap min-w-0">
-              <button type="button" onclick="showConcertOverviewInModal()" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs font-semibold transition inline-flex items-center gap-1.5 cursor-pointer shrink-0">
-                <i class="fa-solid fa-arrow-left text-[11px]"></i>
-                <span>All Bands</span>
-              </button>
-              <h3 id="modal-concert-artist-title" class="text-base sm:text-lg font-bold text-white truncate flex items-center gap-1.5"></h3>
-            </div>
-            <div class="flex items-center gap-2 flex-wrap text-xs text-slate-400 min-w-0">
-              <span id="modal-concert-setlist-date-badge" class="badge bg-indigo-500/20 text-indigo-300 font-mono text-xs font-bold border border-indigo-500/30 px-2 py-0.5 shrink-0"></span>
-              <p id="modal-concert-setlist-venue-sub" class="flex items-center gap-1.5 truncate"></p>
+            <!-- Step 2 Header (Band Setlist Breadcrumb) -->
+            <div id="concert-modal-header-setlist" class="hidden flex flex-col gap-1.5 min-w-0">
+              <div class="flex items-center gap-2.5 flex-wrap min-w-0">
+                <button type="button" onclick="showConcertOverviewInModal()" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs font-semibold transition inline-flex items-center gap-1.5 cursor-pointer shrink-0">
+                  <i class="fa-solid fa-arrow-left text-[11px]"></i>
+                  <span>All Bands</span>
+                </button>
+                <h3 id="modal-concert-artist-title" class="text-base sm:text-lg font-bold text-white truncate flex items-center gap-1.5"></h3>
+              </div>
+              <div class="flex items-center gap-2 flex-wrap text-xs text-slate-400 min-w-0">
+                <span id="modal-concert-setlist-date-badge" class="badge bg-indigo-500/20 text-indigo-300 font-mono text-xs font-bold border border-indigo-500/30 px-2 py-0.5 shrink-0"></span>
+                <p id="modal-concert-setlist-venue-sub" class="flex items-center gap-1.5 truncate"></p>
+              </div>
             </div>
           </div>
         </div>
@@ -2525,15 +2656,24 @@
         <div id="modal-artist-header-catalog" class="space-y-3">
           <!-- Title & Badges Row -->
           <div class="flex items-start justify-between gap-3">
-            <div class="min-w-0 flex-1">
-              <div class="flex items-center gap-2.5 flex-wrap min-w-0">
-                <h3 id="modal-artist-title" class="text-base sm:text-lg font-bold text-white truncate flex items-center gap-2">
-                  <i class="fa-solid fa-microphone-lines text-indigo-400"></i>
-                  <span id="modal-artist-name-text"></span>
-                </h3>
-                <div id="modal-artist-badges" class="flex items-center gap-1.5 flex-wrap"></div>
+            <div class="flex items-center gap-2.5 min-w-0 flex-1">
+              <button type="button"
+                      onclick="navigateModalBack()"
+                      class="modal-back-btn px-2.5 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/80 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shrink-0 shadow-sm group"
+                      title="Go back">
+                <i class="fa-solid fa-arrow-left text-[11px] group-hover:-translate-x-0.5 transition-transform"></i>
+                <span class="hidden sm:inline">Back</span>
+              </button>
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2.5 flex-wrap min-w-0">
+                  <h3 id="modal-artist-title" class="text-base sm:text-lg font-bold text-white truncate flex items-center gap-2">
+                    <i class="fa-solid fa-microphone-lines text-indigo-400"></i>
+                    <span id="modal-artist-name-text"></span>
+                  </h3>
+                  <div id="modal-artist-badges" class="flex items-center gap-1.5 flex-wrap"></div>
+                </div>
+                <p id="modal-artist-subtitle" class="text-xs text-slate-400 mt-1 flex items-center gap-1.5"></p>
               </div>
-              <p id="modal-artist-subtitle" class="text-xs text-slate-400 mt-1 flex items-center gap-1.5"></p>
             </div>
             <div class="flex items-center gap-2 shrink-0">
               <button type="button" onclick="closeArtistSongModal()" class="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition cursor-pointer" aria-label="Close modal">
@@ -2573,18 +2713,27 @@
 
         <!-- Step 2 Header (Single Song Occurrences Breadcrumb) -->
         <div id="modal-artist-header-occurrences" class="hidden flex items-start justify-between gap-3 min-w-0">
-          <div class="flex flex-col gap-1.5 min-w-0 flex-1">
-            <div class="flex items-center gap-2.5 flex-wrap min-w-0">
-              <button type="button" onclick="showArtistCatalogInModal()" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs font-semibold transition inline-flex items-center gap-1.5 cursor-pointer shrink-0">
-                <i class="fa-solid fa-arrow-left text-[11px]"></i>
-                <span>All Songs</span>
-              </button>
-              <h3 id="modal-song-detail-title" class="text-base sm:text-lg font-bold text-white truncate flex items-center gap-1.5"></h3>
-            </div>
-            <div class="flex items-center gap-2 flex-wrap text-xs text-slate-400 min-w-0">
-              <span id="modal-song-detail-artist-badge" class="badge bg-indigo-500/20 text-indigo-300 text-xs font-bold border border-indigo-500/30 px-2 py-0.5 shrink-0"></span>
-              <span id="modal-song-detail-plays-badge" class="badge bg-emerald-500/20 text-emerald-300 text-xs font-bold border border-emerald-500/30 px-2 py-0.5 shrink-0"></span>
-              <p id="modal-song-detail-album-sub" class="flex items-center gap-1.5 truncate"></p>
+          <div class="flex items-center gap-2.5 min-w-0 flex-1">
+            <button type="button"
+                    onclick="navigateModalBack()"
+                    class="modal-back-btn px-2.5 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/80 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shrink-0 shadow-sm group"
+                    title="Go back">
+              <i class="fa-solid fa-arrow-left text-[11px] group-hover:-translate-x-0.5 transition-transform"></i>
+              <span class="hidden sm:inline">Back</span>
+            </button>
+            <div class="flex flex-col gap-1.5 min-w-0 flex-1">
+              <div class="flex items-center gap-2.5 flex-wrap min-w-0">
+                <button type="button" onclick="showArtistCatalogInModal()" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs font-semibold transition inline-flex items-center gap-1.5 cursor-pointer shrink-0">
+                  <i class="fa-solid fa-arrow-left text-[11px]"></i>
+                  <span>All Songs</span>
+                </button>
+                <h3 id="modal-song-detail-title" class="text-base sm:text-lg font-bold text-white truncate flex items-center gap-1.5"></h3>
+              </div>
+              <div class="flex items-center gap-2 flex-wrap text-xs text-slate-400 min-w-0">
+                <span id="modal-song-detail-artist-badge" class="badge bg-indigo-500/20 text-indigo-300 text-xs font-bold border border-indigo-500/30 px-2 py-0.5 shrink-0"></span>
+                <span id="modal-song-detail-plays-badge" class="badge bg-emerald-500/20 text-emerald-300 text-xs font-bold border border-emerald-500/30 px-2 py-0.5 shrink-0"></span>
+                <p id="modal-song-detail-album-sub" class="flex items-center gap-1.5 truncate"></p>
+              </div>
             </div>
           </div>
           <div class="flex items-center gap-2 shrink-0">
@@ -2619,6 +2768,13 @@
       <!-- Modal Header -->
       <div class="flex items-start justify-between gap-3 border-b border-slate-800 pb-3 shrink-0">
         <div class="flex items-center gap-3 min-w-0">
+          <button type="button"
+                  onclick="navigateModalBack()"
+                  class="modal-back-btn px-2.5 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/80 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shrink-0 shadow-sm group"
+                  title="Go back">
+            <i class="fa-solid fa-arrow-left text-[11px] group-hover:-translate-x-0.5 transition-transform"></i>
+            <span class="hidden sm:inline">Back</span>
+          </button>
           <div id="overview-chart-modal-icon-wrap" class="w-10 h-10 rounded-xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shrink-0">
             <i id="overview-chart-modal-icon" class="fa-solid fa-chart-line text-base"></i>
           </div>
@@ -6320,12 +6476,230 @@
       });
     }
 
+    /* -------------------------------------------------- */
+    /* Global Modal Navigation Stack & History Controller  */
+    /* -------------------------------------------------- */
+    window.modalNavStack = [];
+    window.currentModalState = null;
+
+    function statesAreEqual(a, b) {
+      if (!a || !b) return false;
+      if (a.type !== b.type) return false;
+      if (a.type === 'concert') return String(a.id) === String(b.id) && String(a.artistIndex) === String(b.artistIndex);
+      if (a.type === 'artist_song') return (a.artist || '').toLowerCase() === (b.artist || '').toLowerCase() && (a.song || '').toLowerCase() === (b.song || '').toLowerCase();
+      if (a.type === 'album') return a.idx === b.idx && (a.artist || '').toLowerCase() === (b.artist || '').toLowerCase() && (a.album || '').toLowerCase() === (b.album || '').toLowerCase();
+      if (a.type === 'overview_chart') return a.chartKey === b.chartKey;
+      if (a.type === 'edit_concert') return (a.data ? a.data.id : null) === (b.data ? b.data.id : null);
+      return true;
+    }
+
+    function pushModalState(newState) {
+      if (window.currentModalState && !statesAreEqual(window.currentModalState, newState)) {
+        window.modalNavStack.push(Object.assign({}, window.currentModalState));
+        closeActiveModalDirectly(window.currentModalState);
+      }
+      window.currentModalState = Object.assign({}, newState);
+    }
+
+    function closeActiveModalDirectly(state) {
+      if (!state) return;
+      const t = state.type;
+      if (t === 'concert') {
+        const modal = document.getElementById('concert-detail-modal');
+        if (modal) modal.classList.add('hidden');
+        activeModalConcertId = null;
+        activeModalArtistIndex = null;
+      } else if (t === 'artist_song') {
+        const modal = document.getElementById('artist-song-modal');
+        if (modal) modal.classList.add('hidden');
+        activeModalArtistName = null;
+      } else if (t === 'album') {
+        const modal = document.getElementById('album-inspector-modal');
+        if (modal) modal.classList.add('hidden');
+      } else if (t === 'overview_chart') {
+        closeOverviewChartModalInternal();
+      } else if (t === 'upcoming_config') {
+        const modal = document.getElementById('upcoming-config-modal');
+        if (modal) modal.classList.add('hidden');
+      } else if (t === 'upcoming_table') {
+        const modal = document.getElementById('upcoming-table-modal');
+        if (modal) modal.classList.add('hidden');
+      } else if (t === 'add_concert') {
+        const modal = document.getElementById('add-concert-modal');
+        if (modal) modal.classList.add('hidden');
+      } else if (t === 'edit_concert') {
+        const modal = document.getElementById('edit-concert-modal');
+        if (modal) modal.classList.add('hidden');
+      } else if (t === 'profile') {
+        const modal = document.getElementById('profile-modal');
+        if (modal) modal.classList.add('hidden');
+      } else if (t === 'setlist_prompt') {
+        const modal = document.getElementById('setlist-prompt-modal');
+        if (modal) modal.classList.add('hidden');
+      } else if (t === 'ticketmaster') {
+        const modal = document.getElementById('ticketmaster-modal');
+        if (modal) modal.classList.add('hidden');
+      } else if (t === 'upload') {
+        const modal = document.getElementById('upload-modal');
+        if (modal) modal.classList.add('hidden');
+      } else if (t === 'pwa_install') {
+        const modal = document.getElementById('pwa-install-modal');
+        if (modal) modal.classList.add('hidden');
+      } else if (t === 'impersonate') {
+        const modal = document.getElementById('impersonate-modal');
+        if (modal) modal.classList.add('hidden');
+      } else if (t === 'onboarding') {
+        const modal = document.getElementById('onboarding-modal');
+        if (modal) modal.classList.add('hidden');
+      } else if (t === 'theme') {
+        const modal = document.getElementById('theme-modal');
+        if (modal) modal.classList.add('hidden');
+      }
+    }
+
+    function restoreModalState(state) {
+      if (!state) {
+        closeAllModals();
+        return;
+      }
+      const t = state.type;
+      if (t === 'concert') {
+        openConcertModal(state.id, state.artistIndex, true);
+      } else if (t === 'artist_song') {
+        openArtistSongModal(state.artist, state.song, true);
+      } else if (t === 'album') {
+        if (state.idx !== undefined && state.idx !== null) {
+          openAlbumModal(state.idx, true);
+        } else {
+          openAlbumModalByName(state.artist, state.album, true);
+        }
+      } else if (t === 'overview_chart') {
+        openOverviewChartModal(state.chartKey, true);
+      } else if (t === 'upcoming_config') {
+        openUpcomingConfigModal(true);
+      } else if (t === 'upcoming_table') {
+        openUpcomingTableModal(true);
+      } else if (t === 'add_concert') {
+        openAddConcertModal(true);
+      } else if (t === 'edit_concert') {
+        openEditConcertModal(state.data, state.convertToLocal, true);
+      } else if (t === 'profile') {
+        openProfileModal(true);
+      } else if (t === 'setlist_prompt') {
+        openSetlistPromptModal(true);
+      } else if (t === 'ticketmaster') {
+        openTicketmasterModal(true);
+      } else if (t === 'upload') {
+        openUploadModal(true);
+      } else if (t === 'pwa_install') {
+        openPwaInstallModal(true);
+      } else if (t === 'impersonate') {
+        openImpersonateModal(true);
+      } else if (t === 'onboarding') {
+        openOnboardingModal(true);
+      } else if (t === 'theme') {
+        openThemeModal(true);
+      } else {
+        closeAllModals();
+      }
+    }
+
+    function navigateModalBack() {
+      // 1. Concert modal internal level (Step 2: Band setlist view)
+      const concertModal = document.getElementById('concert-detail-modal');
+      if (concertModal && !concertModal.classList.contains('hidden') && activeModalArtistIndex !== null) {
+        showConcertOverviewInModal();
+        activeModalArtistIndex = null;
+        if (window.currentModalState && window.currentModalState.type === 'concert') {
+          window.currentModalState.artistIndex = null;
+        }
+        return;
+      }
+
+      // 2. Artist song modal internal level (Step 2: Song Occurrences view)
+      const artistModal = document.getElementById('artist-song-modal');
+      if (artistModal && !artistModal.classList.contains('hidden')) {
+        const occView = document.getElementById('modal-artist-occurrences-view');
+        if (occView && !occView.classList.contains('hidden')) {
+          showArtistCatalogInModal();
+          if (window.currentModalState && window.currentModalState.type === 'artist_song') {
+            window.currentModalState.song = '';
+          }
+          return;
+        }
+      }
+
+      // 3. Ticketmaster modal internal level (Step 2: Preview step)
+      const tmModal = document.getElementById('ticketmaster-modal');
+      if (tmModal && !tmModal.classList.contains('hidden')) {
+        const tmPrev = document.getElementById('tm-step-preview');
+        if (tmPrev && !tmPrev.classList.contains('hidden')) {
+          backToTicketmasterPaste();
+          return;
+        }
+      }
+
+      // 4. Pop previous modal state from history stack
+      if (window.currentModalState) {
+        closeActiveModalDirectly(window.currentModalState);
+      }
+
+      if (window.modalNavStack && window.modalNavStack.length > 0) {
+        const prevState = window.modalNavStack.pop();
+        restoreModalState(prevState);
+      } else {
+        closeAllModals();
+      }
+    }
+
+    function closeAllModals() {
+      window.modalNavStack = [];
+      window.currentModalState = null;
+
+      const modalIds = [
+        'concert-detail-modal',
+        'artist-song-modal',
+        'album-inspector-modal',
+        'overview-chart-modal',
+        'upcoming-config-modal',
+        'upcoming-table-modal',
+        'upload-modal',
+        'add-concert-modal',
+        'edit-concert-modal',
+        'synced-edit-advisory-modal',
+        'delete-concert-modal',
+        'profile-modal',
+        'setlist-prompt-modal',
+        'ticketmaster-modal',
+        'pwa-install-modal',
+        'impersonate-modal',
+        'onboarding-modal',
+        'theme-modal'
+      ];
+
+      modalIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('hidden');
+      });
+
+      if (activeOverviewModalChartKey) {
+        closeOverviewChartModalInternal();
+      }
+
+      activeModalConcertId = null;
+      activeModalArtistIndex = null;
+      activeModalArtistName = null;
+
+      document.body.style.overflow = '';
+      document.body.classList.remove('overflow-hidden');
+    }
+
     let activeModalConcertId = null;
     let activeModalArtistIndex = null;
 
-    function openConcertModal(concertId, initialArtistIndex = null) {
-      if (typeof closeArtistSongModal === 'function') {
-        closeArtistSongModal();
+    function openConcertModal(concertId, initialArtistIndex = null, isBackNav = false) {
+      if (!isBackNav) {
+        pushModalState({ type: 'concert', id: concertId, artistIndex: initialArtistIndex });
       }
       activeModalConcertId = concertId;
       const card = document.getElementById('concert-card-' + concertId);
@@ -6397,6 +6771,9 @@
     function showBandSetlistInModal(concertId, artistIndex) {
       const cid = concertId || activeModalConcertId;
       activeModalArtistIndex = artistIndex;
+      if (window.currentModalState && window.currentModalState.type === 'concert') {
+        window.currentModalState.artistIndex = artistIndex;
+      }
 
       const headerOverview = document.getElementById('concert-modal-header-overview');
       const headerSetlist = document.getElementById('concert-modal-header-setlist');
@@ -6446,13 +6823,7 @@
     }
 
     function closeConcertModal() {
-      const modal = document.getElementById('concert-detail-modal');
-      if (modal) {
-        modal.classList.add('hidden');
-      }
-      document.body.style.overflow = '';
-      activeModalConcertId = null;
-      activeModalArtistIndex = null;
+      closeAllModals();
     }
 
     // Backwards-compatible shim
@@ -6964,10 +7335,11 @@
       }, 60);
     }
 
-    function openArtistSongModal(artistName, songName = '') {
+    function openArtistSongModal(artistName, songName = '', isBackNav = false) {
       if (!artistName) return;
-      if (typeof closeConcertModal === 'function') closeConcertModal();
-      if (typeof closeAlbumModal === 'function') closeAlbumModal();
+      if (!isBackNav) {
+        pushModalState({ type: 'artist_song', artist: artistName, song: songName });
+      }
 
       let matchedKey = Object.keys(drilldownData).find(k => k.toLowerCase() === artistName.toLowerCase());
       if (!matchedKey) {
@@ -7107,6 +7479,10 @@
       const s = (data.songs || [])[songIdx];
       if (!s) return;
 
+      if (window.currentModalState && window.currentModalState.type === 'artist_song') {
+        window.currentModalState.song = s.song;
+      }
+
       const headerCatalog = document.getElementById('modal-artist-header-catalog');
       const headerOccurrences = document.getElementById('modal-artist-header-occurrences');
       const viewCatalog = document.getElementById('modal-artist-catalog-view');
@@ -7147,7 +7523,7 @@
       if (!isCover && !isNonAlbum) {
         albHtml = `
           <button type="button"
-                  onclick="closeArtistSongModal(); openAlbumModalByName('${(data.artist || '').replace(/'/g, "\\'")}', '${(sAlbum || '').replace(/'/g, "\\'")}');"
+                  onclick="openAlbumModalByName('${(data.artist || '').replace(/'/g, "\\'")}', '${(sAlbum || '').replace(/'/g, "\\'")}');"
                   class="badge bg-slate-800 hover:bg-slate-700 text-indigo-300 hover:text-indigo-200 border border-indigo-500/30 text-[11px] cursor-pointer transition flex items-center gap-1 shrink-0"
                   title="Inspect album: ${escapeHtml(s.album_display || sAlbum)}">
             <i class="fa-solid fa-compact-disc text-indigo-400 text-[10px]"></i>
@@ -7242,12 +7618,7 @@
     }
 
     function closeArtistSongModal() {
-      const modal = document.getElementById('artist-song-modal');
-      if (modal) {
-        modal.classList.add('hidden');
-      }
-      document.body.style.overflow = '';
-      activeModalArtistName = null;
+      closeAllModals();
     }
 
     function selectArtist(artistName, songName = '', isToggle = false) {
@@ -7255,8 +7626,6 @@
     }
 
     function jumpToSongInDrilldown(artistName, songName = '') {
-      if (typeof closeConcertModal === 'function') closeConcertModal();
-      if (typeof closeAlbumModal === 'function') closeAlbumModal();
       switchTab('songs');
       if (!artistName) return;
 
@@ -7720,7 +8089,10 @@
       }
     }
 
-    function openThemeModal() {
+    function openThemeModal(isBackNav = false) {
+      if (!isBackNav) {
+        pushModalState({ type: 'theme' });
+      }
       closeAllHeaderMenus();
       const modal = document.getElementById('theme-modal');
       if (modal) {
@@ -7730,8 +8102,7 @@
     }
 
     function closeThemeModal() {
-      const modal = document.getElementById('theme-modal');
-      if (modal) modal.classList.add('hidden');
+      closeAllModals();
     }
 
     function toggleThemeMenu() {
@@ -8555,7 +8926,7 @@
                   <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                     ${occCount}x
                   </span>
-                  <button onclick="closeAlbumModal(); jumpToSongInDrilldown('${safeArtist}', '${safeSong}');"
+                  <button onclick="jumpToSongInDrilldown('${safeArtist}', '${safeSong}');"
                           title="View song performances in Drilldown"
                           class="px-2 py-1 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/40 text-indigo-300 hover:text-white border border-indigo-500/30 text-[10px] font-semibold transition cursor-pointer">
                     <i class="fa-solid fa-arrow-right text-[9px]"></i>
@@ -8613,7 +8984,7 @@
                   <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                     ${occCount}x
                   </span>
-                  <button onclick="closeAlbumModal(); jumpToSongInDrilldown('${safeArtist}', '${safeSong}');"
+                  <button onclick="jumpToSongInDrilldown('${safeArtist}', '${safeSong}');"
                           title="View song performances in Drilldown"
                           class="px-2 py-1 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/40 text-indigo-300 hover:text-white border border-indigo-500/30 text-[10px] font-semibold transition cursor-pointer">
                     <i class="fa-solid fa-arrow-right text-[9px]"></i>
@@ -8658,7 +9029,7 @@
                 <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                   ${occCount}x
                 </span>
-                <button onclick="closeAlbumModal(); jumpToSongInDrilldown('${safeArtist}', '${safeSong}');"
+                <button onclick="jumpToSongInDrilldown('${safeArtist}', '${safeSong}');"
                         title="View song performances in Drilldown"
                         class="px-2 py-1 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/40 text-indigo-300 hover:text-white border border-indigo-500/30 text-[10px] font-semibold transition cursor-pointer">
                   <i class="fa-solid fa-arrow-right text-[9px]"></i>
@@ -8677,12 +9048,12 @@
       }
     }
 
-    function openAlbumModal(idx) {
+    function openAlbumModal(idx, isBackNav = false) {
       if (!albumsGalleryData || !albumsGalleryData[idx]) return;
-      if (typeof closeConcertModal === 'function') {
-        closeConcertModal();
-      }
       const alb = albumsGalleryData[idx];
+      if (!isBackNav) {
+        pushModalState({ type: 'album', idx: idx, artist: alb.artist, album: alb.album });
+      }
       const modal = document.getElementById('album-inspector-modal');
       if (!modal) return;
 
@@ -8787,10 +9158,10 @@
         const ytQuery = encodeURIComponent(`${alb.artist} ${alb.album}`);
         const safeArtist = (alb.artist || '').replace(/'/g, "\\'");
         actionsEl.innerHTML = `
-          <button onclick="closeAlbumModal(); jumpToSongInDrilldown('${safeArtist}', '');" class="px-3 py-1.5 rounded-xl bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 hover:text-white border border-indigo-500/40 font-semibold transition cursor-pointer flex items-center gap-1.5 text-xs">
+          <button onclick="jumpToSongInDrilldown('${safeArtist}', '');" class="px-3 py-1.5 rounded-xl bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 hover:text-white border border-indigo-500/40 font-semibold transition cursor-pointer flex items-center gap-1.5 text-xs">
             <i class="fa-solid fa-magnifying-glass-chart"></i> View ${escapeHtml(alb.artist)} Songs
           </button>
-          <button onclick="closeAlbumModal(); jumpToArtistInConcerts('${safeArtist}')" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold transition cursor-pointer flex items-center gap-1.5 text-xs">
+          <button onclick="closeAllModals(); jumpToArtistInConcerts('${safeArtist}')" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold transition cursor-pointer flex items-center gap-1.5 text-xs">
             <i class="fa-solid fa-ticket"></i> View Shows
           </button>
           <a href="https://www.youtube.com/results?search_query=${ytQuery}" target="_blank" rel="noopener noreferrer" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-red-500/20 text-slate-300 hover:text-red-300 border border-slate-700 hover:border-red-500/40 font-semibold transition flex items-center gap-1.5 text-xs">
@@ -8800,9 +9171,10 @@
       }
 
       modal.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
     }
 
-    function openAlbumModalByName(artist, album) {
+    function openAlbumModalByName(artist, album, isBackNav = false) {
       if (!artist || !album) return;
       const artLow = artist.toLowerCase().trim();
       const albClean = album.replace(/\s*\([^)]*\)/g, '').toLowerCase().trim();
@@ -8817,7 +9189,7 @@
           return aArt === artLow && (aAlb === albLow || aAlbClean === albClean || aAlb.includes(albClean) || albClean.includes(aAlbClean));
         });
         if (idx !== -1) {
-          openAlbumModal(idx);
+          openAlbumModal(idx, isBackNav);
           return;
         }
       }
@@ -8854,7 +9226,7 @@
       if (typeof albumsGalleryData !== 'undefined' && albumsGalleryData) {
         const newIdx = albumsGalleryData.length;
         albumsGalleryData.push(tempAlbum);
-        openAlbumModal(newIdx);
+        openAlbumModal(newIdx, isBackNav);
       }
     }
 
@@ -8913,12 +9285,34 @@
     }
 
     function closeAlbumModal() {
-      const modal = document.getElementById('album-inspector-modal');
-      if (modal) modal.classList.add('hidden');
+      closeAllModals();
     }
 
     // Mobile Overview Chart Modal Management
     let activeOverviewModalChartKey = null;
+
+    function closeOverviewChartModalInternal() {
+      const modal = document.getElementById('overview-chart-modal');
+      if (modal) modal.classList.add('hidden');
+      if (activeOverviewModalChartKey) {
+        const cfg = overviewChartConfigs[activeOverviewModalChartKey];
+        if (cfg) {
+          const itemEl = document.getElementById(cfg.chartId || cfg.elementId);
+          const slotEl = document.getElementById(cfg.slotId);
+          if (itemEl && slotEl) {
+            if (cfg.isChart !== false) {
+              itemEl.classList.remove('h-full', 'min-h-[300px]');
+              itemEl.classList.add('h-80');
+            }
+            slotEl.appendChild(itemEl);
+            if (cfg.isChart !== false && window.innerWidth >= 768) {
+              Plotly.Plots.resize(itemEl);
+            }
+          }
+        }
+        activeOverviewModalChartKey = null;
+      }
+    }
 
     const overviewChartConfigs = {
       'timeline': {
@@ -8985,9 +9379,12 @@
       }
     };
 
-    function openOverviewChartModal(chartKey) {
+    function openOverviewChartModal(chartKey, isBackNav = false) {
       const config = overviewChartConfigs[chartKey];
       if (!config) return;
+      if (!isBackNav) {
+        pushModalState({ type: 'overview_chart', chartKey: chartKey });
+      }
 
       const modal = document.getElementById('overview-chart-modal');
       const titleEl = document.getElementById('overview-chart-modal-title');
@@ -9058,48 +9455,55 @@
     }
 
     function closeOverviewChartModal() {
-      const modal = document.getElementById('overview-chart-modal');
-      if (modal) modal.classList.add('hidden');
-      document.body.style.overflow = '';
-
-      if (activeOverviewModalChartKey) {
-        const cfg = overviewChartConfigs[activeOverviewModalChartKey];
-        if (cfg) {
-          const itemEl = document.getElementById(cfg.chartId || cfg.elementId);
-          const slotEl = document.getElementById(cfg.slotId);
-          if (itemEl && slotEl) {
-            if (cfg.isChart !== false) {
-              itemEl.classList.remove('h-full', 'min-h-[300px]');
-              itemEl.classList.add('h-80');
-            }
-            slotEl.appendChild(itemEl);
-            if (cfg.isChart !== false && window.innerWidth >= 768) {
-              Plotly.Plots.resize(itemEl);
-            }
-          }
-        }
-        activeOverviewModalChartKey = null;
-      }
+      closeAllModals();
     }
 
     // Modal listeners
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
-        closeConcertModal();
-        closeAlbumModal();
-        closeOverviewChartModal();
+        const modalIds = [
+          'concert-detail-modal',
+          'artist-song-modal',
+          'album-inspector-modal',
+          'overview-chart-modal',
+          'upcoming-config-modal',
+          'upcoming-table-modal',
+          'upload-modal',
+          'add-concert-modal',
+          'edit-concert-modal',
+          'synced-edit-advisory-modal',
+          'delete-concert-modal',
+          'profile-modal',
+          'setlist-prompt-modal',
+          'ticketmaster-modal',
+          'pwa-install-modal',
+          'impersonate-modal',
+          'onboarding-modal',
+          'theme-modal'
+        ];
+        const isAnyModalOpen = modalIds.some(id => {
+          const el = document.getElementById(id);
+          return el && !el.classList.contains('hidden');
+        });
+
+        if (isAnyModalOpen || window.currentModalState || (window.modalNavStack && window.modalNavStack.length > 0)) {
+          navigateModalBack();
+        } else {
+          closeAllHeaderMenus();
+          closeMobileMoreMenu();
+        }
       }
     });
     const albumModalBackdrop = document.getElementById('album-inspector-modal');
     if (albumModalBackdrop) {
       albumModalBackdrop.addEventListener('click', (e) => {
-        if (e.target === albumModalBackdrop) closeAlbumModal();
+        if (e.target === albumModalBackdrop) closeAllModals();
       });
     }
     const overviewModalBackdrop = document.getElementById('overview-chart-modal');
     if (overviewModalBackdrop) {
       overviewModalBackdrop.addEventListener('click', (e) => {
-        if (e.target === overviewModalBackdrop) closeOverviewChartModal();
+        if (e.target === overviewModalBackdrop) closeAllModals();
       });
     }
 
@@ -9160,8 +9564,13 @@
       return cookieValue;
     }
 
-    function openUploadModal() { document.getElementById('upload-modal').classList.remove('hidden'); }
-    function closeUploadModal() { document.getElementById('upload-modal').classList.add('hidden'); }
+    function openUploadModal(isBackNav = false) {
+      if (!isBackNav) {
+        pushModalState({ type: 'upload' });
+      }
+      document.getElementById('upload-modal').classList.remove('hidden');
+    }
+    function closeUploadModal() { closeAllModals(); }
     function updateFileName(input) {
       if (input.files && input.files[0]) {
         document.getElementById('file-label').innerText = input.files[0].name;
@@ -9403,7 +9812,10 @@
       initAddConcertAutocomplete();
     }
 
-    function openAddConcertModal() {
+    function openAddConcertModal(isBackNav = false) {
+      if (!isBackNav) {
+        pushModalState({ type: 'add_concert' });
+      }
       const modal = document.getElementById('add-concert-modal');
       const dateInput = document.getElementById('add-concert-date');
       const statusBox = document.getElementById('add-concert-status');
@@ -9421,9 +9833,7 @@
     }
 
     function closeAddConcertModal() {
-      const modal = document.getElementById('add-concert-modal');
-      if (modal) modal.classList.add('hidden');
-      document.body.classList.remove('overflow-hidden');
+      closeAllModals();
       ['venue-suggestions', 'city-suggestions', 'state-suggestions', 'artist-suggestions', 'supporting-suggestions'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.classList.add('hidden');
@@ -9569,9 +9979,7 @@
     }
 
     function closeSyncedEditAdvisoryModal() {
-      const modal = document.getElementById('synced-edit-advisory-modal');
-      if (modal) modal.classList.add('hidden');
-      document.body.classList.remove('overflow-hidden');
+      closeAllModals();
     }
 
     function proceedWithConvertToLocalAndEdit() {
@@ -9588,7 +9996,10 @@
       }
     }
 
-    function openEditConcertModal(data, convertToLocal = false) {
+    function openEditConcertModal(data, convertToLocal = false, isBackNav = false) {
+      if (!isBackNav) {
+        pushModalState({ type: 'edit_concert', data: data, convertToLocal: convertToLocal });
+      }
       const modal = document.getElementById('edit-concert-modal');
       if (!modal) return;
 
@@ -9640,9 +10051,7 @@
     }
 
     function closeEditConcertModal() {
-      const modal = document.getElementById('edit-concert-modal');
-      if (modal) modal.classList.add('hidden');
-      document.body.classList.remove('overflow-hidden');
+      closeAllModals();
       ['edit-venue-suggestions', 'edit-city-suggestions', 'edit-state-suggestions', 'edit-artist-suggestions', 'edit-supporting-suggestions'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.classList.add('hidden');
@@ -9767,9 +10176,7 @@
     }
 
     function closeDeleteConcertModal() {
-      const modal = document.getElementById('delete-concert-modal');
-      if (modal) modal.classList.add('hidden');
-      document.body.classList.remove('overflow-hidden');
+      closeAllModals();
     }
 
     async function executeConcertDelete() {
@@ -10011,7 +10418,10 @@
       }
     }
 
-    function openProfileModal() {
+    function openProfileModal(isBackNav = false) {
+      if (!isBackNav) {
+        pushModalState({ type: 'profile' });
+      }
       const modal = document.getElementById('profile-modal');
       const emailInp = document.getElementById('profile-email');
       const userInp = document.getElementById('profile-setlist-username');
@@ -10037,8 +10447,7 @@
     }
 
     function closeProfileModal() {
-      const modal = document.getElementById('profile-modal');
-      if (modal) modal.classList.add('hidden');
+      closeAllModals();
     }
 
     function toggleAdvancedProfileSettings() {
@@ -10165,7 +10574,10 @@
       }
     }
 
-    function openSetlistPromptModal() {
+    function openSetlistPromptModal(isBackNav = false) {
+      if (!isBackNav) {
+        pushModalState({ type: 'setlist_prompt' });
+      }
       const modal = document.getElementById('setlist-prompt-modal');
       const userInp = document.getElementById('sync-prompt-username');
       const dontAskChk = document.getElementById('sync-prompt-dont-ask');
@@ -10179,8 +10591,7 @@
     }
 
     function closeSetlistPromptModal() {
-      const modal = document.getElementById('setlist-prompt-modal');
-      if (modal) modal.classList.add('hidden');
+      closeAllModals();
     }
 
     async function submitSyncPrompt(saveUsername) {
@@ -10417,7 +10828,10 @@
     /* --- Ticketmaster Import Flow --- */
     let tmParsedEvents = [];
 
-    function openTicketmasterModal() {
+    function openTicketmasterModal(isBackNav = false) {
+      if (!isBackNav) {
+        pushModalState({ type: 'ticketmaster' });
+      }
       const modal = document.getElementById('ticketmaster-modal');
       const inputStep = document.getElementById('tm-step-input');
       const previewStep = document.getElementById('tm-step-preview');
@@ -10432,8 +10846,7 @@
     }
 
     function closeTicketmasterModal() {
-      const modal = document.getElementById('ticketmaster-modal');
-      if (modal) modal.classList.add('hidden');
+      closeAllModals();
     }
 
     function backToTicketmasterPaste() {
@@ -10706,7 +11119,10 @@
       if (nativeSection) nativeSection.classList.remove('hidden');
     });
 
-    function openPwaInstallModal() {
+    function openPwaInstallModal(isBackNav = false) {
+      if (!isBackNav) {
+        pushModalState({ type: 'pwa_install' });
+      }
       closeAllHeaderMenus();
       const modal = document.getElementById('pwa-install-modal');
       if (!modal) return;
@@ -10734,8 +11150,7 @@
     }
 
     function closePwaInstallModal() {
-      const modal = document.getElementById('pwa-install-modal');
-      if (modal) modal.classList.add('hidden');
+      closeAllModals();
     }
 
     function switchPwaTab(platform) {
@@ -10905,7 +11320,10 @@
     /* -------------------------------------------------- */
     /* Impersonation Modal Logic                          */
     /* -------------------------------------------------- */
-    function openImpersonateModal() {
+    function openImpersonateModal(isBackNav = false) {
+      if (!isBackNav) {
+        pushModalState({ type: 'impersonate' });
+      }
       const modal = document.getElementById('impersonate-modal');
       if (modal) {
         modal.classList.remove('hidden');
@@ -10919,8 +11337,7 @@
     }
 
     function closeImpersonateModal() {
-      const modal = document.getElementById('impersonate-modal');
-      if (modal) modal.classList.add('hidden');
+      closeAllModals();
     }
 
     function filterImpersonateUsers() {
@@ -10947,7 +11364,10 @@
     let onboardingConcertsAdded = 0;
     let onboardingSyncTriggered = false;
 
-    function openOnboardingModal() {
+    function openOnboardingModal(isBackNav = false) {
+      if (!isBackNav) {
+        pushModalState({ type: 'onboarding' });
+      }
       const modal = document.getElementById('onboarding-modal');
       if (modal) {
         modal.classList.remove('hidden');
@@ -10956,8 +11376,7 @@
     }
 
     function closeOnboardingModal() {
-      const modal = document.getElementById('onboarding-modal');
-      if (modal) modal.classList.add('hidden');
+      closeAllModals();
       try {
         sessionStorage.setItem('setlore_onboarding_dismissed_{{ user.id }}', 'true');
       } catch (e) {}
@@ -11705,7 +12124,10 @@
     const isUpcomingOwner = {% if user.is_authenticated and is_owner %}true{% else %}false{% endif %};
     let upcomingModalFilter = 'all';
 
-    function openUpcomingConfigModal() {
+    function openUpcomingConfigModal(isBackNav = false) {
+      if (!isBackNav) {
+        pushModalState({ type: 'upcoming_config' });
+      }
       const modal = document.getElementById('upcoming-config-modal');
       if (!modal) return;
       modal.classList.remove('hidden');
@@ -11718,9 +12140,7 @@
     }
 
     function closeUpcomingConfigModal() {
-      const modal = document.getElementById('upcoming-config-modal');
-      if (!modal) return;
-      modal.classList.add('hidden');
+      closeAllModals();
     }
 
     function setUpcomingModalFilter(type) {
@@ -12131,7 +12551,10 @@
       renderUpcomingShowsTable(filteredShows);
     }
 
-    function openUpcomingTableModal() {
+    function openUpcomingTableModal(isBackNav = false) {
+      if (!isBackNav) {
+        pushModalState({ type: 'upcoming_table' });
+      }
       const modal = document.getElementById('upcoming-table-modal');
       if (!modal) return;
       modal.classList.remove('hidden');
@@ -12144,9 +12567,7 @@
     }
 
     function closeUpcomingTableModal() {
-      const modal = document.getElementById('upcoming-table-modal');
-      if (!modal) return;
-      modal.classList.add('hidden');
+      closeAllModals();
     }
 
     function filterUpcomingTableRows() {
