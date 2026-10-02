@@ -2759,9 +2759,9 @@
           </div>
 
           <!-- In-Modal Filter & Search Toolbar -->
-          <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-0.5">
+          <div class="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5 pt-0.5">
             <!-- Search Song Input -->
-            <div class="relative flex-1">
+            <div class="relative flex-1 min-w-[160px]">
               <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 text-[11px] pointer-events-none"></i>
               <input type="text"
                      id="modal-song-search-input"
@@ -2777,12 +2777,35 @@
               </button>
             </div>
 
-            <!-- Album Filter Dropdown -->
-            <div class="flex items-center gap-1.5 shrink-0">
-              <span class="text-[11px] text-slate-400 font-medium shrink-0"><i class="fa-solid fa-compact-disc text-indigo-400 mr-1"></i>Album:</span>
-              <select id="modal-song-album-filter" onchange="filterModalSongs()" class="bg-slate-900 border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500 max-w-[190px] truncate cursor-pointer">
-                <option value="ALL">All Albums</option>
-              </select>
+            <!-- Controls Row: Album + Sort Controls -->
+            <div class="flex items-center gap-2 flex-wrap shrink-0">
+              <!-- Album Filter Dropdown -->
+              <div class="flex items-center gap-1.5 shrink-0">
+                <span class="text-[11px] text-slate-400 font-medium shrink-0"><i class="fa-solid fa-compact-disc text-indigo-400 mr-1"></i>Album:</span>
+                <select id="modal-song-album-filter" onchange="filterModalSongs()" class="bg-slate-900 border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500 max-w-[150px] truncate cursor-pointer">
+                  <option value="ALL">All Albums</option>
+                </select>
+              </div>
+
+              <!-- Sort Field Select -->
+              <div class="flex items-center gap-1.5 shrink-0">
+                <span class="text-[11px] text-slate-400 font-medium shrink-0"><i class="fa-solid fa-arrow-down-short-wide text-indigo-400 mr-1"></i>Sort:</span>
+                <select id="modal-song-sort-by" onchange="changeModalSongSort(this.value)" class="bg-slate-900 border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500 max-w-[140px] truncate cursor-pointer">
+                  <option value="frequency">Frequency</option>
+                  <option value="age">Age / Year</option>
+                  <option value="alphabetical">Alphabetical</option>
+                  <option value="first_heard">First Heard</option>
+                </select>
+                <!-- Sort Order Toggle Button (Asc/Desc) -->
+                <button type="button"
+                        id="modal-song-sort-order-btn"
+                        onclick="toggleModalSongSortOrder()"
+                        class="px-2 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700/80 text-xs font-semibold flex items-center gap-1 transition cursor-pointer shadow-sm"
+                        title="Sort descending (click to toggle ascending/descending)">
+                  <i id="modal-song-sort-order-icon" class="fa-solid fa-arrow-down-wide-short text-indigo-400"></i>
+                  <span id="modal-song-sort-order-label" class="hidden sm:inline text-[11px]">Desc</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -7830,6 +7853,12 @@
         });
       }
 
+      const sortBySelect = document.getElementById('modal-song-sort-by');
+      if (sortBySelect) {
+        sortBySelect.value = modalSongSortField;
+      }
+      updateModalSongSortOrderUI();
+
       if (searchInput) {
         searchInput.value = '';
         if (clearBtn) clearBtn.classList.add('hidden');
@@ -7839,7 +7868,8 @@
         footerInfo.innerHTML = `Viewing live catalog for <strong class="text-slate-200">${escapeHtml(data.artist)}</strong>`;
       }
 
-      renderArtistSongsInModal(data.songs, data.artist, songName);
+      const sortedSongs = sortModalSongsList(data.songs || [], data.artist);
+      renderArtistSongsInModal(sortedSongs, data.artist, songName);
       showArtistCatalogInModal();
 
       modal.classList.remove('hidden');
@@ -7847,19 +7877,15 @@
 
       if (songName) {
         const sLow = songName.toLowerCase().trim();
-        const exactIdx = (data.songs || []).findIndex(s => s.song.toLowerCase() === sLow);
-        if (exactIdx !== -1) {
-          showSongOccurrencesInModal(exactIdx);
+        const matchedSong = (data.songs || []).find(s => s.song.toLowerCase() === sLow) ||
+                            (data.songs || []).find(s => s.song.toLowerCase().includes(sLow));
+        if (matchedSong) {
+          showSongOccurrencesInModal(matchedSong.song);
         } else {
-          const partialIdx = (data.songs || []).findIndex(s => s.song.toLowerCase().includes(sLow));
-          if (partialIdx !== -1) {
-            showSongOccurrencesInModal(partialIdx);
-          } else {
-            if (searchInput) {
-              searchInput.value = songName;
-              if (clearBtn) clearBtn.classList.remove('hidden');
-              filterModalSongs();
-            }
+          if (searchInput) {
+            searchInput.value = songName;
+            if (clearBtn) clearBtn.classList.remove('hidden');
+            filterModalSongs();
           }
         }
       }
@@ -7889,10 +7915,17 @@
       if (body) body.scrollTop = 0;
     }
 
-    function showSongOccurrencesInModal(songIdx) {
+    function showSongOccurrencesInModal(songIdentifier) {
       if (!activeModalArtistName || !drilldownData[activeModalArtistName]) return;
       const data = drilldownData[activeModalArtistName];
-      const s = (data.songs || [])[songIdx];
+      let s = null;
+      if (typeof songIdentifier === 'number') {
+        s = (data.songs || [])[songIdentifier];
+      } else if (typeof songIdentifier === 'string') {
+        const sLow = songIdentifier.toLowerCase().trim();
+        s = (data.songs || []).find(x => x.song.toLowerCase() === sLow) ||
+            (data.songs || []).find(x => x.song.toLowerCase().includes(sLow));
+      }
       if (!s) return;
 
       if (window.currentModalState && window.currentModalState.type === 'artist_song') {
@@ -8189,6 +8222,9 @@
         }
 
         const isHighlighted = highlightSong && s.song.toLowerCase().includes(highlightSong.toLowerCase());
+        const escSongName = (s.song || '').replace(/'/g, "\\'");
+
+        item.setAttribute('onclick', `showSongOccurrencesInModal('${escSongName}')`);
 
         item.innerHTML = `
           <div class="flex flex-wrap items-center gap-2.5 min-w-0 flex-1 pr-2">
@@ -8206,7 +8242,7 @@
           </div>
           <div class="flex items-center gap-2 shrink-0">
             <button type="button"
-                    onclick="event.stopPropagation(); showSongOccurrencesInModal(${idx})"
+                    onclick="event.stopPropagation(); showSongOccurrencesInModal('${escSongName}')"
                     class="px-3 py-1.5 rounded-lg bg-slate-800 group-hover:bg-indigo-600 text-slate-300 group-hover:text-white border border-slate-700 group-hover:border-indigo-500 text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer shadow-sm">
               <span>${playCount}x</span>
               <i class="fa-solid fa-chevron-right text-[10px] group-hover:translate-x-0.5 transition-transform"></i>
@@ -8229,6 +8265,113 @@
           </div>
         `;
       }
+    }
+
+    let modalSongSortField = 'frequency';
+    let modalSongSortOrder = 'desc';
+
+    function changeModalSongSort(field) {
+      modalSongSortField = field;
+      applyModalSongSortingAndRendering();
+    }
+
+    function toggleModalSongSortOrder() {
+      modalSongSortOrder = modalSongSortOrder === 'desc' ? 'asc' : 'desc';
+      updateModalSongSortOrderUI();
+      applyModalSongSortingAndRendering();
+    }
+
+    function updateModalSongSortOrderUI() {
+      const btn = document.getElementById('modal-song-sort-order-btn');
+      const icon = document.getElementById('modal-song-sort-order-icon');
+      const label = document.getElementById('modal-song-sort-order-label');
+      if (icon) {
+        icon.className = modalSongSortOrder === 'desc' ? 'fa-solid fa-arrow-down-wide-short text-indigo-400' : 'fa-solid fa-arrow-up-wide-short text-indigo-400';
+      }
+      if (label) {
+        label.textContent = modalSongSortOrder === 'desc' ? 'Desc' : 'Asc';
+      }
+      if (btn) {
+        btn.title = `Sort ${modalSongSortOrder === 'desc' ? 'descending' : 'ascending'} (click to toggle)`;
+      }
+    }
+
+    function parseDateStrToTime(dStr) {
+      if (!dStr || dStr === '-') return 0;
+      const parts = String(dStr).trim().split(/[-/]/);
+      if (parts.length === 3) {
+        if (parts[0].length === 4) {
+          return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10)).getTime() || 0;
+        } else if (parts[2].length === 4) {
+          return new Date(parseInt(parts[2], 10), parseInt(parts[0], 10) - 1, parseInt(parts[1], 10)).getTime() || 0;
+        }
+      }
+      const t = Date.parse(dStr);
+      return isNaN(t) ? 0 : t;
+    }
+
+    function sortModalSongsList(songsList, artistName) {
+      if (!songsList || !songsList.length) return [];
+      const isDesc = modalSongSortOrder === 'desc';
+      const sorted = [...songsList];
+
+      sorted.sort((a, b) => {
+        let occsA = a.occurrences || [];
+        let occsB = b.occurrences || [];
+        if (activeMusicianFilter) {
+          occsA = occsA.filter(o => isOccurrenceInMusicianTenure(o, artistName, activeMusicianFilter));
+          occsB = occsB.filter(o => isOccurrenceInMusicianTenure(o, artistName, activeMusicianFilter));
+        }
+        const countA = occsA.length;
+        const countB = occsB.length;
+        const dateA = occsA.length > 0 ? occsA[0].date : a.first_heard;
+        const dateB = occsB.length > 0 ? occsB[0].date : b.first_heard;
+        const timeA = parseDateStrToTime(dateA);
+        const timeB = parseDateStrToTime(dateB);
+        const yearA = (typeof a.release_year === 'number') ? a.release_year : null;
+        const yearB = (typeof b.release_year === 'number') ? b.release_year : null;
+
+        if (modalSongSortField === 'frequency') {
+          if (countA !== countB) {
+            return isDesc ? (countB - countA) : (countA - countB);
+          }
+          return (a.song || '').localeCompare(b.song || '');
+        } else if (modalSongSortField === 'age') {
+          if (yearA !== null && yearB !== null) {
+            if (yearA !== yearB) {
+              return isDesc ? (yearB - yearA) : (yearA - yearB);
+            }
+            return (a.song || '').localeCompare(b.song || '');
+          }
+          if (yearA !== null && yearB === null) return -1;
+          if (yearA === null && yearB !== null) return 1;
+          return (a.song || '').localeCompare(b.song || '');
+        } else if (modalSongSortField === 'alphabetical') {
+          const comp = (a.song || '').localeCompare(b.song || '');
+          return isDesc ? -comp : comp;
+        } else if (modalSongSortField === 'first_heard') {
+          if (timeA && timeB) {
+            if (timeA !== timeB) {
+              return isDesc ? (timeB - timeA) : (timeA - timeB);
+            }
+            return (a.song || '').localeCompare(b.song || '');
+          }
+          if (timeA && !timeB) return -1;
+          if (!timeA && timeB) return 1;
+          return (a.song || '').localeCompare(b.song || '');
+        }
+        return 0;
+      });
+
+      return sorted;
+    }
+
+    function applyModalSongSortingAndRendering() {
+      if (!activeModalArtistName || !drilldownData[activeModalArtistName]) return;
+      const data = drilldownData[activeModalArtistName];
+      const sortedSongs = sortModalSongsList(data.songs || [], data.artist);
+      renderArtistSongsInModal(sortedSongs, data.artist);
+      filterModalSongs();
     }
 
     function filterModalSongs() {
