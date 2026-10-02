@@ -2621,7 +2621,7 @@
               <div class="flex items-center gap-2 flex-wrap text-xs text-slate-400 min-w-0">
                 <span id="modal-concert-setlist-date-badge" class="badge bg-indigo-500/20 text-indigo-300 font-mono text-xs font-bold border border-indigo-500/30 px-2 py-0.5 shrink-0"></span>
                 <p id="modal-concert-setlist-venue-sub" class="flex items-center gap-1.5 truncate"></p>
-                <button type="button" onclick="showConcertOverviewInModal()" class="px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/80 text-[11px] font-medium transition inline-flex items-center gap-1 cursor-pointer shrink-0 shadow-sm" title="View all bands from this concert">
+                <button type="button" id="modal-concert-all-bands-btn" onclick="showConcertOverviewInModal()" class="px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/80 text-[11px] font-medium transition inline-flex items-center gap-1 cursor-pointer shrink-0 shadow-sm" title="View all bands from this concert">
                   <i class="fa-solid fa-users text-indigo-400 text-[10px]"></i>
                   <span>All Bands</span>
                 </button>
@@ -3558,6 +3558,7 @@
              data-notes="{{ c.notes }}"
              data-is-offline="{{ c.is_custom_offline|yesno:'true,false' }}"
              data-is-synced="{{ c.is_setlistfm_synced|yesno:'true,false' }}"
+             data-total-artists="{{ c.artists|length }}"
              data-setlist-url="{{ c.artists.0.setlist_url|default:'' }}"
              data-setlist-text="{{ c.setlist_text }}">
           
@@ -6815,6 +6816,12 @@
       // 1. Concert modal internal level (Step 2: Band setlist view)
       const concertModal = document.getElementById('concert-detail-modal');
       if (concertModal && !concertModal.classList.contains('hidden') && activeModalArtistIndex !== null) {
+        const card = document.getElementById('concert-card-' + activeModalConcertId);
+        const totalArtists = parseInt(card?.getAttribute('data-total-artists') || '0', 10);
+        if (totalArtists === 1) {
+          closeConcertModal();
+          return;
+        }
         if (!window.currentModalState || !window.currentModalState.openedWithArtistIndex || !window.modalNavStack || window.modalNavStack.length === 0) {
           showConcertOverviewInModal();
           activeModalArtistIndex = null;
@@ -6909,14 +6916,46 @@
     let activeModalArtistIndex = null;
 
     function openConcertModal(concertId, initialArtistIndex = null, isBackNav = false) {
-      if (!isBackNav) {
-        pushModalState({ type: 'concert', id: concertId, artistIndex: initialArtistIndex, openedWithArtistIndex: !!initialArtistIndex });
-      }
       activeModalConcertId = concertId;
       const card = document.getElementById('concert-card-' + concertId);
       const modal = document.getElementById('concert-detail-modal');
       const modalBody = document.getElementById('concert-modal-body');
       if (!card || !modal || !modalBody) return;
+
+      const payload = document.getElementById('concert-modal-payload-' + concertId);
+      if (payload) {
+        modalBody.innerHTML = payload.innerHTML;
+        modalBody.querySelectorAll('[data-action="view-band-setlist"], .artist-set-card').forEach(row => {
+          row.onclick = (e) => {
+            if (e.target.closest('a, .favorite-artist-btn, button:not([class*="bg-gradient"])')) {
+              return;
+            }
+            const cId = row.getAttribute('data-concert-id') || activeModalConcertId;
+            const artIdx = row.getAttribute('data-artist-index');
+            if (cId && artIdx) {
+              showBandSetlistInModal(cId, artIdx);
+            }
+          };
+        });
+      }
+
+      const totalArtists = parseInt(card.getAttribute('data-total-artists') || '0', 10) ||
+                           modalBody.querySelectorAll('[id^="concert-modal-setlist-view-"]').length;
+
+      let effectiveArtistIndex = initialArtistIndex;
+      if (!effectiveArtistIndex && totalArtists === 1) {
+        effectiveArtistIndex = 1;
+      }
+
+      if (!isBackNav) {
+        pushModalState({
+          type: 'concert',
+          id: concertId,
+          artistIndex: effectiveArtistIndex,
+          openedWithArtistIndex: !!effectiveArtistIndex,
+          singleArtist: totalArtists === 1
+        });
+      }
 
       const date = card.getAttribute('data-formatted-date') || card.getAttribute('data-date') || '';
       const venue = card.getAttribute('data-venue') || '';
@@ -6936,28 +6975,11 @@
         locElem.innerHTML = locStr ? `<i class="fa-solid fa-location-dot text-indigo-400 text-[10px]"></i> <span>${locStr}</span>` : '';
       }
 
-      const payload = document.getElementById('concert-modal-payload-' + concertId);
-      if (payload) {
-        modalBody.innerHTML = payload.innerHTML;
-        modalBody.querySelectorAll('[data-action="view-band-setlist"], .artist-set-card').forEach(row => {
-          row.onclick = (e) => {
-            if (e.target.closest('a, .favorite-artist-btn, button:not([class*="bg-gradient"])')) {
-              return;
-            }
-            const cId = row.getAttribute('data-concert-id') || activeModalConcertId;
-            const artIdx = row.getAttribute('data-artist-index');
-            if (cId && artIdx) {
-              showBandSetlistInModal(cId, artIdx);
-            }
-          };
-        });
-      }
-
       modal.classList.remove('hidden');
       document.body.style.overflow = 'hidden';
 
-      if (initialArtistIndex) {
-        showBandSetlistInModal(concertId, initialArtistIndex);
+      if (effectiveArtistIndex) {
+        showBandSetlistInModal(concertId, effectiveArtistIndex);
       } else {
         showConcertOverviewInModal(concertId);
       }
@@ -7004,6 +7026,18 @@
       modalBody.querySelectorAll('[id^="concert-modal-setlist-view-"]').forEach(el => el.classList.add('hidden'));
 
       const card = document.getElementById('concert-card-' + cid);
+      const totalArtists = parseInt(card ? (card.getAttribute('data-total-artists') || '0') : '0', 10) ||
+                           modalBody.querySelectorAll('[id^="concert-modal-setlist-view-"]').length;
+
+      const allBandsBtn = document.getElementById('modal-concert-all-bands-btn');
+      if (allBandsBtn) {
+        if (totalArtists <= 1) {
+          allBandsBtn.classList.add('hidden');
+        } else {
+          allBandsBtn.classList.remove('hidden');
+        }
+      }
+
       const date = card ? (card.getAttribute('data-formatted-date') || card.getAttribute('data-date') || '') : '';
       const venue = card ? (card.getAttribute('data-venue') || '') : '';
       const city = card ? (card.getAttribute('data-city') || '') : '';
