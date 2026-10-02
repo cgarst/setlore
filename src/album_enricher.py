@@ -514,8 +514,14 @@ class AlbumEnricher:
         tracks = []
         release_yr = None
 
+        deluxe_keywords = [
+            "deluxe", "expanded", "anniversary", "bonus", "special edition", 
+            "remastered edition", "box set", "boxset", "super deluxe", "tour edition", 
+            "collector", "complete", "instrumental", "5.1", "surround", "bluray", "blu-ray", "dvd"
+        ]
+
         for q_str in queries:
-            url = f'https://musicbrainz.org/ws/2/release?query={urllib.parse.quote(q_str)}&limit=5&fmt=json'
+            url = f'https://musicbrainz.org/ws/2/release?query={urllib.parse.quote(q_str)}&limit=10&fmt=json'
             resp = self._rate_limited_get(url)
             if not resp or resp.status_code != 200:
                 continue
@@ -529,58 +535,99 @@ class AlbumEnricher:
             if not releases:
                 continue
 
-            # Prioritize official studio album releases
+            # Prioritize official standard studio album releases over deluxe/bonus/expanded editions
             candidates = []
             for r in releases:
                 rg = r.get("release-group", {})
                 p_type = rg.get("primary-type") or ""
-                s_types = rg.get("secondary-types") or []
+                s_types = [s.lower() for s in rg.get("secondary-types") or []]
                 status = r.get("status") or ""
-                if any(st.lower() in ["live", "demo", "remix", "soundtrack"] for st in s_types):
+                r_title = (r.get("title") or "").lower()
+                r_disam = (r.get("disambiguation") or "").lower()
+                rg_disam = (rg.get("disambiguation") or "").lower()
+
+                if any(st in ["live", "demo", "remix", "soundtrack", "compilation"] for st in s_types):
                     continue
+
                 score = 100
                 if p_type == "Album":
                     score += 50
                 if status == "Official":
                     score += 40
-                candidates.append((score, r))
 
-            candidates.sort(key=lambda x: x[0], reverse=True)
-            chosen_rel = candidates[0][1] if candidates else releases[0]
-            rel_id = chosen_rel.get("id")
-            if not rel_id:
-                continue
+                # Check for deluxe/expanded/bonus signals in release title & disambiguation
+                text_to_check = f"{r_title} {r_disam} {rg_disam}"
+                for kw in deluxe_keywords:
+                    if kw in text_to_check:
+                        score -= 60
 
-            # Extract release year
-            d_str = chosen_rel.get("date") or chosen_rel.get("release-group", {}).get("first-release-date") or ""
-            if d_str and len(d_str) >= 4 and d_str[:4].isdigit():
-                y = int(d_str[:4])
-                if 1950 <= y <= 2030:
-                    release_yr = y
+                # Prefer releases with earliest date (usually the original standard release)
+                d_val = r.get("date") or rg.get("first-release-date") or ""
+                candidates.append((score, d_val, r))
 
-            # Fetch release with recordings
-            rel_url = f'https://musicbrainz.org/ws/2/release/{rel_id}?inc=recordings&fmt=json'
-            rel_resp = self._rate_limited_get(rel_url)
-            if not rel_resp or rel_resp.status_code != 200:
-                continue
+            # Sort candidate releases by score descending, then earliest date ascending
+            candidates.sort(key=lambda x: (-x[0], x[1] if x[1] else "9999"))
+            chosen_releases = [c[2] for c in candidates] if candidates else releases
 
-            try:
-                rel_data = rel_resp.json()
-            except Exception:
-                continue
+            for chosen_rel in chosen_releases[:3]:
+                rel_id = chosen_rel.get("id")
+                if not rel_id:
+                    continue
 
-            running_track_num = 1
-            for m in rel_data.get("media", []):
-                for trk in m.get("tracks", []):
-                    t_title = trk.get("title") or (trk.get("recording") or {}).get("title")
-                    if not t_title:
+                # Extract release year
+                d_str = chosen_rel.get("date") or chosen_rel.get("release-group", {}).get("first-release-date") or ""
+                if d_str and len(d_str) >= 4 and d_str[:4].isdigit():
+                    y = int(d_str[:4])
+                    if 1950 <= y <= 2030:
+                        release_yr = y
+
+                # Fetch release with recordings
+                rel_url = f'https://musicbrainz.org/ws/2/release/{rel_id}?inc=recordings&fmt=json'
+                rel_resp = self._rate_limited_get(rel_url)
+                if not rel_resp or rel_resp.status_code != 200:
+                    continue
+
+                try:
+                    rel_data = rel_resp.json()
+                except Exception:
+                    continue
+
+                media_list = rel_data.get("media", [])
+                candidate_tracks = []
+                running_track_num = 1
+
+                for medium_idx, m in enumerate(media_list):
+                    m_format = (m.get("format") or "").lower()
+                    m_title = (m.get("title") or "").lower()
+
+                    # Skip video media (DVD, Blu-ray, etc.) or bonus media
+                    if any(vf in m_format for vf in ["dvd", "blu-ray", "bluray", "video", "vhd"]):
                         continue
-                    t_pos = trk.get("position") or running_track_num
-                    tracks.append({
-                        "track_number": t_pos,
-                        "title": t_title.strip()
-                    })
-                    running_track_num += 1
+                    if any(bk in m_title for bk in ["bonus", "demo", "live", "outtake", "instrumental", "5.1", "mix", "making of", "documentary"]):
+                        continue
+
+                    # If multiple discs and medium 2+ is not named or is marked disc 2, check if medium 1 was already a full album
+                    # But keep multi-disc albums (e.g. The Wall, Tales from Topographic Oceans)
+                    for trk in m.get("tracks", []):
+                        t_title = trk.get("title") or (trk.get("recording") or {}).get("title")
+                        if not t_title:
+                            continue
+                        # Skip bonus/live/demo tracks at the track level if marked in title
+                        t_title_clean = t_title.strip()
+                        t_lower = t_title_clean.lower()
+                        if any(b_tag in t_lower for b_tag in ["(bonus track", "(bonus demo", "[bonus track", "(live at", "(live in", "(demo version", "(instrumental)"]):
+                            continue
+
+                        t_pos = trk.get("position") or running_track_num
+                        candidate_tracks.append({
+                            "track_number": running_track_num,
+                            "title": t_title_clean
+                        })
+                        running_track_num += 1
+
+                if candidate_tracks:
+                    tracks = candidate_tracks
+                    break
 
             if tracks:
                 break
