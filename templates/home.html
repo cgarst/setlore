@@ -261,106 +261,201 @@
           </button>
         </div>
 
-        <!-- Screenshot Display Window with Browser Bezel -->
-        <div class="glass-card rounded-2xl border border-slate-700/80 overflow-hidden max-w-5xl mx-auto shadow-2xl">
-          <!-- Bezel Header -->
-          <div class="px-3 sm:px-4 py-2.5 bg-slate-900/95 border-b border-slate-800 flex items-center justify-between text-xs text-slate-400 gap-2">
-            <div class="flex items-center gap-2 shrink-0">
-              <span class="w-3 h-3 rounded-full bg-rose-500/80 inline-block"></span>
-              <span class="w-3 h-3 rounded-full bg-amber-500/80 inline-block"></span>
-              <span class="w-3 h-3 rounded-full bg-emerald-500/80 inline-block"></span>
+        <!-- Showcase Outer Container (Desktop Browser Window or Fake iPhone) -->
+        <div id="showcase-outer-container" class="max-w-5xl mx-auto space-y-4">
+
+          <!-- Device Mode Switcher & Live Title Bar -->
+          <div class="flex items-center justify-between px-4 py-2.5 rounded-2xl bg-slate-900/90 border border-slate-800 text-xs text-slate-400 shadow-lg gap-3">
+            <!-- Left: Current View Caption & Mode Indicator -->
+            <div class="flex items-center gap-2.5 min-w-0">
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0"></span>
+              <span id="showcase-caption" class="font-bold text-slate-200 text-xs sm:text-sm truncate">Overview &amp; "On This Day" Anniversaries</span>
             </div>
-            <div class="px-3 sm:px-4 py-1 rounded-lg bg-slate-950/80 border border-slate-800 font-mono text-[11px] text-slate-300 flex items-center gap-2 max-w-xs sm:max-w-md truncate">
-              <i class="fa-solid fa-lock text-emerald-400 text-[10px]"></i>
-              <span id="showcase-url-label">https://setlore.local/overview/?emulate_date=2026-08-10</span>
-            </div>
-            <!-- Desktop / Mobile Toggle Buttons -->
+
+            <!-- Right: Desktop / iPhone Toggle Buttons -->
             <div class="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 shrink-0">
-              <button type="button" id="btn-showcase-desktop" onclick="setShowcaseDevice('desktop')" class="px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition bg-purple-600 text-white shadow-sm cursor-pointer" title="View Desktop Screenshot">
+              <button type="button" id="btn-showcase-desktop" onclick="setShowcaseDevice('desktop')" class="px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition bg-purple-600 text-white shadow-sm cursor-pointer" title="View Desktop Browser Frame">
                 <i class="fa-solid fa-desktop text-[11px]"></i>
                 <span class="hidden sm:inline">Desktop</span>
               </button>
-              <button type="button" id="btn-showcase-mobile" onclick="setShowcaseDevice('mobile')" class="px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition text-slate-400 hover:text-slate-200 cursor-pointer" title="View Mobile Screenshot">
-                <i class="fa-solid fa-mobile-screen-button text-[11px]"></i>
-                <span class="hidden sm:inline">Mobile</span>
+              <button type="button" id="btn-showcase-mobile" onclick="setShowcaseDevice('mobile')" class="px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition text-slate-400 hover:text-slate-200 cursor-pointer" title="View Fake iPhone Frame">
+                <i class="fa-brands fa-apple text-[12px]"></i>
+                <span class="hidden sm:inline">iPhone</span>
               </button>
             </div>
           </div>
 
-          <!-- Screenshots Container -->
-          <div class="relative bg-slate-950 p-2 sm:p-4 min-h-[320px] flex items-center justify-center">
-            <!-- Overview -->
-            <div id="sc-panel-overview" class="w-full space-y-3">
-              <div class="showcase-img-wrap transition-all duration-300 flex justify-center">
-                <img id="sc-img-overview" src="{% static 'img/screenshots/overview.png' %}" data-desktop="{% static 'img/screenshots/overview.png' %}" data-mobile="{% static 'img/screenshots/overview_mobile.png' %}" alt="Setlore Overview Dashboard" class="w-full h-auto rounded-xl border border-slate-800/80 shadow-lg object-contain">
+          <!-- 1. DESKTOP BROWSER FRAME -->
+          <div id="sc-desktop-window" class="glass-card rounded-2xl border border-slate-700/80 overflow-hidden shadow-2xl transition-all duration-300">
+            <!-- macOS Browser Bezel Header -->
+            <div class="px-4 py-2.5 bg-slate-900/95 border-b border-slate-800 flex items-center justify-between text-xs text-slate-400">
+              <div class="flex items-center gap-2 shrink-0">
+                <span class="w-3 h-3 rounded-full bg-rose-500/80 inline-block"></span>
+                <span class="w-3 h-3 rounded-full bg-amber-500/80 inline-block"></span>
+                <span class="w-3 h-3 rounded-full bg-emerald-500/80 inline-block"></span>
               </div>
-              <p class="text-center text-xs text-slate-400">Yearly attendance timeline chart, total artists/venues count, "On This Day" anniversary radar, top bands, and recent shows.</p>
+              <div class="px-4 py-1 rounded-lg bg-slate-950/80 border border-slate-800 font-mono text-[11px] text-slate-300 flex items-center gap-2 max-w-sm sm:max-w-md truncate">
+                <i class="fa-solid fa-lock text-emerald-400 text-[10px]"></i>
+                <span id="showcase-desktop-url">https://setlore.local/overview/</span>
+              </div>
+              <div class="w-12"></div>
             </div>
 
-            <!-- Concerts (Setlist Modal: Haken Cafe 611) -->
-            <div id="sc-panel-concerts" class="hidden w-full space-y-3">
-              <div class="showcase-img-wrap transition-all duration-300 flex justify-center">
-                <img id="sc-img-concerts" src="{% static 'img/screenshots/concerts.png' %}" data-desktop="{% static 'img/screenshots/concerts.png' %}" data-mobile="{% static 'img/screenshots/concerts_mobile.png' %}" alt="Setlore Setlist Modal" class="w-full h-auto rounded-xl border border-slate-800/80 shadow-lg object-contain">
+            <!-- Desktop Screenshots Container -->
+            <div class="relative bg-slate-950 p-2 sm:p-4">
+              <!-- Overview -->
+              <div id="sc-desktop-panel-overview" class="space-y-3">
+                <img src="{% static 'img/screenshots/overview.png' %}" alt="Setlore Overview Dashboard" class="w-full h-auto rounded-xl border border-slate-800/80 shadow-lg object-contain">
+                <p class="text-center text-xs text-slate-400">Yearly attendance timeline chart, total artists/venues count, "On This Day" anniversary radar, top bands, and recent shows.</p>
               </div>
-              <p class="text-center text-xs text-slate-400">Interactive concert modal with full song setlists, album art previews, and venue details (Haken at Cafe 611).</p>
-            </div>
 
-            <!-- Artists (Artist Modal: Megadeth) -->
-            <div id="sc-panel-artists" class="hidden w-full space-y-3">
-              <div class="showcase-img-wrap transition-all duration-300 flex justify-center">
-                <img id="sc-img-artists" src="{% static 'img/screenshots/artists.png' %}" data-desktop="{% static 'img/screenshots/artists.png' %}" data-mobile="{% static 'img/screenshots/artists_mobile.png' %}" alt="Setlore Artist Modal" class="w-full h-auto rounded-xl border border-slate-800/80 shadow-lg object-contain">
+              <!-- Concerts (Setlist Modal: Haken Cafe 611) -->
+              <div id="sc-desktop-panel-concerts" class="hidden space-y-3">
+                <img src="{% static 'img/screenshots/concerts.png' %}" alt="Setlore Setlist Modal" class="w-full h-auto rounded-xl border border-slate-800/80 shadow-lg object-contain">
+                <p class="text-center text-xs text-slate-400">Interactive concert modal with full song setlists, album art previews, and venue details (Haken at Cafe 611).</p>
               </div>
-              <p class="text-center text-xs text-slate-400">Deep-dive artist modal with catalog performance frequencies, venue histories, and live song counts (Megadeth).</p>
-            </div>
 
-            <!-- Songs (Song Modal: Demon of the Fall) -->
-            <div id="sc-panel-songs" class="hidden w-full space-y-3">
-              <div class="showcase-img-wrap transition-all duration-300 flex justify-center">
-                <img id="sc-img-songs" src="{% static 'img/screenshots/songs.png' %}" data-desktop="{% static 'img/screenshots/songs.png' %}" data-mobile="{% static 'img/screenshots/songs_mobile.png' %}" alt="Setlore Song Modal" class="w-full h-auto rounded-xl border border-slate-800/80 shadow-lg object-contain">
+              <!-- Artists (Artist Modal: Megadeth) -->
+              <div id="sc-desktop-panel-artists" class="hidden space-y-3">
+                <img src="{% static 'img/screenshots/artists.png' %}" alt="Setlore Artist Modal" class="w-full h-auto rounded-xl border border-slate-800/80 shadow-lg object-contain">
+                <p class="text-center text-xs text-slate-400">Deep-dive artist modal with catalog performance frequencies, venue histories, and live song counts (Megadeth).</p>
               </div>
-              <p class="text-center text-xs text-slate-400">Song drilldown modal detailing every date and venue a track was performed live (Demon of the Fall by Opeth).</p>
-            </div>
 
-            <!-- Albums (2000s Era) -->
-            <div id="sc-panel-albums" class="hidden w-full space-y-3">
-              <div class="showcase-img-wrap transition-all duration-300 flex justify-center">
-                <img id="sc-img-albums" src="{% static 'img/screenshots/albums.png' %}" data-desktop="{% static 'img/screenshots/albums.png' %}" data-mobile="{% static 'img/screenshots/albums_mobile.png' %}" alt="Setlore Albums & Eras Treemap" class="w-full h-auto rounded-xl border border-slate-800/80 shadow-lg object-contain">
+              <!-- Songs (Song Modal: Demon of the Fall) -->
+              <div id="sc-desktop-panel-songs" class="hidden space-y-3">
+                <img src="{% static 'img/screenshots/songs.png' %}" alt="Setlore Song Modal" class="w-full h-auto rounded-xl border border-slate-800/80 shadow-lg object-contain">
+                <p class="text-center text-xs text-slate-400">Song drilldown modal detailing every date and venue a track was performed live (Demon of the Fall by Opeth).</p>
               </div>
-              <p class="text-center text-xs text-slate-400">MusicBrainz discography enrichment: studio album distribution treemaps, release decades (2000s era filter), and live set representation.</p>
-            </div>
 
-            <!-- Album Modal (Train of Thought) -->
-            <div id="sc-panel-album_modal" class="hidden w-full space-y-3">
-              <div class="showcase-img-wrap transition-all duration-300 flex justify-center">
-                <img id="sc-img-album_modal" src="{% static 'img/screenshots/album_modal.png' %}" data-desktop="{% static 'img/screenshots/album_modal.png' %}" data-mobile="{% static 'img/screenshots/album_modal_mobile.png' %}" alt="Setlore Album Modal" class="w-full h-auto rounded-xl border border-slate-800/80 shadow-lg object-contain">
+              <!-- Albums (2000s Era) -->
+              <div id="sc-desktop-panel-albums" class="hidden space-y-3">
+                <img src="{% static 'img/screenshots/albums.png' %}" alt="Setlore Albums & Eras Treemap" class="w-full h-auto rounded-xl border border-slate-800/80 shadow-lg object-contain">
+                <p class="text-center text-xs text-slate-400">MusicBrainz discography enrichment: studio album distribution treemaps, release decades (2000s era filter), and live set representation.</p>
               </div>
-              <p class="text-center text-xs text-slate-400">Dedicated studio album modal tracking live track coverage and attended performances (Train of Thought by Dream Theater).</p>
-            </div>
 
-            <!-- Musicians -->
-            <div id="sc-panel-musicians" class="hidden w-full space-y-3">
-              <div class="showcase-img-wrap transition-all duration-300 flex justify-center">
-                <img id="sc-img-musicians" src="{% static 'img/screenshots/musicians.png' %}" data-desktop="{% static 'img/screenshots/musicians.png' %}" data-mobile="{% static 'img/screenshots/musicians_mobile.png' %}" alt="Setlore Musicians Lineup Tracking" class="w-full h-auto rounded-xl border border-slate-800/80 shadow-lg object-contain">
+              <!-- Album Modal (Train of Thought) -->
+              <div id="sc-desktop-panel-album_modal" class="hidden space-y-3">
+                <img src="{% static 'img/screenshots/album_modal.png' %}" alt="Setlore Album Modal" class="w-full h-auto rounded-xl border border-slate-800/80 shadow-lg object-contain">
+                <p class="text-center text-xs text-slate-400">Dedicated studio album modal tracking live track coverage and attended performances (Train of Thought by Dream Theater).</p>
               </div>
-              <p class="text-center text-xs text-slate-400">Musician lineup tenure calculations, multi-band artists cross-referencing, and supergroup spotlight matrices.</p>
-            </div>
 
-            <!-- Map -->
-            <div id="sc-panel-map" class="hidden w-full space-y-3">
-              <div class="showcase-img-wrap transition-all duration-300 flex justify-center">
-                <img id="sc-img-map" src="{% static 'img/screenshots/map.png' %}" data-desktop="{% static 'img/screenshots/map.png' %}" data-mobile="{% static 'img/screenshots/map_mobile.png' %}" alt="Setlore Interactive Venue Map" class="w-full h-auto rounded-xl border border-slate-800/80 shadow-lg object-contain">
+              <!-- Musicians -->
+              <div id="sc-desktop-panel-musicians" class="hidden space-y-3">
+                <img src="{% static 'img/screenshots/musicians.png' %}" alt="Setlore Musicians Lineup Tracking" class="w-full h-auto rounded-xl border border-slate-800/80 shadow-lg object-contain">
+                <p class="text-center text-xs text-slate-400">Musician lineup tenure calculations, multi-band artists cross-referencing, and supergroup spotlight matrices.</p>
               </div>
-              <p class="text-center text-xs text-slate-400">Interactive Carto dark tile venue map powered by Leaflet with geocoded concert pins and artist filtering.</p>
-            </div>
 
-            <!-- Freshness -->
-            <div id="sc-panel-freshness" class="hidden w-full space-y-3">
-              <div class="showcase-img-wrap transition-all duration-300 flex justify-center">
-                <img id="sc-img-freshness" src="{% static 'img/screenshots/freshness.png' %}" data-desktop="{% static 'img/screenshots/freshness.png' %}" data-mobile="{% static 'img/screenshots/freshness_mobile.png' %}" alt="Setlore Song Freshness & Rarities" class="w-full h-auto rounded-xl border border-slate-800/80 shadow-lg object-contain">
+              <!-- Map -->
+              <div id="sc-desktop-panel-map" class="hidden space-y-3">
+                <img src="{% static 'img/screenshots/map.png' %}" alt="Setlore Interactive Venue Map" class="w-full h-auto rounded-xl border border-slate-800/80 shadow-lg object-contain">
+                <p class="text-center text-xs text-slate-400">Interactive Carto dark tile venue map powered by Leaflet with geocoded concert pins and artist filtering.</p>
               </div>
-              <p class="text-center text-xs text-slate-400">Live rarity audits: songs heard only once, tour debuts, and tracks you haven’t heard live in years.</p>
+
+              <!-- Freshness -->
+              <div id="sc-desktop-panel-freshness" class="hidden space-y-3">
+                <img src="{% static 'img/screenshots/freshness.png' %}" alt="Setlore Song Freshness & Rarities" class="w-full h-auto rounded-xl border border-slate-800/80 shadow-lg object-contain">
+                <p class="text-center text-xs text-slate-400">Live rarity audits: songs heard only once, tour debuts, and tracks you haven’t heard live in years.</p>
+              </div>
             </div>
           </div>
+
+          <!-- 2. FAKE IPHONE DEVICE FRAME -->
+          <div id="sc-mobile-window" class="hidden flex flex-col items-center justify-center py-2 transition-all duration-300">
+            <!-- iPhone Chassis -->
+            <div class="relative w-[300px] sm:w-[340px] rounded-[48px] sm:rounded-[54px] bg-slate-950 p-3 sm:p-3.5 border-[7px] sm:border-[9px] border-slate-800 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.9),0_0_35px_rgba(147,51,234,0.25)] ring-1 ring-slate-700/60 select-none">
+              <!-- Left Side Buttons -->
+              <div class="absolute -left-[8px] sm:-left-[10px] top-20 w-1 h-6 bg-slate-700 rounded-l-sm"></div>
+              <div class="absolute -left-[8px] sm:-left-[10px] top-32 w-1 h-11 bg-slate-700 rounded-l-sm"></div>
+              <div class="absolute -left-[8px] sm:-left-[10px] top-48 w-1 h-11 bg-slate-700 rounded-l-sm"></div>
+              <!-- Right Side Power Button -->
+              <div class="absolute -right-[8px] sm:-right-[10px] top-28 w-1 h-14 bg-slate-700 rounded-r-sm"></div>
+
+              <!-- Screen Surface -->
+              <div class="relative rounded-[36px] sm:rounded-[42px] overflow-hidden bg-black border border-slate-800/80">
+                
+                <!-- Dynamic Island & iOS Status Bar -->
+                <div class="bg-black pt-2 px-5 pb-1.5 text-[10px] font-semibold text-slate-300 font-mono z-30">
+                  <div class="flex items-center justify-between">
+                    <span>9:41</span>
+                    <div class="flex items-center gap-1.5 text-[9px]">
+                      <i class="fa-solid fa-signal text-[8px]"></i>
+                      <i class="fa-solid fa-wifi text-[8px]"></i>
+                      <i class="fa-solid fa-battery-full text-[10px] text-emerald-400"></i>
+                    </div>
+                  </div>
+                  <!-- Dynamic Island Pill -->
+                  <div class="w-24 sm:w-28 h-5 bg-black rounded-full border border-slate-800/80 shadow-inner flex items-center justify-between px-2.5 mx-auto -mt-2">
+                    <div class="w-2 h-2 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center">
+                      <span class="w-1 h-1 rounded-full bg-indigo-950/80"></span>
+                    </div>
+                    <div class="w-2.5 h-2.5 rounded-full bg-slate-950 border border-slate-800/80"></div>
+                  </div>
+                </div>
+
+                <!-- Phone Screen Content (Mobile Screenshots) -->
+                <div class="bg-slate-950 overflow-hidden">
+                  <!-- Overview -->
+                  <div id="sc-mobile-panel-overview" class="block">
+                    <img src="{% static 'img/screenshots/overview_mobile.png' %}" alt="Setlore Mobile Overview" class="w-full h-auto object-contain block">
+                  </div>
+
+                  <!-- Concerts (Setlist Modal) -->
+                  <div id="sc-mobile-panel-concerts" class="hidden">
+                    <img src="{% static 'img/screenshots/concerts_mobile.png' %}" alt="Setlore Mobile Setlists" class="w-full h-auto object-contain block">
+                  </div>
+
+                  <!-- Artists -->
+                  <div id="sc-mobile-panel-artists" class="hidden">
+                    <img src="{% static 'img/screenshots/artists_mobile.png' %}" alt="Setlore Mobile Artists" class="w-full h-auto object-contain block">
+                  </div>
+
+                  <!-- Songs -->
+                  <div id="sc-mobile-panel-songs" class="hidden">
+                    <img src="{% static 'img/screenshots/songs_mobile.png' %}" alt="Setlore Mobile Songs" class="w-full h-auto object-contain block">
+                  </div>
+
+                  <!-- Albums -->
+                  <div id="sc-mobile-panel-albums" class="hidden">
+                    <img src="{% static 'img/screenshots/albums_mobile.png' %}" alt="Setlore Mobile Albums" class="w-full h-auto object-contain block">
+                  </div>
+
+                  <!-- Album Modal -->
+                  <div id="sc-mobile-panel-album_modal" class="hidden">
+                    <img src="{% static 'img/screenshots/album_modal_mobile.png' %}" alt="Setlore Mobile Album Modal" class="w-full h-auto object-contain block">
+                  </div>
+
+                  <!-- Musicians -->
+                  <div id="sc-mobile-panel-musicians" class="hidden">
+                    <img src="{% static 'img/screenshots/musicians_mobile.png' %}" alt="Setlore Mobile Musicians" class="w-full h-auto object-contain block">
+                  </div>
+
+                  <!-- Map -->
+                  <div id="sc-mobile-panel-map" class="hidden">
+                    <img src="{% static 'img/screenshots/map_mobile.png' %}" alt="Setlore Mobile Map" class="w-full h-auto object-contain block">
+                  </div>
+
+                  <!-- Freshness -->
+                  <div id="sc-mobile-panel-freshness" class="hidden">
+                    <img src="{% static 'img/screenshots/freshness_mobile.png' %}" alt="Setlore Mobile Freshness" class="w-full h-auto object-contain block">
+                  </div>
+                </div>
+
+                <!-- Bottom Safari Address Bar & iOS Home Indicator -->
+                <div class="bg-slate-950/95 backdrop-blur-md border-t border-slate-800/80 pt-2 pb-2 px-4 space-y-1.5 z-30">
+                  <div class="py-1 px-3 rounded-full bg-slate-900/90 border border-slate-800 text-[10px] text-slate-400 flex items-center justify-center gap-1.5 font-mono truncate shadow-inner">
+                    <i class="fa-solid fa-lock text-[8px] text-emerald-400"></i>
+                    <span id="showcase-mobile-url" class="truncate">setlore.local/overview</span>
+                  </div>
+                  <div class="w-28 sm:w-32 h-1 bg-slate-400/80 rounded-full mx-auto"></div>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- Mobile Caption Below iPhone -->
+            <p id="showcase-mobile-desc" class="text-center text-xs text-slate-400 pt-3 max-w-md">Yearly attendance timeline chart, total artists/venues count, "On This Day" anniversary radar, top bands, and recent shows.</p>
+          </div>
+
         </div>
       </section>
     </section>
@@ -1163,8 +1258,8 @@
       'map': 'Interactive Geocoded Venue Cartography',
       'freshness': 'Song Freshness & Debut Rarities'
     };
-    const showcaseUrls = {
-      'overview': 'https://setlore.local/overview/?emulate_date=2026-08-10',
+    const showcaseDesktopUrls = {
+      'overview': 'https://setlore.local/overview/',
       'concerts': 'https://setlore.local/concerts/#setlist-55',
       'artists': 'https://setlore.local/artists/#megadeth',
       'songs': 'https://setlore.local/songs/#demon-of-the-fall',
@@ -1174,60 +1269,81 @@
       'map': 'https://setlore.local/map/',
       'freshness': 'https://setlore.local/freshness/'
     };
+    const showcaseMobileUrls = {
+      'overview': 'setlore.local/overview',
+      'concerts': 'setlore.local/concerts',
+      'artists': 'setlore.local/artists/megadeth',
+      'songs': 'setlore.local/songs/demon-of-the-fall',
+      'albums': 'setlore.local/albums',
+      'album_modal': 'setlore.local/albums/train-of-thought',
+      'musicians': 'setlore.local/musicians',
+      'map': 'setlore.local/map',
+      'freshness': 'setlore.local/freshness'
+    };
+    const showcaseDescriptions = {
+      'overview': 'Yearly attendance timeline chart, total artists/venues count, "On This Day" anniversary radar, top bands, and recent shows.',
+      'concerts': 'Interactive concert modal with full song setlists, album art previews, and venue details (Haken at Cafe 611).',
+      'artists': 'Deep-dive artist modal with catalog performance frequencies, venue histories, and live song counts (Megadeth).',
+      'songs': 'Song drilldown modal detailing every date and venue a track was performed live (Demon of the Fall by Opeth).',
+      'albums': 'MusicBrainz discography enrichment: studio album distribution treemaps, release decades (2000s era filter), and live set representation.',
+      'album_modal': 'Dedicated studio album modal tracking live track coverage and attended performances (Train of Thought by Dream Theater).',
+      'musicians': 'Musician lineup tenure calculations, multi-band artists cross-referencing, and supergroup spotlight matrices.',
+      'map': 'Interactive Carto dark tile venue map powered by Leaflet with geocoded concert pins and artist filtering.',
+      'freshness': 'Live rarity audits: songs heard only once, tour debuts, and tracks you haven’t heard live in years.'
+    };
 
+    let currentShowcaseTab = 'overview';
     let currentShowcaseDevice = 'desktop';
 
     function setShowcaseDevice(device) {
       currentShowcaseDevice = device;
       const btnDesktop = document.getElementById('btn-showcase-desktop');
       const btnMobile = document.getElementById('btn-showcase-mobile');
+      const winDesktop = document.getElementById('sc-desktop-window');
+      const winMobile = document.getElementById('sc-mobile-window');
 
       if (device === 'mobile') {
         if (btnMobile) {
-          btnMobile.className = 'px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition bg-purple-600 text-white shadow-sm cursor-pointer';
+          btnMobile.className = 'px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition bg-purple-600 text-white shadow-sm cursor-pointer';
         }
         if (btnDesktop) {
-          btnDesktop.className = 'px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition text-slate-400 hover:text-slate-200 cursor-pointer';
+          btnDesktop.className = 'px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition text-slate-400 hover:text-slate-200 cursor-pointer';
         }
+        if (winDesktop) winDesktop.classList.add('hidden');
+        if (winMobile) winMobile.classList.remove('hidden');
       } else {
         if (btnDesktop) {
-          btnDesktop.className = 'px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition bg-purple-600 text-white shadow-sm cursor-pointer';
+          btnDesktop.className = 'px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition bg-purple-600 text-white shadow-sm cursor-pointer';
         }
         if (btnMobile) {
-          btnMobile.className = 'px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition text-slate-400 hover:text-slate-200 cursor-pointer';
+          btnMobile.className = 'px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition text-slate-400 hover:text-slate-200 cursor-pointer';
         }
+        if (winDesktop) winDesktop.classList.remove('hidden');
+        if (winMobile) winMobile.classList.add('hidden');
       }
 
-      // Update all showcase image sources and container widths
-      showcaseTabs.forEach(t => {
-        const img = document.getElementById('sc-img-' + t);
-        if (img) {
-          const srcAttr = device === 'mobile' ? img.getAttribute('data-mobile') : img.getAttribute('data-desktop');
-          if (srcAttr && img.src !== srcAttr) {
-            img.src = srcAttr;
-          }
-        }
-      });
-
-      const wraps = document.querySelectorAll('.showcase-img-wrap');
-      wraps.forEach(w => {
-        if (device === 'mobile') {
-          w.classList.add('max-w-[340px]', 'sm:max-w-[380px]', 'mx-auto');
-        } else {
-          w.classList.remove('max-w-[340px]', 'sm:max-w-[380px]', 'mx-auto');
-        }
-      });
+      switchShowcaseTab(currentShowcaseTab);
     }
 
     function switchShowcaseTab(tab) {
+      currentShowcaseTab = tab;
       showcaseTabs.forEach(t => {
         const btn = document.getElementById('sc-btn-' + t);
-        const panel = document.getElementById('sc-panel-' + t);
-        if (panel) {
+        const deskPanel = document.getElementById('sc-desktop-panel-' + t);
+        const mobPanel = document.getElementById('sc-mobile-panel-' + t);
+
+        if (deskPanel) {
           if (t === tab) {
-            panel.classList.remove('hidden');
+            deskPanel.classList.remove('hidden');
           } else {
-            panel.classList.add('hidden');
+            deskPanel.classList.add('hidden');
+          }
+        }
+        if (mobPanel) {
+          if (t === tab) {
+            mobPanel.classList.remove('hidden');
+          } else {
+            mobPanel.classList.add('hidden');
           }
         }
         if (btn) {
@@ -1238,10 +1354,18 @@
           }
         }
       });
+
       const capEl = document.getElementById('showcase-caption');
       if (capEl) capEl.textContent = showcaseCaptions[tab] || '';
-      const urlEl = document.getElementById('showcase-url-label');
-      if (urlEl) urlEl.textContent = showcaseUrls[tab] || 'https://setlore.local/overview/';
+
+      const deskUrlEl = document.getElementById('showcase-desktop-url');
+      if (deskUrlEl) deskUrlEl.textContent = showcaseDesktopUrls[tab] || 'https://setlore.local/overview/';
+
+      const mobUrlEl = document.getElementById('showcase-mobile-url');
+      if (mobUrlEl) mobUrlEl.textContent = showcaseMobileUrls[tab] || 'setlore.local/overview';
+
+      const mobDescEl = document.getElementById('showcase-mobile-desc');
+      if (mobDescEl) mobDescEl.textContent = showcaseDescriptions[tab] || '';
     }
 
     function switchImportPreview(tab) {
@@ -1266,7 +1390,7 @@
       });
     }
 
-    // Auto-detect device mode on load (default to mobile on small screens, desktop on wider screens)
+    // Auto-detect device mode on load (default to iPhone mobile mockup on small screens, desktop browser on wider screens)
     document.addEventListener('DOMContentLoaded', () => {
       if (window.innerWidth < 768) {
         setShowcaseDevice('mobile');
