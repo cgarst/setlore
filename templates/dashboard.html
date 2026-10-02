@@ -4185,154 +4185,131 @@
     <!-- 4. MUSICIANS & MULTI-BAND TENURE TAB -->
     <div id="tab-musicians" class="{% if initial_tab != 'musicians' %}hidden {% endif %}space-y-6">
       
-      <!-- Summary Metrics Bar -->
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div class="glass-card p-4">
-          <span class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Musicians Seen</span>
-          <p class="text-2xl font-black text-white mt-1">{{ stats.musicians.total_musicians_tracked|intcomma }}</p>
-          <p class="text-xs text-slate-500 mt-1">Across tracked band lineups</p>
+      <!-- Top Bar: Search / Filter & Actions (Master Control Section) -->
+      <div class="glass-card p-4 sm:p-5 space-y-3.5">
+        <!-- Header Info Row -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/60 pb-3">
+          <div>
+            <div class="flex items-center gap-2.5 flex-wrap">
+              <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-user-tag text-indigo-400"></i> Musicians &amp; Band Lineups
+              </h2>
+              <span id="musicians-count-badge" class="badge bg-indigo-500/20 text-indigo-300 font-bold text-xs border border-indigo-500/30">
+                {{ stats.musicians.top_musicians|length|intcomma }} Musicians
+              </span>
+            </div>
+            <p class="text-xs text-slate-400 mt-1">Musicians and band members seen live across all concert lineups, supergroups, and solo projects.</p>
+          </div>
         </div>
-        <div class="glass-card p-4">
-          <span class="text-xs text-slate-400 font-semibold uppercase tracking-wider">#1 Most Seen Musician</span>
-          <p class="text-lg font-black text-indigo-400 mt-1 truncate">
-            <button onclick="jumpToMusicianInConcerts('{{ stats.musicians.top_musicians.0.musician|escapejs }}');" class="hover:underline text-indigo-400 text-left font-black cursor-pointer">
-              {{ stats.musicians.top_musicians.0.musician }}
+
+        <!-- Filter & Search Toolbar -->
+        <div class="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+          <!-- Search Box -->
+          <div class="relative flex-1 max-w-lg">
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs pointer-events-none"></i>
+            <input type="text"
+                   id="musician-search-input"
+                   placeholder="Search by musician or band..."
+                   oninput="handleFilterInput('musician-search-input', 'musician-search-clear', filterMusicianSearch)"
+                   class="bg-slate-900/90 border border-slate-700/80 rounded-lg pl-8 pr-8 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 w-full transition">
+            <button type="button"
+                    id="musician-search-clear"
+                    onclick="clearFilterField('musician-search-input', 'musician-search-clear', filterMusicianSearch)"
+                    class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-0.5 cursor-pointer text-xs transition"
+                    title="Clear search">
+              <i class="fa-solid fa-xmark"></i>
             </button>
-          </p>
-          <p class="text-xs text-slate-500 mt-1">{{ stats.musicians.top_musicians.0.total_shows|intcomma }} shows attended</p>
-        </div>
-        <div class="glass-card p-4">
-          <span class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Multi-Project Masters</span>
-          <p class="text-2xl font-black text-purple-400 mt-1">{{ stats.musicians.supergroup_musicians|length|intcomma }}</p>
-          <p class="text-xs text-slate-500 mt-1">Musicians seen across 2+ bands</p>
-        </div>
-        <div class="glass-card p-4">
-          <span class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Top Multi-Band Member</span>
-          <p class="text-base font-black text-pink-400 mt-1 truncate">
-            <button onclick="jumpToMusicianInConcerts('{{ stats.musicians.supergroup_musicians.0.musician|escapejs }}');" class="hover:underline text-pink-400 text-left font-black cursor-pointer">
-              {{ stats.musicians.supergroup_musicians.0.musician }}
-            </button>
-          </p>
-          <p class="text-xs text-slate-500 mt-1">{{ stats.musicians.supergroup_musicians.0.unique_bands_count|intcomma }} different projects ({{ stats.musicians.supergroup_musicians.0.total_shows|intcomma }} shows)</p>
+          </div>
+
+          <!-- Instrument Selector Pills -->
+          <div class="flex items-center gap-1.5 overflow-x-auto pt-1 lg:pt-0 pb-0.5 custom-scrollbar text-xs">
+            <button type="button" onclick="filterMusicianInstrument('all')" id="btn-instr-all" class="px-3 py-1.5 rounded-lg bg-indigo-600 text-white font-bold transition shrink-0 cursor-pointer shadow-sm">All</button>
+            <button type="button" onclick="filterMusicianInstrument('Guitar')" id="btn-instr-Guitar" class="px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 font-semibold transition shrink-0 cursor-pointer">Guitars</button>
+            <button type="button" onclick="filterMusicianInstrument('Drums')" id="btn-instr-Drums" class="px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 font-semibold transition shrink-0 cursor-pointer">Drums</button>
+            <button type="button" onclick="filterMusicianInstrument('Bass')" id="btn-instr-Bass" class="px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 font-semibold transition shrink-0 cursor-pointer">Bass</button>
+            <button type="button" onclick="filterMusicianInstrument('Vocals')" id="btn-instr-Vocals" class="px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 font-semibold transition shrink-0 cursor-pointer">Vocals</button>
+            <button type="button" onclick="filterMusicianInstrument('Keyboards')" id="btn-instr-Keyboards" class="px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 font-semibold transition shrink-0 cursor-pointer">Keys</button>
+          </div>
         </div>
       </div>
 
-      <!-- Supergroup & Multi-Band Spotlight Cards -->
-      <div class="glass-card p-6 space-y-4">
-        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+      <!-- Free-floating Content Grid: All Musicians Cards (sorted by number of shows) -->
+      <div id="musician-cards-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {% for m in stats.musicians.top_musicians %}
+        <div class="musician-card rounded-2xl glass-card border border-slate-800/90 hover:border-indigo-500/50 hover:bg-slate-800/60 p-4 space-y-3 transition shadow-lg hover:shadow-2xl hover:shadow-indigo-500/10 flex flex-col justify-between"
+             data-musician-name="{{ m.musician|lower }}"
+             data-instrument="{{ m.instrument }}"
+             data-search="{{ m.musician|lower }} {{ m.role|lower }} {{ m.instrument|lower }} {% for b_name in m.bands.keys %}{{ b_name|lower }} {% endfor %}">
+          
           <div>
-            <h3 class="text-base font-bold text-white flex items-center gap-2">
-              <i class="fa-solid fa-bolt text-amber-400"></i> Multi-Band &amp; Supergroup Members
-            </h3>
-            <p class="text-xs text-slate-400">Individual musicians you've seen performing across multiple different bands and solo projects</p>
-          </div>
-          <span class="badge bg-purple-500/20 text-purple-300 border border-purple-500/30">{{ stats.musicians.supergroup_musicians|length|intcomma }} Multi-Band Artists</span>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {% for m in stats.musicians.supergroup_musicians %}
-          <div class="rounded-xl bg-slate-900/60 border border-slate-800 p-4 space-y-3 hover:border-slate-700 transition">
-            <div class="flex items-start justify-between">
-              <div>
-                <h4 class="font-bold text-white text-sm flex items-center gap-1.5">
-                  <button onclick="jumpToMusicianInConcerts('{{ m.musician|escapejs }}');" class="hover:underline hover:text-indigo-300 flex items-center gap-1.5 text-white font-bold text-sm text-left cursor-pointer">
-                    <i class="fa-solid fa-user-tag text-indigo-400 text-xs"></i> {{ m.musician }}
-                  </button>
-                </h4>
-                <p class="text-xs text-slate-400 mt-0.5">{{ m.role }}</p>
+            <!-- Header Row: Musician Name, Role Badge, and Shows Badge -->
+            <div class="flex items-start justify-between gap-2">
+              <div class="min-w-0 flex-1">
+                <button onclick="jumpToMusicianInConcerts('{{ m.musician|escapejs }}');" class="hover:underline hover:text-indigo-300 flex items-center gap-1.5 text-white font-bold text-sm text-left cursor-pointer truncate">
+                  <i class="fa-solid fa-user-tag text-indigo-400 text-xs shrink-0"></i>
+                  <span class="truncate">{{ m.musician }}</span>
+                </button>
+                <div class="mt-1">
+                  <span class="badge {% if m.instrument == 'Drums' %}bg-amber-500/20 text-amber-300 border border-amber-500/30{% elif m.instrument == 'Guitar' %}bg-pink-500/20 text-pink-300 border border-pink-500/30{% elif m.instrument == 'Bass' %}bg-indigo-500/20 text-indigo-300 border border-indigo-500/30{% elif m.instrument == 'Vocals' %}bg-emerald-500/20 text-emerald-300 border border-emerald-500/30{% else %}bg-purple-500/20 text-purple-300 border border-purple-500/30{% endif %} text-[11px] font-semibold">
+                    {{ m.role }}
+                  </span>
+                </div>
               </div>
-              <span class="badge bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-xs font-bold font-mono">
-                {{ m.total_shows|intcomma }} Shows
+              <span class="badge bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-xs font-bold font-mono shrink-0">
+                {{ m.total_shows|intcomma }} Show{{ m.total_shows|pluralize }}
               </span>
             </div>
 
-            <!-- Bands Seen In -->
-            <div>
-              <p class="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Projects Seen Live ({{ m.unique_bands_count|intcomma }}):</p>
+            <!-- Bands Seen Live -->
+            <div class="mt-3 pt-2.5 border-t border-slate-800/60">
+              <p class="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                {% if m.unique_bands_count > 1 %}Projects Seen Live ({{ m.unique_bands_count|intcomma }}):{% else %}Band Seen Live:{% endif %}
+              </p>
               <div class="flex flex-wrap gap-1.5">
                 {% for b_name, b_count in m.bands.items %}
-                <button onclick="jumpToArtistInConcerts('{{ b_name|escapejs }}');" class="badge bg-slate-800 hover:bg-indigo-600/30 text-slate-200 hover:text-indigo-200 border border-slate-700 hover:border-indigo-500/50 text-xs transition cursor-pointer">
+                <button onclick="jumpToArtistInConcerts('{{ b_name|escapejs }}');" class="badge bg-slate-800/90 hover:bg-indigo-600/30 text-slate-200 hover:text-indigo-200 border border-slate-700/80 hover:border-indigo-500/50 text-xs transition cursor-pointer">
                   {{ b_name }} <span class="text-indigo-400 ml-1 font-bold">{{ b_count|intcomma }}x</span>
                 </button>
                 {% endfor %}
               </div>
             </div>
           </div>
-          {% endfor %}
+
         </div>
+        {% empty %}
+        <div class="col-span-full glass-card p-10 text-center space-y-2">
+          <i class="fa-solid fa-user-tag text-3xl text-slate-600 block mb-2"></i>
+          <p class="text-sm font-semibold text-slate-300">No musicians recorded in concert history.</p>
+        </div>
+        {% endfor %}
       </div>
 
-      <!-- Full Musician Leaderboard & Directory -->
-      <div class="glass-card p-6 space-y-4">
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-4">
-          <div>
-            <h3 class="text-base font-bold text-white flex items-center gap-2">
-              <i class="fa-solid fa-trophy text-amber-400"></i> Most Seen Individual Musicians Leaderboard
-            </h3>
-            <p class="text-xs text-slate-400">Ranked by total concerts attended where this musician was an active band member</p>
-          </div>
+      <!-- Empty Filter Results Message -->
+      <div id="musicians-no-results" class="hidden glass-card p-10 text-center space-y-2">
+        <i class="fa-solid fa-user-xmark text-3xl text-slate-600 block mb-2"></i>
+        <p class="text-sm font-bold text-slate-300">No matching musicians found</p>
+        <p class="text-xs text-slate-500">Try searching for a different musician name, band, or instrument filter.</p>
+      </div>
 
-          <!-- Instrument Filters & Search -->
-          <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
-            <div class="flex rounded-lg bg-slate-900 border border-slate-800 p-0.5 text-xs overflow-x-auto max-w-full">
-              <button onclick="filterMusicianInstrument('all')" id="btn-instr-all" class="px-2.5 py-1 rounded bg-indigo-600 text-white font-semibold transition shrink-0">All</button>
-              <button onclick="filterMusicianInstrument('Guitar')" id="btn-instr-Guitar" class="px-2.5 py-1 rounded text-slate-400 hover:text-white transition shrink-0">Guitars</button>
-              <button onclick="filterMusicianInstrument('Drums')" id="btn-instr-Drums" class="px-2.5 py-1 rounded text-slate-400 hover:text-white transition shrink-0">Drums</button>
-              <button onclick="filterMusicianInstrument('Bass')" id="btn-instr-Bass" class="px-2.5 py-1 rounded text-slate-400 hover:text-white transition shrink-0">Bass</button>
-              <button onclick="filterMusicianInstrument('Vocals')" id="btn-instr-Vocals" class="px-2.5 py-1 rounded text-slate-400 hover:text-white transition shrink-0">Vocals</button>
-              <button onclick="filterMusicianInstrument('Keyboards')" id="btn-instr-Keyboards" class="px-2.5 py-1 rounded text-slate-400 hover:text-white transition shrink-0">Keys</button>
-            </div>
-            <div class="relative flex items-center w-full sm:w-48">
-              <input type="text" id="musician-search-input" placeholder="Search musician..." oninput="handleFilterInput('musician-search-input', 'musician-search-clear', filterMusicianSearch)" class="bg-slate-900 border border-slate-700 rounded-lg pl-3 pr-7 py-1 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 w-full">
-              <button type="button" id="musician-search-clear" onclick="clearFilterField('musician-search-input', 'musician-search-clear', filterMusicianSearch)" class="hidden absolute right-2 text-slate-400 hover:text-white p-0.5 cursor-pointer text-xs transition" title="Clear search">
-                <i class="fa-solid fa-xmark"></i>
-              </button>
-            </div>
+      <!-- Free-floating Pagination Controls Bar -->
+      <div id="musician-gallery-pagination" class="glass-card p-4 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 text-xs">
+        <!-- Range Info & Per Page -->
+        <div class="flex flex-wrap items-center justify-between sm:justify-start w-full sm:w-auto gap-3 text-slate-400">
+          <span id="musician-pagination-info" class="font-medium text-slate-300">Showing 1–24 of 120 musicians</span>
+          <div class="flex items-center gap-1.5 pl-2 border-l border-slate-800">
+            <span class="text-slate-500">Per page:</span>
+            <select id="musician-per-page-select" onchange="setMusicianPageSize(this.value)" class="bg-slate-900 border border-slate-700/80 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-indigo-500 cursor-pointer">
+              <option value="12">12</option>
+              <option value="24" selected>24</option>
+              <option value="48">48</option>
+              <option value="96">96</option>
+              <option value="all">All</option>
+            </select>
           </div>
         </div>
 
-        <!-- Musician Leaderboard Table -->
-        <div class="overflow-x-auto max-h-[500px] overflow-y-auto">
-          <table id="table-musicians" class="w-full text-left border-collapse">
-            <thead>
-              <tr class="border-b border-slate-800 text-slate-400 text-xs font-semibold uppercase tracking-wider sticky top-0 bg-slate-900/95 backdrop-blur-md">
-                <th class="px-3 py-2.5">#</th>
-                <th class="px-3 py-2.5">Musician</th>
-                <th class="px-3 py-2.5">Primary Instrument / Role</th>
-                <th class="px-3 py-2.5 text-center">Shows</th>
-                <th class="px-3 py-2.5">Bands &amp; Projects Seen Live</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-800/50">
-              {% for m in stats.musicians.top_musicians %}
-              <tr class="musician-row hover:bg-slate-800/40 transition" data-musician-name="{{ m.musician|lower }}" data-instrument="{{ m.instrument }}">
-                <td class="px-3 py-2.5 text-xs font-mono text-slate-500">{{ forloop.counter }}</td>
-                <td class="px-3 py-2.5">
-                  <button onclick="jumpToMusicianInConcerts('{{ m.musician|escapejs }}');" class="font-bold text-white hover:text-indigo-300 hover:underline text-xs text-left cursor-pointer">
-                    {{ m.musician }}
-                  </button>
-                </td>
-                <td class="px-3 py-2.5 text-xs">
-                  <span class="badge {% if m.instrument == 'Drums' %}bg-amber-500/20 text-amber-300 border border-amber-500/30{% elif m.instrument == 'Guitar' %}bg-pink-500/20 text-pink-300 border border-pink-500/30{% elif m.instrument == 'Bass' %}bg-indigo-500/20 text-indigo-300 border border-indigo-500/30{% elif m.instrument == 'Vocals' %}bg-emerald-500/20 text-emerald-300 border border-emerald-500/30{% else %}bg-purple-500/20 text-purple-300 border border-purple-500/30{% endif %} text-[11px]">
-                    {{ m.role }}
-                  </span>
-                </td>
-                <td class="px-3 py-2.5 text-xs text-center font-bold text-indigo-400 font-mono">{{ m.total_shows|intcomma }}x</td>
-                <td class="px-3 py-2.5 text-xs">
-                  <div class="flex flex-wrap gap-1">
-                    {% for b_name, b_count in m.bands.items %}
-                    <button onclick="jumpToArtistInConcerts('{{ b_name|escapejs }}');" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-indigo-600/30 text-slate-300 hover:text-indigo-200 border border-slate-700 hover:border-indigo-500/50 text-[11px] transition cursor-pointer">
-                      {{ b_name }} <span class="text-indigo-400 font-bold">({{ b_count|intcomma }}x)</span>
-                    </button>
-                    {% endfor %}
-                  </div>
-                </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-
+        <!-- Page Navigation Buttons -->
+        <div class="flex flex-wrap items-center justify-center sm:justify-end gap-1.5 w-full sm:w-auto" id="musician-pagination-buttons"></div>
       </div>
 
     </div>
@@ -6180,34 +6157,170 @@
     });
 
     let currentMusicianInstrument = 'all';
+    let currentMusicianPage = 1;
+    let musicianPageSize = 24;
+    let currentFilteredMusicianCards = [];
+
     function filterMusicianInstrument(instr) {
       currentMusicianInstrument = instr;
       ['all', 'Guitar', 'Drums', 'Bass', 'Vocals', 'Keyboards'].forEach(i => {
         const btn = document.getElementById('btn-instr-' + i);
         if (btn) {
           if (i === instr) {
-            btn.className = 'px-2.5 py-1 rounded bg-indigo-600 text-white font-semibold transition';
+            btn.className = 'px-3 py-1.5 rounded-lg bg-indigo-600 text-white font-bold transition shrink-0 cursor-pointer shadow-sm';
           } else {
-            btn.className = 'px-2.5 py-1 rounded text-slate-400 hover:text-white transition';
+            btn.className = 'px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 font-semibold transition shrink-0 cursor-pointer';
           }
         }
       });
-      applyMusicianFilters();
+      applyMusicianFilters(true);
     }
 
     function filterMusicianSearch(query) {
-      applyMusicianFilters();
+      applyMusicianFilters(true);
     }
 
-    function applyMusicianFilters() {
+    function setMusicianPageSize(size) {
+      musicianPageSize = size === 'all' ? 'all' : parseInt(size, 10);
+      currentMusicianPage = 1;
+      updateMusicianGalleryDisplay();
+      scrollToMusiciansTop();
+    }
+
+    function goToMusicianPage(page) {
+      const pageSize = musicianPageSize === 'all' ? currentFilteredMusicianCards.length : musicianPageSize;
+      const totalPages = Math.max(1, Math.ceil(currentFilteredMusicianCards.length / (pageSize || 1)));
+      if (page < 1 || page > totalPages) return;
+      currentMusicianPage = page;
+      updateMusicianGalleryDisplay();
+      scrollToMusiciansTop();
+    }
+
+    function scrollToMusiciansTop() {
+      const tab = document.getElementById('tab-musicians');
+      if (tab) {
+        tab.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+
+    function applyMusicianFilters(resetPage = true) {
       const q = (document.getElementById('musician-search-input')?.value || '').toLowerCase().trim();
-      document.querySelectorAll('.musician-row').forEach(row => {
-        const mName = row.getAttribute('data-musician-name') || '';
-        const mInstr = row.getAttribute('data-instrument') || '';
+      const allCards = Array.from(document.querySelectorAll('.musician-card'));
+
+      if (resetPage) currentMusicianPage = 1;
+      currentFilteredMusicianCards = [];
+
+      allCards.forEach(card => {
+        const searchData = (card.getAttribute('data-search') || '').toLowerCase();
+        const mInstr = card.getAttribute('data-instrument') || '';
         const matchInstr = currentMusicianInstrument === 'all' || mInstr === currentMusicianInstrument;
-        const matchSearch = !q || mName.includes(q);
-        row.style.display = (matchInstr && matchSearch) ? '' : 'none';
+        const matchSearch = !q || searchData.includes(q);
+        if (matchInstr && matchSearch) {
+          currentFilteredMusicianCards.push(card);
+        }
       });
+
+      const totalCount = currentFilteredMusicianCards.length;
+      const countBadge = document.getElementById('musicians-count-badge');
+      if (countBadge) {
+        if (!q && currentMusicianInstrument === 'all') {
+          countBadge.innerText = `${(allCards.length || 0).toLocaleString()} Musicians`;
+        } else {
+          countBadge.innerText = `${totalCount.toLocaleString()} of ${(allCards.length || 0).toLocaleString()} Musicians`;
+        }
+      }
+
+      const noResults = document.getElementById('musicians-no-results');
+      const paginationEl = document.getElementById('musician-gallery-pagination');
+
+      if (totalCount === 0) {
+        allCards.forEach(c => c.style.display = 'none');
+        if (noResults) noResults.classList.remove('hidden');
+        if (paginationEl) paginationEl.classList.add('hidden');
+        return;
+      }
+
+      if (noResults) noResults.classList.add('hidden');
+      updateMusicianGalleryDisplay();
+    }
+
+    function updateMusicianGalleryDisplay() {
+      const allCards = document.querySelectorAll('.musician-card');
+      const totalCount = currentFilteredMusicianCards.length;
+      const paginationEl = document.getElementById('musician-gallery-pagination');
+      const paginationInfo = document.getElementById('musician-pagination-info');
+      const paginationBtns = document.getElementById('musician-pagination-buttons');
+
+      const pageSize = musicianPageSize === 'all' ? totalCount : musicianPageSize;
+      const totalPages = Math.max(1, Math.ceil(totalCount / (pageSize || 1)));
+      currentMusicianPage = Math.max(1, Math.min(currentMusicianPage, totalPages));
+
+      const startIdx = (currentMusicianPage - 1) * pageSize;
+      const endIdx = Math.min(startIdx + pageSize, totalCount);
+
+      // Hide all cards first
+      allCards.forEach(card => card.style.display = 'none');
+
+      // Show only cards for current page
+      for (let i = startIdx; i < endIdx; i++) {
+        if (currentFilteredMusicianCards[i]) {
+          currentFilteredMusicianCards[i].style.display = 'flex';
+        }
+      }
+
+      // Update pagination info & controls
+      if (paginationEl) {
+        paginationEl.classList.remove('hidden');
+      }
+
+      if (paginationInfo) {
+        paginationInfo.innerText = totalCount > 0 ? `Showing ${startIdx + 1}–${endIdx} of ${totalCount.toLocaleString()} musician${totalCount === 1 ? '' : 's'}` : '0 musicians';
+      }
+
+      if (paginationBtns) {
+        if (totalPages <= 1) {
+          paginationBtns.innerHTML = '';
+        } else {
+          let btnsHtml = `
+            <button type="button" onclick="goToMusicianPage(${currentMusicianPage - 1})"
+                    ${currentMusicianPage === 1 ? 'disabled' : ''}
+                    class="px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition ${currentMusicianPage === 1 ? 'bg-slate-900 text-slate-600 border-slate-800 cursor-not-allowed' : 'bg-slate-800 text-slate-300 hover:text-white border-slate-700 hover:bg-slate-700 cursor-pointer'} flex items-center gap-1">
+              <i class="fa-solid fa-chevron-left text-[10px]"></i>
+              <span class="hidden sm:inline">Prev</span>
+            </button>
+          `;
+
+          const pagesToShow = [];
+          for (let p = 1; p <= totalPages; p++) {
+            if (p === 1 || p === totalPages || (p >= currentMusicianPage - 1 && p <= currentMusicianPage + 1)) {
+              pagesToShow.push(p);
+            }
+          }
+
+          let lastP = 0;
+          pagesToShow.forEach(p => {
+            if (lastP && p - lastP > 1) {
+              btnsHtml += `<span class="px-1 text-slate-600 text-xs select-none">...</span>`;
+            }
+            if (p === currentMusicianPage) {
+              btnsHtml += `<button type="button" class="w-8 h-8 rounded-lg bg-indigo-600 text-white font-bold text-xs shadow-md shadow-indigo-600/30 cursor-default">${p}</button>`;
+            } else {
+              btnsHtml += `<button type="button" onclick="goToMusicianPage(${p})" class="w-8 h-8 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/80 font-semibold text-xs transition cursor-pointer">${p}</button>`;
+            }
+            lastP = p;
+          });
+
+          btnsHtml += `
+            <button type="button" onclick="goToMusicianPage(${currentMusicianPage + 1})"
+                    ${currentMusicianPage === totalPages ? 'disabled' : ''}
+                    class="px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition ${currentMusicianPage === totalPages ? 'bg-slate-900 text-slate-600 border-slate-800 cursor-not-allowed' : 'bg-slate-800 text-slate-300 hover:text-white border-slate-700 hover:bg-slate-700 cursor-pointer'} flex items-center gap-1">
+              <span class="hidden sm:inline">Next</span>
+              <i class="fa-solid fa-chevron-right text-[10px]"></i>
+            </button>
+          `;
+          paginationBtns.innerHTML = btnsHtml;
+        }
+      }
     }
 
     function initVenueMap() {
@@ -9655,10 +9768,13 @@
       }
     });
 
-    // Trigger initial album gallery filtering and top-down cover loading once DOM is ready
+    // Trigger initial album gallery filtering, musician pagination, and top-down cover loading once DOM is ready
     window.addEventListener('DOMContentLoaded', () => {
       if (typeof filterAlbumGallery === 'function') {
         filterAlbumGallery();
+      }
+      if (typeof applyMusicianFilters === 'function') {
+        applyMusicianFilters();
       }
       setTimeout(() => {
         if (typeof initAlbumGalleryImages === 'function') {

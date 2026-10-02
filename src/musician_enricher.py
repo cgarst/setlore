@@ -242,10 +242,40 @@ class MusicianEnricher:
             return 'Musician'
         return ' / '.join(roles)
 
+    @classmethod
+    def is_past_or_temporary(
+        cls,
+        disambiguation: str = "",
+        comment: str = "",
+        rel_comment: str = "",
+        attrs: Optional[List[str]] = None
+    ) -> bool:
+        """
+        Detects keywords in MusicBrainz disambiguation, relation comments, or attributes
+        indicating past, brief, temporary, or non-permanent membership.
+        """
+        combined = f"{disambiguation} {comment} {rel_comment} {' '.join(attrs or [])}".lower()
+        patterns = [
+            r'\bbriefly\b',
+            r'\bformer\b',
+            r'\bex[-‐‑–—]',
+            r'\bpast member\b',
+            r'\bguest\b',
+            r'\btouring\b',
+            r'\bsession\b',
+            r'\btemporary\b',
+            r'\bone-off\b',
+            r'\bfill-in\b',
+            r'\bsubstitute\b',
+            r'\blive only\b',
+        ]
+        return any(re.search(pat, combined) for pat in patterns)
+
     def parse_member_tenures(self, mb_data: Dict[str, Any]) -> List[Dict[str, Any]]:
         """
         Parses raw MusicBrainz relations into aggregated member tenures,
-        combining multiple attribute entries for the same musician stint.
+        combining multiple attribute entries for the same musician stint
+        while intelligently recognizing past/temporary keywords and active tenures.
         """
         if not mb_data:
             return []
@@ -261,11 +291,45 @@ class MusicianEnricher:
             if not m_name:
                 continue
 
-            start_yr = self._parse_year(r.get("begin")) or 1900
-            ended = r.get("ended", False)
-            end_yr = self._parse_year(r.get("end"))
-            if not ended and end_yr is None:
-                end_yr = None
+            disambig = musician.get("disambiguation", "") or ""
+            art_comment = musician.get("comment", "") or ""
+            rel_comment = r.get("comment", "") or ""
+            r_attrs = r.get("attributes", [])
+
+            is_past_temp = self.is_past_or_temporary(
+                disambiguation=disambig,
+                comment=art_comment,
+                rel_comment=rel_comment,
+                attrs=r_attrs
+            )
+
+            raw_begin = self._parse_year(r.get("begin"))
+            raw_end = self._parse_year(r.get("end"))
+            mb_ended = bool(r.get("ended", False))
+            ended = mb_ended or is_past_temp
+
+            if raw_begin is not None:
+                start_yr = raw_begin
+                if raw_end is not None:
+                    end_yr = raw_end
+                elif ended:
+                    # Ended stint without an explicit end year: cap at start year rather than open-ended to present
+                    end_yr = raw_begin
+                else:
+                    # Explicit start year and not ended ("from X to present") -> confirmed current member!
+                    end_yr = None
+            else:
+                if raw_end is not None:
+                    start_yr = raw_end
+                    end_yr = raw_end
+                elif ended:
+                    # Past / brief / temporary stint with no start or end year: bounded to 1900 so it won't match modern concerts
+                    start_yr = 1900
+                    end_yr = 1900
+                else:
+                    # Completely undated relation with no ended flag
+                    start_yr = 1900
+                    end_yr = None
 
             key = (m_name.lower(), start_yr, end_yr)
             if key not in raw_members:
@@ -277,7 +341,7 @@ class MusicianEnricher:
                     "attributes": set()
                 }
 
-            for a in r.get("attributes", []):
+            for a in r_attrs:
                 raw_members[key]["attributes"].add(a)
 
         parsed_list = []
@@ -374,11 +438,17 @@ class MusicianEnricher:
             if matched:
                 # Deduplication: already exists! Check if we can enhance missing metadata
                 changed = False
-                if matched.end_year is None and end_yr is not None:
+                if matched.end_year != end_yr:
                     matched.end_year = end_yr
+                    changed = True
+                if matched.start_year == 1900 and start_yr != 1900:
+                    matched.start_year = start_yr
                     changed = True
                 if matched.instrument == 'Other' and instr != 'Other':
                     matched.instrument = instr
+                    changed = True
+                if matched.role == 'Musician' and role != 'Musician':
+                    matched.role = role
                     changed = True
 
                 if changed:

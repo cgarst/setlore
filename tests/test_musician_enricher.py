@@ -82,6 +82,97 @@ class MusicianEnricherTests(TestCase):
         self.assertIn("drums (drum set)", parsed[1]["attributes"])
         self.assertIn("background vocals", parsed[1]["attributes"])
 
+    def test_is_past_or_temporary_detection(self):
+        # Disambiguation keywords
+        self.assertTrue(self.enricher.is_past_or_temporary(disambiguation="US singer, briefly a member of Dream Theater"))
+        self.assertTrue(self.enricher.is_past_or_temporary(disambiguation="heavy metal vocalist, ex‐Dream Theater"))
+        self.assertTrue(self.enricher.is_past_or_temporary(disambiguation="former bassist of Megadeth"))
+        self.assertTrue(self.enricher.is_past_or_temporary(disambiguation="past member of Yes"))
+        
+        # Attribute / relation comments
+        self.assertTrue(self.enricher.is_past_or_temporary(attrs=["guest", "guitar"]))
+        self.assertTrue(self.enricher.is_past_or_temporary(attrs=["touring"]))
+        self.assertTrue(self.enricher.is_past_or_temporary(rel_comment="temporary fill-in drummer"))
+
+        # Confirmed current/standard member
+        self.assertFalse(self.enricher.is_past_or_temporary(disambiguation="US keyboardist and composer", attrs=["original"]))
+        self.assertFalse(self.enricher.is_past_or_temporary(disambiguation="American progressive metal guitarist"))
+
+    def test_dream_theater_brief_and_present_members(self):
+        mock_dt_data = {
+            "relations": [
+                # Steve Stone: undated, briefly a member in disambiguation -> ended=True, bounded to 1900-1900
+                {
+                    "type": "member of band",
+                    "artist": {
+                        "name": "Steve Stone",
+                        "disambiguation": "US singer, briefly a member of Dream Theater"
+                    },
+                    "begin": None,
+                    "end": None,
+                    "ended": False,
+                    "attributes": []
+                },
+                # Jordan Rudess: begin 1999 to present -> start 1999, end None
+                {
+                    "type": "member of band",
+                    "artist": {
+                        "name": "Jordan Rudess",
+                        "disambiguation": "US keyboardist and composer"
+                    },
+                    "begin": "1999",
+                    "end": None,
+                    "ended": False,
+                    "attributes": ["keyboard"]
+                },
+                # Chris Collins: ended=True with explicit dates
+                {
+                    "type": "member of band",
+                    "artist": {
+                        "name": "Chris Collins",
+                        "disambiguation": "heavy metal vocalist, ex‐Dream Theater"
+                    },
+                    "begin": "1987",
+                    "end": "1987",
+                    "ended": True,
+                    "attributes": ["lead vocals"]
+                },
+                # Former member with ended=True but no end year specified -> bounded to start year
+                {
+                    "type": "member of band",
+                    "artist": {
+                        "name": "Old Singer",
+                        "disambiguation": "former vocalist"
+                    },
+                    "begin": "1988",
+                    "end": None,
+                    "ended": True,
+                    "attributes": ["lead vocals"]
+                }
+            ]
+        }
+        parsed = {p["musician"]: p for p in self.enricher.parse_member_tenures(mock_dt_data)}
+
+        # Steve Stone must NOT be active to present
+        self.assertIn("Steve Stone", parsed)
+        self.assertEqual(parsed["Steve Stone"]["start"], 1900)
+        self.assertEqual(parsed["Steve Stone"]["end"], 1900)
+
+        # Jordan Rudess IS active to present (from 1999 to present)
+        self.assertIn("Jordan Rudess", parsed)
+        self.assertEqual(parsed["Jordan Rudess"]["start"], 1999)
+        self.assertIsNone(parsed["Jordan Rudess"]["end"])
+
+        # Chris Collins is 1987-1987
+        self.assertIn("Chris Collins", parsed)
+        self.assertEqual(parsed["Chris Collins"]["start"], 1987)
+        self.assertEqual(parsed["Chris Collins"]["end"], 1987)
+
+        # Old Singer is capped at 1988-1988
+        self.assertIn("Old Singer", parsed)
+        self.assertEqual(parsed["Old Singer"]["start"], 1988)
+        self.assertEqual(parsed["Old Singer"]["end"], 1988)
+
     def test_deduplication_against_existing_db(self):
         artist = Artist.objects.create(name="Test Band", normalized_name="test band")
         # Existing tenure in DB
