@@ -320,7 +320,7 @@ class Command(BaseCommand):
         - songs.png / songs_mobile.png: Song modal for Demon of the Fall (Opeth)
         - albums.png / albums_mobile.png: Albums gallery with 2000s era selected
         - album_modal.png / album_modal_mobile.png: Album modal for Train of Thought (Dream Theater)
-        - musicians.png / musicians_mobile.png: Musicians lineup tracker
+        - musicians.png / musicians_mobile.png: Musicians lineup tracker with Multi-Project only filter
         - map.png / map_mobile.png: Interactive venue map
         - freshness.png / freshness_mobile.png: Song freshness & rarities
         - theme_palettes.png: Theme selector modal
@@ -545,9 +545,16 @@ class Command(BaseCommand):
 
                     # ── 7. musicians.png ──────────────────────────────────────
                     _show_tab("musicians", scroll_below_nav=True)
+                    page.evaluate("""
+                        () => {
+                            if (typeof musicianMultiProjectOnly !== 'undefined' && !musicianMultiProjectOnly && typeof toggleMusicianMultiProject === 'function') {
+                                toggleMusicianMultiProject();
+                            }
+                        }
+                    """)
                     page.wait_for_timeout(500)
                     _save(page, f"musicians{suffix}.png")
-                    self.stdout.write(f"    + musicians{suffix}.png")
+                    self.stdout.write(f"    + musicians{suffix}.png (Multi-project only filter)")
 
                     # ── 8. map.png ────────────────────────────────────────────
                     _show_tab("map", scroll_below_nav=True)
