@@ -5662,6 +5662,9 @@
       if (typeof closeOverviewChartModal === 'function') {
         closeOverviewChartModal();
       }
+      if (typeof closeConcertModal === 'function') {
+        closeConcertModal();
+      }
       tabId = normalizeTab(tabId);
       if (tabId === 'friends' && window.isPublicView) {
         tabId = 'overview';
@@ -8367,6 +8370,9 @@
 
     function openAlbumModal(idx) {
       if (!albumsGalleryData || !albumsGalleryData[idx]) return;
+      if (typeof closeConcertModal === 'function') {
+        closeConcertModal();
+      }
       const alb = albumsGalleryData[idx];
       const modal = document.getElementById('album-inspector-modal');
       if (!modal) return;
