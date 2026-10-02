@@ -894,7 +894,7 @@
   </div>
 
   <!-- Theme Selection Modal -->
-  <div id="theme-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 hidden" onclick="if(event.target === this) closeThemeModal();">
+  <div id="theme-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
     <div class="max-w-2xl w-full glass-card p-6 shadow-2xl space-y-4 border border-slate-700 max-h-[90vh] overflow-y-auto">
       <div class="flex items-center justify-between border-b border-slate-800 pb-3">
         <div class="flex items-center gap-2.5">
@@ -930,7 +930,7 @@
   </div>
 
   <!-- PWA Install Guide Modal -->
-  <div id="pwa-install-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 hidden" onclick="if(event.target === this) closePwaInstallModal();">
+  <div id="pwa-install-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
     <div class="max-w-md w-full glass-card p-6 shadow-2xl space-y-4 border border-slate-700 max-h-[90vh] overflow-y-auto">
       <div class="flex items-center justify-between border-b border-slate-800 pb-3">
         <div class="flex items-center gap-2.5">
@@ -1946,7 +1946,7 @@
 
   <!-- Onboarding Wizard Modal -->
   {% if not is_public_view and user.is_authenticated and is_owner %}
-  <div id="onboarding-modal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto hidden" onclick="if (event.target === this) closeOnboardingModal()">
+  <div id="onboarding-modal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto hidden">
     <div class="relative w-full max-w-xl glass-card p-5 sm:p-7 shadow-2xl border border-indigo-500/30 rounded-2xl max-h-[92vh] my-auto flex flex-col overflow-hidden bg-slate-900/95">
       
       <!-- Wizard Header & Progress Bar -->
@@ -2450,12 +2450,12 @@
   </div>
 
   <!-- Upcoming Shows Full Table Modal -->
-  <div id="upcoming-table-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 lg:p-6 hidden">
-    <div class="max-w-6xl xl:max-w-7xl 2xl:max-w-[1440px] w-full glass-card p-5 sm:p-7 shadow-2xl space-y-4 border border-slate-700/80 max-h-[92vh] flex flex-col">
+  <div id="upcoming-table-modal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-0 sm:p-5 lg:p-6 hidden">
+    <div class="w-full h-full sm:h-auto sm:max-h-[92vh] max-w-6xl xl:max-w-7xl 2xl:max-w-[1440px] glass-card rounded-none sm:rounded-2xl p-4 sm:p-6 shadow-2xl space-y-3.5 flex flex-col border-0 sm:border sm:border-slate-700/80">
       <!-- Modal Header -->
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3 shrink-0">
-        <div class="flex items-center justify-between w-full sm:w-auto">
-          <div class="flex items-center gap-3">
+      <div class="flex flex-col gap-3 border-b border-slate-800 pb-3 shrink-0">
+        <div class="flex items-center justify-between w-full">
+          <div class="flex items-center gap-2.5 sm:gap-3 min-w-0">
             <button type="button"
                     onclick="navigateModalBack()"
                     class="modal-back-btn px-2.5 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/80 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shrink-0 shadow-sm group"
@@ -2463,31 +2463,31 @@
               <i class="fa-solid fa-arrow-left text-[11px] group-hover:-translate-x-0.5 transition-transform"></i>
               <span class="hidden sm:inline">Back</span>
             </button>
-            <div class="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
-              <i class="fa-solid fa-calendar-days text-base"></i>
+            <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
+              <i class="fa-solid fa-calendar-days text-sm sm:text-base"></i>
             </div>
-            <div>
+            <div class="min-w-0">
               <div class="flex items-center gap-2">
-                <h3 class="text-base font-bold text-white">Upcoming Shows</h3>
-                <span id="upcoming-table-modal-count" class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                <h3 class="text-sm sm:text-base font-bold text-white truncate">Upcoming Shows</h3>
+                <span id="upcoming-table-modal-count" class="px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 shrink-0">
                   0 shows
                 </span>
               </div>
-              <p class="text-[11px] text-slate-400">All discovered tour dates for your seen artists</p>
+              <p class="text-[10px] sm:text-[11px] text-slate-400 truncate">All discovered tour dates for your seen artists</p>
             </div>
           </div>
-          <button type="button" onclick="closeUpcomingTableModal()" class="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition cursor-pointer sm:hidden">
+          <button type="button" onclick="closeUpcomingTableModal()" class="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition cursor-pointer shrink-0" title="Close modal">
             <i class="fa-solid fa-xmark text-lg"></i>
           </button>
         </div>
 
-        <div class="flex items-center gap-2 w-full sm:w-auto shrink-0">
-          <div class="relative flex-1 sm:flex-initial">
+        <div class="flex items-center gap-2 w-full">
+          <div class="relative flex-1">
             <span class="absolute inset-y-0 left-0 flex items-center pl-2.5 text-slate-500 text-xs pointer-events-none">
               <i class="fa-solid fa-magnifying-glass"></i>
             </span>
-            <input type="text" id="upcoming-table-search" oninput="filterUpcomingTableRows()" placeholder="Filter table..."
-              class="w-full pl-7 pr-2.5 py-1.5 text-xs rounded-lg bg-slate-900 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 sm:w-60">
+            <input type="text" id="upcoming-table-search" oninput="filterUpcomingTableRows()" placeholder="Filter by artist, venue, city, or date..."
+              class="w-full pl-7 pr-2.5 py-1.5 text-xs rounded-lg bg-slate-900 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
           </div>
           {% if not is_public_view and user.is_authenticated and is_owner %}
           <button type="button" onclick="closeUpcomingTableModal(); openUpcomingConfigModal();" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-semibold flex items-center gap-1 transition cursor-pointer shrink-0" title="Settings & Filters">
@@ -2495,29 +2495,34 @@
             <span class="hidden sm:inline">Filters</span>
           </button>
           {% endif %}
-          <button type="button" onclick="closeUpcomingTableModal()" class="hidden sm:inline-flex text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition cursor-pointer shrink-0">
-            <i class="fa-solid fa-xmark text-lg"></i>
-          </button>
         </div>
       </div>
 
-      <!-- Table Container (Horizontally scrollable on mobile, no overflow on desktop) -->
-      <div class="overflow-y-auto overflow-x-auto md:overflow-x-visible flex-1 custom-scrollbar min-h-[260px]">
-        <table class="w-full min-w-[640px] md:min-w-0 text-left border-collapse table-auto">
-          <thead class="sticky top-0 bg-slate-900/95 backdrop-blur z-10">
-            <tr class="border-b border-slate-800 text-slate-400 text-xs font-semibold uppercase tracking-wider">
-              <th class="px-4 py-3 w-[15%]">Date &amp; Time</th>
-              <th class="px-4 py-3 w-[25%]">Artist</th>
-              <th class="px-4 py-3 w-[26%]">Venue &amp; Location</th>
-              <th class="px-4 py-3 w-[10%]">Distance</th>
-              <th class="px-4 py-3 w-[12%]">Lineup / Details</th>
-              <th class="px-4 py-3 w-[12%] text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody id="upcoming-table-tbody" class="divide-y divide-slate-800/50 text-xs">
-            <!-- Dynamically populated by JS -->
-          </tbody>
-        </table>
+      <!-- Content Area: Mobile Cards & Desktop Table -->
+      <div class="overflow-y-auto flex-1 custom-scrollbar min-h-[240px]">
+        <!-- Mobile Card Stream (< md) -->
+        <div id="upcoming-table-mobile-list" class="space-y-3 block md:hidden">
+          <!-- Populated by JS -->
+        </div>
+
+        <!-- Desktop Table (>= md) -->
+        <div class="hidden md:block">
+          <table class="w-full text-left border-collapse table-auto">
+            <thead class="sticky top-0 bg-slate-900/95 backdrop-blur z-10">
+              <tr class="border-b border-slate-800 text-slate-400 text-xs font-semibold uppercase tracking-wider">
+                <th class="px-4 py-3 w-[16%]">Date &amp; Time</th>
+                <th class="px-4 py-3 w-[24%]">Artist</th>
+                <th class="px-4 py-3 w-[26%]">Venue &amp; Location</th>
+                <th class="px-4 py-3 w-[10%]">Distance</th>
+                <th class="px-4 py-3 w-[12%]">Lineup / Details</th>
+                <th class="px-4 py-3 w-[12%] text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="upcoming-table-tbody" class="divide-y divide-slate-800/50 text-xs">
+              <!-- Dynamically populated by JS -->
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <!-- Modal Footer -->
@@ -2587,7 +2592,7 @@
   </div>
 
   <!-- Concert History Detail Modal (2-Step Flow: Lineup Overview -> Band Setlist) -->
-  <div id="concert-detail-modal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-2.5 sm:p-4 lg:p-6 hidden" onclick="if(event.target === this) closeConcertModal();">
+  <div id="concert-detail-modal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-2.5 sm:p-4 lg:p-6 hidden">
     <div class="max-w-3xl w-full glass-card p-4 sm:p-6 shadow-2xl space-y-4 border border-slate-700/80 max-h-[92vh] flex flex-col rounded-2xl relative">
       <!-- Modal Header -->
       <div class="flex items-start justify-between gap-3 border-b border-slate-800 pb-3.5 shrink-0">
@@ -2648,7 +2653,7 @@
   </div>
 
   <!-- Artist Songs & Catalog Modal (2-Step Flow: Repertoire Catalog -> Song Live History) -->
-  <div id="artist-song-modal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-2.5 sm:p-4 lg:p-6 hidden" onclick="if(event.target === this) closeArtistSongModal();">
+  <div id="artist-song-modal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-2.5 sm:p-4 lg:p-6 hidden">
     <div class="max-w-3xl w-full glass-card p-4 sm:p-6 shadow-2xl space-y-4 border border-slate-700/80 max-h-[92vh] flex flex-col rounded-2xl relative">
       <!-- Modal Header -->
       <div class="border-b border-slate-800 pb-3.5 shrink-0 space-y-3">
@@ -2723,10 +2728,6 @@
             </button>
             <div class="flex flex-col gap-1.5 min-w-0 flex-1">
               <div class="flex items-center gap-2.5 flex-wrap min-w-0">
-                <button type="button" onclick="showArtistCatalogInModal()" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs font-semibold transition inline-flex items-center gap-1.5 cursor-pointer shrink-0">
-                  <i class="fa-solid fa-arrow-left text-[11px]"></i>
-                  <span>All Songs</span>
-                </button>
                 <h3 id="modal-song-detail-title" class="text-base sm:text-lg font-bold text-white truncate flex items-center gap-1.5"></h3>
               </div>
               <div class="flex items-center gap-2 flex-wrap text-xs text-slate-400 min-w-0">
@@ -9613,18 +9614,42 @@
         }
       }
     });
-    const albumModalBackdrop = document.getElementById('album-inspector-modal');
-    if (albumModalBackdrop) {
-      albumModalBackdrop.addEventListener('click', (e) => {
-        if (e.target === albumModalBackdrop) closeAllModals();
+    // Global backdrop click-to-close listeners for all modals
+    let modalMouseDownTarget = null;
+    document.addEventListener('mousedown', (e) => {
+      modalMouseDownTarget = e.target;
+    });
+
+    const modalBackdropCloseMap = {
+      'concert-detail-modal': () => (typeof closeConcertModal === 'function' ? closeConcertModal() : closeAllModals()),
+      'artist-song-modal': () => (typeof closeArtistSongModal === 'function' ? closeArtistSongModal() : closeAllModals()),
+      'album-inspector-modal': () => (typeof closeAlbumModal === 'function' ? closeAlbumModal() : closeAllModals()),
+      'overview-chart-modal': () => (typeof closeOverviewChartModal === 'function' ? closeOverviewChartModal() : closeAllModals()),
+      'upcoming-config-modal': () => (typeof closeUpcomingConfigModal === 'function' ? closeUpcomingConfigModal() : closeAllModals()),
+      'upcoming-table-modal': () => (typeof closeUpcomingTableModal === 'function' ? closeUpcomingTableModal() : closeAllModals()),
+      'upload-modal': () => (typeof closeUploadModal === 'function' ? closeUploadModal() : closeAllModals()),
+      'add-concert-modal': () => (typeof closeAddConcertModal === 'function' ? closeAddConcertModal() : closeAllModals()),
+      'edit-concert-modal': () => (typeof closeEditConcertModal === 'function' ? closeEditConcertModal() : closeAllModals()),
+      'synced-edit-advisory-modal': () => (typeof closeSyncedEditAdvisoryModal === 'function' ? closeSyncedEditAdvisoryModal() : closeAllModals()),
+      'delete-concert-modal': () => (typeof closeDeleteConcertModal === 'function' ? closeDeleteConcertModal() : closeAllModals()),
+      'profile-modal': () => (typeof closeProfileModal === 'function' ? closeProfileModal() : closeAllModals()),
+      'setlist-prompt-modal': () => (typeof closeSetlistPromptModal === 'function' ? closeSetlistPromptModal() : closeAllModals()),
+      'ticketmaster-modal': () => (typeof closeTicketmasterModal === 'function' ? closeTicketmasterModal() : closeAllModals()),
+      'pwa-install-modal': () => (typeof closePwaInstallModal === 'function' ? closePwaInstallModal() : closeAllModals()),
+      'impersonate-modal': () => (typeof closeImpersonateModal === 'function' ? closeImpersonateModal() : closeAllModals()),
+      'onboarding-modal': () => (typeof closeOnboardingModal === 'function' ? closeOnboardingModal() : closeAllModals()),
+      'theme-modal': () => (typeof closeThemeModal === 'function' ? closeThemeModal() : closeAllModals())
+    };
+
+    Object.entries(modalBackdropCloseMap).forEach(([modalId, closeFn]) => {
+      const modalEl = document.getElementById(modalId);
+      if (!modalEl) return;
+      modalEl.addEventListener('click', (e) => {
+        if (e.target === modalEl && modalMouseDownTarget === modalEl) {
+          closeFn();
+        }
       });
-    }
-    const overviewModalBackdrop = document.getElementById('overview-chart-modal');
-    if (overviewModalBackdrop) {
-      overviewModalBackdrop.addEventListener('click', (e) => {
-        if (e.target === overviewModalBackdrop) closeAllModals();
-      });
-    }
+    });
 
     window.addEventListener('resize', () => {
       if (window.innerWidth >= 768 && activeOverviewModalChartKey) {
@@ -12692,6 +12717,7 @@
     function filterUpcomingTableRows() {
       const q = (document.getElementById('upcoming-table-search')?.value || '').toLowerCase().trim();
       const rows = document.querySelectorAll('.upcoming-table-row');
+      const mobileCards = document.querySelectorAll('.upcoming-mobile-card');
       let visibleCount = 0;
 
       rows.forEach(row => {
@@ -12702,6 +12728,16 @@
           visibleCount++;
         } else {
           row.classList.add('hidden');
+        }
+      });
+
+      mobileCards.forEach(card => {
+        const text = (card.getAttribute('data-search') || '').toLowerCase();
+        const matches = !q || text.includes(q);
+        if (matches) {
+          card.classList.remove('hidden');
+        } else {
+          card.classList.add('hidden');
         }
       });
 
@@ -12721,6 +12757,7 @@
 
     function renderUpcomingShowsTable(shows) {
       const tbody = document.getElementById('upcoming-table-tbody');
+      const mobileList = document.getElementById('upcoming-table-mobile-list');
       const countEl = document.getElementById('upcoming-table-modal-count');
       const footer = document.getElementById('upcoming-table-modal-footer');
       
@@ -12729,29 +12766,43 @@
 
       if (countEl) countEl.innerText = `${(activeShows.length || 0).toLocaleString()} show${activeShows.length === 1 ? '' : 's'}`;
       if (footer) footer.innerText = `Showing ${(activeShows.length || 0).toLocaleString()} show${activeShows.length === 1 ? '' : 's'}`;
-      if (!tbody) return;
+
+      const emptyHtmlTable = `
+        <tr>
+          <td colspan="6" class="py-12 text-center text-slate-400">
+            <div class="space-y-2">
+              <i class="fa-solid fa-calendar-xmark text-2xl text-slate-500"></i>
+              <p class="font-medium text-slate-300">No upcoming tour dates found</p>
+              <p class="text-xs text-slate-500">Try adjusting your location, search radius, or unhiding artists.</p>
+            </div>
+          </td>
+        </tr>
+      `;
+
+      const emptyHtmlMobile = `
+        <div class="py-10 text-center text-slate-400 rounded-xl bg-slate-900/40 border border-dashed border-slate-800 space-y-2">
+          <i class="fa-solid fa-calendar-xmark text-2xl text-slate-500"></i>
+          <p class="font-medium text-slate-300 text-sm">No upcoming tour dates found</p>
+          <p class="text-xs text-slate-500 px-4">Try adjusting your location, search radius, or unhiding artists.</p>
+        </div>
+      `;
 
       if (!activeShows || activeShows.length === 0) {
-        tbody.innerHTML = `
-          <tr>
-            <td colspan="6" class="py-12 text-center text-slate-400">
-              <div class="space-y-2">
-                <i class="fa-solid fa-calendar-xmark text-2xl text-slate-500"></i>
-                <p class="font-medium text-slate-300">No upcoming tour dates found</p>
-                <p class="text-xs text-slate-500">Try adjusting your location, search radius, or unhiding artists.</p>
-              </div>
-            </td>
-          </tr>
-        `;
+        if (tbody) tbody.innerHTML = emptyHtmlTable;
+        if (mobileList) mobileList.innerHTML = emptyHtmlMobile;
         return;
       }
 
-      let html = '';
+      let desktopHtml = '';
+      let mobileHtml = '';
+
       activeShows.forEach(show => {
         const escArtist = show.artist.replace(/'/g, "\\'");
         const timeDisp = getShowTimeDisplay(show);
         const searchStr = `${show.artist} ${show.venue} ${show.city} ${show.region} ${show.country} ${show.date_display} ${timeDisp} ${(show.other_lineup || []).join(' ')}`.toLowerCase();
-        html += `
+        
+        // Desktop Table Row
+        desktopHtml += `
           <tr class="upcoming-table-row hover:bg-slate-800/40 transition" data-search="${escapeHtml(searchStr)}">
             <td class="px-4 py-3.5 font-medium text-slate-200 align-top">
               <div class="flex items-center gap-1.5 font-semibold text-white">
@@ -12767,7 +12818,7 @@
                 </div>` : ''}
             </td>
             <td class="px-4 py-3.5 align-top">
-              <button onclick="openArtistSongModal('${escArtist}', '');" class="font-bold text-sm sm:text-base text-white hover:text-indigo-300 text-left transition block leading-snug">
+              <button onclick="openArtistSongModal('${escArtist}', '');" class="font-bold text-sm sm:text-base text-white hover:text-indigo-300 text-left transition block leading-snug cursor-pointer">
                 ${escapeHtml(show.artist)}
               </button>
               <span class="inline-block mt-1 px-2 py-0.5 rounded-md bg-indigo-500/20 text-indigo-300 text-[10px] font-bold border border-indigo-500/30">
@@ -12820,8 +12871,78 @@
             </td>
           </tr>
         `;
+
+        // Mobile Card Item
+        mobileHtml += `
+          <div class="upcoming-mobile-card p-3.5 rounded-xl bg-slate-900/80 border border-slate-800/90 shadow-sm space-y-2.5" data-search="${escapeHtml(searchStr)}">
+            <div class="flex items-center justify-between gap-2 text-xs border-b border-slate-800/60 pb-2">
+              <div class="flex items-center gap-1.5 font-semibold text-white">
+                <i class="fa-solid fa-calendar-day text-indigo-400 text-xs shrink-0"></i>
+                <span>${escapeHtml(show.date_display)}</span>
+                ${timeDisp ? `<span class="text-slate-400 font-normal">• ${escapeHtml(timeDisp)}</span>` : ''}
+              </div>
+              <div class="flex items-center gap-1.5 shrink-0">
+                ${show.rel_badge ? `
+                  <span class="px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 text-[10px] font-semibold border border-amber-500/30">
+                    ${escapeHtml(show.rel_badge)}
+                  </span>` : ''}
+                ${show.distance_display ? `
+                  <span class="px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 text-[10px] font-semibold border border-emerald-500/30 flex items-center gap-1">
+                    <i class="fa-solid fa-route text-[9px]"></i>${escapeHtml(show.distance_display)}
+                  </span>` : ''}
+              </div>
+            </div>
+
+            <div class="flex items-start justify-between gap-2">
+              <div class="min-w-0 flex-1">
+                <button onclick="openArtistSongModal('${escArtist}', '');" class="font-bold text-base text-white hover:text-indigo-300 text-left transition block leading-snug cursor-pointer">
+                  ${escapeHtml(show.artist)}
+                </button>
+                <div class="text-xs text-slate-300 flex items-center gap-1.5 mt-1">
+                  <i class="fa-solid fa-location-dot text-[11px] text-slate-500 shrink-0"></i>
+                  <span class="truncate">${escapeHtml(show.venue || 'TBA')} — ${escapeHtml(show.location_display)}</span>
+                </div>
+              </div>
+              <span class="shrink-0 px-2 py-0.5 rounded-md bg-indigo-500/20 text-indigo-300 text-[10px] font-bold border border-indigo-500/30 mt-0.5">
+                ${(show.times_seen || 0).toLocaleString()}x live
+              </span>
+            </div>
+
+            ${show.other_lineup && show.other_lineup.length ? `
+              <div class="text-[11px] text-slate-400 bg-slate-950/40 px-2.5 py-1.5 rounded-lg border border-slate-800/50">
+                <span class="text-slate-300 font-semibold">Lineup:</span> ${escapeHtml(show.other_lineup.join(', '))}
+              </div>` : ''}
+
+            <div class="grid grid-cols-2 gap-2 pt-1">
+              <a href="${show.ticket_url || show.event_url}" target="_blank" rel="noopener noreferrer"
+                 class="h-9 flex items-center justify-center gap-1.5 rounded-lg bg-indigo-600/30 hover:bg-indigo-600/50 border border-indigo-500/40 text-indigo-200 hover:text-white text-xs font-semibold transition shadow-sm">
+                <i class="fa-solid fa-ticket text-[11px]"></i>
+                <span>Tickets</span>
+                <i class="fa-solid fa-arrow-up-right-from-square text-[9px] opacity-70"></i>
+              </a>
+              ${isUpcomingOwner ? `
+              <button type="button"
+                onclick="toggleTrackUpcomingShow(this, '${escArtist}', '${escapeHtml(show.datetime || '')}', '${escapeHtml(show.venue || '')}', '${escapeHtml(show.city || '')}', '${escapeHtml(show.region || '')}', '${escapeHtml(show.country || '')}', '${escapeHtml(show.ticket_url || show.event_url || '')}')"
+                class="upcoming-track-btn h-9 flex items-center justify-center gap-1.5 rounded-lg text-xs font-semibold transition cursor-pointer border ${show.is_tracked ? 'bg-emerald-600/25 border-emerald-500/50 text-emerald-300 hover:bg-emerald-600/35' : 'bg-slate-800/80 border-slate-700/80 text-slate-300 hover:text-white hover:bg-slate-700'}"
+                data-artist="${escapeHtml(show.artist)}"
+                data-date="${escapeHtml(show.datetime || '')}"
+                data-venue="${escapeHtml(show.venue || '')}"
+                data-city="${escapeHtml(show.city || '')}"
+                data-region="${escapeHtml(show.region || '')}"
+                data-country="${escapeHtml(show.country || '')}"
+                data-url="${escapeHtml(show.ticket_url || show.event_url || '')}"
+                data-tracked="${show.is_tracked ? 'true' : 'false'}"
+                title="${show.is_tracked ? "Going (I'll be there) - Click to remove" : "I'm going - Pre-add to your concert list"}">
+                <i class="${show.is_tracked ? 'fa-solid fa-circle-check text-emerald-400' : 'fa-regular fa-calendar-plus text-slate-400'} text-xs"></i>
+                <span>${show.is_tracked ? 'Going' : "I'm going"}</span>
+              </button>` : '<div></div>'}
+            </div>
+          </div>
+        `;
       });
-      tbody.innerHTML = html;
+
+      if (tbody) tbody.innerHTML = desktopHtml;
+      if (mobileList) mobileList.innerHTML = mobileHtml;
     }
 
     function renderUpcomingShowsGrid(shows) {
