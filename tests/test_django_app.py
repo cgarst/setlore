@@ -603,3 +603,31 @@ class DjangoAppTests(TestCase):
         content_overview = res_overview.content.decode('utf-8')
         self.assertIn('id="tab-overview" class="space-y-6"', content_overview)
         self.assertIn('id="tab-concerts" class="hidden space-y-6"', content_overview)
+
+    def test_overview_mobile_chart_boxes_and_modal(self):
+        self.client.force_login(self.user)
+        res = self.client.get('/overview/')
+        self.assertEqual(res.status_code, 200)
+        content = res.content.decode('utf-8')
+        # Overview modal
+        self.assertIn('id="overview-chart-modal"', content)
+        self.assertIn('id="overview-modal-chart-host"', content)
+        # Mobile small box triggers
+        self.assertIn("openOverviewChartModal('timeline')", content)
+        self.assertIn("openOverviewChartModal('top-artists')", content)
+        self.assertIn("openOverviewChartModal('era')", content)
+        self.assertIn("openOverviewChartModal('song-age')", content)
+        self.assertIn("openOverviewChartModal('songs-table')", content)
+        self.assertIn("openOverviewChartModal('venues-table')", content)
+        # Desktop slots
+        self.assertIn('id="chart-timeline-desktop-slot"', content)
+        self.assertIn('id="chart-top-artists-desktop-slot"', content)
+        self.assertIn('id="chart-era-desktop-slot"', content)
+        self.assertIn('id="chart-song-age-desktop-slot"', content)
+        self.assertIn('id="table-top-songs-desktop-slot"', content)
+        self.assertIn('id="table-top-venues-desktop-slot"', content)
+        # Mobile upcoming shows trigger
+        self.assertIn('onclick="openUpcomingTableModal()"', content)
+
+
+

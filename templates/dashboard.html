@@ -2492,6 +2492,42 @@
     </div>
   </div>
 
+  <!-- Overview Chart Modal (Full View for Mobile) -->
+  <div id="overview-chart-modal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 hidden">
+    <div class="max-w-2xl w-full glass-card p-4 sm:p-6 shadow-2xl space-y-4 border border-slate-700/80 max-h-[92vh] flex flex-col">
+      <!-- Modal Header -->
+      <div class="flex items-start justify-between gap-3 border-b border-slate-800 pb-3 shrink-0">
+        <div class="flex items-center gap-3 min-w-0">
+          <div id="overview-chart-modal-icon-wrap" class="w-10 h-10 rounded-xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shrink-0">
+            <i id="overview-chart-modal-icon" class="fa-solid fa-chart-line text-base"></i>
+          </div>
+          <div class="min-w-0">
+            <h3 id="overview-chart-modal-title" class="text-base font-bold text-white truncate"></h3>
+            <p id="overview-chart-modal-subtitle" class="text-xs text-slate-400 mt-0.5 leading-relaxed"></p>
+          </div>
+        </div>
+        <button type="button" onclick="closeOverviewChartModal()" class="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition cursor-pointer shrink-0" aria-label="Close modal">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <!-- Chart Host Area -->
+      <div id="overview-modal-chart-host" class="w-full flex-1 min-h-[300px] h-[52vh] max-h-[480px] flex items-center justify-center overflow-hidden">
+        <!-- Chart div dynamically moved here when modal opens -->
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="flex items-center justify-between border-t border-slate-800 pt-3 shrink-0 text-xs">
+        <button type="button" id="overview-chart-modal-action-btn" class="px-3.5 py-1.5 rounded-xl bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 border border-indigo-500/30 font-semibold flex items-center gap-1.5 transition cursor-pointer">
+          <!-- Dynamically set -->
+        </button>
+        <button type="button" onclick="closeOverviewChartModal()" class="px-4 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold transition cursor-pointer">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Navigation Tabs (Modern Segmented Pill Bar - Desktop/Tablet) -->
   <div id="desktop-nav-bar" class="hidden md:block max-w-7xl mx-auto mb-8">
     <div class="glass-card p-1.5 flex flex-col lg:flex-row items-center justify-between gap-3 shadow-2xl border border-slate-800/80 bg-slate-900/90 backdrop-blur-xl">
@@ -2541,8 +2577,8 @@
     <!-- 1. OVERVIEW & CORE STATS TAB (Default Active) -->
     <div id="tab-overview" class="{% if initial_tab != 'overview' and initial_tab %}hidden {% endif %}space-y-6">
       
-      <!-- Charts Row: Yearly Timeline & Top Artists -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Charts Row: Yearly Timeline & Top Artists (Desktop) -->
+      <div class="hidden md:grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div class="glass-card p-6 flex flex-col justify-between">
           <div class="flex items-start justify-between gap-3 mb-4">
             <div>
@@ -2558,7 +2594,9 @@
               Concert History <i class="fa-solid fa-arrow-right text-[10px]"></i>
             </button>
           </div>
-          <div id="chart-timeline" class="w-full h-80"></div>
+          <div id="chart-timeline-desktop-slot">
+            <div id="chart-timeline" class="w-full h-80"></div>
+          </div>
         </div>
 
         <div class="glass-card p-6 flex flex-col justify-between">
@@ -2576,12 +2614,129 @@
               Artist Drilldown <i class="fa-solid fa-arrow-right text-[10px]"></i>
             </button>
           </div>
-          <div id="chart-top-artists" class="w-full h-80"></div>
+          <div id="chart-top-artists-desktop-slot">
+            <div id="chart-top-artists" class="w-full h-80"></div>
+          </div>
         </div>
       </div>
 
-      <!-- Upcoming Shows Section (Powered by Bandsintown API) -->
-      <div class="glass-card p-6 flex flex-col space-y-4 border border-slate-800/90 shadow-xl">
+      <!-- Mobile Super Small Boxes: Top Charts (Timeline & Top Artists) -->
+      <div class="grid grid-cols-2 gap-3 md:hidden">
+        <!-- Timeline Small Box -->
+        <button type="button" onclick="openOverviewChartModal('timeline')" class="glass-card p-3 rounded-xl border border-slate-800/80 hover:border-indigo-500/50 active:scale-[0.98] transition flex flex-col justify-between text-left group shadow-lg cursor-pointer">
+          <div class="w-7 h-7 rounded-lg bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400 text-xs shrink-0 mb-1.5">
+            <i class="fa-solid fa-chart-line"></i>
+          </div>
+          <div>
+            <div class="text-[11px] font-bold text-white group-hover:text-indigo-200 transition truncate">Shows & Songs</div>
+            <div class="text-sm font-extrabold text-indigo-400 leading-tight mt-0.5">{{ stats.total_concerts|intcomma }} <span class="text-[10px] font-normal text-slate-400">shows</span></div>
+            {% if stats.top_year %}
+            <div class="text-[10px] text-slate-300 font-semibold truncate mt-1 flex items-center gap-1">
+              <span class="text-amber-400 font-bold shrink-0">#1</span>
+              <span class="truncate text-white">{{ stats.top_year.year }}</span>
+              <span class="text-indigo-400 font-mono text-[9px] shrink-0">({{ stats.top_year.count }} shows)</span>
+            </div>
+            {% else %}
+            <div class="text-[10px] text-slate-400 truncate mt-0.5">{{ stats.total_songs_heard|intcomma }} songs live</div>
+            {% endif %}
+          </div>
+          <div class="mt-2 pt-1 border-t border-slate-800/80 flex items-center justify-between text-[9px] text-indigo-400 font-medium">
+            <span>Chart</span>
+            <i class="fa-solid fa-arrow-up-right-from-square text-[8px]"></i>
+          </div>
+        </button>
+
+        <!-- Top Artists Small Box -->
+        <button type="button" onclick="openOverviewChartModal('top-artists')" class="glass-card p-3 rounded-xl border border-slate-800/80 hover:border-pink-500/50 active:scale-[0.98] transition flex flex-col justify-between text-left group shadow-lg cursor-pointer">
+          <div class="w-7 h-7 rounded-lg bg-pink-500/15 border border-pink-500/30 flex items-center justify-center text-pink-400 text-xs shrink-0 mb-1.5">
+            <i class="fa-solid fa-ranking-star"></i>
+          </div>
+          <div>
+            <div class="text-[11px] font-bold text-white group-hover:text-pink-200 transition truncate">Top Artists</div>
+            <div class="text-sm font-extrabold text-pink-400 leading-tight mt-0.5">{{ stats.total_unique_artists|intcomma }} <span class="text-[10px] font-normal text-slate-400">artists</span></div>
+            {% if stats.top_artists|length > 0 %}
+            <div class="text-[10px] text-slate-300 font-semibold truncate mt-1 flex items-center gap-1">
+              <span class="text-amber-400 font-bold shrink-0">#1</span>
+              <span class="truncate text-white">{{ stats.top_artists.0.artist }}</span>
+              <span class="text-pink-400 font-mono text-[9px] shrink-0">({{ stats.top_artists.0.concert_count }}x)</span>
+            </div>
+            {% else %}
+            <div class="text-[10px] text-slate-400 truncate mt-0.5">Seen live</div>
+            {% endif %}
+          </div>
+          <div class="mt-2 pt-1 border-t border-slate-800/80 flex items-center justify-between text-[9px] text-pink-400 font-medium">
+            <span>Chart</span>
+            <i class="fa-solid fa-arrow-up-right-from-square text-[8px]"></i>
+          </div>
+        </button>
+      </div>
+
+      <!-- Mobile Condensed Upcoming Shows Card (Double Wide on Mobile) -->
+      <div class="md:hidden">
+        <div onclick="openUpcomingTableModal()" class="glass-card p-3.5 rounded-xl border border-slate-800/80 hover:border-amber-500/50 active:scale-[0.99] transition flex flex-col justify-between text-left group shadow-lg cursor-pointer w-full">
+          <div class="flex items-center justify-between w-full mb-2">
+            <div class="flex items-center gap-2.5">
+              <div class="w-7 h-7 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 text-xs shrink-0">
+                <i class="fa-solid fa-calendar-days"></i>
+              </div>
+              <div>
+                <div class="text-[11px] font-bold text-white group-hover:text-amber-200 transition">Upcoming Shows</div>
+                <div class="text-xs font-extrabold text-amber-400 leading-tight">
+                  {{ upcoming_shows|length|intcomma }} <span class="text-[10px] font-normal text-slate-400">shows {% if upcoming_location %}near {{ upcoming_location }}{% endif %}</span>
+                </div>
+              </div>
+            </div>
+            {% if user.is_authenticated and is_owner %}
+            <button type="button" onclick="event.stopPropagation(); openUpcomingConfigModal();" class="p-1 px-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700 text-[10px] font-semibold flex items-center gap-1 transition" title="Discovery area & filters">
+              <i class="fa-solid fa-sliders text-amber-400 text-[9px]"></i>
+              <span>Filters</span>
+            </button>
+            {% endif %}
+          </div>
+
+          <!-- Next 3 Shows List Preview -->
+          <div class="space-y-1.5 my-1">
+            {% for show in upcoming_shows|slice:":3" %}
+            <div class="p-2 rounded-lg bg-slate-900/70 border border-slate-800/60 flex items-center justify-between gap-2 text-xs">
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-1.5">
+                  <span class="font-bold text-white truncate text-[11px]">{{ show.artist }}</span>
+                  <span class="px-1 py-0.2 rounded bg-indigo-500/20 text-indigo-300 text-[9px] font-semibold shrink-0">{{ show.times_seen }}x</span>
+                </div>
+                <div class="text-[10px] text-slate-400 truncate flex items-center gap-1 mt-0.5">
+                  <span class="text-slate-300 shrink-0">{{ show.date_display }}</span>
+                  <span>•</span>
+                  <span class="truncate">{{ show.venue }}{% if show.city %}, {{ show.city }}{% endif %}</span>
+                </div>
+              </div>
+              {% if show.distance_display %}
+              <span class="px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 text-[9px] font-semibold shrink-0">
+                {{ show.distance_display }}
+              </span>
+              {% endif %}
+            </div>
+            {% empty %}
+            {% if not upcoming_location %}
+            <div class="p-2.5 rounded-lg bg-slate-900/40 border border-dashed border-slate-800 text-center text-[11px] text-slate-400">
+              <i class="fa-solid fa-location-dot text-amber-400 mr-1"></i> Tap to set your concert discovery area
+            </div>
+            {% else %}
+            <div class="p-2.5 rounded-lg bg-slate-900/40 border border-dashed border-slate-800 text-center text-[11px] text-slate-400">
+              No upcoming tour dates found for your seen artists
+            </div>
+            {% endif %}
+            {% endfor %}
+          </div>
+
+          <div class="mt-2 pt-1.5 border-t border-slate-800/80 flex items-center justify-between text-[9px] text-amber-400 font-medium">
+            <span>View All Shows Table ({{ upcoming_shows|length|intcomma }})</span>
+            <i class="fa-solid fa-arrow-up-right-from-square text-[8px]"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Upcoming Shows Section (Powered by Bandsintown API - Desktop) -->
+      <div class="hidden md:flex glass-card p-6 flex-col space-y-4 border border-slate-800/90 shadow-xl">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/70 pb-4">
           <div>
             <div class="flex flex-wrap items-center gap-2 mb-1">
@@ -2794,8 +2949,8 @@
         </div>
       </div>
 
-      <!-- Top Venues & Top Songs Tables -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Top Venues & Top Songs Tables (Desktop) -->
+      <div class="hidden md:grid grid-cols-1 lg:grid-cols-2 gap-6">
         
         <!-- Top Songs Table -->
         <div class="glass-card p-6 flex flex-col">
@@ -2813,47 +2968,49 @@
               Song Drilldown <i class="fa-solid fa-arrow-right text-[10px]"></i>
             </button>
           </div>
-          <div class="overflow-x-auto max-h-96 overflow-y-auto">
-            <table id="table-top-songs" class="w-full text-left border-collapse">
-              <thead>
-                <tr class="border-b border-slate-800 text-slate-400 text-xs font-semibold uppercase tracking-wider">
-                  <th class="px-3 py-2">#</th>
-                  <th class="px-3 py-2">Song</th>
-                  <th class="px-3 py-2">Artist</th>
-                  <th class="px-3 py-2 text-center">Heard</th>
-                  <th class="px-3 py-2">First Heard</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-slate-800/50">
-                {% for s in stats.top_songs %}
-                <tr class="hover:bg-slate-800/40 transition">
-                  <td class="px-3 py-2 text-xs font-mono text-slate-500">{{ forloop.counter }}</td>
-                  <td class="px-3 py-2 text-xs font-bold text-white">
-                    <button onclick="jumpToSongInDrilldown('{{ s.artist|escapejs }}', '{{ s.song|escapejs }}');" class="hover:underline hover:text-indigo-300 text-left font-bold">
-                      {{ s.song }}
-                    </button>
-                  </td>
-                  <td class="px-3 py-2 text-xs text-indigo-300">
-                    <button onclick="jumpToSongInDrilldown('{{ s.artist|escapejs }}', '');" class="hover:underline text-left">
-                      {{ s.artist }}
-                    </button>
-                  </td>
-                  <td class="px-3 py-2 text-xs text-center font-bold text-emerald-400">{{ s.count|intcomma }}x</td>
-                  <td class="px-3 py-2 text-xs text-slate-400">
-                    <button onclick="jumpToConcertInDrilldown('{{ s.first_seen_venue|escapejs }}', '{{ s.first_seen_date }}');" class="hover:underline hover:text-indigo-300 text-left">
-                      {{ s.first_seen_date }} ({{ s.first_seen_venue }})
-                    </button>
-                  </td>
-                </tr>
-                {% empty %}
-                <tr>
-                  <td colspan="5" class="px-3 py-6 text-center text-xs text-slate-500 italic">
-                    No song setlist tracks recorded yet. Click "Sync" above to fetch setlist data.
-                  </td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
+          <div id="table-top-songs-desktop-slot" class="overflow-x-auto max-h-96 overflow-y-auto">
+            <div id="table-top-songs-container" class="w-full">
+              <table id="table-top-songs" class="w-full text-left border-collapse">
+                <thead>
+                  <tr class="border-b border-slate-800 text-slate-400 text-xs font-semibold uppercase tracking-wider">
+                    <th class="px-3 py-2">#</th>
+                    <th class="px-3 py-2">Song</th>
+                    <th class="px-3 py-2">Artist</th>
+                    <th class="px-3 py-2 text-center">Heard</th>
+                    <th class="px-3 py-2">First Heard</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/50">
+                  {% for s in stats.top_songs %}
+                  <tr class="hover:bg-slate-800/40 transition">
+                    <td class="px-3 py-2 text-xs font-mono text-slate-500">{{ forloop.counter }}</td>
+                    <td class="px-3 py-2 text-xs font-bold text-white">
+                      <button onclick="jumpToSongInDrilldown('{{ s.artist|escapejs }}', '{{ s.song|escapejs }}');" class="hover:underline hover:text-indigo-300 text-left font-bold">
+                        {{ s.song }}
+                      </button>
+                    </td>
+                    <td class="px-3 py-2 text-xs text-indigo-300">
+                      <button onclick="jumpToSongInDrilldown('{{ s.artist|escapejs }}', '');" class="hover:underline text-left">
+                        {{ s.artist }}
+                      </button>
+                    </td>
+                    <td class="px-3 py-2 text-xs text-center font-bold text-emerald-400">{{ s.count|intcomma }}x</td>
+                    <td class="px-3 py-2 text-xs text-slate-400">
+                      <button onclick="jumpToConcertInDrilldown('{{ s.first_seen_venue|escapejs }}', '{{ s.first_seen_date }}');" class="hover:underline hover:text-indigo-300 text-left">
+                        {{ s.first_seen_date }} ({{ s.first_seen_venue }})
+                      </button>
+                    </td>
+                  </tr>
+                  {% empty %}
+                  <tr>
+                    <td colspan="5" class="px-3 py-6 text-center text-xs text-slate-500 italic">
+                      No song setlist tracks recorded yet. Click "Sync" above to fetch setlist data.
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
 
@@ -2873,42 +3030,95 @@
               Venue Map <i class="fa-solid fa-arrow-right text-[10px]"></i>
             </button>
           </div>
-          <div class="overflow-x-auto max-h-96 overflow-y-auto">
-            <table id="table-top-venues" class="w-full text-left border-collapse">
-              <thead>
-                <tr class="border-b border-slate-800 text-slate-400 text-xs font-semibold uppercase tracking-wider">
-                  <th class="px-3 py-2">#</th>
-                  <th class="px-3 py-2">Venue</th>
-                  <th class="px-3 py-2 text-center">Concerts</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-slate-800/50">
-                {% for v in stats.top_venues %}
-                <tr class="hover:bg-slate-800/40 transition">
-                  <td class="px-3 py-2 text-xs font-mono text-slate-500">{{ forloop.counter }}</td>
-                  <td class="px-3 py-2 text-xs font-bold text-white">
-                    <button onclick="jumpToConcertInDrilldown('{{ v.venue|escapejs }}', '');" class="hover:underline hover:text-indigo-300 text-left">
-                      {{ v.venue }}
-                    </button>
-                  </td>
-                  <td class="px-3 py-2 text-xs text-center font-bold text-indigo-400">{{ v.count|intcomma }}</td>
-                </tr>
-                {% empty %}
-                <tr>
-                  <td colspan="3" class="px-3 py-6 text-center text-xs text-slate-500 italic">
-                    No venues recorded yet.
-                  </td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
+          <div id="table-top-venues-desktop-slot" class="overflow-x-auto max-h-96 overflow-y-auto">
+            <div id="table-top-venues-container" class="w-full">
+              <table id="table-top-venues" class="w-full text-left border-collapse">
+                <thead>
+                  <tr class="border-b border-slate-800 text-slate-400 text-xs font-semibold uppercase tracking-wider">
+                    <th class="px-3 py-2">#</th>
+                    <th class="px-3 py-2">Venue</th>
+                    <th class="px-3 py-2 text-center">Concerts</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/50">
+                  {% for v in stats.top_venues %}
+                  <tr class="hover:bg-slate-800/40 transition">
+                    <td class="px-3 py-2 text-xs font-mono text-slate-500">{{ forloop.counter }}</td>
+                    <td class="px-3 py-2 text-xs font-bold text-white">
+                      <button onclick="jumpToConcertInDrilldown('{{ v.venue|escapejs }}', '');" class="hover:underline hover:text-indigo-300 text-left">
+                        {{ v.venue }}
+                      </button>
+                    </td>
+                    <td class="px-3 py-2 text-xs text-center font-bold text-indigo-400">{{ v.count|intcomma }}</td>
+                  </tr>
+                  {% empty %}
+                  <tr>
+                    <td colspan="3" class="px-3 py-6 text-center text-xs text-slate-500 italic">
+                      No venues recorded yet.
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
 
       </div>
 
-      <!-- Era & Catalog Age Analysis (Bottom of Overview Tab) -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Mobile Super Small Boxes: Top Songs & Top Venues Tables -->
+      <div class="grid grid-cols-2 gap-3 md:hidden">
+        <!-- Top Songs Small Box -->
+        <button type="button" onclick="openOverviewChartModal('songs-table')" class="glass-card p-3 rounded-xl border border-slate-800/80 hover:border-purple-500/50 active:scale-[0.98] transition flex flex-col justify-between text-left group shadow-lg cursor-pointer">
+          <div class="w-7 h-7 rounded-lg bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400 text-xs shrink-0 mb-1.5">
+            <i class="fa-solid fa-music"></i>
+          </div>
+          <div>
+            <div class="text-[11px] font-bold text-white group-hover:text-purple-200 transition truncate">Top Songs</div>
+            <div class="text-sm font-extrabold text-purple-400 leading-tight mt-0.5">{{ stats.unique_songs_heard|intcomma }} <span class="text-[10px] font-normal text-slate-400">songs</span></div>
+            {% if stats.top_songs|length > 0 %}
+            <div class="text-[10px] text-slate-300 font-semibold truncate mt-1 flex items-center gap-1">
+              <span class="text-amber-400 font-bold shrink-0">#1</span>
+              <span class="truncate text-white">{{ stats.top_songs.0.song }}</span>
+              <span class="text-emerald-400 font-mono text-[9px] shrink-0">({{ stats.top_songs.0.count }}x)</span>
+            </div>
+            {% else %}
+            <div class="text-[10px] text-slate-400 truncate mt-0.5">Most heard live</div>
+            {% endif %}
+          </div>
+          <div class="mt-2 pt-1 border-t border-slate-800/80 flex items-center justify-between text-[9px] text-purple-400 font-medium">
+            <span>View List</span>
+            <i class="fa-solid fa-arrow-up-right-from-square text-[8px]"></i>
+          </div>
+        </button>
+
+        <!-- Top Venues Small Box -->
+        <button type="button" onclick="openOverviewChartModal('venues-table')" class="glass-card p-3 rounded-xl border border-slate-800/80 hover:border-indigo-500/50 active:scale-[0.98] transition flex flex-col justify-between text-left group shadow-lg cursor-pointer">
+          <div class="w-7 h-7 rounded-lg bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400 text-xs shrink-0 mb-1.5">
+            <i class="fa-solid fa-location-dot"></i>
+          </div>
+          <div>
+            <div class="text-[11px] font-bold text-white group-hover:text-indigo-200 transition truncate">Top Venues</div>
+            <div class="text-sm font-extrabold text-indigo-400 leading-tight mt-0.5">{{ stats.total_venues|intcomma }} <span class="text-[10px] font-normal text-slate-400">venues</span></div>
+            {% if stats.top_venues|length > 0 %}
+            <div class="text-[10px] text-slate-300 font-semibold truncate mt-1 flex items-center gap-1">
+              <span class="text-amber-400 font-bold shrink-0">#1</span>
+              <span class="truncate text-white">{{ stats.top_venues.0.venue }}</span>
+              <span class="text-indigo-400 font-mono text-[9px] shrink-0">({{ stats.top_venues.0.count }})</span>
+            </div>
+            {% else %}
+            <div class="text-[10px] text-slate-400 truncate mt-0.5">Top visited stops</div>
+            {% endif %}
+          </div>
+          <div class="mt-2 pt-1 border-t border-slate-800/80 flex items-center justify-between text-[9px] text-indigo-400 font-medium">
+            <span>View List</span>
+            <i class="fa-solid fa-arrow-up-right-from-square text-[8px]"></i>
+          </div>
+        </button>
+      </div>
+
+      <!-- Era & Catalog Age Analysis (Bottom of Overview Tab - Desktop) -->
+      <div class="hidden md:grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div class="glass-card p-6">
           <div class="flex items-start justify-between gap-3 mb-4">
             <div>
@@ -2919,7 +3129,9 @@
               Albums &amp; Eras <i class="fa-solid fa-arrow-right text-[10px]"></i>
             </button>
           </div>
-          <div id="chart-era" class="w-full h-80"></div>
+          <div id="chart-era-desktop-slot">
+            <div id="chart-era" class="w-full h-80"></div>
+          </div>
         </div>
 
         <div class="glass-card p-6">
@@ -2932,8 +3144,45 @@
               Albums &amp; Eras <i class="fa-solid fa-arrow-right text-[10px]"></i>
             </button>
           </div>
-          <div id="chart-song-age" class="w-full h-80"></div>
+          <div id="chart-song-age-desktop-slot">
+            <div id="chart-song-age" class="w-full h-80"></div>
+          </div>
         </div>
+      </div>
+
+      <!-- Mobile Super Small Boxes: Era & Song Age Charts -->
+      <div class="grid grid-cols-2 gap-3 md:hidden">
+        <!-- Release Era Small Box -->
+        <button type="button" onclick="openOverviewChartModal('era')" class="glass-card p-3 rounded-xl border border-slate-800/80 hover:border-emerald-500/50 active:scale-[0.98] transition flex flex-col justify-between text-left group shadow-lg cursor-pointer">
+          <div class="w-7 h-7 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-xs shrink-0 mb-1.5">
+            <i class="fa-solid fa-clock-rotate-left"></i>
+          </div>
+          <div>
+            <div class="text-[11px] font-bold text-white group-hover:text-emerald-200 transition truncate">Release Eras</div>
+            <div class="text-sm font-extrabold text-emerald-400 leading-tight mt-0.5">{{ stats.total_songs_heard|intcomma }} <span class="text-[10px] font-normal text-slate-400">songs</span></div>
+            <div class="text-[10px] text-slate-400 truncate mt-0.5">Release era spread</div>
+          </div>
+          <div class="mt-2 pt-1 border-t border-slate-800/80 flex items-center justify-between text-[9px] text-emerald-400 font-medium">
+            <span>Chart</span>
+            <i class="fa-solid fa-arrow-up-right-from-square text-[8px]"></i>
+          </div>
+        </button>
+
+        <!-- Song Age Small Box -->
+        <button type="button" onclick="openOverviewChartModal('song-age')" class="glass-card p-3 rounded-xl border border-slate-800/80 hover:border-purple-500/50 active:scale-[0.98] transition flex flex-col justify-between text-left group shadow-lg cursor-pointer">
+          <div class="w-7 h-7 rounded-lg bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400 text-xs shrink-0 mb-1.5">
+            <i class="fa-solid fa-hourglass-half"></i>
+          </div>
+          <div>
+            <div class="text-[11px] font-bold text-white group-hover:text-purple-200 transition truncate">Song Age</div>
+            <div class="text-sm font-extrabold text-purple-400 leading-tight mt-0.5">Live Age</div>
+            <div class="text-[10px] text-slate-400 truncate mt-0.5">Concert vs release</div>
+          </div>
+          <div class="mt-2 pt-1 border-t border-slate-800/80 flex items-center justify-between text-[9px] text-purple-400 font-medium">
+            <span>Chart</span>
+            <i class="fa-solid fa-arrow-up-right-from-square text-[8px]"></i>
+          </div>
+        </button>
       </div>
     </div>
 
@@ -5251,6 +5500,9 @@
     }
 
     function switchTab(tabId, updateUrl = true) {
+      if (typeof closeOverviewChartModal === 'function') {
+        closeOverviewChartModal();
+      }
       tabId = normalizeTab(tabId);
       if (tabId === 'friends' && window.isPublicView) {
         tabId = 'overview';
@@ -7909,9 +8161,177 @@
       if (modal) modal.classList.add('hidden');
     }
 
+    // Mobile Overview Chart Modal Management
+    let activeOverviewModalChartKey = null;
+
+    const overviewChartConfigs = {
+      'timeline': {
+        title: 'Concerts & Songs Over Time',
+        iconClass: 'fa-solid fa-chart-line text-indigo-400',
+        iconBgClass: 'bg-indigo-500/15 border-indigo-500/30 text-indigo-400',
+        subtitle: 'Across {{ stats.total_concerts|intcomma }} shows, {{ stats.total_songs_heard|intcomma }} songs heard live — bars show shows per year, line tracks songs heard.',
+        chartId: 'chart-timeline',
+        slotId: 'chart-timeline-desktop-slot',
+        actionText: 'Concert History',
+        actionTab: 'concerts'
+      },
+      'top-artists': {
+        title: 'Top Artists Seen Live',
+        iconClass: 'fa-solid fa-ranking-star text-pink-400',
+        iconBgClass: 'bg-pink-500/15 border-pink-500/30 text-pink-400',
+        subtitle: "{% if is_public_view %}{{ profile_user.username }} has seen {{ stats.total_unique_artists|intcomma }} artists, which have they seen the most?{% else %}You've seen {{ stats.total_unique_artists|intcomma }} artists, which have you seen the most?{% endif %}",
+        chartId: 'chart-top-artists',
+        slotId: 'chart-top-artists-desktop-slot',
+        actionText: 'Artist Drilldown',
+        actionTab: 'songs'
+      },
+      'era': {
+        title: 'Song Release Era Distribution',
+        iconClass: 'fa-solid fa-clock-rotate-left text-emerald-400',
+        iconBgClass: 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400',
+        subtitle: 'Distribution of original album release years for all songs heard live',
+        chartId: 'chart-era',
+        slotId: 'chart-era-desktop-slot',
+        actionText: 'Albums & Eras',
+        actionTab: 'albums'
+      },
+      'song-age': {
+        title: 'Song Age at Performance',
+        iconClass: 'fa-solid fa-hourglass-half text-purple-400',
+        iconBgClass: 'bg-purple-500/15 border-purple-500/30 text-purple-400',
+        subtitle: 'How old was each song when you heard it live (Concert Year - Album Release Year)?',
+        chartId: 'chart-song-age',
+        slotId: 'chart-song-age-desktop-slot',
+        actionText: 'Albums & Eras',
+        actionTab: 'albums'
+      },
+      'songs-table': {
+        title: 'Most Heard Songs Live',
+        iconClass: 'fa-solid fa-music text-purple-400',
+        iconBgClass: 'bg-purple-500/15 border-purple-500/30 text-purple-400',
+        subtitle: "{% if is_public_view %}{{ profile_user.username }} has heard {{ stats.unique_songs_heard|intcomma }} unique songs, which track have they heard the most?{% else %}You've heard {{ stats.unique_songs_heard|intcomma }} unique songs, which track have you heard the most?{% endif %}",
+        elementId: 'table-top-songs-container',
+        slotId: 'table-top-songs-desktop-slot',
+        isChart: false,
+        actionText: 'Song Drilldown',
+        actionTab: 'songs'
+      },
+      'venues-table': {
+        title: 'Top Venues Visited',
+        iconClass: 'fa-solid fa-location-dot text-indigo-400',
+        iconBgClass: 'bg-indigo-500/15 border-indigo-500/30 text-indigo-400',
+        subtitle: "{% if is_public_view %}{{ profile_user.username }} has visited {{ stats.total_venues|intcomma }} venues, which stage is their favorite stop?{% else %}You've visited {{ stats.total_venues|intcomma }} venues, which stage is your favorite stop?{% endif %}",
+        elementId: 'table-top-venues-container',
+        slotId: 'table-top-venues-desktop-slot',
+        isChart: false,
+        actionText: 'Venue Map',
+        actionTab: 'map'
+      }
+    };
+
+    function openOverviewChartModal(chartKey) {
+      const config = overviewChartConfigs[chartKey];
+      if (!config) return;
+
+      const modal = document.getElementById('overview-chart-modal');
+      const titleEl = document.getElementById('overview-chart-modal-title');
+      const iconEl = document.getElementById('overview-chart-modal-icon');
+      const iconWrap = document.getElementById('overview-chart-modal-icon-wrap');
+      const subtitleEl = document.getElementById('overview-chart-modal-subtitle');
+      const hostEl = document.getElementById('overview-modal-chart-host');
+      const actionBtn = document.getElementById('overview-chart-modal-action-btn');
+
+      // If another item was active in modal, return it to slot first
+      if (activeOverviewModalChartKey && activeOverviewModalChartKey !== chartKey) {
+        const prevCfg = overviewChartConfigs[activeOverviewModalChartKey];
+        if (prevCfg) {
+          const prevEl = document.getElementById(prevCfg.chartId || prevCfg.elementId);
+          const prevSlot = document.getElementById(prevCfg.slotId);
+          if (prevEl && prevSlot) {
+            if (prevCfg.isChart !== false) {
+              prevEl.classList.remove('h-full', 'min-h-[300px]');
+              prevEl.classList.add('h-80');
+            }
+            prevSlot.appendChild(prevEl);
+          }
+        }
+      }
+
+      activeOverviewModalChartKey = chartKey;
+
+      if (titleEl) titleEl.textContent = config.title;
+      if (iconEl) iconEl.className = config.iconClass;
+      if (iconWrap) iconWrap.className = `w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 ${config.iconBgClass}`;
+      if (subtitleEl) subtitleEl.textContent = config.subtitle;
+
+      if (actionBtn) {
+        actionBtn.onclick = () => {
+          closeOverviewChartModal();
+          switchTab(config.actionTab);
+        };
+        actionBtn.innerHTML = `<span>${config.actionText}</span> <i class="fa-solid fa-arrow-right text-[10px]"></i>`;
+      }
+
+      const itemEl = document.getElementById(config.chartId || config.elementId);
+      if (itemEl && hostEl) {
+        hostEl.innerHTML = '';
+        if (config.isChart !== false) {
+          itemEl.classList.remove('h-80');
+          itemEl.classList.add('h-full', 'min-h-[300px]');
+          hostEl.classList.add('items-center', 'justify-center');
+        } else {
+          hostEl.classList.remove('items-center', 'justify-center');
+        }
+        hostEl.appendChild(itemEl);
+      }
+
+      if (modal) modal.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+
+      if (config.isChart !== false && itemEl) {
+        setTimeout(() => {
+          if (chartKey === 'top-artists' && typeof getResponsiveTopArtistsData === 'function') {
+            Plotly.react(itemEl, getResponsiveTopArtistsData(), itemEl.layout).catch(() => {});
+          }
+          Plotly.Plots.resize(itemEl);
+        }, 50);
+        setTimeout(() => {
+          Plotly.Plots.resize(itemEl);
+        }, 180);
+      }
+    }
+
+    function closeOverviewChartModal() {
+      const modal = document.getElementById('overview-chart-modal');
+      if (modal) modal.classList.add('hidden');
+      document.body.style.overflow = '';
+
+      if (activeOverviewModalChartKey) {
+        const cfg = overviewChartConfigs[activeOverviewModalChartKey];
+        if (cfg) {
+          const itemEl = document.getElementById(cfg.chartId || cfg.elementId);
+          const slotEl = document.getElementById(cfg.slotId);
+          if (itemEl && slotEl) {
+            if (cfg.isChart !== false) {
+              itemEl.classList.remove('h-full', 'min-h-[300px]');
+              itemEl.classList.add('h-80');
+            }
+            slotEl.appendChild(itemEl);
+            if (cfg.isChart !== false && window.innerWidth >= 768) {
+              Plotly.Plots.resize(itemEl);
+            }
+          }
+        }
+        activeOverviewModalChartKey = null;
+      }
+    }
+
     // Modal listeners
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') closeAlbumModal();
+      if (e.key === 'Escape') {
+        closeAlbumModal();
+        closeOverviewChartModal();
+      }
     });
     const albumModalBackdrop = document.getElementById('album-inspector-modal');
     if (albumModalBackdrop) {
@@ -7919,6 +8339,18 @@
         if (e.target === albumModalBackdrop) closeAlbumModal();
       });
     }
+    const overviewModalBackdrop = document.getElementById('overview-chart-modal');
+    if (overviewModalBackdrop) {
+      overviewModalBackdrop.addEventListener('click', (e) => {
+        if (e.target === overviewModalBackdrop) closeOverviewChartModal();
+      });
+    }
+
+    window.addEventListener('resize', () => {
+      if (window.innerWidth >= 768 && activeOverviewModalChartKey) {
+        closeOverviewChartModal();
+      }
+    });
 
     // Trigger initial album gallery filtering and top-down cover loading once DOM is ready
     window.addEventListener('DOMContentLoaded', () => {

@@ -378,6 +378,11 @@ class ConcertAnalytics:
                 })
         setlist_variation.sort(key=lambda x: x["shows_analyzed"], reverse=True)
 
+        top_year = None
+        if yearly_concerts:
+            best_yr, best_cnt = max(yearly_concerts.items(), key=lambda x: (x[1], x[0]))
+            top_year = {"year": best_yr, "count": best_cnt}
+
         return {
             "total_concerts": len(occurred_records),
             "total_unique_artists": len(all_artists_seen),
@@ -388,6 +393,7 @@ class ConcertAnalytics:
             "top_songs": top_songs,
             "top_artists": top_artists,
             "top_venues": top_venues,
+            "top_year": top_year,
             "yearly_concerts": dict(sorted(yearly_concerts.items())),
             "yearly_songs": dict(sorted(yearly_songs.items())),
             "artist_song_map": {k: dict(v) for k, v in artist_song_map.items()},

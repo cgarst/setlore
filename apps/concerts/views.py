@@ -212,6 +212,10 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
                 }
             )
 
+    if "top_year" not in stats and "yearly_concerts" in stats and stats["yearly_concerts"]:
+        best_yr, best_cnt = max(stats["yearly_concerts"].items(), key=lambda x: (x[1], x[0]))
+        stats["top_year"] = {"year": best_yr, "count": best_cnt}
+
     charts = generate_plotly_charts(stats, album_enrichments)
 
     # Attach album information to each song in artist_drilldown
