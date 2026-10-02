@@ -28,9 +28,23 @@ from src.musician_tracker import analyze_musicians_live, consolidate_musician_ba
 from src.config import SETLISTFM_API_KEY, CARTO_API_KEY, USER_CACHE_DIR, MB_CACHE_DIR
 from src.upcoming_events import get_upcoming_shows_for_user, get_user_seen_artists_summary
 from .services.sync_worker import sync_worker
+import unicodedata
 
 def get_or_create_artist(name: str):
     return Artist.get_or_create_artist(name)
+
+def normalize_track_title(title: str) -> str:
+    if not title:
+        return ""
+    norm = unicodedata.normalize('NFKD', title).encode('ASCII', 'ignore').decode('utf-8').lower()
+    norm = re.sub(r'\s*[\(\[].*?[\)\]]', '', norm).strip()
+    while True:
+        prev = norm
+        norm = re.sub(r'^(?:act|scene|part|pt|section|movement|side)\s+[a-z0-9ivxlcdm]+[\.\:\s\-]+', '', norm, flags=re.IGNORECASE).strip()
+        norm = re.sub(r'^[ivxlcdm0-9]+[\.\:\s\-]+', '', norm, flags=re.IGNORECASE).strip()
+        if norm == prev:
+            break
+    return re.sub(r'[^a-z0-9]', '', norm)
 
 
 def get_dashboard_context(request, target_user, tab_name='overview', is_public_view=False):
@@ -290,10 +304,10 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
             # Match track number from tracklist if available
             track_num = None
             if alb_entry.get("tracklist"):
-                s_clean = re.sub(r'[^a-z0-9]', '', song_name.lower())
+                s_norm = normalize_track_title(song_name)
                 for t in alb_entry["tracklist"]:
-                    t_clean = re.sub(r'[^a-z0-9]', '', (t.get("title") or "").lower())
-                    if s_clean == t_clean or (len(s_clean) >= 4 and (s_clean in t_clean or t_clean in s_clean)):
+                    t_norm = normalize_track_title(t.get("title") or "")
+                    if s_norm == t_norm or (len(s_norm) >= 4 and (t_norm.endswith(s_norm) or s_norm.endswith(t_norm) or s_norm in t_norm or t_norm in s_norm)):
                         track_num = t.get("track_number")
                         break
 

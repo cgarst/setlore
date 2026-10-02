@@ -7975,8 +7975,29 @@
 
     window._albumTracklistsCache = window._albumTracklistsCache || {};
 
-    function _cleanTitle(t) {
-      return (t || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    function _normalizeTrackTitle(title) {
+      if (!title) return '';
+      let norm = title.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+      norm = norm.replace(/\s*[\(\[].*?[\)\]]/g, '').trim();
+      let prev = '';
+      while (prev !== norm) {
+        prev = norm;
+        norm = norm.replace(/^(?:act|scene|part|pt|section|movement|side)\s+[a-z0-9ivxlcdm]+[\.\:\s\-]+/i, '').trim();
+        norm = norm.replace(/^[ivxlcdm0-9]+[\.\:\s\-]+/i, '').trim();
+      }
+      return norm.replace(/[^a-z0-9]/g, '');
+    }
+
+    function _matchSongToTrack(songName, trackTitle) {
+      if (!songName || !trackTitle) return false;
+      const sNorm = _normalizeTrackTitle(songName);
+      const tNorm = _normalizeTrackTitle(trackTitle);
+      if (!sNorm || !tNorm) return false;
+      if (sNorm === tNorm) return true;
+      if (sNorm.length >= 4 && (tNorm.endsWith(sNorm) || sNorm.endsWith(tNorm) || tNorm.includes(sNorm) || sNorm.includes(tNorm))) {
+        return true;
+      }
+      return false;
     }
 
     function renderAlbumModalSongs(alb, tracklist) {
@@ -7987,10 +8008,6 @@
 
       const safeArtist = (alb.artist || '').replace(/'/g, "\\'");
       const heardSongs = alb.songs || [];
-      const heardMap = new Map();
-      heardSongs.forEach(s => {
-        heardMap.set(_cleanTitle(s.song), s);
-      });
 
       const firstSeenStr = alb.first_seen_date ? `First heard: ${alb.first_seen_date}` : '';
       const lastSeenStr = alb.last_seen_date ? `Last: ${alb.last_seen_date}` : '';
@@ -7998,17 +8015,26 @@
 
       if (tracklist && Array.isArray(tracklist) && tracklist.length > 0) {
         // Render full tracklist with heard and never heard status
-        const renderedHeardClean = new Set();
+        const renderedHeardIndices = new Set();
         let totalAlbumTracks = tracklist.length;
         let heardCount = 0;
 
         let tracksHtml = tracklist.map((trk, tIdx) => {
-          const tClean = _cleanTitle(trk.title);
-          const s = heardMap.get(tClean);
           const trackNum = trk.track_number || (tIdx + 1);
 
+          // Find matching heard song
+          let s = null;
+          let matchedIdx = -1;
+          for (let i = 0; i < heardSongs.length; i++) {
+            if (!renderedHeardIndices.has(i) && _matchSongToTrack(heardSongs[i].song, trk.title)) {
+              s = heardSongs[i];
+              matchedIdx = i;
+              break;
+            }
+          }
+
           if (s) {
-            renderedHeardClean.add(tClean);
+            renderedHeardIndices.add(matchedIdx);
             heardCount++;
             const occCount = s.plays || (s.occurrences ? s.occurrences.length : 1);
             const firstDate = s.first_heard || (s.occurrences && s.occurrences.length > 0 ? s.occurrences[0].date : '');
@@ -8063,9 +8089,8 @@
         }).join('');
 
         // Append any extra heard songs that were not in canonical tracklist
-        heardSongs.forEach(s => {
-          const sClean = _cleanTitle(s.song);
-          if (!renderedHeardClean.has(sClean)) {
+        heardSongs.forEach((s, i) => {
+          if (!renderedHeardIndices.has(i)) {
             heardCount++;
             totalAlbumTracks++;
             const occCount = s.plays || (s.occurrences ? s.occurrences.length : 1);
