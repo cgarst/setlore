@@ -5778,8 +5778,9 @@
                 {% for art in gap.unresolved_mb_artists %}
                 <tr class="hover:bg-slate-800/30 transition mb-unresolved-artist-row" data-artist="{{ art.artist|lower }}">
                   <td class="px-4 py-3 font-medium text-white align-middle">
-                    <button onclick="jumpToArtistInDrilldown('{{ art.artist|escapejs }}')" class="hover:underline hover:text-indigo-300 text-left font-semibold text-white">
-                      {{ art.artist }}
+                    <button onclick="openArtistSongModal('{{ art.artist|escapejs }}')" class="hover:underline hover:text-indigo-300 text-left font-semibold text-white flex items-center gap-1.5 cursor-pointer" title="View artist details and catalog in modal">
+                      <i class="fa-solid fa-user-tag text-[10px] text-indigo-400"></i>
+                      <span>{{ art.artist }}</span>
                     </button>
                   </td>
                   <td class="px-4 py-3 text-center align-middle">
@@ -5793,8 +5794,12 @@
                     </span>
                   </td>
                   <td class="px-4 py-3 text-xs text-slate-400 align-middle">
-                    <span class="text-slate-300">{{ art.last_date }}</span>
-                    <span class="text-slate-500 text-[11px] block truncate max-w-xs">{{ art.last_venue }}</span>
+                    <button onclick="openConcertModalByVenueDate('{{ art.last_venue|escapejs }}', '{{ art.last_date|escapejs }}', '{{ art.artist|escapejs }}')" class="text-left group cursor-pointer hover:text-indigo-300 transition block" title="Open concert setlist modal">
+                      <span class="text-slate-300 group-hover:text-indigo-300 font-medium flex items-center gap-1">
+                        <i class="fa-solid fa-list-check text-[10px] text-indigo-400"></i> {{ art.last_date }}
+                      </span>
+                      <span class="text-slate-500 group-hover:text-slate-400 text-[11px] block truncate max-w-xs">{{ art.last_venue }}</span>
+                    </button>
                   </td>
                   <td class="px-4 py-3 text-right align-middle">
                     <div class="inline-flex items-center gap-1.5 justify-end">
@@ -5858,17 +5863,18 @@
                 {% for song in gap.unresolved_mb_songs %}
                 <tr class="hover:bg-slate-800/30 transition mb-unresolved-row" data-artist="{{ song.artist|lower }}" data-song="{{ song.song|lower }}">
                   <td class="px-4 py-3 font-medium text-white align-middle">
-                    <button onclick="jumpToArtistInDrilldown('{{ song.artist|escapejs }}')" class="hover:underline hover:text-indigo-300 text-left font-semibold text-white">
-                      {{ song.artist }}
+                    <button onclick="openArtistSongModal('{{ song.artist|escapejs }}')" class="hover:underline hover:text-indigo-300 text-left font-semibold text-white flex items-center gap-1.5 cursor-pointer" title="View artist details in modal">
+                      <i class="fa-solid fa-user-tag text-[10px] text-indigo-400"></i>
+                      <span>{{ song.artist }}</span>
                     </button>
                   </td>
                   <td class="px-4 py-3 align-middle">
-                    <div class="flex items-center gap-2">
-                      <span class="text-slate-200 font-medium">{{ song.song }}</span>
+                    <button onclick="openArtistSongModal('{{ song.artist|escapejs }}', '{{ song.song|escapejs }}')" class="hover:underline hover:text-indigo-300 text-left cursor-pointer flex items-center gap-2 group" title="View song occurrences and details in artist modal">
+                      <span class="text-slate-200 group-hover:text-indigo-300 font-medium">{{ song.song }}</span>
                       {% if song.is_cover %}
                         <span class="px-1.5 py-0.5 text-[10px] rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">Cover{% if song.original_artist %} ({{ song.original_artist }}){% endif %}</span>
                       {% endif %}
-                    </div>
+                    </button>
                   </td>
                   <td class="px-4 py-3 text-center align-middle">
                     <span class="px-2 py-0.5 text-xs font-semibold rounded-md bg-slate-800 text-slate-300 border border-slate-700">
@@ -5876,8 +5882,12 @@
                     </span>
                   </td>
                   <td class="px-4 py-3 text-xs text-slate-400 align-middle">
-                    <span class="text-slate-300">{{ song.last_date }}</span>
-                    <span class="text-slate-500 text-[11px] block truncate max-w-xs">{{ song.last_venue }}</span>
+                    <button onclick="openConcertModalByVenueDate('{{ song.last_venue|escapejs }}', '{{ song.last_date|escapejs }}', '{{ song.artist|escapejs }}')" class="text-left group cursor-pointer hover:text-indigo-300 transition block" title="Open concert setlist modal">
+                      <span class="text-slate-300 group-hover:text-indigo-300 font-medium flex items-center gap-1">
+                        <i class="fa-solid fa-list-check text-[10px] text-indigo-400"></i> {{ song.last_date }}
+                      </span>
+                      <span class="text-slate-500 group-hover:text-slate-400 text-[11px] block truncate max-w-xs">{{ song.last_venue }}</span>
+                    </button>
                   </td>
                   <td class="px-4 py-3 text-right align-middle">
                     <a href="{{ song.mb_search_url }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 rounded-lg text-xs font-semibold transition">
