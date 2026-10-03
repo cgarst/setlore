@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Dict, Any, Optional, Tuple, List
 import requests
 from rapidfuzz import fuzz
-from src.config import MB_CACHE_DIR, CONTACT_EMAIL, APP_URL
+from src.config import MB_CACHE_DIR, BASE_DIR, CONTACT_EMAIL, APP_URL
 
 def clean_track_title(title: str) -> str:
     """Normalizes track title by standardizing punctuation and correcting known typographical errors."""
@@ -180,87 +180,106 @@ class AlbumEnricher:
 
         queries = self._generate_query_variations(song_name)
 
-        for status_filter in [" AND status:official", ""]:
+        status_filters = [
+            (" AND status:official AND primarytype:Album AND NOT secondarytype:live", False),
+            (" AND status:official", True),
+            ("", True),
+        ]
+
+        for status_filter, allow_pagination in status_filters:
             candidates = []
             album_years: Dict[str, int] = {}
 
             for q_song in queries:
                 clean_q = q_song.replace('"', '').strip()
                 q_str = f'recording:"{clean_q}" AND artist:"{artist_name}"{status_filter}'
-                url = f'https://musicbrainz.org/ws/2/recording?query={urllib.parse.quote(q_str)}&limit=100&fmt=json'
 
-                resp = self._rate_limited_get(url)
-                if not resp or resp.status_code != 200:
-                    continue
-                try:
-                    data = resp.json()
-                except Exception:
-                    continue
+                offsets = [0, 100, 200, 300] if allow_pagination else [0]
+                for offset in offsets:
+                    url = f'https://musicbrainz.org/ws/2/recording?query={urllib.parse.quote(q_str)}&limit=100&offset={offset}&fmt=json'
 
-                for rec in data.get("recordings", []):
-                    rec_title = rec.get("title", "")
-                    rec_disam = (rec.get("disambiguation") or "").lower()
-                    rec_mbid = rec.get("id") or None
-                    rec_lower = rec_title.lower()
-                    clean_q_lower = clean_q.lower()
+                    resp = self._rate_limited_get(url)
+                    if not resp or resp.status_code != 200:
+                        break
+                    try:
+                        data = resp.json()
+                    except Exception:
+                        break
 
-                    if fuzz.ratio(rec_lower, clean_q_lower) < 65 and not any(q.lower() in rec_lower for q in queries):
-                        continue
+                    recordings = data.get("recordings", [])
+                    if not recordings:
+                        break
 
-                    # Filter out demo/live/bootleg recordings unless those terms are part of the song query
-                    skip_rec = False
-                    for kw in ["demo", "live", "instrumental demo", "bootleg"]:
-                        if kw not in clean_q_lower and re.search(r'\b' + re.escape(kw) + r'\b', rec_lower):
-                            skip_rec = True
-                            break
-                    if skip_rec:
-                        continue
+                    for rec in recordings:
+                        rec_title = rec.get("title", "")
+                        rec_disam = (rec.get("disambiguation") or "").lower()
+                        rec_mbid = rec.get("id") or None
+                        rec_lower = rec_title.lower()
+                        clean_q_lower = clean_q.lower()
 
-                    if any(re.search(r'\b' + re.escape(kw) + r'\b', rec_disam) for kw in ["live", "bootleg", "instrumental demo", "remix"]):
-                        continue
-
-                    for rel in rec.get("releases", []):
-                        rg = rel.get("release-group", {})
-                        primary = rg.get("primary-type")
-                        sec_types = rg.get("secondary-types") or []
-                        rg_mbid = rg.get("id") or None
-
-                        if any(t.lower() in ["live", "demo", "compilation", "remix", "soundtrack", "dj-mix"] for t in sec_types):
+                        if fuzz.ratio(rec_lower, clean_q_lower) < 65 and not any(q.lower() in rec_lower for q in queries):
                             continue
 
-                        raw_title = rg.get("title") or rel.get("title") or ""
-                        if not raw_title or is_blacklisted_album(raw_title):
+                        # Filter out demo/live/bootleg recordings unless those terms are part of the song query
+                        skip_rec = False
+                        for kw in ["demo", "live", "instrumental demo", "bootleg"]:
+                            if kw not in clean_q_lower and re.search(r'\b' + re.escape(kw) + r'\b', rec_lower):
+                                skip_rec = True
+                                break
+                        if skip_rec:
                             continue
 
-                        title = clean_album_title(raw_title)
+                        if any(re.search(r'\b' + re.escape(kw) + r'\b', rec_disam) for kw in ["live", "bootleg", "instrumental demo", "remix"]):
+                            continue
 
-                        # Extract earliest valid year across release-group, recording, and release dates
-                        rg_date = rg.get("first-release-date", "")
-                        rec_date = rec.get("first-release-date", "")
-                        rel_date = rel.get("date", "")
+                        for rel in rec.get("releases", []):
+                            rg = rel.get("release-group", {})
+                            primary = rg.get("primary-type")
+                            sec_types = rg.get("secondary-types") or []
+                            rg_mbid = rg.get("id") or None
 
-                        years = []
-                        for d_str in [rg_date, rec_date, rel_date]:
-                            if d_str and len(d_str) >= 4 and d_str[:4].isdigit():
-                                y = int(d_str[:4])
-                                if 1950 <= y <= 2030:
-                                    years.append(y)
+                            if any(t.lower() in ["live", "demo", "compilation", "remix", "soundtrack", "dj-mix"] for t in sec_types):
+                                continue
 
-                        yr = min(years) if years else None
-                        if yr:
-                            album_years[title] = min(album_years.get(title, 9999), yr)
+                            raw_title = rg.get("title") or rel.get("title") or ""
+                            if not raw_title or is_blacklisted_album(raw_title):
+                                continue
 
-                        score = 100
-                        if primary == "Album":
-                            score += 80
-                        elif primary == "EP":
-                            score += 40
-                        if not sec_types:
-                            score += 40
-                        else:
-                            score -= 50
+                            title = clean_album_title(raw_title)
 
-                        candidates.append((score, title, rg_mbid, rec_mbid))
+                            # Extract earliest valid year across release-group, recording, and release dates
+                            rg_date = rg.get("first-release-date", "")
+                            rec_date = rec.get("first-release-date", "")
+                            rel_date = rel.get("date", "")
+
+                            years = []
+                            for d_str in [rg_date, rec_date, rel_date]:
+                                if d_str and len(d_str) >= 4 and d_str[:4].isdigit():
+                                    y = int(d_str[:4])
+                                    if 1950 <= y <= 2030:
+                                        years.append(y)
+
+                            yr = min(years) if years else None
+                            if yr:
+                                album_years[title] = min(album_years.get(title, 9999), yr)
+
+                            score = 100
+                            if primary == "Album":
+                                score += 80
+                            elif primary == "EP":
+                                score += 40
+                            if not sec_types:
+                                score += 40
+                            else:
+                                score -= 50
+
+                            candidates.append((score, title, rg_mbid, rec_mbid))
+
+                    if candidates:
+                        break
+                    total_count = data.get("count", 0)
+                    if total_count <= offset + 100:
+                        break
 
                 if candidates:
                     break
@@ -305,7 +324,7 @@ class AlbumEnricher:
                 return {
                     "song": song_obj.title,
                     "artist": song_obj.artist.name,
-                    "album": clean_album_title(alb.clean_title or alb.title),
+                    "album": clean_album_title(alb.title or alb.clean_title),
                     "release_year": rel_yr,
                     "is_cover": song_obj.is_cover,
                     "original_artist": song_obj.original_artist,
@@ -384,6 +403,10 @@ class AlbumEnricher:
         # 3. Check disk cache
         cache_key = "".join(c if c.isalnum() else "_" for c in f"{artist_name}_{song_name}".lower())
         cache_file = MB_CACHE_DIR / f"{cache_key}.json"
+        if not cache_file.exists():
+            alt_cache_file = BASE_DIR / "cache" / "musicbrainz" / f"{cache_key}.json"
+            if alt_cache_file.exists():
+                cache_file = alt_cache_file
 
         if cache_file.exists():
             try:
@@ -589,7 +612,7 @@ class AlbumEnricher:
                     entry = {
                         "song": song_title,
                         "artist": art_name,
-                        "album": clean_album_title(alb.clean_title or alb.title),
+                        "album": clean_album_title(alb.title or alb.clean_title),
                         "release_year": rel_yr,
                         "is_cover": s_obj.is_cover,
                         "original_artist": s_obj.original_artist,
@@ -631,6 +654,10 @@ class AlbumEnricher:
             # 2. Check disk cache
             cache_key = "".join(c if c.isalnum() else "_" for c in key)
             cache_file = MB_CACHE_DIR / f"{cache_key}.json"
+            if not cache_file.exists():
+                alt_cache_file = BASE_DIR / "cache" / "musicbrainz" / f"{cache_key}.json"
+                if alt_cache_file.exists():
+                    cache_file = alt_cache_file
             if cache_file.exists():
                 try:
                     with open(cache_file, "r", encoding="utf-8") as f:

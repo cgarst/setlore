@@ -457,4 +457,10 @@ class SyncWorker:
 
             song_obj.save()
 
+        try:
+            from apps.catalog.models import ApiCache
+            ApiCache.objects.filter(cache_key__startswith="user_dashboard_bundle_").delete()
+        except Exception:
+            pass
+
 sync_worker = SyncWorker()
