@@ -637,7 +637,7 @@ def sync_single_concert(concert, user=None, client=None, force_refresh=True) -> 
     if not client:
         return {"status": "skipped", "message": "Setlist.fm client unavailable.", "matched": 0, "songs_added": 0}
 
-    ignored_artists = profile.ignored_artists or []
+    ignored_artists = profile.ignored_artist_names
     date_str = None
     if concert.date:
         date_str = concert.date.strftime("%d-%m-%Y")

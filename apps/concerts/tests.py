@@ -469,7 +469,7 @@ class UpcomingShowsTests(TestCase):
         self.assertTrue(data['is_hidden'])
 
         self.user.profile.refresh_from_db()
-        self.assertIn('Rush', self.user.profile.hidden_upcoming_artists)
+        self.assertIn('Rush', self.user.profile.hidden_upcoming_artist_names)
 
         # Toggle Rush back to visible
         res2 = self.client.post('/api/upcoming/toggle-hidden/', data=json.dumps({
@@ -480,7 +480,7 @@ class UpcomingShowsTests(TestCase):
         self.assertFalse(data2['is_hidden'])
 
         self.user.profile.refresh_from_db()
-        self.assertNotIn('Rush', self.user.profile.hidden_upcoming_artists)
+        self.assertNotIn('Rush', self.user.profile.hidden_upcoming_artist_names)
 
     def test_save_upcoming_settings_bulk_api(self):
         res = self.client.post('/api/upcoming/settings/', data=json.dumps({
@@ -492,7 +492,7 @@ class UpcomingShowsTests(TestCase):
         self.assertEqual(data['hidden_count'], 2)
 
         self.user.profile.refresh_from_db()
-        self.assertEqual(sorted(self.user.profile.hidden_upcoming_artists), ['Rush', 'Yes'])
+        self.assertEqual(sorted(self.user.profile.hidden_upcoming_artist_names), ['Rush', 'Yes'])
 
     def test_api_upcoming_shows_view(self):
         res = self.client.get('/api/upcoming/shows/')
@@ -577,7 +577,7 @@ class UpcomingShowsTests(TestCase):
         self.user.profile.refresh_from_db()
         self.assertEqual(self.user.profile.upcoming_location, 'Washington, DC')
         self.assertEqual(self.user.profile.upcoming_radius_miles, 50)
-        self.assertEqual(self.user.profile.hidden_upcoming_artists, ['Yes'])
+        self.assertEqual(self.user.profile.hidden_upcoming_artist_names, ['Yes'])
 
     def test_haversine_distance_and_range_filtering(self):
         from src.upcoming_events import haversine_distance_miles, parse_event_item

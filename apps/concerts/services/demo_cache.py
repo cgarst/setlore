@@ -47,7 +47,7 @@ def export_user_data_to_cache(
         "is_public": profile.is_public,
         "setlistfm_username": profile.setlistfm_username,
         "setlistfm_api_key": profile.setlistfm_api_key,
-        "ignored_artists": profile.ignored_artists or [],
+        "ignored_artists": profile.ignored_artist_names,
     }
 
     # Fetch all user concerts with related data
@@ -268,9 +268,13 @@ def populate_user_data_from_cache(
             profile.setlistfm_username = user_meta.get("setlistfm_username")
         if user_meta.get("setlistfm_api_key"):
             profile.setlistfm_api_key = user_meta.get("setlistfm_api_key")
-        if user_meta.get("ignored_artists"):
-            profile.ignored_artists = user_meta.get("ignored_artists")
         profile.save(using=database)
+        if user_meta.get("ignored_artists"):
+            ignored_artist_objs = []
+            for art_name in user_meta.get("ignored_artists"):
+                art_obj, _ = Artist.get_or_create_artist(art_name)
+                ignored_artist_objs.append(art_obj)
+            profile.ignored_artists.set(ignored_artist_objs)
 
         # If overwrite is enabled, clear previous concerts for this user
         if overwrite:

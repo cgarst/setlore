@@ -9,8 +9,8 @@ class UserProfile(models.Model):
     setlistfm_api_key = models.CharField(max_length=255, blank=True, default='', help_text="Optional personal API key (overrides global env key)")
     prompt_setlistfm = models.BooleanField(default=True, help_text="Prompt for Setlist.fm username during sync if not configured")
     is_public = models.BooleanField(default=True, help_text="Allow public access to view this user profile")
-    ignored_artists = models.JSONField(default=list, blank=True, help_text="List of artist names to exclude from analytics")
-    hidden_upcoming_artists = models.JSONField(default=list, blank=True, help_text="List of artist names to exclude from upcoming shows view")
+    ignored_artists = models.ManyToManyField('catalog.Artist', blank=True, related_name='ignored_by_profiles', help_text="Artists excluded from analytics")
+    hidden_upcoming_artists = models.ManyToManyField('catalog.Artist', blank=True, related_name='hidden_upcoming_by_profiles', help_text="Artists excluded from upcoming shows view")
     upcoming_location = models.CharField(max_length=255, blank=True, default='', help_text="Location/City for upcoming show discovery")
     upcoming_radius_miles = models.IntegerField(null=True, blank=True, default=100, help_text="Search radius in miles for upcoming shows")
     upcoming_latitude = models.FloatField(null=True, blank=True)
@@ -55,6 +55,14 @@ class UserProfile(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    @property
+    def ignored_artist_names(self):
+        return list(self.ignored_artists.values_list('name', flat=True))
+
+    @property
+    def hidden_upcoming_artist_names(self):
+        return list(self.hidden_upcoming_artists.values_list('name', flat=True))
+
     def __str__(self):
         return f"Profile for {self.user.username} (@{self.setlistfm_username or 'no-setlistfm'})"
 
@@ -91,8 +99,10 @@ class Friendship(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ('user', 'friend')
         ordering = ['-created_at']
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'friend'], name='unique_user_friendship')
+        ]
 
     def __str__(self):
         return f"{self.user.username} -> {self.friend.username}"

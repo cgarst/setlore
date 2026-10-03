@@ -7,8 +7,6 @@ class Concert(models.Model):
     raw_date = models.CharField(max_length=50)
     year = models.IntegerField(null=True, blank=True, db_index=True)
     venue = models.ForeignKey('catalog.Venue', on_delete=models.SET_NULL, null=True, blank=True, related_name='concerts')
-    raw_venue = models.CharField(max_length=255, blank=True, default='')
-    raw_artists = models.CharField(max_length=500)
     seen_before = models.CharField(max_length=255, blank=True, default='')
     notes = models.TextField(blank=True, default='')
     source = models.CharField(
@@ -33,12 +31,45 @@ class Concert(models.Model):
     @property
     def primary_artist(self):
         headliner = self.artists.order_by('billing_order').first()
-        return headliner.artist if headliner else None
+        if headliner and headliner.artist:
+            return headliner.artist
+        return getattr(self, '_primary_artist', None)
+
+    @primary_artist.setter
+    def primary_artist(self, value):
+        self._primary_artist = value
 
     @property
     def primary_artist_id(self):
         headliner = self.artists.order_by('billing_order').first()
-        return headliner.artist_id if headliner else None
+        if headliner and headliner.artist_id:
+            return headliner.artist_id
+        return getattr(self, '_primary_artist_id', None)
+
+    @primary_artist_id.setter
+    def primary_artist_id(self, value):
+        self._primary_artist_id = value
+
+    @property
+    def raw_artists(self):
+        artists = list(self.artists.all().order_by('billing_order'))
+        if artists:
+            return ", ".join(ca.artist.name for ca in artists if ca.artist)
+        return getattr(self, '_raw_artists', "")
+
+    @raw_artists.setter
+    def raw_artists(self, value):
+        self._raw_artists = value
+
+    @property
+    def raw_venue(self):
+        if self.venue:
+            return self.venue.name
+        return getattr(self, '_raw_venue', "")
+
+    @raw_venue.setter
+    def raw_venue(self, value):
+        self._raw_venue = value
 
     def __str__(self):
         d_str = self.date.strftime("%m-%d-%Y") if self.date else self.raw_date

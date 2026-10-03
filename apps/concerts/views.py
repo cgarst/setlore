@@ -157,7 +157,7 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
                     print(f"Error loading user attended cache: {e}")
 
         if user_attended:
-            gap_results = reconcile_history(csv_records, user_attended, client=None, ignored_artists=profile.ignored_artists)
+            gap_results = reconcile_history(csv_records, user_attended, client=None, ignored_artists=profile.ignored_artist_names)
             matched = gap_results["matched"]
         else:
             matched = []
@@ -214,7 +214,7 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
                     st["is_unmatched"] = (len(st["matched_bands"]) == 0)
             gap_results["matched"] = matched
 
-        analytics = ConcertAnalytics(matched, csv_records, ignored_artists=profile.ignored_artists)
+        analytics = ConcertAnalytics(matched, csv_records, ignored_artists=profile.ignored_artist_names)
         stats = analytics.compute_all_metrics()
 
         enricher = AlbumEnricher()
@@ -807,7 +807,7 @@ def upload_csv(request):
     try:
         content = uploaded.read().decode('utf-8-sig')
         reader = csv.reader(io.StringIO(content))
-        csv_records = parse_csv_rows(reader, ignored_list=request.user.profile.ignored_artists)
+        csv_records = parse_csv_rows(reader, ignored_list=request.user.profile.ignored_artist_names)
 
         if not csv_records:
             return JsonResponse({"error": "No valid concert rows found in CSV"}, status=400)
@@ -845,8 +845,6 @@ def upload_csv(request):
                     raw_date=rec.get("raw_date", ""),
                     year=rec.get("year"),
                     venue=venue_obj,
-                    raw_venue=venue_str,
-                    raw_artists=rec.get("raw_artists", ""),
                     seen_before="",
                     notes=rec.get("notes", ""),
                     source='csv',
@@ -1024,8 +1022,6 @@ def add_concert(request):
                 raw_date=raw_date,
                 year=year,
                 venue=venue_obj,
-                raw_venue=venue_obj.name,
-                raw_artists=raw_artists,
                 seen_before="",
                 notes=notes,
                 source='manual',
@@ -2645,37 +2641,31 @@ def toggle_upcoming_hidden_artist(request):
             return JsonResponse({'error': 'Artist name is required'}, status=400)
 
         profile = request.user.profile
-        hidden_list = list(profile.hidden_upcoming_artists or [])
-
-        # Case-insensitive search
-        matched_idx = -1
-        for idx, a in enumerate(hidden_list):
-            if a.lower().strip() == artist_name.lower().strip():
-                matched_idx = idx
-                break
+        art_obj, _ = Artist.get_or_create_artist(artist_name)
+        is_currently_hidden = profile.hidden_upcoming_artists.filter(id=art_obj.id).exists()
 
         if is_hidden_param is None:
             # Toggle
-            if matched_idx >= 0:
-                hidden_list.pop(matched_idx)
+            if is_currently_hidden:
+                profile.hidden_upcoming_artists.remove(art_obj)
                 now_hidden = False
             else:
-                hidden_list.append(artist_name)
+                profile.hidden_upcoming_artists.add(art_obj)
                 now_hidden = True
         else:
             target_hidden = bool(is_hidden_param)
-            if target_hidden and matched_idx < 0:
-                hidden_list.append(artist_name)
-            elif not target_hidden and matched_idx >= 0:
-                hidden_list.pop(matched_idx)
+            if target_hidden and not is_currently_hidden:
+                profile.hidden_upcoming_artists.add(art_obj)
+            elif not target_hidden and is_currently_hidden:
+                profile.hidden_upcoming_artists.remove(art_obj)
             now_hidden = target_hidden
 
-        profile.hidden_upcoming_artists = hidden_list
-        profile.save(update_fields=['hidden_upcoming_artists', 'updated_at'])
+        profile.save(update_fields=['updated_at'])
 
         # Invalidate cached dashboard bundle
         ApiCache.objects.filter(cache_key=f"user_dashboard_bundle_{request.user.id}").delete()
 
+        hidden_list = profile.hidden_upcoming_artist_names
         return JsonResponse({
             'success': True,
             'artist': artist_name,
@@ -2707,8 +2697,8 @@ def save_upcoming_settings(request):
             elif not isinstance(hidden_artists, list):
                 hidden_artists = []
             cleaned_list = [str(a).strip() for a in hidden_artists if str(a).strip()]
-            profile.hidden_upcoming_artists = cleaned_list
-            update_fields.append('hidden_upcoming_artists')
+            hidden_objs = [Artist.get_or_create_artist(a)[0] for a in cleaned_list]
+            profile.hidden_upcoming_artists.set(hidden_objs)
 
         if 'location' in data or 'upcoming_location' in data:
             raw_loc = str(data.get('location', data.get('upcoming_location', ''))).strip()
@@ -2754,8 +2744,8 @@ def save_upcoming_settings(request):
             'success': True,
             'location': profile.upcoming_location,
             'radius_miles': profile.upcoming_radius_miles,
-            'hidden_count': len(profile.hidden_upcoming_artists),
-            'hidden_artists': profile.hidden_upcoming_artists,
+            'hidden_count': len(profile.hidden_upcoming_artist_names),
+            'hidden_artists': profile.hidden_upcoming_artist_names,
             **upcoming_data
         })
     except Exception as e:

@@ -253,8 +253,12 @@ def update_profile_view(request):
                 ign_list = [str(a).strip() for a in raw_ign if str(a).strip()]
             else:
                 ign_list = []
-            profile.ignored_artists = ign_list
-            update_fields.append('ignored_artists')
+            ign_objs = []
+            for a_name in ign_list:
+                art, _ = Artist.get_or_create_artist(a_name)
+                if art:
+                    ign_objs.append(art)
+            profile.ignored_artists.set(ign_objs)
 
         if 'hidden_upcoming_artists' in data:
             raw_hidden = data.get('hidden_upcoming_artists')
@@ -264,8 +268,12 @@ def update_profile_view(request):
                 hidden_list = [str(a).strip() for a in raw_hidden if str(a).strip()]
             else:
                 hidden_list = []
-            profile.hidden_upcoming_artists = hidden_list
-            update_fields.append('hidden_upcoming_artists')
+            hidden_objs = []
+            for a_name in hidden_list:
+                art, _ = Artist.get_or_create_artist(a_name)
+                if art:
+                    hidden_objs.append(art)
+            profile.hidden_upcoming_artists.set(hidden_objs)
         if 'upcoming_location' in data or 'location' in data:
             raw_loc = data.get('upcoming_location', data.get('location'))
             new_loc = str(raw_loc or '').strip()
@@ -334,8 +342,8 @@ def update_profile_view(request):
                 "is_public": profile.is_public,
                 "theme": profile.theme,
                 "time_format": profile.time_format,
-                "ignored_artists": profile.ignored_artists,
-                "hidden_upcoming_artists": profile.hidden_upcoming_artists,
+                "ignored_artists": profile.ignored_artist_names,
+                "hidden_upcoming_artists": profile.hidden_upcoming_artist_names,
                 "upcoming_location": profile.upcoming_location,
                 "upcoming_radius_miles": profile.upcoming_radius_miles,
                 "has_custom_api_key": bool(profile.setlistfm_api_key),

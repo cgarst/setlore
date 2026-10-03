@@ -248,8 +248,8 @@ def get_user_seen_artists_summary(user) -> List[Dict[str, Any]]:
     hidden_list = []
     ignored_list = []
     if hasattr(user, 'profile'):
-        hidden_list = user.profile.hidden_upcoming_artists or []
-        ignored_list = user.profile.ignored_artists or []
+        hidden_list = user.profile.hidden_upcoming_artist_names if hasattr(user.profile, 'hidden_upcoming_artist_names') else list(user.profile.hidden_upcoming_artists or [])
+        ignored_list = user.profile.ignored_artist_names if hasattr(user.profile, 'ignored_artist_names') else list(user.profile.ignored_artists or [])
     
     hidden_norm_set = {normalize_artist_name(a) for a in hidden_list if a} | {a.lower().strip() for a in hidden_list if a}
     ignored_norm_set = {normalize_artist_name(a) for a in ignored_list if a} | {a.lower().strip() for a in ignored_list if a}

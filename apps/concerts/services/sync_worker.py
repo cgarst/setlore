@@ -146,7 +146,7 @@ class SyncWorker:
                 if user_attended:
                     update_progress(f"Synchronizing {len(user_attended)} attended setlists into database...")
                     from apps.concerts.utils import import_setlistfm_shows_into_database
-                    import_setlistfm_shows_into_database(user, user_attended, ignored_artists=profile.ignored_artists)
+                    import_setlistfm_shows_into_database(user, user_attended, ignored_artists=profile.ignored_artist_names)
                 update_progress(f"Retrieved {len(user_attended)} attended setlists. Reconciling with concert history...")
             else:
                 update_progress("Reconciling concerts and metadata...")
@@ -210,7 +210,7 @@ class SyncWorker:
                                 "is_manual": True
                             })
 
-            gap_results = reconcile_history(csv_records, user_attended, client=client, ignored_artists=profile.ignored_artists)
+            gap_results = reconcile_history(csv_records, user_attended, client=client, ignored_artists=profile.ignored_artist_names)
 
             # Merge manual matched pairs without duplicating already-matched pairs
             if manual_matched_pairs:
@@ -239,7 +239,7 @@ class SyncWorker:
 
             update_progress(f"Matched {gap_results['matched_count']}/{gap_results['total_csv']} concerts. Analyzing songs...")
 
-            analytics = ConcertAnalytics(gap_results["matched"], csv_records, ignored_artists=profile.ignored_artists)
+            analytics = ConcertAnalytics(gap_results["matched"], csv_records, ignored_artists=profile.ignored_artist_names)
             stats = analytics.compute_all_metrics()
 
             # 1. Update database records for ConcertArtists with setlist matches

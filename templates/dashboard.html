@@ -1217,20 +1217,25 @@
 
         <!-- Profile Privacy Setting -->
         <div class="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 space-y-3">
-          <div>
-            <label class="flex items-start gap-2.5 cursor-pointer">
-              <input type="checkbox" id="profile-is-public" name="is_public" {% if profile.is_public %}checked{% endif %}
-                onchange="toggleShareLinkDisplay(this.checked)"
-                class="mt-0.5 rounded bg-slate-800 border-slate-700 text-indigo-600 focus:ring-0 focus:ring-offset-0">
-              <div>
-                <span class="text-xs font-semibold text-white flex items-center gap-1.5">
-                  <i class="fa-solid fa-globe text-indigo-400"></i> Public Profile (Default)
-                </span>
-                <span class="text-[11px] text-slate-400 block mt-0.5 leading-relaxed">
-                  Allow anyone with your link to view your concert history and analytics in read-only mode. Uncheck to make your profile private.
-                </span>
-              </div>
-            </label>
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <span class="text-xs font-semibold text-white flex items-center gap-1.5">
+                <i class="fa-solid fa-globe text-indigo-400"></i> Profile Privacy
+              </span>
+              <span class="text-[11px] text-slate-400 block mt-0.5 leading-relaxed">
+                Choose whether your concert history and analytics are publicly shareable or private.
+              </span>
+            </div>
+            <div class="flex items-center bg-slate-950 p-0.5 rounded-lg border border-slate-800 text-xs shrink-0">
+              <label class="cursor-pointer">
+                <input type="radio" name="is_public" value="true" id="privacy-opt-public" class="sr-only peer" {% if profile.is_public %}checked{% endif %} onchange="toggleShareLinkDisplay(true)">
+                <span class="px-2.5 py-1 rounded-md text-[11px] font-semibold text-slate-400 peer-checked:bg-indigo-600 peer-checked:text-white block transition">Public</span>
+              </label>
+              <label class="cursor-pointer">
+                <input type="radio" name="is_public" value="false" id="privacy-opt-private" class="sr-only peer" {% if not profile.is_public %}checked{% endif %} onchange="toggleShareLinkDisplay(false)">
+                <span class="px-2.5 py-1 rounded-md text-[11px] font-semibold text-slate-400 peer-checked:bg-indigo-600 peer-checked:text-white block transition">Private</span>
+              </label>
+            </div>
           </div>
 
           <div id="profile-share-link-box" class="pt-2 border-t border-slate-800/80 {% if not profile.is_public %}hidden{% endif %}">

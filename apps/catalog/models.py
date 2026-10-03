@@ -146,7 +146,7 @@ class Song(models.Model):
 
 class Venue(models.Model):
     id = models.CharField(max_length=64, primary_key=True, help_text="Setlist.fm Venue ID or offline:venue:<uuid>")
-    name = models.CharField(max_length=255, unique=True)
+    name = models.CharField(max_length=255)
     city = models.CharField(max_length=150, blank=True, default='')
     state = models.CharField(max_length=100, blank=True, default='')
     country = models.CharField(max_length=100, blank=True, default='United States')
@@ -158,6 +158,9 @@ class Venue(models.Model):
 
     class Meta:
         ordering = ['name']
+        constraints = [
+            models.UniqueConstraint(fields=['name', 'city', 'state', 'country'], name='unique_venue_location')
+        ]
 
     def __str__(self):
         loc = f" ({self.city}, {self.state})" if self.city and self.state else ""
@@ -176,7 +179,7 @@ class Venue(models.Model):
 
 class MusicianTenure(models.Model):
     musician_name = models.CharField(max_length=255, db_index=True)
-    musician_mbid = models.CharField(max_length=36, blank=True, null=True, db_index=True, help_text="MusicBrainz Artist UUID for the musician")
+    musician_id = models.CharField(max_length=64, blank=True, null=True, db_index=True, help_text="MusicBrainz Artist UUID for the musician")
     artist = models.ForeignKey(Artist, on_delete=models.CASCADE, related_name='members')
     role = models.CharField(max_length=255, default='Musician')
     instrument = models.CharField(max_length=100, default='Other')
@@ -196,6 +199,10 @@ class MusicianTenure(models.Model):
     def __str__(self):
         span = f"{self.start_year}-{self.end_year or 'Present'}"
         return f"{self.musician_name} ({self.artist.name}: {self.role}, {span})"
+
+    @property
+    def musician_mbid(self):
+        return self.musician_id
 
 
 class ApiCache(models.Model):
