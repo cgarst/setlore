@@ -27,8 +27,9 @@ class MusicianTenureInline(admin.TabularInline):
 
 @admin.register(Artist)
 class ArtistAdmin(admin.ModelAdmin):
-    list_display = ['name', 'normalized_name', 'mbid', 'created_at']
-    search_fields = ['name', 'normalized_name']
+    list_display = ['name', 'normalized_name', 'id', 'is_custom_offline', 'created_at']
+    search_fields = ['name', 'normalized_name', 'id']
+    list_filter = ['is_custom_offline']
     inlines = [MusicianTenureInline, AlbumInline]
     actions = ['refresh_musician_lineups', 'refresh_albums_discography']
 
@@ -70,23 +71,23 @@ class ArtistAdmin(admin.ModelAdmin):
 
 @admin.register(Album)
 class AlbumAdmin(admin.ModelAdmin):
-    list_display = ['title', 'artist', 'release_year', 'album_type', 'mbid']
-    search_fields = ['title', 'artist__name']
-    list_filter = ['album_type', 'release_year']
+    list_display = ['title', 'artist', 'release_year', 'album_type', 'id', 'is_custom_offline']
+    search_fields = ['title', 'artist__name', 'id']
+    list_filter = ['album_type', 'release_year', 'is_custom_offline']
     autocomplete_fields = ['artist']
 
 @admin.register(Song)
 class SongAdmin(admin.ModelAdmin):
-    list_display = ['title', 'artist', 'album', 'release_year', 'is_cover', 'original_artist']
-    search_fields = ['title', 'artist__name', 'album__title']
-    list_filter = ['is_cover', 'release_year']
+    list_display = ['title', 'artist', 'album', 'release_year', 'id', 'is_cover', 'is_custom_offline']
+    search_fields = ['title', 'artist__name', 'album__title', 'id']
+    list_filter = ['is_cover', 'release_year', 'is_custom_offline']
     autocomplete_fields = ['artist', 'album']
 
 @admin.register(Venue)
 class VenueAdmin(admin.ModelAdmin):
-    list_display = ['name', 'city', 'state', 'country', 'latitude', 'longitude', 'geocode_source']
-    search_fields = ['name', 'city', 'state', 'country']
-    list_filter = ['country', 'state', 'geocode_source']
+    list_display = ['name', 'city', 'state', 'country', 'id', 'is_custom_offline']
+    search_fields = ['name', 'city', 'state', 'country', 'id']
+    list_filter = ['country', 'state', 'geocode_source', 'is_custom_offline']
 
 @admin.register(MusicianTenure)
 class MusicianTenureAdmin(admin.ModelAdmin):

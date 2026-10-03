@@ -41,15 +41,18 @@ class Command(BaseCommand):
         sync_worker._persist_album_enrichments_to_db(enrichments)
 
         if resolve_mbids:
-            self.stdout.write("Resolving MusicBrainz Release Group MBIDs for offline albums...")
-            offline_albums = list(Album.objects.filter(id__startswith='offline:album').select_related('artist'))
-            total_off = len(offline_albums)
+            import re
+            uuid_re = re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', re.IGNORECASE)
+            self.stdout.write("Resolving MusicBrainz Release Group MBIDs for non-UUID albums (offline & legacy IDs)...")
+            unresolved_albums = [alb for alb in Album.objects.all().select_related('artist') if not uuid_re.match(alb.id)]
+            total_unres = len(unresolved_albums)
+            self.stdout.write(f"Found {total_unres} albums without valid UUID MBIDs to resolve.")
             resolved_count = 0
-            for idx, alb in enumerate(offline_albums, start=1):
+            for idx, alb in enumerate(unresolved_albums, start=1):
                 art_name = alb.artist.name
                 alb_title = alb.clean_title or alb.title
                 rg_mbid = enricher.get_release_group_mbid(art_name, alb_title)
-                if rg_mbid:
+                if rg_mbid and uuid_re.match(rg_mbid):
                     existing_mbid_alb = Album.objects.filter(id=rg_mbid).first()
                     if not existing_mbid_alb:
                         saved_songs = list(Song.objects.filter(album=alb))
@@ -81,11 +84,13 @@ class Command(BaseCommand):
                         if alb.id != new_alb.id:
                             alb.delete()
                     resolved_count += 1
-                if idx % 10 == 0 or idx == total_off:
-                    self.stdout.write(f"  [{idx}/{total_off}] Resolved {resolved_count} album MBIDs...")
+                if idx % 10 == 0 or idx == total_unres:
+                    self.stdout.write(f"  [{idx}/{total_unres}] Resolved {resolved_count} album MBIDs...")
 
+        import re
+        uuid_re = re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', re.IGNORECASE)
         album_count = Album.objects.count()
-        mbid_count = Album.objects.exclude(id__startswith='offline:album').count()
+        mbid_count = len([alb for alb in Album.objects.all() if uuid_re.match(alb.id)])
         linked_songs = Song.objects.filter(album__isnull=False).count()
         self.stdout.write(self.style.SUCCESS(
             f"Done! {album_count} Albums in database ({mbid_count} with MusicBrainz MBIDs). {linked_songs}/{len(song_pairs)} Songs linked to Albums."

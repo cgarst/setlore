@@ -12,7 +12,6 @@ class Artist(models.Model):
     id = models.CharField(max_length=64, primary_key=True, help_text="MusicBrainz Artist MBID or offline:artist:<uuid>")
     name = models.CharField(max_length=255, unique=True)
     normalized_name = models.CharField(max_length=255, db_index=True)
-    mbid = models.CharField(max_length=36, blank=True, null=True, help_text="MusicBrainz Artist UUID")
     is_custom_offline = models.BooleanField(default=False, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -22,12 +21,13 @@ class Artist(models.Model):
     def __str__(self):
         return self.name
 
+    @property
+    def mbid(self):
+        return self.id if not self.is_custom_offline else None
+
     def save(self, *args, **kwargs):
         if not self.id:
-            if self.mbid:
-                self.id = self.mbid
-            else:
-                self.id = generate_offline_artist_id(self.name)
+            self.id = generate_offline_artist_id(self.name)
         self.is_custom_offline = is_offline_id(self.id)
         super().save(*args, **kwargs)
 
@@ -40,7 +40,7 @@ class Artist(models.Model):
         norm = can_name.lower()
         art = None
         if mbid:
-            art = cls.objects.filter(id=mbid).first() or cls.objects.filter(mbid=mbid).first()
+            art = cls.objects.filter(id=mbid).first()
         if not art:
             art = cls.objects.filter(normalized_name=norm).first()
         if not art:
@@ -61,12 +61,6 @@ class Artist(models.Model):
                         art.save(update_fields=['name'])
                     except Exception:
                         pass
-            if mbid and not art.mbid:
-                art.mbid = mbid
-                try:
-                    art.save(update_fields=['mbid'])
-                except Exception:
-                    pass
             return art, False
 
         # If incoming name is all-lowercase, give it Title Case for display
@@ -77,7 +71,6 @@ class Artist(models.Model):
                 id=artist_id,
                 name=display_name,
                 normalized_name=norm,
-                mbid=mbid or None,
                 is_custom_offline=is_offline_id(artist_id)
             ), True
         except Exception:
@@ -96,7 +89,6 @@ class Album(models.Model):
     clean_title = models.CharField(max_length=255, db_index=True)
     release_year = models.IntegerField(null=True, blank=True, db_index=True)
     album_type = models.CharField(max_length=50, default='album')
-    mbid = models.CharField(max_length=36, blank=True, null=True, help_text="MusicBrainz Release Group UUID")
     is_custom_offline = models.BooleanField(default=False, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -109,12 +101,13 @@ class Album(models.Model):
     def __str__(self):
         return f"{self.artist.name} - {self.title} ({self.release_year or 'Unknown'})"
 
+    @property
+    def mbid(self):
+        return self.id if not self.is_custom_offline else None
+
     def save(self, *args, **kwargs):
         if not self.id:
-            if self.mbid:
-                self.id = self.mbid
-            else:
-                self.id = generate_offline_album_id(self.artist_id, self.clean_title)
+            self.id = generate_offline_album_id(self.artist_id, self.clean_title)
         self.is_custom_offline = is_offline_id(self.id)
         super().save(*args, **kwargs)
 
@@ -128,7 +121,6 @@ class Song(models.Model):
     release_year = models.IntegerField(null=True, blank=True)
     is_cover = models.BooleanField(default=False)
     original_artist = models.CharField(max_length=255, blank=True, null=True)
-    mbid = models.CharField(max_length=36, blank=True, null=True, help_text="MusicBrainz Recording UUID")
     is_custom_offline = models.BooleanField(default=False, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -141,12 +133,13 @@ class Song(models.Model):
     def __str__(self):
         return f"{self.artist.name} - {self.title}"
 
+    @property
+    def mbid(self):
+        return self.id if not self.is_custom_offline else None
+
     def save(self, *args, **kwargs):
         if not self.id:
-            if self.mbid:
-                self.id = self.mbid
-            else:
-                self.id = generate_offline_song_id(self.artist_id, self.clean_title)
+            self.id = generate_offline_song_id(self.artist_id, self.clean_title)
         self.is_custom_offline = is_offline_id(self.id)
         super().save(*args, **kwargs)
 
@@ -160,7 +153,6 @@ class Venue(models.Model):
     latitude = models.FloatField(null=True, blank=True)
     longitude = models.FloatField(null=True, blank=True)
     geocode_source = models.CharField(max_length=50, default='unknown')
-    setlistfm_id = models.CharField(max_length=100, blank=True, default='', db_index=True)
     is_custom_offline = models.BooleanField(default=False, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -171,12 +163,13 @@ class Venue(models.Model):
         loc = f" ({self.city}, {self.state})" if self.city and self.state else ""
         return f"{self.name}{loc}"
 
+    @property
+    def setlistfm_id(self):
+        return self.id if not self.is_custom_offline else ''
+
     def save(self, *args, **kwargs):
         if not self.id:
-            if self.setlistfm_id:
-                self.id = self.setlistfm_id
-            else:
-                self.id = generate_offline_venue_id(self.name, self.city, self.state, self.country)
+            self.id = generate_offline_venue_id(self.name, self.city, self.state, self.country)
         self.is_custom_offline = is_offline_id(self.id)
         super().save(*args, **kwargs)
 
