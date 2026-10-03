@@ -177,7 +177,6 @@ class ManualConcertTests(TestCase):
                 raw_date=f"202{i}-05-01",
                 year=2020 + i,
                 venue=v1,
-                primary_artist=a1,
                 raw_artists="Rush",
                 source="manual"
             )
@@ -189,7 +188,6 @@ class ManualConcertTests(TestCase):
             raw_date="2024-06-01",
             year=2024,
             venue=v2,
-            primary_artist=a2,
             raw_artists="Dream Theater",
             source="manual"
         )
@@ -224,12 +222,12 @@ class ManualConcertTests(TestCase):
             user=self.user,
             raw_date="05/10/2021",
             year=2021,
-            primary_artist=a_local,
             raw_artists="My Local Friends Band",
             raw_venue="Friend's Garage",
             source="manual",
             is_custom_offline=True
         )
+        ConcertArtist.objects.create(concert=manual_concert, artist=a_local, billing_order=0)
 
         # 2. Upload a CSV with 1 concert
         csv_content = "Date,Bands,Venue,City,State\n08/20/2022,Iron Maiden,Capital One Arena,Washington,DC\n"
@@ -242,7 +240,7 @@ class ManualConcertTests(TestCase):
         # 3. Verify that the manual concert STILL exists and was NOT deleted!
         self.assertTrue(Concert.objects.filter(id=manual_concert.id).exists())
         # And the new CSV concert was added
-        self.assertEqual(Concert.objects.filter(user=self.user, primary_artist__name="Iron Maiden").count(), 1)
+        self.assertEqual(Concert.objects.filter(user=self.user, artists__artist__name="Iron Maiden").count(), 1)
         self.assertEqual(Concert.objects.filter(user=self.user).count(), 2)
 
     def test_edit_concert(self):
@@ -253,7 +251,6 @@ class ManualConcertTests(TestCase):
             raw_date="10/10/2023",
             year=2023,
             venue=v,
-            primary_artist=a,
             raw_artists="The Protomen",
             source="manual"
         )
@@ -305,7 +302,6 @@ class ManualConcertTests(TestCase):
             raw_date="02/15/2024",
             year=2024,
             venue=v,
-            primary_artist=a,
             raw_artists="Haken",
             source="manual"
         )
@@ -323,7 +319,6 @@ class ManualConcertTests(TestCase):
             raw_date="08/01/2023",
             year=2023,
             venue=v,
-            primary_artist=a,
             raw_artists="Coheed and Cambria",
             source="setlistfm",
             is_custom_offline=False
@@ -358,7 +353,6 @@ class ManualConcertTests(TestCase):
             raw_date="09/10/2022",
             year=2022,
             venue=v,
-            primary_artist=a,
             raw_artists="Porcupine Tree",
             source="setlistfm",
             is_custom_offline=False
@@ -383,7 +377,7 @@ class ManualConcertTests(TestCase):
         data = res.json()
         self.assertEqual(data["action"], "added")
 
-        user_concert = Concert.objects.filter(user=self.user, primary_artist__name="Porcupine Tree").first()
+        user_concert = Concert.objects.filter(user=self.user, artists__artist__name="Porcupine Tree").first()
         self.assertIsNotNone(user_concert)
         self.assertEqual(user_concert.source, "manual")
         self.assertTrue(user_concert.is_custom_offline)
@@ -459,7 +453,6 @@ class ManualConcertTests(TestCase):
             date="2022-05-12",
             year=2022,
             venue=v,
-            primary_artist=a,
             raw_artists="Haken",
             source="manual"
         )

@@ -539,7 +539,7 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
             def find_co_attended(target_u):
                 friend_concerts = list(
                     Concert.objects.filter(user=target_u)
-                    .select_related('venue', 'primary_artist')
+                    .select_related('venue')
                     .prefetch_related('artists__artist')
                     .order_by('-date', '-year', '-id')
                 )
@@ -603,7 +603,7 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
             friends_qs = User.objects.filter(id__in=mutual_ids).select_related('profile').order_by('username')
             for f in friends_qs:
                 c_count = Concert.objects.filter(user=f).count()
-                top_art = Concert.objects.filter(user=f, primary_artist__isnull=False).values('primary_artist__name').annotate(shows=Count('id')).order_by('-shows').first()
+                top_art = ConcertArtist.objects.filter(concert__user=f, billing_order=0, artist__isnull=False).values('artist__name').annotate(shows=Count('id')).order_by('-shows').first()
                 co_shows = find_co_attended(f)
                 friends_list.append({
                     'id': f.id,
@@ -611,7 +611,7 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
                     'is_public': f.profile.is_public,
                     'setlistfm_username': f.profile.setlistfm_username,
                     'concert_count': c_count,
-                    'top_artist': top_art['primary_artist__name'] if top_art else None,
+                    'top_artist': top_art['artist__name'] if top_art else None,
                     'top_artist_shows': top_art['shows'] if top_art else 0,
                     'is_friend': True,
                     'is_mutual': True,
@@ -623,7 +623,7 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
             pending_sent_qs = User.objects.filter(id__in=pending_sent_ids).select_related('profile').order_by('username')
             for ps in pending_sent_qs:
                 c_count = Concert.objects.filter(user=ps).count()
-                top_art = Concert.objects.filter(user=ps, primary_artist__isnull=False).values('primary_artist__name').annotate(shows=Count('id')).order_by('-shows').first()
+                top_art = ConcertArtist.objects.filter(concert__user=ps, billing_order=0, artist__isnull=False).values('artist__name').annotate(shows=Count('id')).order_by('-shows').first()
                 co_shows = find_co_attended(ps) if ps.profile.is_public else []
                 pending_sent_list.append({
                     'id': ps.id,
@@ -631,7 +631,7 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
                     'is_public': ps.profile.is_public,
                     'setlistfm_username': ps.profile.setlistfm_username,
                     'concert_count': c_count,
-                    'top_artist': top_art['primary_artist__name'] if top_art else None,
+                    'top_artist': top_art['artist__name'] if top_art else None,
                     'top_artist_shows': top_art['shows'] if top_art else 0,
                     'is_friend': True,
                     'is_mutual': False,
@@ -644,7 +644,7 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
             friended_by_qs = User.objects.filter(id__in=friended_by_ids).select_related('profile').order_by('username')
             for fb in friended_by_qs:
                 c_count = Concert.objects.filter(user=fb).count()
-                top_art = Concert.objects.filter(user=fb, primary_artist__isnull=False).values('primary_artist__name').annotate(shows=Count('id')).order_by('-shows').first()
+                top_art = ConcertArtist.objects.filter(concert__user=fb, billing_order=0, artist__isnull=False).values('artist__name').annotate(shows=Count('id')).order_by('-shows').first()
                 co_shows = find_co_attended(fb) if fb.profile.is_public else []
                 friended_by_list.append({
                     'id': fb.id,
@@ -652,7 +652,7 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
                     'is_public': fb.profile.is_public,
                     'setlistfm_username': fb.profile.setlistfm_username,
                     'concert_count': c_count,
-                    'top_artist': top_art['primary_artist__name'] if top_art else None,
+                    'top_artist': top_art['artist__name'] if top_art else None,
                     'top_artist_shows': top_art['shows'] if top_art else 0,
                     'is_friend': False,
                     'is_mutual': False,
@@ -665,7 +665,7 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
             sugg_qs = User.objects.exclude(id=request.user.id).exclude(id__in=excluded_suggestion_ids).select_related('profile').order_by('username')[:30]
             for s in sugg_qs:
                 c_count = Concert.objects.filter(user=s).count()
-                top_art = Concert.objects.filter(user=s, primary_artist__isnull=False).values('primary_artist__name').annotate(shows=Count('id')).order_by('-shows').first()
+                top_art = ConcertArtist.objects.filter(concert__user=s, billing_order=0, artist__isnull=False).values('artist__name').annotate(shows=Count('id')).order_by('-shows').first()
                 co_shows = find_co_attended(s) if s.profile.is_public else []
                 friend_suggestions.append({
                     'id': s.id,
@@ -673,7 +673,7 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
                     'is_public': s.profile.is_public,
                     'setlistfm_username': s.profile.setlistfm_username,
                     'concert_count': c_count,
-                    'top_artist': top_art['primary_artist__name'] if top_art else None,
+                    'top_artist': top_art['artist__name'] if top_art else None,
                     'top_artist_shows': top_art['shows'] if top_art else 0,
                     'is_friend': False,
                     'has_friended_you': False,
@@ -846,7 +846,6 @@ def upload_csv(request):
                     year=rec.get("year"),
                     venue=venue_obj,
                     raw_venue=venue_str,
-                    primary_artist=primary_art_obj,
                     raw_artists=rec.get("raw_artists", ""),
                     seen_before="",
                     notes=rec.get("notes", ""),
@@ -1026,7 +1025,6 @@ def add_concert(request):
                 year=year,
                 venue=venue_obj,
                 raw_venue=venue_obj.name,
-                primary_artist=primary_art_obj,
                 raw_artists=raw_artists,
                 seen_before="",
                 notes=notes,
@@ -1365,7 +1363,6 @@ def confirm_ticketmaster_import(request):
                     year=dt.year,
                     venue=venue_obj,
                     raw_venue=venue_obj.name,
-                    primary_artist=primary_art_obj,
                     raw_artists=can_primary,
                     seen_before="",
                     notes=combined_notes,
@@ -1993,7 +1990,6 @@ def toggle_concert_attendance(request):
                     year=target_concert.year,
                     venue=target_concert.venue,
                     raw_venue=target_concert.raw_venue,
-                    primary_artist=target_concert.primary_artist,
                     raw_artists=target_concert.raw_artists,
                     seen_before="",
                     notes=target_concert.notes,
@@ -2305,7 +2301,6 @@ def edit_concert(request):
             concert.year = year
             concert.venue = venue_obj
             concert.raw_venue = venue_obj.name
-            concert.primary_artist = primary_art_obj
             concert.raw_artists = raw_artists
             concert.notes = notes
             concert.is_custom_offline = bool(is_custom_offline)
@@ -2900,7 +2895,6 @@ def track_upcoming_show(request):
                 year=year,
                 venue=venue_obj,
                 raw_venue=venue_name_raw or (venue_obj.name if venue_obj else ''),
-                primary_artist=primary_art_obj,
                 raw_artists=", ".join(all_lineup_names),
                 notes=f"Pre-added from upcoming shows ({data.get('event_url', '')})".strip(),
                 source='setlistfm',

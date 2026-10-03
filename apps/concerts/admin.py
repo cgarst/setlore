@@ -16,16 +16,20 @@ class ConcertArtistInline(admin.TabularInline):
 
 @admin.register(Concert)
 class ConcertAdmin(admin.ModelAdmin):
-    list_display = ['date', 'primary_artist', 'venue', 'user', 'is_fully_matched', 'is_partially_matched']
-    search_fields = ['primary_artist', 'raw_artists', 'venue__name', 'raw_venue', 'user__username']
+    list_display = ['date', 'get_primary_artist', 'venue', 'user', 'is_fully_matched', 'is_partially_matched']
+    search_fields = ['raw_artists', 'artists__artist__name', 'venue__name', 'raw_venue', 'user__username']
     list_filter = ['user', 'year', 'is_fully_matched']
     autocomplete_fields = ['venue', 'user']
     inlines = [ConcertArtistInline]
 
+    @admin.display(description='Primary Artist')
+    def get_primary_artist(self, obj):
+        return obj.primary_artist.name if obj.primary_artist else obj.raw_artists
+
 @admin.register(ConcertArtist)
 class ConcertArtistAdmin(admin.ModelAdmin):
     list_display = ['concert', 'artist', 'billing_order', 'has_setlist']
-    search_fields = ['artist__name', 'concert__primary_artist', 'concert__user__username']
+    search_fields = ['artist__name', 'concert__artists__artist__name', 'concert__user__username']
     list_filter = ['has_setlist', 'concert__user']
     autocomplete_fields = ['concert', 'artist']
     inlines = [ConcertSongInline]

@@ -76,7 +76,6 @@ class DemoCachePopulationTests(TestCase):
             raw_date="06/25/2015",
             year=2015,
             venue=self.venue,
-            primary_artist=self.artist,
             raw_artists="Rush",
             source="setlistfm",
             is_favorite=True
@@ -144,11 +143,12 @@ class DemoCachePopulationTests(TestCase):
         for i in range(5):
             u_dummy = User.objects.create_user(username=f"dummy_{i}", password="pw")
             dummy_artist, _ = Artist.get_or_create_artist(f"Band {i}")
-            Concert.objects.create(
+            dc = Concert.objects.create(
                 user=u_dummy,
                 raw_date="01/01/2020",
-                primary_artist=dummy_artist
+                raw_artists=f"Band {i}"
             )
+            ConcertArtist.objects.create(concert=dc, artist=dummy_artist, billing_order=0)
 
         res = populate_user_data_from_cache(cache_input=cache_data, target_username="seeded_target_user")
         self.assertEqual(res["status"], "success")

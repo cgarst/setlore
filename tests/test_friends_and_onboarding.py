@@ -2,7 +2,7 @@ from django.test import TestCase, Client
 from django.contrib.auth.models import User
 from apps.core.models import Friendship, UserProfile
 from apps.catalog.models import Venue, Artist
-from apps.concerts.models import Concert
+from apps.concerts.models import Concert, ConcertArtist
 
 class FriendsAndOnboardingTests(TestCase):
     def setUp(self):
@@ -14,13 +14,14 @@ class FriendsAndOnboardingTests(TestCase):
         # Create sample concert for user1
         venue = Venue.objects.create(name='9:30 Club', city='Washington', state='DC')
         artist = Artist.objects.create(name='Foo Fighters', normalized_name='foo fighters')
-        Concert.objects.create(
+        c1 = Concert.objects.create(
             user=self.user1,
             raw_date='10/24/2023',
             year=2023,
             venue=venue,
-            primary_artist=artist
+            raw_artists='Foo Fighters'
         )
+        ConcertArtist.objects.create(concert=c1, artist=artist, billing_order=0)
 
     def test_onboarding_content_matches_modal_guidance(self):
         self.client.force_login(self.user1)
@@ -131,24 +132,26 @@ class FriendsAndOnboardingTests(TestCase):
         # Alice and Bob both attended Foo Fighters at 9:30 Club on 10/24/2023
         venue = Venue.objects.get(name='9:30 Club')
         art_foo = Artist.objects.get(name='Foo Fighters')
-        Concert.objects.create(
+        c2 = Concert.objects.create(
             user=self.user2,
             raw_date='10/24/2023',
             year=2023,
             venue=venue,
-            primary_artist=art_foo
+            raw_artists='Foo Fighters'
         )
+        ConcertArtist.objects.create(concert=c2, artist=art_foo, billing_order=0)
 
         # Charlie only attended Iron Maiden
         venue2 = Venue.objects.create(name='Capital One Arena', city='Washington', state='DC')
         art_maiden = Artist.objects.create(name='Iron Maiden', normalized_name='iron maiden')
-        Concert.objects.create(
+        c3 = Concert.objects.create(
             user=self.user3,
             raw_date='11/12/2024',
             year=2024,
             venue=venue2,
-            primary_artist=art_maiden
+            raw_artists='Iron Maiden'
         )
+        ConcertArtist.objects.create(concert=c3, artist=art_maiden, billing_order=0)
 
         # Mutual friendship between Alice and Bob
         Friendship.objects.create(user=self.user1, friend=self.user2)

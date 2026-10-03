@@ -14,7 +14,7 @@ from .forms import CaseInsensitiveUserCreationForm
 from .models import UserProfile, SiteSetting, Friendship
 from . import oauth
 from apps.catalog.models import Artist, Venue, Song
-from apps.concerts.models import Concert
+from apps.concerts.models import Concert, ConcertArtist
 from apps.concerts.services.sync_worker import sync_worker
 
 def health_check(request):
@@ -39,10 +39,10 @@ def home_view(request):
     top_users = []
     for rank, u in enumerate(top_users_qs, start=1):
         top_artist_record = (
-            Concert.objects.filter(user=u, primary_artist__isnull=False)
-            .values('primary_artist__name')
+            ConcertArtist.objects.filter(concert__user=u, billing_order=0, artist__isnull=False)
+            .values('artist__name')
             .annotate(shows=Count('id'))
-            .order_by('-shows', 'primary_artist__name')
+            .order_by('-shows', 'artist__name')
             .first()
         )
         top_users.append({
@@ -51,7 +51,7 @@ def home_view(request):
             'username': u.username,
             'setlistfm_username': u.profile.setlistfm_username,
             'concert_count': u.concert_count,
-            'top_artist': top_artist_record['primary_artist__name'] if top_artist_record else None,
+            'top_artist': top_artist_record['artist__name'] if top_artist_record else None,
             'top_artist_shows': top_artist_record['shows'] if top_artist_record else 0,
         })
 

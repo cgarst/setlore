@@ -8,7 +8,6 @@ class Concert(models.Model):
     year = models.IntegerField(null=True, blank=True, db_index=True)
     venue = models.ForeignKey('catalog.Venue', on_delete=models.SET_NULL, null=True, blank=True, related_name='concerts')
     raw_venue = models.CharField(max_length=255, blank=True, default='')
-    primary_artist = models.ForeignKey('catalog.Artist', on_delete=models.SET_NULL, null=True, blank=True, related_name='headlined_concerts')
     raw_artists = models.CharField(max_length=500)
     seen_before = models.CharField(max_length=255, blank=True, default='')
     notes = models.TextField(blank=True, default='')
@@ -30,6 +29,16 @@ class Concert(models.Model):
 
     class Meta:
         ordering = ['-date', '-id']
+
+    @property
+    def primary_artist(self):
+        headliner = self.artists.order_by('billing_order').first()
+        return headliner.artist if headliner else None
+
+    @property
+    def primary_artist_id(self):
+        headliner = self.artists.order_by('billing_order').first()
+        return headliner.artist_id if headliner else None
 
     def __str__(self):
         d_str = self.date.strftime("%m-%d-%Y") if self.date else self.raw_date

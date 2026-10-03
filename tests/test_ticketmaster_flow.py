@@ -24,10 +24,10 @@ class TicketmasterImportFlowTestCase(TestCase):
             year=2026,
             venue=self.venue,
             raw_venue='Starlight Arena',
-            primary_artist=self.artist,
             raw_artists='Quantum Echo',
             source='manual'
         )
+        ConcertArtist.objects.create(concert=self.existing_concert, artist=self.artist, billing_order=0)
 
     def test_preview_endpoint_parsing_and_deduplication(self):
         paste_text = """
@@ -93,7 +93,7 @@ class TicketmasterImportFlowTestCase(TestCase):
         self.assertEqual(data['imported_count'], 1)
 
         # Verify in database
-        cosmic_concert = Concert.objects.filter(user=self.user, primary_artist__name='Cosmic Voyager').first()
+        cosmic_concert = Concert.objects.filter(user=self.user, artists__artist__name='Cosmic Voyager').first()
         self.assertIsNotNone(cosmic_concert)
         self.assertEqual(str(cosmic_concert.date), '2025-08-25')
         self.assertEqual(cosmic_concert.source, 'ticketmaster')

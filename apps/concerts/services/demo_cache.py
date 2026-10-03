@@ -431,7 +431,6 @@ def populate_user_data_from_cache(
                 year=c_entry.get("year"),
                 venue=v_obj,
                 raw_venue=v_name,
-                primary_artist=prim_art_obj,
                 raw_artists=c_entry.get("raw_artists") or prim_art,
                 seen_before=c_entry.get("seen_before", ""),
                 notes=c_entry.get("notes", ""),

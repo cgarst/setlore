@@ -207,7 +207,6 @@ class Command(BaseCommand):
                                 year=rec.get("year"),
                                 venue=venue_obj,
                                 raw_venue=venue_str,
-                                primary_artist=prim_art_obj,
                                 raw_artists=rec.get("raw_artists", ""),
                                 seen_before="",
                                 notes=""

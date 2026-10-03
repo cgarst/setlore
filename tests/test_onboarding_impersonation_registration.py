@@ -2,7 +2,7 @@ from django.test import TestCase, Client
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from apps.core.models import SiteSetting, Friendship
-from apps.concerts.models import Concert
+from apps.concerts.models import Concert, ConcertArtist
 from apps.catalog.models import Venue, Artist
 
 User = get_user_model()
@@ -38,15 +38,15 @@ class OnboardingAndImpersonationTests(TestCase):
         # Create 1 concert for this user
         venue = Venue.objects.create(name='9:30 Club', city='Washington', state='DC')
         artist = Artist.objects.create(name='Opeth', normalized_name='opeth')
-        Concert.objects.create(
+        c1 = Concert.objects.create(
             user=self.regular_user,
             date='2024-05-10',
             raw_date='10-05-2024',
             year=2024,
             venue=venue,
-            primary_artist=artist,
             raw_artists='Opeth'
         )
+        ConcertArtist.objects.create(concert=c1, artist=artist, billing_order=0)
 
         # Reload dashboard
         res_after = self.client.get(reverse('dashboard'))

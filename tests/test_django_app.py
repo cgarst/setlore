@@ -35,7 +35,6 @@ class DjangoAppTests(TestCase):
             raw_date='09/10/2022',
             year=2022,
             venue=venue,
-            primary_artist=artist,
             raw_artists='Porcupine Tree'
         )
         ca = ConcertArtist.objects.create(concert=concert, artist=artist)
@@ -67,7 +66,6 @@ class DjangoAppTests(TestCase):
             raw_date='06/15/2019',
             year=2019,
             venue=venue,
-            primary_artist=artist,
             raw_artists='Dream Theater'
         )
         ConcertArtist.objects.create(concert=concert, artist=artist)
@@ -233,7 +231,6 @@ class DjangoAppTests(TestCase):
             raw_date='05/12/2023',
             year=2023,
             venue=venue,
-            primary_artist=artist,
             raw_artists='Haken'
         )
         ConcertArtist.objects.create(concert=concert, artist=artist)
@@ -331,7 +328,6 @@ class DjangoAppTests(TestCase):
             raw_date='07/04/2015',
             year=2015,
             venue=venue,
-            primary_artist=artist,
             raw_artists='Rush'
         )
         ca = ConcertArtist.objects.create(concert=target_concert, artist=artist, setlistfm_id='sl_rush_123', has_setlist=True)
@@ -436,7 +432,6 @@ class DjangoAppTests(TestCase):
             user=self.user,
             raw_date='07/15/2023',
             year=2023,
-            primary_artist=artist,
             raw_artists='Phish'
         )
         ca = ConcertArtist.objects.create(concert=concert, artist=artist, has_setlist=False)
@@ -644,12 +639,11 @@ class DjangoAppTests(TestCase):
             raw_date=past_date_str,
             year=past_year,
             venue=venue,
-            primary_artist=artist,
             raw_artists='Between the Buried and Me, Animals as Leaders'
         )
         artist2, _ = Artist.objects.get_or_create(normalized_name='animals as leaders', defaults={'name': 'Animals as Leaders'})
-        ConcertArtist.objects.create(concert=concert, artist=artist, billing_order=1)
-        ConcertArtist.objects.create(concert=concert, artist=artist2, billing_order=2)
+        ConcertArtist.objects.create(concert=concert, artist=artist, billing_order=0)
+        ConcertArtist.objects.create(concert=concert, artist=artist2, billing_order=1)
 
         # Also create a concert registered for TODAY (same month and day, but current year)
         # to ensure pre-registered shows occurring today are excluded
@@ -660,10 +654,9 @@ class DjangoAppTests(TestCase):
             raw_date=today.strftime("%Y-%m-%d"),
             year=today.year,
             venue=venue,
-            primary_artist=today_artist,
             raw_artists='Today Headliner'
         )
-        ConcertArtist.objects.create(concert=today_concert, artist=today_artist)
+        ConcertArtist.objects.create(concert=today_concert, artist=today_artist, billing_order=0)
 
         self.client.force_login(self.user)
         res = self.client.get('/overview/')
@@ -698,10 +691,9 @@ class DjangoAppTests(TestCase):
             raw_date=future_date.strftime("%Y-%m-%d"),
             year=future_date.year,
             venue=venue,
-            primary_artist=artist,
             raw_artists='Iron Maiden'
         )
-        ConcertArtist.objects.create(concert=future_concert, artist=artist)
+        ConcertArtist.objects.create(concert=future_concert, artist=artist, billing_order=0)
 
         self.client.force_login(self.user)
         res = self.client.get('/concerts/')
