@@ -117,7 +117,7 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
                 "artists": artist_names,
                 "artist_favorites": artist_favorites,
                 "artist_ca_ids": artist_ca_ids,
-                "primary_artist": c.primary_artist or (artist_names[0] if artist_names else ""),
+                "primary_artist": c.primary_artist.name if c.primary_artist else (artist_names[0] if artist_names else ""),
                 "supporting_artists": ", ".join(artist_names[1:]) if len(artist_names) > 1 else "",
                 "venue": c.raw_venue or (c.venue.name if c.venue else ""),
                 "city": c.venue.city if c.venue else "",
@@ -524,14 +524,13 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
                     d_keys.add(raw_s.replace('-', '/'))
                     d_keys.add(raw_s.replace('/', '-'))
 
-                a_art_names = {normalize_artist_name(ca.artist.name) or ca.artist.name.lower().strip() for ca in ac.artists.all()}
-                if ac.primary_artist:
-                    a_art_names.add(normalize_artist_name(ac.primary_artist) or ac.primary_artist.lower().strip())
+                a_art_ids = {ca.artist_id for ca in ac.artists.all() if ca.artist_id}
+                if ac.primary_artist_id:
+                    a_art_ids.add(ac.primary_artist_id)
 
                 for d_k in d_keys:
-                    for a_name in a_art_names:
-                        if a_name:
-                            a_date_artist_map[(d_k, a_name)] = ac
+                    for a_id in a_art_ids:
+                        a_date_artist_map[(d_k, a_id)] = ac
 
                 for ca in ac.artists.all():
                     if ca.setlistfm_id:
@@ -540,7 +539,7 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
             def find_co_attended(target_u):
                 friend_concerts = list(
                     Concert.objects.filter(user=target_u)
-                    .select_related('venue')
+                    .select_related('venue', 'primary_artist')
                     .prefetch_related('artists__artist')
                     .order_by('-date', '-year', '-id')
                 )
@@ -560,9 +559,9 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
                         f_d_keys.add(raw_s.replace('-', '/'))
                         f_d_keys.add(raw_s.replace('/', '-'))
 
-                    f_art_names = {normalize_artist_name(ca.artist.name) or ca.artist.name.lower().strip() for ca in fc.artists.all()}
-                    if fc.primary_artist:
-                        f_art_names.add(normalize_artist_name(fc.primary_artist) or fc.primary_artist.lower().strip())
+                    f_art_ids = {ca.artist_id for ca in fc.artists.all() if ca.artist_id}
+                    if fc.primary_artist_id:
+                        f_art_ids.add(fc.primary_artist_id)
 
                     matched_ac = None
                     for ca in fc.artists.all():
@@ -572,9 +571,9 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
 
                     if not matched_ac:
                         for d_k in f_d_keys:
-                            for a_name in f_art_names:
-                                if (d_k, a_name) in a_date_artist_map:
-                                    matched_ac = a_date_artist_map[(d_k, a_name)]
+                            for a_id in f_art_ids:
+                                if (d_k, a_id) in a_date_artist_map:
+                                    matched_ac = a_date_artist_map[(d_k, a_id)]
                                     break
                             if matched_ac:
                                 break
@@ -584,7 +583,7 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
                         venue_name = fc.venue.name if fc.venue else (matched_ac.venue.name if matched_ac.venue else '')
                         venue_city = fc.venue.city if fc.venue and fc.venue.city else (matched_ac.venue.city if matched_ac.venue and matched_ac.venue.city else '')
                         display_date = fc.raw_date or (fc.date.strftime('%m/%d/%Y') if fc.date else '')
-                        primary_art = fc.primary_artist or (matched_ac.primary_artist if matched_ac else '')
+                        primary_art = (fc.primary_artist.name if fc.primary_artist else '') or (matched_ac.primary_artist.name if matched_ac and matched_ac.primary_artist else '')
                         co_list.append({
                             'date': display_date,
                             'artist': primary_art,
@@ -604,7 +603,7 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
             friends_qs = User.objects.filter(id__in=mutual_ids).select_related('profile').order_by('username')
             for f in friends_qs:
                 c_count = Concert.objects.filter(user=f).count()
-                top_art = Concert.objects.filter(user=f).values('primary_artist').annotate(shows=Count('id')).order_by('-shows').first()
+                top_art = Concert.objects.filter(user=f, primary_artist__isnull=False).values('primary_artist__name').annotate(shows=Count('id')).order_by('-shows').first()
                 co_shows = find_co_attended(f)
                 friends_list.append({
                     'id': f.id,
@@ -612,7 +611,7 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
                     'is_public': f.profile.is_public,
                     'setlistfm_username': f.profile.setlistfm_username,
                     'concert_count': c_count,
-                    'top_artist': top_art['primary_artist'] if top_art else None,
+                    'top_artist': top_art['primary_artist__name'] if top_art else None,
                     'top_artist_shows': top_art['shows'] if top_art else 0,
                     'is_friend': True,
                     'is_mutual': True,
@@ -624,7 +623,7 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
             pending_sent_qs = User.objects.filter(id__in=pending_sent_ids).select_related('profile').order_by('username')
             for ps in pending_sent_qs:
                 c_count = Concert.objects.filter(user=ps).count()
-                top_art = Concert.objects.filter(user=ps).values('primary_artist').annotate(shows=Count('id')).order_by('-shows').first()
+                top_art = Concert.objects.filter(user=ps, primary_artist__isnull=False).values('primary_artist__name').annotate(shows=Count('id')).order_by('-shows').first()
                 co_shows = find_co_attended(ps) if ps.profile.is_public else []
                 pending_sent_list.append({
                     'id': ps.id,
@@ -632,7 +631,7 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
                     'is_public': ps.profile.is_public,
                     'setlistfm_username': ps.profile.setlistfm_username,
                     'concert_count': c_count,
-                    'top_artist': top_art['primary_artist'] if top_art else None,
+                    'top_artist': top_art['primary_artist__name'] if top_art else None,
                     'top_artist_shows': top_art['shows'] if top_art else 0,
                     'is_friend': True,
                     'is_mutual': False,
@@ -645,7 +644,7 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
             friended_by_qs = User.objects.filter(id__in=friended_by_ids).select_related('profile').order_by('username')
             for fb in friended_by_qs:
                 c_count = Concert.objects.filter(user=fb).count()
-                top_art = Concert.objects.filter(user=fb).values('primary_artist').annotate(shows=Count('id')).order_by('-shows').first()
+                top_art = Concert.objects.filter(user=fb, primary_artist__isnull=False).values('primary_artist__name').annotate(shows=Count('id')).order_by('-shows').first()
                 co_shows = find_co_attended(fb) if fb.profile.is_public else []
                 friended_by_list.append({
                     'id': fb.id,
@@ -653,7 +652,7 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
                     'is_public': fb.profile.is_public,
                     'setlistfm_username': fb.profile.setlistfm_username,
                     'concert_count': c_count,
-                    'top_artist': top_art['primary_artist'] if top_art else None,
+                    'top_artist': top_art['primary_artist__name'] if top_art else None,
                     'top_artist_shows': top_art['shows'] if top_art else 0,
                     'is_friend': False,
                     'is_mutual': False,
@@ -666,7 +665,7 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
             sugg_qs = User.objects.exclude(id=request.user.id).exclude(id__in=excluded_suggestion_ids).select_related('profile').order_by('username')[:30]
             for s in sugg_qs:
                 c_count = Concert.objects.filter(user=s).count()
-                top_art = Concert.objects.filter(user=s).values('primary_artist').annotate(shows=Count('id')).order_by('-shows').first()
+                top_art = Concert.objects.filter(user=s, primary_artist__isnull=False).values('primary_artist__name').annotate(shows=Count('id')).order_by('-shows').first()
                 co_shows = find_co_attended(s) if s.profile.is_public else []
                 friend_suggestions.append({
                     'id': s.id,
@@ -674,7 +673,7 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
                     'is_public': s.profile.is_public,
                     'setlistfm_username': s.profile.setlistfm_username,
                     'concert_count': c_count,
-                    'top_artist': top_art['primary_artist'] if top_art else None,
+                    'top_artist': top_art['primary_artist__name'] if top_art else None,
                     'top_artist_shows': top_art['shows'] if top_art else 0,
                     'is_friend': False,
                     'has_friended_you': False,
@@ -830,6 +829,16 @@ def upload_csv(request):
                             defaults={'city': '', 'state': '', 'country': 'United States', 'geocode_source': 'unresolved'}
                         )
 
+                primary_art_name = rec.get("primary_artist", "")
+                primary_art_obj = None
+                if primary_art_name:
+                    can_prim = normalize_artist_name(primary_art_name) or primary_art_name
+                    primary_art_obj, _ = get_or_create_artist(can_prim)
+                elif rec.get("artists"):
+                    first_art = rec.get("artists")[0]
+                    can_prim = normalize_artist_name(first_art) or first_art
+                    primary_art_obj, _ = get_or_create_artist(can_prim)
+
                 concert = Concert.objects.create(
                     user=request.user,
                     date=dt.date() if dt else None,
@@ -837,7 +846,7 @@ def upload_csv(request):
                     year=rec.get("year"),
                     venue=venue_obj,
                     raw_venue=venue_str,
-                    primary_artist=rec.get("primary_artist", ""),
+                    primary_artist=primary_art_obj,
                     raw_artists=rec.get("raw_artists", ""),
                     seen_before="",
                     notes=rec.get("notes", ""),
@@ -1017,7 +1026,7 @@ def add_concert(request):
                 year=year,
                 venue=venue_obj,
                 raw_venue=venue_obj.name,
-                primary_artist=can_primary,
+                primary_artist=primary_art_obj,
                 raw_artists=raw_artists,
                 seen_before="",
                 notes=notes,
@@ -1170,12 +1179,13 @@ def parse_ticketmaster_preview(request):
             existing_match_id = None
             for ex in existing_concerts:
                 if ex.date and ev_dt and ex.date == ev_dt.date():
-                    norm_ex_art = normalize_name(ex.primary_artist)
+                    ex_p_art = ex.primary_artist.name if ex.primary_artist else ex.raw_artists
+                    norm_ex_art = normalize_name(ex_p_art)
                     norm_ev_art = normalize_name(ev_artist)
                     ratio = fuzz.ratio(norm_ex_art, norm_ev_art)
                     if ratio >= 65 or norm_ev_art in normalize_name(ex.raw_artists) or norm_ex_art in norm_ev_art:
                         is_dup = True
-                        dup_reason = f"Matches existing concert '{ex.primary_artist}' on {ex.date.strftime('%m-%d-%Y')}"
+                        dup_reason = f"Matches existing concert '{ex_p_art}' on {ex.date.strftime('%m-%d-%Y')}"
                         existing_match_id = ex.id
                         break
 
@@ -1355,7 +1365,7 @@ def confirm_ticketmaster_import(request):
                     year=dt.year,
                     venue=venue_obj,
                     raw_venue=venue_obj.name,
-                    primary_artist=can_primary,
+                    primary_artist=primary_art_obj,
                     raw_artists=can_primary,
                     seen_before="",
                     notes=combined_notes,
@@ -1804,7 +1814,7 @@ def check_viewer_attendance_for_drilldown(viewer_user, concerts_drilldown, targe
 
         v_art_names = {normalize_artist_name(ca.artist.name) or ca.artist.name.lower().strip() for ca in vc.artists.all()}
         if vc.primary_artist:
-            v_art_names.add(normalize_artist_name(vc.primary_artist) or vc.primary_artist.lower().strip())
+            v_art_names.add(normalize_artist_name(vc.primary_artist.name) or vc.primary_artist.name.lower().strip())
 
         for d_k in d_keys:
             for a_name in v_art_names:
@@ -1933,7 +1943,7 @@ def toggle_concert_attendance(request):
             if not existing_match:
                 target_art_names = {normalize_artist_name(ca.artist.name) or ca.artist.name.lower().strip() for ca in target_concert.artists.all()}
                 if target_concert.primary_artist:
-                    target_art_names.add(normalize_artist_name(target_concert.primary_artist) or target_concert.primary_artist.lower().strip())
+                    target_art_names.add(normalize_artist_name(target_concert.primary_artist.name) or target_concert.primary_artist.name.lower().strip())
 
                 for vc in viewer_concerts:
                     date_match = False
@@ -1945,7 +1955,7 @@ def toggle_concert_attendance(request):
                     if date_match:
                         vc_art_names = {normalize_artist_name(ca.artist.name) or ca.artist.name.lower().strip() for ca in vc.artists.all()}
                         if vc.primary_artist:
-                            vc_art_names.add(normalize_artist_name(vc.primary_artist) or vc.primary_artist.lower().strip())
+                            vc_art_names.add(normalize_artist_name(vc.primary_artist.name) or vc.primary_artist.name.lower().strip())
 
                         if target_art_names & vc_art_names:
                             existing_match = vc
@@ -1954,7 +1964,7 @@ def toggle_concert_attendance(request):
         if existing_match:
             # De-select / remove from profile
             existing_match_id = existing_match.id
-            artist_display = existing_match.primary_artist
+            artist_display = existing_match.primary_artist.name if existing_match.primary_artist else existing_match.raw_artists
             date_display = existing_match.raw_date
             existing_match.delete()
 
@@ -2021,11 +2031,9 @@ def toggle_concert_attendance(request):
                                 info=cs.info
                             )
                 elif target_concert.primary_artist:
-                    can_primary = normalize_artist_name(target_concert.primary_artist) or target_concert.primary_artist
-                    art_obj, _ = get_or_create_artist(can_primary)
                     ConcertArtist.objects.create(
                         concert=new_concert,
-                        artist=art_obj,
+                        artist=target_concert.primary_artist,
                         billing_order=0,
                         has_setlist=False
                     )
@@ -2034,13 +2042,14 @@ def toggle_concert_attendance(request):
             ApiCache.objects.filter(cache_key=f"user_dashboard_bundle_{request.user.id}").delete()
             sync_worker.enqueue_sync(request.user.id)
 
+            target_display = target_concert.primary_artist.name if target_concert.primary_artist else target_concert.raw_artists
             return JsonResponse({
                 "status": "success",
                 "action": "added",
                 "is_attended": True,
                 "concert_id": target_concert.id,
                 "user_concert_id": new_concert.id,
-                "message": f"Logged '{target_concert.primary_artist}' on {target_concert.raw_date} to your profile!"
+                "message": f"Logged '{target_display}' on {target_concert.raw_date} to your profile!"
             })
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
@@ -2296,7 +2305,7 @@ def edit_concert(request):
             concert.year = year
             concert.venue = venue_obj
             concert.raw_venue = venue_obj.name
-            concert.primary_artist = can_primary
+            concert.primary_artist = primary_art_obj
             concert.raw_artists = raw_artists
             concert.notes = notes
             concert.is_custom_offline = bool(is_custom_offline)
@@ -2814,6 +2823,7 @@ def track_upcoming_show(request):
         year = d_obj.year
 
         can_artist = normalize_artist_name(artist_raw) or artist_raw
+        primary_art_obj, _ = get_or_create_artist(can_artist)
 
         existing_concerts = Concert.objects.filter(
             user=request.user,
@@ -2822,10 +2832,7 @@ def track_upcoming_show(request):
 
         existing_match = None
         for ec in existing_concerts:
-            art_names = {normalize_artist_name(ca.artist.name) for ca in ec.artists.all() if ca.artist}
-            if ec.primary_artist:
-                art_names.add(normalize_artist_name(ec.primary_artist))
-            if can_artist in art_names or artist_raw.lower().strip() in {a.lower().strip() for a in art_names if a}:
+            if ec.primary_artist_id == primary_art_obj.id or any(ca.artist_id == primary_art_obj.id for ca in ec.artists.all()):
                 existing_match = ec
                 break
 
@@ -2876,8 +2883,6 @@ def track_upcoming_show(request):
                         geocode_source=source_type
                     )
 
-            primary_art_obj, _ = get_or_create_artist(can_artist)
-
             lineup = data.get('lineup') or []
             if isinstance(lineup, str):
                 lineup = [x.strip() for x in lineup.split(',') if x.strip()]
@@ -2895,7 +2900,7 @@ def track_upcoming_show(request):
                 year=year,
                 venue=venue_obj,
                 raw_venue=venue_name_raw or (venue_obj.name if venue_obj else ''),
-                primary_artist=can_artist,
+                primary_artist=primary_art_obj,
                 raw_artists=", ".join(all_lineup_names),
                 notes=f"Pre-added from upcoming shows ({data.get('event_url', '')})".strip(),
                 source='setlistfm',

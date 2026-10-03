@@ -23,7 +23,7 @@ class ConcertCSVExportTests(TestCase):
             raw_date='10/20/2024',
             year=2024,
             venue=self.venue1,
-            primary_artist='Opeth',
+            primary_artist=self.artist1,
             raw_artists='Opeth'
         )
         self.ca1 = ConcertArtist.objects.create(concert=self.concert1, artist=self.artist1, billing_order=0, has_setlist=True)
@@ -42,7 +42,7 @@ class ConcertCSVExportTests(TestCase):
             raw_date='09/10/2022',
             year=2022,
             venue=self.venue2,
-            primary_artist='Porcupine Tree',
+            primary_artist=self.artist2,
             raw_artists='Porcupine Tree, King Crimson'
         )
         self.ca2 = ConcertArtist.objects.create(concert=self.concert2, artist=self.artist2, billing_order=0, has_setlist=True)

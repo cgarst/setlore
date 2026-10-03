@@ -67,7 +67,7 @@ class ManualConcertTests(TestCase):
         # Verify DB records
         concert = Concert.objects.get(id=data["concert_id"])
         self.assertEqual(concert.user, self.user)
-        self.assertEqual(concert.primary_artist, "Local Garage Band")
+        self.assertEqual(concert.primary_artist.name, "Local Garage Band")
         self.assertEqual(concert.source, "manual")
         self.assertTrue(concert.is_custom_offline)
         self.assertEqual(concert.venue.name, "Joe's Basement")
@@ -177,7 +177,7 @@ class ManualConcertTests(TestCase):
                 raw_date=f"202{i}-05-01",
                 year=2020 + i,
                 venue=v1,
-                primary_artist="Rush",
+                primary_artist=a1,
                 raw_artists="Rush",
                 source="manual"
             )
@@ -189,7 +189,7 @@ class ManualConcertTests(TestCase):
             raw_date="2024-06-01",
             year=2024,
             venue=v2,
-            primary_artist="Dream Theater",
+            primary_artist=a2,
             raw_artists="Dream Theater",
             source="manual"
         )
@@ -219,11 +219,12 @@ class ManualConcertTests(TestCase):
         from unittest.mock import patch
 
         # 1. Add a manual concert
+        a_local, _ = Artist.get_or_create_artist("My Local Friends Band")
         manual_concert = Concert.objects.create(
             user=self.user,
             raw_date="05/10/2021",
             year=2021,
-            primary_artist="My Local Friends Band",
+            primary_artist=a_local,
             raw_artists="My Local Friends Band",
             raw_venue="Friend's Garage",
             source="manual",
@@ -241,7 +242,7 @@ class ManualConcertTests(TestCase):
         # 3. Verify that the manual concert STILL exists and was NOT deleted!
         self.assertTrue(Concert.objects.filter(id=manual_concert.id).exists())
         # And the new CSV concert was added
-        self.assertEqual(Concert.objects.filter(user=self.user, primary_artist="Iron Maiden").count(), 1)
+        self.assertEqual(Concert.objects.filter(user=self.user, primary_artist__name="Iron Maiden").count(), 1)
         self.assertEqual(Concert.objects.filter(user=self.user).count(), 2)
 
     def test_edit_concert(self):
@@ -252,7 +253,7 @@ class ManualConcertTests(TestCase):
             raw_date="10/10/2023",
             year=2023,
             venue=v,
-            primary_artist="The Protomen",
+            primary_artist=a,
             raw_artists="The Protomen",
             source="manual"
         )
@@ -276,7 +277,7 @@ class ManualConcertTests(TestCase):
         self.assertEqual(data["status"], "success")
 
         c.refresh_from_db()
-        self.assertEqual(c.primary_artist, "The Protomen Act II")
+        self.assertEqual(c.primary_artist.name, "The Protomen Act II")
         self.assertEqual(c.venue.name, "Ottobar")
         self.assertEqual(c.notes, "VIP Meet & Greet")
         self.assertEqual(c.raw_date, "11/12/2023")
@@ -304,7 +305,7 @@ class ManualConcertTests(TestCase):
             raw_date="02/15/2024",
             year=2024,
             venue=v,
-            primary_artist="Haken",
+            primary_artist=a,
             raw_artists="Haken",
             source="manual"
         )
@@ -322,7 +323,7 @@ class ManualConcertTests(TestCase):
             raw_date="08/01/2023",
             year=2023,
             venue=v,
-            primary_artist="Coheed and Cambria",
+            primary_artist=a,
             raw_artists="Coheed and Cambria",
             source="setlistfm",
             is_custom_offline=False
@@ -357,7 +358,7 @@ class ManualConcertTests(TestCase):
             raw_date="09/10/2022",
             year=2022,
             venue=v,
-            primary_artist="Porcupine Tree",
+            primary_artist=a,
             raw_artists="Porcupine Tree",
             source="setlistfm",
             is_custom_offline=False
@@ -382,7 +383,7 @@ class ManualConcertTests(TestCase):
         data = res.json()
         self.assertEqual(data["action"], "added")
 
-        user_concert = Concert.objects.filter(user=self.user, primary_artist="Porcupine Tree").first()
+        user_concert = Concert.objects.filter(user=self.user, primary_artist__name="Porcupine Tree").first()
         self.assertIsNotNone(user_concert)
         self.assertEqual(user_concert.source, "manual")
         self.assertTrue(user_concert.is_custom_offline)
@@ -458,7 +459,7 @@ class ManualConcertTests(TestCase):
             date="2022-05-12",
             year=2022,
             venue=v,
-            primary_artist="Haken",
+            primary_artist=a,
             raw_artists="Haken",
             source="manual"
         )

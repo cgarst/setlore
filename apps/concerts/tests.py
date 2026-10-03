@@ -31,7 +31,7 @@ class AutocompleteAndCSVTests(TestCase):
             year=2024,
             venue=self.venue,
             raw_venue=self.venue.name,
-            primary_artist='Dream Theater',
+            primary_artist=self.art1,
             raw_artists='Dream Theater',
             source='manual'
         )
@@ -121,7 +121,7 @@ class AutocompleteAndCSVTests(TestCase):
         self.assertEqual(import_res.status_code, 200)
 
         # Verify database state after reimport
-        imported_concert = Concert.objects.filter(user=self.user, primary_artist='Dream Theater').first()
+        imported_concert = Concert.objects.filter(user=self.user, primary_artist__name='Dream Theater').first()
         self.assertIsNotNone(imported_concert)
         
         imported_ca = imported_concert.artists.first()
@@ -432,7 +432,7 @@ class UpcomingShowsTests(TestCase):
             raw_date='06-01-2023',
             year=2023,
             venue=self.venue,
-            primary_artist='Rush',
+            primary_artist=self.art_rush,
             raw_artists='Rush'
         )
         ConcertArtist.objects.create(concert=c1, artist=self.art_rush, billing_order=0)
@@ -443,7 +443,7 @@ class UpcomingShowsTests(TestCase):
             raw_date='08-15-2024',
             year=2024,
             venue=self.venue,
-            primary_artist='Rush',
+            primary_artist=self.art_rush,
             raw_artists='Rush, Yes'
         )
         ConcertArtist.objects.create(concert=c2, artist=self.art_rush, billing_order=0)
@@ -674,7 +674,7 @@ class UpcomingShowsTests(TestCase):
 
         # Check pre-added Concert in DB
         pre_added_concert = Concert.objects.get(id=data['concert_id'])
-        self.assertEqual(pre_added_concert.primary_artist, 'Rush')
+        self.assertEqual(pre_added_concert.primary_artist, self.art_rush)
         self.assertEqual(pre_added_concert.source, 'setlistfm')
         self.assertFalse(pre_added_concert.is_custom_offline)
         self.assertEqual(pre_added_concert.date.strftime("%Y-%m-%d"), future_date)

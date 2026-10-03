@@ -270,8 +270,8 @@ def get_user_seen_artists_summary(user) -> List[Dict[str, Any]]:
                     seen_in_concert.add(a_name.lower())
                     artist_counts[a_name] = artist_counts.get(a_name, 0) + 1
         
-        if c.primary_artist:
-            p_name = c.primary_artist.strip()
+        if c.primary_artist and c.primary_artist.name:
+            p_name = c.primary_artist.name.strip()
             if p_name and p_name.lower() not in seen_in_concert:
                 artist_counts[p_name] = artist_counts.get(p_name, 0) + 1
     
@@ -355,9 +355,9 @@ def get_upcoming_shows_for_user(user, force_refresh: bool = False, limit: int = 
         for tc in tracked_concerts:
             if tc.date:
                 d_iso = tc.date.strftime("%Y-%m-%d")
-                if tc.primary_artist:
-                    tracked_set.add((normalize_artist_name(tc.primary_artist), d_iso))
-                    tracked_set.add((tc.primary_artist.strip().lower(), d_iso))
+                if tc.primary_artist and tc.primary_artist.name:
+                    tracked_set.add((normalize_artist_name(tc.primary_artist.name), d_iso))
+                    tracked_set.add((tc.primary_artist.name.strip().lower(), d_iso))
                 for ca in tc.artists.all():
                     if ca.artist and ca.artist.name:
                         tracked_set.add((normalize_artist_name(ca.artist.name), d_iso))

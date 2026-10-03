@@ -35,7 +35,7 @@ class DemoCachePopulationTests(TestCase):
         self.artist = Artist.objects.create(
             name="Rush",
             normalized_name="rush",
-            mbid="53b106e7-0cc2-4270-ac5f-7baaa6dba4e2"
+            id="53b106e7-0cc2-4270-ac5f-7baaa6dba4e2"
         )
 
         MusicianTenure.objects.create(
@@ -76,7 +76,7 @@ class DemoCachePopulationTests(TestCase):
             raw_date="06/25/2015",
             year=2015,
             venue=self.venue,
-            primary_artist="Rush",
+            primary_artist=self.artist,
             raw_artists="Rush",
             source="setlistfm",
             is_favorite=True
@@ -143,10 +143,11 @@ class DemoCachePopulationTests(TestCase):
         # Create other users to advance sequence
         for i in range(5):
             u_dummy = User.objects.create_user(username=f"dummy_{i}", password="pw")
+            dummy_artist, _ = Artist.get_or_create_artist(f"Band {i}")
             Concert.objects.create(
                 user=u_dummy,
                 raw_date="01/01/2020",
-                primary_artist=f"Band {i}"
+                primary_artist=dummy_artist
             )
 
         res = populate_user_data_from_cache(cache_input=cache_data, target_username="seeded_target_user")
@@ -160,7 +161,7 @@ class DemoCachePopulationTests(TestCase):
         user_concerts = Concert.objects.filter(user=seeded_user)
         self.assertEqual(user_concerts.count(), 1)
         c = user_concerts.first()
-        self.assertEqual(c.primary_artist, "Rush")
+        self.assertEqual(c.primary_artist.name, "Rush")
         self.assertEqual(c.venue.name, "Merriweather Post Pavilion")
 
         ca = c.artists.first()

@@ -85,7 +85,7 @@ def export_user_data_to_cache(
         ca_entries = []
         for ca in c.artists.all():
             art = ca.artist
-            art_name = art.name if art else c.primary_artist
+            art_name = art.name if art else (c.primary_artist.name if c.primary_artist else c.raw_artists)
             if art:
                 art_key = art.normalized_name or normalize_artist_name(art.name)
                 if art_key not in artists_dict:
@@ -156,7 +156,7 @@ def export_user_data_to_cache(
             "year": c.year,
             "venue_name": c.raw_venue or (v.name if v else ""),
             "venue": v_data,
-            "primary_artist": c.primary_artist,
+            "primary_artist": c.primary_artist.name if c.primary_artist else (c.raw_artists or ""),
             "raw_artists": c.raw_artists,
             "seen_before": c.seen_before,
             "notes": c.notes,
@@ -315,9 +315,6 @@ def populate_user_data_from_cache(
             if norm_k not in artists_cache:
                 art_obj, _ = Artist.get_or_create_artist(raw_art_name)
                 if art_obj:
-                    if a_entry.get("mbid"):
-                        art_obj.mbid = a_entry.get("mbid")
-                        art_obj.save(using=database, update_fields=['mbid'])
                     artists_cache[norm_k] = art_obj
                     stats["artists_created"] += 1
 
@@ -379,7 +376,7 @@ def populate_user_data_from_cache(
         # 5. Ingest Concerts & Setlists
         songs_cache = {}
         existing_user_concerts = {
-            (c.date.strftime("%Y-%m-%d") if c.date else c.raw_date, (c.primary_artist or "").lower().strip())
+            (c.date.strftime("%Y-%m-%d") if c.date else c.raw_date, (c.primary_artist.name if c.primary_artist else c.raw_artists or "").lower().strip())
             for c in Concert.objects.using(database).filter(user=user)
         }
 
@@ -418,6 +415,15 @@ def populate_user_data_from_cache(
                     )
                     venues_cache[v_low] = v_obj
 
+            prim_art_obj = None
+            if prim_art:
+                prim_norm = normalize_artist_name(prim_art) or prim_art.lower()
+                prim_art_obj = artists_cache.get(prim_norm)
+                if not prim_art_obj:
+                    prim_art_obj, _ = Artist.get_or_create_artist(prim_art)
+                    if prim_art_obj:
+                        artists_cache[prim_norm] = prim_art_obj
+
             concert = Concert.objects.using(database).create(
                 user=user,
                 date=date_obj,
@@ -425,7 +431,7 @@ def populate_user_data_from_cache(
                 year=c_entry.get("year"),
                 venue=v_obj,
                 raw_venue=v_name,
-                primary_artist=prim_art,
+                primary_artist=prim_art_obj,
                 raw_artists=c_entry.get("raw_artists") or prim_art,
                 seen_before=c_entry.get("seen_before", ""),
                 notes=c_entry.get("notes", ""),

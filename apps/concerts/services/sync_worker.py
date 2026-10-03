@@ -183,7 +183,7 @@ class SyncWorker:
                     "artists": artist_names,
                     "artist_favorites": artist_favorites,
                     "artist_ca_ids": artist_ca_ids,
-                    "primary_artist": c.primary_artist or (artist_names[0] if artist_names else ""),
+                    "primary_artist": c.primary_artist.name if c.primary_artist else (artist_names[0] if artist_names else ""),
                     "supporting_artists": ", ".join(artist_names[1:]) if len(artist_names) > 1 else "",
                     "venue": c.raw_venue or (c.venue.name if c.venue else ""),
                     "city": c.venue.city if c.venue else "",

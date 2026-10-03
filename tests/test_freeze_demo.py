@@ -30,7 +30,7 @@ class FreezeDemoCommandTests(TestCase):
             raw_date='06/15/2015',
             year=2015,
             venue=venue,
-            primary_artist='Rush',
+            primary_artist=artist,
             raw_artists='Rush'
         )
         ConcertArtist.objects.create(concert=concert, artist=artist, billing_order=0)

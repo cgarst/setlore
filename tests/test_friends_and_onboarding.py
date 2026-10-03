@@ -19,7 +19,7 @@ class FriendsAndOnboardingTests(TestCase):
             raw_date='10/24/2023',
             year=2023,
             venue=venue,
-            primary_artist='Foo Fighters'
+            primary_artist=artist
         )
 
     def test_onboarding_content_matches_modal_guidance(self):
@@ -130,22 +130,24 @@ class FriendsAndOnboardingTests(TestCase):
     def test_co_attended_concerts_calculation_and_rendering(self):
         # Alice and Bob both attended Foo Fighters at 9:30 Club on 10/24/2023
         venue = Venue.objects.get(name='9:30 Club')
+        art_foo = Artist.objects.get(name='Foo Fighters')
         Concert.objects.create(
             user=self.user2,
             raw_date='10/24/2023',
             year=2023,
             venue=venue,
-            primary_artist='Foo Fighters'
+            primary_artist=art_foo
         )
 
         # Charlie only attended Iron Maiden
         venue2 = Venue.objects.create(name='Capital One Arena', city='Washington', state='DC')
+        art_maiden = Artist.objects.create(name='Iron Maiden', normalized_name='iron maiden')
         Concert.objects.create(
             user=self.user3,
             raw_date='11/12/2024',
             year=2024,
             venue=venue2,
-            primary_artist='Iron Maiden'
+            primary_artist=art_maiden
         )
 
         # Mutual friendship between Alice and Bob

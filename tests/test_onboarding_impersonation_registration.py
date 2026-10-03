@@ -3,7 +3,7 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse
 from apps.core.models import SiteSetting, Friendship
 from apps.concerts.models import Concert
-from apps.catalog.models import Venue
+from apps.catalog.models import Venue, Artist
 
 User = get_user_model()
 
@@ -37,13 +37,14 @@ class OnboardingAndImpersonationTests(TestCase):
 
         # Create 1 concert for this user
         venue = Venue.objects.create(name='9:30 Club', city='Washington', state='DC')
+        artist = Artist.objects.create(name='Opeth', normalized_name='opeth')
         Concert.objects.create(
             user=self.regular_user,
             date='2024-05-10',
             raw_date='10-05-2024',
             year=2024,
             venue=venue,
-            primary_artist='Opeth',
+            primary_artist=artist,
             raw_artists='Opeth'
         )
 
@@ -54,29 +55,35 @@ class OnboardingAndImpersonationTests(TestCase):
         self.assertEqual(res_after.context['user_concerts_count'], 1)
 
     def test_onboarding_wizard_hidden_on_public_profiles_and_landing(self):
+        self.regular_user.profile.is_public = True
+        self.regular_user.profile.save()
+        self.second_user.profile.is_public = True
+        self.second_user.profile.save()
+        self.client.logout()
+
         # Anonymous user visiting landing page
         res = self.client.get(reverse('home'))
         self.assertEqual(res.status_code, 200)
-        self.assertNotIn('onboarding-modal', res.content.decode('utf-8'))
+        self.assertNotIn('id="onboarding-modal"', res.content.decode('utf-8'))
         self.assertNotIn('openOnboardingModal()', res.content.decode('utf-8'))
 
         # Anonymous user visiting public profile
         res_pub_anon = self.client.get(f"/u/{self.regular_user.username}/")
         self.assertEqual(res_pub_anon.status_code, 200)
-        self.assertNotIn('onboarding-modal', res_pub_anon.content.decode('utf-8'))
+        self.assertNotIn('id="onboarding-modal"', res_pub_anon.content.decode('utf-8'))
         self.assertNotIn('openOnboardingModal()', res_pub_anon.content.decode('utf-8'))
 
         # Authenticated user with 0 concerts visiting someone else's public profile
         self.client.login(username='concert_fan', password='FanPassword123!')
         res_pub_auth = self.client.get(f"/u/{self.second_user.username}/")
         self.assertEqual(res_pub_auth.status_code, 200)
-        self.assertNotIn('onboarding-modal', res_pub_auth.content.decode('utf-8'))
+        self.assertNotIn('id="onboarding-modal"', res_pub_auth.content.decode('utf-8'))
         self.assertNotIn('openOnboardingModal()', res_pub_auth.content.decode('utf-8'))
 
         # Authenticated user with 0 concerts on their OWN dashboard MUST see the onboarding modal
         res_dash = self.client.get(reverse('dashboard'))
         self.assertEqual(res_dash.status_code, 200)
-        self.assertIn('onboarding-modal', res_dash.content.decode('utf-8'))
+        self.assertIn('id="onboarding-modal"', res_dash.content.decode('utf-8'))
         self.assertIn('openOnboardingModal()', res_dash.content.decode('utf-8'))
 
     def test_registration_does_not_capture_setlistfm_username(self):

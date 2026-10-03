@@ -8,7 +8,7 @@ class Concert(models.Model):
     year = models.IntegerField(null=True, blank=True, db_index=True)
     venue = models.ForeignKey('catalog.Venue', on_delete=models.SET_NULL, null=True, blank=True, related_name='concerts')
     raw_venue = models.CharField(max_length=255, blank=True, default='')
-    primary_artist = models.CharField(max_length=255)
+    primary_artist = models.ForeignKey('catalog.Artist', on_delete=models.SET_NULL, null=True, blank=True, related_name='headlined_concerts')
     raw_artists = models.CharField(max_length=500)
     seen_before = models.CharField(max_length=255, blank=True, default='')
     notes = models.TextField(blank=True, default='')
@@ -33,7 +33,8 @@ class Concert(models.Model):
 
     def __str__(self):
         d_str = self.date.strftime("%m-%d-%Y") if self.date else self.raw_date
-        return f"{d_str}: {self.primary_artist} @ {self.venue.name if self.venue else self.raw_venue}"
+        art_name = self.primary_artist.name if self.primary_artist else self.raw_artists
+        return f"{d_str}: {art_name} @ {self.venue.name if self.venue else self.raw_venue}"
 
 from src.id_utils import generate_offline_concert_artist_id, is_offline_id
 
@@ -59,10 +60,7 @@ class ConcertArtist(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.id:
-            if self.setlistfm_id:
-                self.id = self.setlistfm_id
-            else:
-                self.id = generate_offline_concert_artist_id(self.concert_id, self.artist_id)
+            self.id = generate_offline_concert_artist_id(self.concert_id, self.artist_id)
         super().save(*args, **kwargs)
 
 class ConcertSong(models.Model):

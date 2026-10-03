@@ -528,7 +528,7 @@ def import_setlistfm_shows_into_database(user, user_attended: List[Dict[str, Any
                     year=year,
                     venue=venue_obj,
                     raw_venue=v_name,
-                    primary_artist=art_obj.name,
+                    primary_artist=art_obj,
                     raw_artists=art_obj.name,
                     source='setlistfm',
                     is_custom_offline=False

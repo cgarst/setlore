@@ -190,6 +190,16 @@ class Command(BaseCommand):
                                         }
                                     )
 
+                            prim_art_name = rec.get("primary_artist", "")
+                            prim_art_obj = None
+                            if prim_art_name:
+                                canonical_prim = normalize_artist_name(prim_art_name) or prim_art_name
+                                prim_art_obj, _ = Artist.get_or_create_artist(canonical_prim)
+                            elif rec.get("artists"):
+                                first_art = rec.get("artists")[0]
+                                canonical_prim = normalize_artist_name(first_art) or first_art
+                                prim_art_obj, _ = Artist.get_or_create_artist(canonical_prim)
+
                             concert = Concert.objects.create(
                                 user=user,
                                 date=dt.date() if dt else None,
@@ -197,7 +207,7 @@ class Command(BaseCommand):
                                 year=rec.get("year"),
                                 venue=venue_obj,
                                 raw_venue=venue_str,
-                                primary_artist=rec.get("primary_artist", ""),
+                                primary_artist=prim_art_obj,
                                 raw_artists=rec.get("raw_artists", ""),
                                 seen_before="",
                                 notes=""
