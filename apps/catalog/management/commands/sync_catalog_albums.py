@@ -52,24 +52,34 @@ class Command(BaseCommand):
                 if rg_mbid:
                     existing_mbid_alb = Album.objects.filter(id=rg_mbid).first()
                     if not existing_mbid_alb:
+                        saved_songs = list(Song.objects.filter(album=alb))
+                        artist_ref = alb.artist
+                        title_ref = alb.title
+                        clean_ref = alb.clean_title
+                        year_ref = alb.release_year
+                        type_ref = alb.album_type
+                        alb.delete()
                         new_alb = Album.objects.create(
                             id=rg_mbid,
-                            artist=alb.artist,
-                            title=alb.title,
-                            clean_title=alb.clean_title,
-                            release_year=alb.release_year,
-                            album_type=alb.album_type,
+                            artist=artist_ref,
+                            title=title_ref,
+                            clean_title=clean_ref,
+                            release_year=year_ref,
+                            album_type=type_ref,
                             mbid=rg_mbid,
                             is_custom_offline=False
                         )
+                        for s in saved_songs:
+                            s.album = new_alb
+                            s.save(update_fields=['album'])
                     else:
                         new_alb = existing_mbid_alb
                         if alb.release_year and not new_alb.release_year:
                             new_alb.release_year = alb.release_year
                             new_alb.save(update_fields=['release_year'])
-                    Song.objects.filter(album=alb).update(album=new_alb)
-                    if alb.id != new_alb.id:
-                        alb.delete()
+                        Song.objects.filter(album=alb).update(album=new_alb)
+                        if alb.id != new_alb.id:
+                            alb.delete()
                     resolved_count += 1
                 if idx % 10 == 0 or idx == total_off:
                     self.stdout.write(f"  [{idx}/{total_off}] Resolved {resolved_count} album MBIDs...")

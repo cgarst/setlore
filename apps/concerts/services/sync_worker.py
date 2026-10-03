@@ -449,24 +449,34 @@ class SyncWorker:
                     if alb_mbid and album_obj.id != alb_mbid:
                         existing_mbid_alb = Album.objects.filter(id=alb_mbid).first()
                         if not existing_mbid_alb:
+                            saved_songs = list(Song.objects.filter(album=album_obj))
+                            artist_ref = album_obj.artist
+                            title_ref = album_obj.title
+                            clean_ref = album_obj.clean_title
+                            year_ref = rel_year or album_obj.release_year
+                            type_ref = album_obj.album_type
+                            album_obj.delete()
                             new_alb = Album.objects.create(
                                 id=alb_mbid,
-                                artist=album_obj.artist,
-                                title=album_obj.title,
-                                clean_title=album_obj.clean_title,
-                                release_year=rel_year or album_obj.release_year,
-                                album_type=album_obj.album_type,
+                                artist=artist_ref,
+                                title=title_ref,
+                                clean_title=clean_ref,
+                                release_year=year_ref,
+                                album_type=type_ref,
                                 mbid=alb_mbid,
                                 is_custom_offline=False
                             )
+                            for s in saved_songs:
+                                s.album = new_alb
+                                s.save(update_fields=['album'])
                         else:
                             new_alb = existing_mbid_alb
                             if rel_year and not new_alb.release_year:
                                 new_alb.release_year = rel_year
                                 new_alb.save(update_fields=['release_year'])
-                        Song.objects.filter(album=album_obj).update(album=new_alb)
-                        if album_obj.id != new_alb.id:
-                            album_obj.delete()
+                            Song.objects.filter(album=album_obj).update(album=new_alb)
+                            if album_obj.id != new_alb.id:
+                                album_obj.delete()
                         album_obj = new_alb
                         albums_cache[(art_obj.id, clean_alb_key)] = album_obj
                     else:
