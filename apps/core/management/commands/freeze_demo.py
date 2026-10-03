@@ -595,7 +595,7 @@ class Command(BaseCommand):
                             }
                         }
                     """)
-                    page.wait_for_timeout(600)
+                    page.wait_for_timeout(3000)
                     try:
                         page.wait_for_function(
                             f"""
