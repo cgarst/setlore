@@ -443,64 +443,14 @@ class SyncWorker:
 
             if alb_title and alb_title != "Non-Album / Singles" and alb_title.lower() != "covers":
                 clean_alb_key = alb_title.lower().strip()
-                album_obj = albums_cache.get((art_obj.id, clean_alb_key))
-                if not album_obj:
-                    alb_defaults = {
-                        'title': alb_title,
-                        'release_year': rel_year,
-                    }
-                    if alb_mbid:
-                        alb_defaults['id'] = alb_mbid
-                        alb_defaults['mbid'] = alb_mbid
-
-                    album_obj, _ = Album.objects.get_or_create(
-                        artist=art_obj,
-                        clean_title=clean_alb_key,
-                        defaults=alb_defaults
-                    )
-                    albums_cache[(art_obj.id, clean_alb_key)] = album_obj
-                else:
-                    if alb_mbid and album_obj.id != alb_mbid:
-                        existing_mbid_alb = Album.objects.filter(id=alb_mbid).first()
-                        if not existing_mbid_alb:
-                            saved_songs = list(Song.objects.filter(album=album_obj))
-                            artist_ref = album_obj.artist
-                            title_ref = album_obj.title
-                            clean_ref = album_obj.clean_title
-                            year_ref = rel_year or album_obj.release_year
-                            type_ref = album_obj.album_type
-                            album_obj.delete()
-                            new_alb = Album.objects.create(
-                                id=alb_mbid,
-                                artist=artist_ref,
-                                title=title_ref,
-                                clean_title=clean_ref,
-                                release_year=year_ref,
-                                album_type=type_ref,
-                                is_custom_offline=False
-                            )
-                            for s in saved_songs:
-                                s.album = new_alb
-                                s.save(update_fields=['album'])
-                        else:
-                            new_alb = existing_mbid_alb
-                            if rel_year and not new_alb.release_year:
-                                new_alb.release_year = rel_year
-                                new_alb.save(update_fields=['release_year'])
-                            Song.objects.filter(album=album_obj).update(album=new_alb)
-                            if album_obj.id != new_alb.id:
-                                album_obj.delete()
-                        album_obj = new_alb
-                        albums_cache[(art_obj.id, clean_alb_key)] = album_obj
-                    else:
-                        updated_fields = []
-                        if rel_year and not album_obj.release_year:
-                            album_obj.release_year = rel_year
-                            updated_fields.append('release_year')
-                        if updated_fields:
-                            album_obj.save(update_fields=updated_fields)
-
-                song_obj.album = album_obj
+                album_obj, _ = Album.get_or_create_album(
+                    artist=art_obj,
+                    title=alb_title,
+                    mbid=alb_mbid,
+                    release_year=rel_year
+                )
+                if album_obj:
+                    song_obj.album = album_obj
 
             if rel_year and not song_obj.release_year:
                 song_obj.release_year = rel_year

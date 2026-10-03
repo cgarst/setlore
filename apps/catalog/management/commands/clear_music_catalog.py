@@ -103,23 +103,15 @@ class Command(BaseCommand):
                 rel_year = info.get("release_year")
                 alb_mbid = info.get("mbid")
                 rec_mbid = info.get("recording_id")
-                if alb_title and alb_title != "Non-Album / Singles":
-                    clean_alb_key = alb_title.lower().strip()
+                if alb_title and alb_title != "Non-Album / Singles" and alb_title.lower() != "covers":
                     art_obj = Artist.objects.filter(name__iexact=art_name).first()
                     if art_obj:
-                        alb_obj, _ = Album.objects.get_or_create(
+                        alb_obj, _ = Album.get_or_create_album(
                             artist=art_obj,
-                            clean_title=clean_alb_key,
-                            defaults={
-                                'id': alb_mbid or None,
-                                'title': alb_title,
-                                'release_year': rel_year,
-                                'mbid': alb_mbid
-                            }
+                            title=alb_title,
+                            mbid=alb_mbid,
+                            release_year=rel_year
                         )
-                        if rel_year and not alb_obj.release_year:
-                            alb_obj.release_year = rel_year
-                            alb_obj.save(update_fields=['release_year'])
                         Song.objects.filter(artist=art_obj, clean_title=s_name.lower().strip()).update(
                             album=alb_obj,
                             release_year=rel_year,

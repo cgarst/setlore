@@ -201,3 +201,78 @@ class MusicBrainzDumpTests(TestCase):
         self.assertIn('already current', msg)
 
 
+class AlbumGetOrCreateTests(TestCase):
+    def setUp(self):
+        from apps.catalog.models import Artist, Album, Song
+        self.artist = Artist.objects.create(name='Test Band', normalized_name='test band')
+
+    def test_create_offline_album(self):
+        from apps.catalog.models import Album
+        album, created = Album.get_or_create_album(
+            artist=self.artist,
+            title='First Album',
+            release_year=1990
+        )
+        self.assertTrue(created)
+        self.assertTrue(album.id.startswith('offline:album:'))
+        self.assertEqual(album.title, 'First Album')
+        self.assertEqual(album.release_year, 1990)
+
+    def test_upgrade_offline_album_to_mbid(self):
+        from apps.catalog.models import Album, Song
+        mbid = 'a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d'
+        offline_alb, created = Album.get_or_create_album(
+            artist=self.artist,
+            title='Second Album',
+            release_year=1995
+        )
+        self.assertTrue(created)
+        self.assertTrue(offline_alb.id.startswith('offline:album:'))
+
+        # Create a song linked to this offline album
+        song = Song.objects.create(artist=self.artist, title='Track 1', clean_title='track 1', album=offline_alb)
+
+        # Re-resolve with MBID
+        upgraded_alb, upgraded_created = Album.get_or_create_album(
+            artist=self.artist,
+            title='Second Album',
+            mbid=mbid,
+            release_year=1995
+        )
+        self.assertFalse(upgraded_created)
+        self.assertEqual(upgraded_alb.id, mbid)
+        song.refresh_from_db()
+        self.assertEqual(song.album_id, mbid)
+
+    def test_merge_offline_album_into_existing_mbid_album(self):
+        from apps.catalog.models import Album, Song
+        mbid = 'b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e'
+        existing_mbid_alb = Album.objects.create(
+            id=mbid,
+            artist=self.artist,
+            title='Third Album (Deluxe)',
+            clean_title='third album (deluxe)',
+            release_year=2000
+        )
+
+        offline_alb = Album.objects.create(
+            artist=self.artist,
+            title='Third Album',
+            clean_title='third album',
+            release_year=2000
+        )
+        song = Song.objects.create(artist=self.artist, title='Hit Song', clean_title='hit song', album=offline_alb)
+
+        # Resolving 'Third Album' with the existing MBID should merge offline_alb into existing_mbid_alb
+        resolved_alb, created = Album.get_or_create_album(
+            artist=self.artist,
+            title='Third Album',
+            mbid=mbid
+        )
+        self.assertFalse(created)
+        self.assertEqual(resolved_alb.id, mbid)
+        self.assertFalse(Album.objects.filter(id=offline_alb.id).exists())
+        song.refresh_from_db()
+        self.assertEqual(song.album_id, mbid)
+
+

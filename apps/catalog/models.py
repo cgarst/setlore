@@ -123,6 +123,99 @@ class Album(models.Model):
         self.is_custom_offline = is_offline_id(self.id)
         super().save(*args, **kwargs)
 
+    @classmethod
+    def get_or_create_album(cls, artist, title: str, mbid: str = None, release_year: int = None, album_type: str = 'album'):
+        from apps.catalog.models import Song
+        if not title:
+            return None, False
+        clean_title = title.lower().strip()
+
+        # 1. Check if an album with id=mbid already exists
+        mbid_album = None
+        if mbid:
+            mbid_album = cls.objects.filter(id=mbid).first()
+
+        # 2. Check if an album with (artist, clean_title) already exists
+        title_album = cls.objects.filter(artist=artist, clean_title=clean_title).first()
+
+        # 3. Handle both existing
+        if mbid_album and title_album:
+            if mbid_album.id == title_album.id:
+                if release_year and not mbid_album.release_year:
+                    mbid_album.release_year = release_year
+                    mbid_album.save(update_fields=['release_year'])
+                return mbid_album, False
+            else:
+                # Merge title_album into mbid_album
+                Song.objects.filter(album=title_album).update(album=mbid_album)
+                title_album.delete()
+                if release_year and not mbid_album.release_year:
+                    mbid_album.release_year = release_year
+                    mbid_album.save(update_fields=['release_year'])
+                return mbid_album, False
+
+        # 4. Handle only mbid_album existing
+        if mbid_album:
+            if release_year and not mbid_album.release_year:
+                mbid_album.release_year = release_year
+                mbid_album.save(update_fields=['release_year'])
+            return mbid_album, False
+
+        # 5. Handle only title_album existing
+        if title_album:
+            if mbid and title_album.id != mbid:
+                # Re-key title_album to mbid
+                try:
+                    saved_songs = list(Song.objects.filter(album=title_album))
+                    artist_ref = title_album.artist
+                    title_ref = title_album.title
+                    clean_ref = title_album.clean_title
+                    year_ref = release_year or title_album.release_year
+                    type_ref = album_type or title_album.album_type
+                    title_album.delete()
+                    new_alb = cls.objects.create(
+                        id=mbid,
+                        artist=artist_ref,
+                        title=title_ref,
+                        clean_title=clean_ref,
+                        release_year=year_ref,
+                        album_type=type_ref,
+                        is_custom_offline=False
+                    )
+                    for s in saved_songs:
+                        s.album = new_alb
+                        s.save(update_fields=['album'])
+                    return new_alb, False
+                except Exception:
+                    existing = cls.objects.filter(id=mbid).first() or cls.objects.filter(artist=artist, clean_title=clean_title).first()
+                    if existing:
+                        return existing, False
+                    raise
+            else:
+                if release_year and not title_album.release_year:
+                    title_album.release_year = release_year
+                    title_album.save(update_fields=['release_year'])
+                return title_album, False
+
+        # 6. Neither exists -> create
+        target_id = mbid or generate_offline_album_id(artist.id, clean_title)
+        try:
+            new_alb = cls.objects.create(
+                id=target_id,
+                artist=artist,
+                title=title,
+                clean_title=clean_title,
+                release_year=release_year,
+                album_type=album_type or 'album',
+                is_custom_offline=is_offline_id(target_id)
+            )
+            return new_alb, True
+        except Exception:
+            existing = cls.objects.filter(id=target_id).first() or cls.objects.filter(artist=artist, clean_title=clean_title).first()
+            if existing:
+                return existing, False
+            raise
+
 
 class Song(models.Model):
     id = models.CharField(max_length=64, primary_key=True, help_text="MusicBrainz Recording MBID or offline:song:<uuid>")

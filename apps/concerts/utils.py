@@ -805,20 +805,16 @@ def sync_single_concert(concert, user=None, client=None, force_refresh=True) -> 
                     if song_obj:
                         alb_title = info.get("album")
                         rel_year = info.get("release_year")
-                        if alb_title and alb_title != "Non-Album / Singles":
-                            clean_alb_key = alb_title.lower().strip()
-                            album_obj, _ = Album.objects.get_or_create(
+                        if alb_title and alb_title != "Non-Album / Singles" and alb_title.lower() != "covers":
+                            alb_mbid = info.get("mbid") or info.get("release_group_mbid")
+                            album_obj, _ = Album.get_or_create_album(
                                 artist=song_obj.artist,
-                                clean_title=clean_alb_key,
-                                defaults={
-                                    'title': alb_title,
-                                    'release_year': rel_year
-                                }
+                                title=alb_title,
+                                mbid=alb_mbid,
+                                release_year=rel_year
                             )
-                            if rel_year and not album_obj.release_year:
-                                album_obj.release_year = rel_year
-                                album_obj.save(update_fields=['release_year'])
-                            song_obj.album = album_obj
+                            if album_obj:
+                                song_obj.album = album_obj
                         if rel_year and not song_obj.release_year:
                             song_obj.release_year = rel_year
                         song_obj.save()
