@@ -35,17 +35,27 @@ class SyncWorker:
                 cls._instance._queue = queue.Queue()
                 cls._instance._queued_user_ids = set()
                 cls._instance._cancelled_user_ids = set()
-                is_testing = 'test' in sys.argv
-                if not is_testing:
-                    cls._instance._thread = threading.Thread(target=cls._instance._worker_loop, daemon=True)
-                    cls._instance._thread.start()
+                cls._instance._thread = None
+                # Auto-start worker thread and resume interrupted syncs only in server processes
+                is_server = any(srv in arg for arg in sys.argv for srv in ['runserver', 'gunicorn', 'uvicorn', 'daphne', 'asgi', 'wsgi'])
+                if is_server:
+                    cls._instance._ensure_thread_running()
         return cls._instance
+
+    def _ensure_thread_running(self):
+        with self._lock:
+            if self._thread is None or not self._thread.is_alive():
+                self._thread = threading.Thread(target=self._worker_loop, daemon=True)
+                self._thread.start()
 
     def resume_interrupted_syncs(self):
         """
         Scans for user profiles that were marked as 'syncing' when the server last stopped
         or restarted, and enqueues them to continue processing automatically.
         """
+        import sys
+        if 'test' in sys.argv:
+            return
         try:
             interrupted = list(UserProfile.objects.filter(sync_status='syncing').values_list('user_id', flat=True))
             for uid in interrupted:
@@ -71,6 +81,10 @@ class SyncWorker:
             pass
 
     def enqueue_sync(self, user_id: int):
+        import sys
+        if 'test' in sys.argv:
+            return
+        self._ensure_thread_running()
         with self._lock:
             self._cancelled_user_ids.discard(user_id)
             if user_id in self._queued_user_ids:

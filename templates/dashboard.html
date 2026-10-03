@@ -5546,8 +5546,8 @@
         <div class="glass-card p-5 flex items-center justify-between">
           <div>
             <p class="text-xs uppercase font-semibold text-slate-400">MusicBrainz Catalog</p>
-            <p class="text-2xl font-bold {% if gap.mb_resolution_stats.unresolved_songs > 0 %}text-amber-400{% else %}text-emerald-400{% endif %} mt-1">{{ gap.mb_resolution_stats.resolution_percentage|default:"0" }}%</p>
-            <p class="text-xs text-slate-500 mt-1">{{ gap.mb_resolution_stats.unresolved_songs|intcomma }} unresolved songs</p>
+            <p class="text-2xl font-bold {% if gap.mb_resolution_stats.unresolved_songs > 0 or gap.mb_artist_resolution_stats.unresolved_artists > 0 %}text-amber-400{% else %}text-emerald-400{% endif %} mt-1">{{ gap.mb_resolution_stats.resolution_percentage|default:"0" }}%</p>
+            <p class="text-xs text-slate-500 mt-1">{% if gap.mb_artist_resolution_stats.unresolved_artists %}{{ gap.mb_artist_resolution_stats.unresolved_artists|intcomma }} artist{% if gap.mb_artist_resolution_stats.unresolved_artists != 1 %}s{% endif %} &bull; {% endif %}{{ gap.mb_resolution_stats.unresolved_songs|intcomma }} unresolved song{% if gap.mb_resolution_stats.unresolved_songs != 1 %}s{% endif %}</p>
           </div>
           <div class="w-10 h-10 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center"><i class="fa-solid fa-compact-disc"></i></div>
         </div>
@@ -5661,6 +5661,81 @@
                     {% endfor %}
                   </td>
 
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- MusicBrainz Catalog Unresolved Artists Audit Section -->
+      <div class="glass-card p-6">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+          <div>
+            <h2 class="text-lg font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-users text-amber-400"></i> Artists Pending MusicBrainz Catalog Resolution
+            </h2>
+            <p class="text-xs text-slate-400 mt-1">Concert artists heard live that could not be matched to an official artist entry in the MusicBrainz catalog (assigned offline identifiers).</p>
+          </div>
+
+          <!-- Quick Filters & Search -->
+          <div class="flex items-center gap-3 flex-wrap">
+            <span class="px-3 py-1 text-xs font-semibold rounded-lg bg-amber-500/10 text-amber-300 border border-amber-500/20">
+              {{ gap.mb_artist_resolution_stats.unresolved_artists|default:0|intcomma }} Unresolved ({{ gap.mb_artist_resolution_stats.resolution_percentage|default:"0" }}% Resolved)
+            </span>
+            <div class="relative">
+              <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-500 text-xs"></i>
+              <input type="text" id="mb-unresolved-artists-search" onkeyup="filterMbUnresolvedArtistsTable()" placeholder="Filter artist name..." class="pl-8 pr-3 py-1.5 bg-slate-900/80 border border-slate-700/80 rounded-lg text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 w-48 md:w-60" />
+            </div>
+          </div>
+        </div>
+
+        {% if not gap.unresolved_mb_artists or gap.unresolved_mb_artists|length == 0 %}
+          <div class="p-8 text-center text-slate-400 bg-slate-800/40 rounded-xl">
+            <i class="fa-solid fa-circle-check text-emerald-400 text-3xl mb-2 block"></i>
+            <p class="text-base font-semibold text-white">100% MusicBrainz Artist Coverage</p>
+            <p class="text-xs text-slate-400 mt-1">All concert artists have been successfully matched to official entries in the MusicBrainz catalog.</p>
+          </div>
+        {% else %}
+          <div class="overflow-x-auto max-h-[520px]">
+            <table id="mb-unresolved-artists-table" class="w-full text-left text-sm text-slate-300">
+              <thead class="text-xs uppercase bg-slate-900/80 text-slate-400 sticky top-0 border-b border-slate-800">
+                <tr>
+                  <th class="px-4 py-3">Artist</th>
+                  <th class="px-4 py-3 text-center">Concerts Seen</th>
+                  <th class="px-4 py-3 text-center">Songs Heard</th>
+                  <th class="px-4 py-3">Last Seen</th>
+                  <th class="px-4 py-3 text-right">MusicBrainz Lookup</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800/60" id="mb-unresolved-artists-tbody">
+                {% for art in gap.unresolved_mb_artists %}
+                <tr class="hover:bg-slate-800/30 transition mb-unresolved-artist-row" data-artist="{{ art.artist|lower }}">
+                  <td class="px-4 py-3 font-medium text-white align-middle">
+                    <button onclick="jumpToArtistInDrilldown('{{ art.artist|escapejs }}')" class="hover:underline hover:text-indigo-300 text-left font-semibold text-white">
+                      {{ art.artist }}
+                    </button>
+                  </td>
+                  <td class="px-4 py-3 text-center align-middle">
+                    <span class="px-2 py-0.5 text-xs font-semibold rounded-md bg-slate-800 text-slate-300 border border-slate-700">
+                      {{ art.concert_count }}x
+                    </span>
+                  </td>
+                  <td class="px-4 py-3 text-center align-middle">
+                    <span class="px-2 py-0.5 text-xs font-semibold rounded-md bg-slate-800/60 text-slate-400 border border-slate-700/60">
+                      {{ art.total_plays }} track{% if art.total_plays != 1 %}s{% endif %}
+                    </span>
+                  </td>
+                  <td class="px-4 py-3 text-xs text-slate-400 align-middle">
+                    <span class="text-slate-300">{{ art.last_date }}</span>
+                    <span class="text-slate-500 text-[11px] block truncate max-w-xs">{{ art.last_venue }}</span>
+                  </td>
+                  <td class="px-4 py-3 text-right align-middle">
+                    <a href="{{ art.mb_search_url }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 rounded-lg text-xs font-semibold transition">
+                      <i class="fa-solid fa-magnifying-glass text-[10px]"></i> Search MB <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                    </a>
+                  </td>
                 </tr>
                 {% endfor %}
               </tbody>
@@ -8618,6 +8693,19 @@
         const art = r.getAttribute('data-artist') || '';
         const song = r.getAttribute('data-song') || '';
         if (!q || art.includes(q) || song.includes(q)) {
+          r.style.display = '';
+        } else {
+          r.style.display = 'none';
+        }
+      });
+    }
+
+    function filterMbUnresolvedArtistsTable() {
+      const q = (document.getElementById('mb-unresolved-artists-search')?.value || '').toLowerCase().trim();
+      const rows = document.querySelectorAll('.mb-unresolved-artist-row');
+      rows.forEach(r => {
+        const art = r.getAttribute('data-artist') || '';
+        if (!q || art.includes(q)) {
           r.style.display = '';
         } else {
           r.style.display = 'none';

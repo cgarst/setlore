@@ -27,6 +27,7 @@ from src.venue_mapper import generate_venue_map_data
 from src.musician_tracker import analyze_musicians_live, consolidate_musician_bands
 from src.config import SETLISTFM_API_KEY, CARTO_API_KEY, USER_CACHE_DIR, MB_CACHE_DIR
 from src.upcoming_events import get_upcoming_shows_for_user, get_user_seen_artists_summary
+from src.id_utils import is_offline_id
 from .services.sync_worker import sync_worker
 import unicodedata
 
@@ -293,6 +294,64 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
         "resolved_songs": resolved_count,
         "unresolved_songs": unresolved_count,
         "resolution_percentage": resolution_pct,
+    }
+
+    # Build Unresolved MusicBrainz Artists audit list from drilldown and catalog
+    artist_last_seen = {}
+    for c in stats.get("concerts_drilldown", []):
+        date_val = c.get("formatted_date") or c.get("date") or c.get("raw_date") or "Unknown"
+        venue_val = c.get("venue") or "Unknown Venue"
+        for a_data in c.get("artists", []):
+            a_name = a_data.get("artist")
+            if a_name and a_name.lower() not in artist_last_seen:
+                artist_last_seen[a_name.lower()] = {
+                    "date": date_val,
+                    "venue": venue_val
+                }
+
+    artists_db = {}
+    for a in Artist.objects.all():
+        artists_db[a.name.lower()] = a
+        if a.normalized_name:
+            artists_db[a.normalized_name.lower()] = a
+
+    unresolved_mb_artists = []
+    total_distinct_artists = len(drilldown)
+    resolved_artists_count = 0
+
+    for artist_name, art_data in drilldown.items():
+        art_obj = artists_db.get(artist_name.lower())
+        is_artist_resolved = bool(
+            art_obj and not art_obj.is_custom_offline and art_obj.mbid and not is_offline_id(art_obj.id)
+        )
+        if is_artist_resolved:
+            resolved_artists_count += 1
+        else:
+            last_info = artist_last_seen.get(artist_name.lower(), {})
+            concert_cnt = art_data.get("concert_count", 1)
+            total_pl = art_data.get("total_plays", 0)
+            uniq_songs = art_data.get("unique_songs", len(art_data.get("songs", [])))
+            encoded_art_q = urllib.parse.quote(f'artist:"{artist_name}"')
+            unresolved_mb_artists.append({
+                "artist": artist_name,
+                "concert_count": concert_cnt,
+                "total_plays": total_pl,
+                "unique_songs": uniq_songs,
+                "last_date": last_info.get("date", "Unknown"),
+                "last_venue": last_info.get("venue", "Unknown Venue"),
+                "mb_search_url": f"https://musicbrainz.org/search?query={encoded_art_q}&type=artist",
+            })
+
+    unresolved_mb_artists.sort(key=lambda x: (-x["concert_count"], -x["total_plays"], x["artist"].lower()))
+    unresolved_artists_count = len(unresolved_mb_artists)
+    artist_resolution_pct = round((resolved_artists_count / total_distinct_artists * 100), 1) if total_distinct_artists > 0 else 0.0
+
+    gap_results["unresolved_mb_artists"] = unresolved_mb_artists
+    gap_results["mb_artist_resolution_stats"] = {
+        "total_artists": total_distinct_artists,
+        "resolved_artists": resolved_artists_count,
+        "unresolved_artists": unresolved_artists_count,
+        "resolution_percentage": artist_resolution_pct,
     }
 
     # Cache this bundle so subsequent loads are instant
