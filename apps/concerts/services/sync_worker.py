@@ -30,12 +30,15 @@ class SyncWorker:
     def __new__(cls):
         with cls._lock:
             if cls._instance is None:
+                import sys
                 cls._instance = super().__new__(cls)
                 cls._instance._queue = queue.Queue()
                 cls._instance._queued_user_ids = set()
                 cls._instance._cancelled_user_ids = set()
-                cls._instance._thread = threading.Thread(target=cls._instance._worker_loop, daemon=True)
-                cls._instance._thread.start()
+                is_testing = 'test' in sys.argv
+                if not is_testing:
+                    cls._instance._thread = threading.Thread(target=cls._instance._worker_loop, daemon=True)
+                    cls._instance._thread.start()
         return cls._instance
 
     def resume_interrupted_syncs(self):
