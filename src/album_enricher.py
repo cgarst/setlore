@@ -240,6 +240,44 @@ class AlbumEnricher:
 
         return None, None
 
+    def _query_song_from_db(self, artist_name: str, song_name: str) -> Optional[Dict[str, Any]]:
+        """Queries the database Song and Album tables if Django is available."""
+        try:
+            from apps.catalog.models import Song
+            from src.csv_parser import normalize_artist_name
+
+            clean_song = clean_track_title(song_name).strip()
+            norm_art = normalize_artist_name(artist_name).strip()
+
+            song_obj = (
+                Song.objects.filter(
+                    artist__normalized_name=norm_art.lower(),
+                    clean_title__iexact=clean_song
+                ).select_related('artist', 'album').first()
+                or Song.objects.filter(
+                    artist__name__iexact=artist_name,
+                    title__iexact=song_name
+                ).select_related('artist', 'album').first()
+            )
+
+            if song_obj and song_obj.album:
+                alb = song_obj.album
+                rel_yr = song_obj.release_year or alb.release_year
+                return {
+                    "song": song_obj.title,
+                    "artist": song_obj.artist.name,
+                    "album": clean_album_title(alb.clean_title or alb.title),
+                    "release_year": rel_yr,
+                    "is_cover": song_obj.is_cover,
+                    "original_artist": song_obj.original_artist,
+                    "album_mbid": alb.mbid or (alb.id if not alb.is_custom_offline else None),
+                    "mbid": song_obj.mbid or (song_obj.id if not song_obj.is_custom_offline else None),
+                    "resolved": True
+                }
+        except Exception:
+            pass
+        return None
+
     def _is_valid_cache_entry(self, cached: Dict[str, Any], refresh_unresolved: bool = False) -> bool:
         """Returns False if cached entry has bad attributions or needs unresolved refresh."""
         if not cached:
@@ -258,7 +296,7 @@ class AlbumEnricher:
         return True
 
     def get_track_info(self, artist_name: str, song_name: str, song_obj: Optional[Dict[str, Any]] = None, refresh_unresolved: bool = False) -> Dict[str, Any]:
-        """Retrieves track studio album information dynamically from cache or MusicBrainz."""
+        """Retrieves track studio album information dynamically from database, cache, or MusicBrainz."""
         result = {
             "song": song_name,
             "artist": artist_name,
@@ -278,7 +316,14 @@ class AlbumEnricher:
             if song_obj.get("info"):
                 result["info"] = song_obj.get("info")
 
-        # Cache key
+        # 1. Check database first unless refresh_unresolved is forced
+        if not refresh_unresolved:
+            db_res = self._query_song_from_db(artist_name, song_name)
+            if db_res and self._is_valid_cache_entry(db_res, refresh_unresolved=refresh_unresolved):
+                result.update(db_res)
+                return result
+
+        # 2. Check disk cache
         cache_key = "".join(c if c.isalnum() else "_" for c in f"{artist_name}_{song_name}".lower())
         cache_file = MB_CACHE_DIR / f"{cache_key}.json"
 
@@ -293,7 +338,7 @@ class AlbumEnricher:
             except Exception:
                 pass
 
-        # Query MusicBrainz canonical studio database dynamically
+        # 3. Query MusicBrainz canonical studio database dynamically
         album_name, release_yr = self._query_musicbrainz_studio_album(artist_name, song_name)
 
         if album_name:
@@ -391,7 +436,7 @@ class AlbumEnricher:
     def load_cached_catalog(self, songs_list: List[Dict[str, Any]],
                             refresh_all: bool = False,
                             refresh_unresolved: bool = False) -> Tuple[Dict[str, Any], List[Tuple[str, str, str]], int]:
-        """Loads all existing cached album entries from disk without making any external API calls."""
+        """Loads all existing cached album entries from database and disk without making any external API calls."""
         unique_pairs = {}
         for item in songs_list:
             art = item.get("artist")
@@ -406,11 +451,50 @@ class AlbumEnricher:
         results: Dict[str, Any] = {}
         uncached = []
 
+        # 1. Batch load from database if available and not refresh_all
+        db_entries = {}
+        if not refresh_all:
+            try:
+                from apps.catalog.models import Song
+                from src.csv_parser import normalize_artist_name
+
+                db_songs = Song.objects.filter(album__isnull=False).select_related('artist', 'album')
+                for s_obj in db_songs:
+                    art_name = s_obj.artist.name
+                    song_title = s_obj.title
+                    alb = s_obj.album
+                    rel_yr = s_obj.release_year or alb.release_year
+                    entry = {
+                        "song": song_title,
+                        "artist": art_name,
+                        "album": clean_album_title(alb.clean_title or alb.title),
+                        "release_year": rel_yr,
+                        "is_cover": s_obj.is_cover,
+                        "original_artist": s_obj.original_artist,
+                        "album_mbid": alb.mbid or (alb.id if not alb.is_custom_offline else None),
+                        "mbid": s_obj.mbid or (s_obj.id if not s_obj.is_custom_offline else None),
+                        "resolved": True
+                    }
+                    k1 = f"{art_name}_{song_title}".lower()
+                    k2 = f"{normalize_artist_name(art_name)}_{clean_track_title(song_title)}".lower()
+                    db_entries[k1] = entry
+                    db_entries[k2] = entry
+            except Exception:
+                pass
+
         for key, (art, song) in unique_pairs.items():
             if refresh_all:
                 uncached.append((key, art, song))
                 continue
 
+            # 1. Check database entry
+            if key in db_entries:
+                db_entry = db_entries[key]
+                if self._is_valid_cache_entry(db_entry, refresh_unresolved=refresh_unresolved):
+                    results[key] = db_entry
+                    continue
+
+            # 2. Check disk cache
             cache_key = "".join(c if c.isalnum() else "_" for c in key)
             cache_file = MB_CACHE_DIR / f"{cache_key}.json"
             if cache_file.exists():
