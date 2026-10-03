@@ -5,7 +5,7 @@ from django.test import TestCase, Client
 from django.contrib.auth.models import User
 from apps.core.models import UserProfile
 from apps.catalog.models import Artist, Album, Song, Venue
-from apps.concerts.models import Concert, ConcertArtist
+from apps.concerts.models import Concert, ConcertArtist, ConcertSong
 
 class DjangoAppTests(TestCase):
     def setUp(self):
@@ -712,6 +712,91 @@ class DjangoAppTests(TestCase):
         }), content_type='application/json')
         self.assertEqual(del_res.status_code, 200)
         self.assertFalse(Concert.objects.filter(id=future_concert.id).exists())
+
+    def test_edit_artist_rename_offline(self):
+        from apps.catalog.services import rename_or_merge_artist
+        from apps.catalog.models import MusicianTenure
+
+        artist, _ = Artist.get_or_create_artist('Typoed Band')
+        album = Album.objects.create(artist=artist, title='Typo Album', clean_title='typo album')
+        song = Song.objects.create(artist=artist, album=album, title='Typo Song', clean_title='typo song')
+        venue = Venue.objects.create(name='Test Club', city='New York', state='NY')
+        concert = Concert.objects.create(user=self.user, raw_date='2022-01-01', year=2022, venue=venue, raw_artists='Typoed Band')
+        ca = ConcertArtist.objects.create(concert=concert, artist=artist)
+        cs = ConcertSong.objects.create(concert_artist=ca, song=song, raw_song_name='Typo Song')
+        tenure = MusicianTenure.objects.create(artist=artist, musician_name='John Doe', start_year=2020)
+
+        result = rename_or_merge_artist(artist.id, 'Corrected Band')
+        self.assertTrue(result['success'])
+        self.assertEqual(result['action'], 'renamed')
+        self.assertEqual(result['artist_name'], 'Corrected Band')
+
+        self.assertFalse(Artist.objects.filter(name='Typoed Band').exists())
+        new_artist = Artist.objects.filter(name='Corrected Band').first()
+        self.assertIsNotNone(new_artist)
+        self.assertEqual(Album.objects.filter(artist=new_artist).count(), 1)
+        self.assertEqual(Song.objects.filter(artist=new_artist).count(), 1)
+        self.assertEqual(ConcertArtist.objects.filter(artist=new_artist).count(), 1)
+        self.assertEqual(MusicianTenure.objects.filter(artist=new_artist).count(), 1)
+        concert.refresh_from_db()
+        self.assertIn('Corrected Band', concert.raw_artists)
+
+    def test_edit_artist_merge_existing(self):
+        from apps.catalog.services import rename_or_merge_artist
+        from apps.catalog.models import MusicianTenure
+
+        target_artist, _ = Artist.get_or_create_artist('Target Artist')
+        target_album = Album.objects.create(artist=target_artist, title='Greatest Hits', clean_title='greatest hits')
+        target_song = Song.objects.create(artist=target_artist, album=target_album, title='Hit Song', clean_title='hit song')
+
+        typo_artist, _ = Artist.get_or_create_artist('Typo Artist')
+        # Same album title and same song title under typo artist (should merge without constraint error)
+        typo_album = Album.objects.create(artist=typo_artist, title='Greatest Hits', clean_title='greatest hits')
+        typo_song = Song.objects.create(artist=typo_artist, album=typo_album, title='Hit Song', clean_title='hit song')
+        unique_typo_song = Song.objects.create(artist=typo_artist, title='Deep Cut', clean_title='deep cut')
+
+        venue = Venue.objects.create(name='Merge Hall', city='Austin', state='TX')
+        concert = Concert.objects.create(user=self.user, raw_date='2023-05-10', year=2023, venue=venue, raw_artists='Target Artist, Typo Artist')
+        ca_target = ConcertArtist.objects.create(concert=concert, artist=target_artist, billing_order=0)
+        ca_typo = ConcertArtist.objects.create(concert=concert, artist=typo_artist, billing_order=1)
+
+        cs_target = ConcertSong.objects.create(concert_artist=ca_target, song=target_song, raw_song_name='Hit Song')
+        cs_typo = ConcertSong.objects.create(concert_artist=ca_typo, song=unique_typo_song, raw_song_name='Deep Cut')
+
+        result = rename_or_merge_artist(typo_artist.id, 'Target Artist')
+        self.assertTrue(result['success'])
+        self.assertEqual(result['action'], 'merged')
+        self.assertEqual(result['artist_name'], 'Target Artist')
+
+        self.assertFalse(Artist.objects.filter(id=typo_artist.id).exists())
+        self.assertEqual(ConcertArtist.objects.filter(concert=concert).count(), 1)
+        self.assertEqual(ca_target.songs.count(), 2)
+        self.assertEqual(Song.objects.filter(artist=target_artist).count(), 2)
+        self.assertEqual(Album.objects.filter(artist=target_artist).count(), 1)
+
+    def test_edit_artist_api_endpoint(self):
+        artist, _ = Artist.get_or_create_artist('Api Edit Typo')
+
+        # Unauthenticated request rejected
+        res = self.client.post('/api/artists/edit/', json.dumps({
+            'artist_name': 'Api Edit Typo',
+            'new_name': 'Api Edit Corrected'
+        }), content_type='application/json')
+        self.assertEqual(res.status_code, 302)
+
+        # Authenticated request succeeds
+        self.client.force_login(self.user)
+        res = self.client.post('/api/artists/edit/', json.dumps({
+            'artist_name': 'Api Edit Typo',
+            'new_name': 'Api Edit Corrected'
+        }), content_type='application/json')
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertTrue(data['success'])
+        self.assertEqual(data['artist_name'], 'Api Edit Corrected')
+        self.assertFalse(Artist.objects.filter(name='Api Edit Typo').exists())
+        self.assertTrue(Artist.objects.filter(name='Api Edit Corrected').exists())
+
 
 
 

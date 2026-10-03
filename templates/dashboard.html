@@ -1940,6 +1940,71 @@
     </div>
   </div>
 
+  <!-- Edit Artist Name / Merge Modal -->
+  <div id="edit-artist-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 hidden">
+    <div class="relative w-full max-w-md glass-card p-5 sm:p-6 shadow-2xl border border-amber-500/40 rounded-2xl flex flex-col space-y-4">
+      <div class="flex items-start justify-between gap-3">
+        <div class="flex items-center gap-2.5">
+          <button type="button"
+                  onclick="navigateModalBack()"
+                  class="modal-back-btn px-2.5 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/80 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shrink-0 shadow-sm group"
+                  title="Go back">
+            <i class="fa-solid fa-arrow-left text-[11px] group-hover:-translate-x-0.5 transition-transform"></i>
+            <span class="hidden sm:inline">Back</span>
+          </button>
+          <div class="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
+            <i class="fa-solid fa-user-pen text-sm"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-white">Edit Artist Name</h3>
+            <p class="text-xs text-slate-400 mt-0.5">Fix artist typo or merge with existing catalog artist</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeEditArtistModal()" class="text-slate-400 hover:text-white p-1 cursor-pointer" aria-label="Close modal">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1">Current Name</label>
+          <input type="text" id="edit-artist-old-name" readonly
+                 class="w-full px-3 py-2 text-xs rounded-xl bg-slate-900/60 border border-slate-800 text-slate-400 cursor-not-allowed focus:outline-none">
+        </div>
+
+        <div>
+          <label for="edit-artist-new-name" class="block text-xs font-semibold text-slate-200 mb-1">Corrected Artist Name <span class="text-rose-400">*</span></label>
+          <div class="relative">
+            <input type="text" id="edit-artist-new-name" placeholder="e.g. Corrected Artist Name"
+                   class="w-full px-3 py-2 text-xs rounded-xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+                   onkeydown="if(event.key==='Enter'){event.preventDefault(); submitEditArtist();}">
+          </div>
+        </div>
+
+        <div class="p-3 rounded-xl bg-slate-900/60 border border-slate-800/80 text-[11px] text-slate-300 leading-relaxed space-y-1.5">
+          <div class="flex items-start gap-2">
+            <i class="fa-solid fa-code-merge text-indigo-400 mt-0.5 shrink-0"></i>
+            <p><strong>Automatic Merging:</strong> If the corrected name already exists in your database, all concert appearances, songs, and albums will be merged into that artist.</p>
+          </div>
+          <div class="flex items-start gap-2 border-t border-slate-800/60 pt-1.5">
+            <i class="fa-solid fa-arrows-rotate text-amber-400 mt-0.5 shrink-0"></i>
+            <p><strong>MusicBrainz Lookup:</strong> Antigravity checks MusicBrainz immediately and resolves canonical albums/lineups on next sync.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex flex-col sm:flex-row items-center justify-end gap-2 pt-2 border-t border-slate-800">
+        <button type="button" onclick="closeEditArtistModal()" class="w-full sm:w-auto px-3.5 py-2 rounded-xl bg-slate-800 text-xs font-semibold text-slate-300 hover:bg-slate-700 transition cursor-pointer">
+          Cancel
+        </button>
+        <button type="button" id="edit-artist-submit-btn" onclick="submitEditArtist()" class="w-full sm:w-auto px-4 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-indigo-600 hover:from-amber-500 hover:to-indigo-500 text-xs font-bold text-white transition cursor-pointer shadow-md shadow-indigo-600/30 flex items-center justify-center gap-2">
+          <i class="fa-solid fa-check"></i>
+          <span>Save & Update Artist</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Impersonate User Modal -->
   <div id="impersonate-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 hidden">
     <div class="max-w-md w-full glass-card p-5 sm:p-6 shadow-2xl border border-slate-700/80 rounded-2xl max-h-[90vh] flex flex-col overflow-hidden">
@@ -5706,7 +5771,7 @@
                   <th class="px-4 py-3 text-center">Concerts Seen</th>
                   <th class="px-4 py-3 text-center">Songs Heard</th>
                   <th class="px-4 py-3">Last Seen</th>
-                  <th class="px-4 py-3 text-right">MusicBrainz Lookup</th>
+                  <th class="px-4 py-3 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-800/60" id="mb-unresolved-artists-tbody">
@@ -5732,9 +5797,14 @@
                     <span class="text-slate-500 text-[11px] block truncate max-w-xs">{{ art.last_venue }}</span>
                   </td>
                   <td class="px-4 py-3 text-right align-middle">
-                    <a href="{{ art.mb_search_url }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 rounded-lg text-xs font-semibold transition">
-                      <i class="fa-solid fa-magnifying-glass text-[10px]"></i> Search MB <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
-                    </a>
+                    <div class="inline-flex items-center gap-1.5 justify-end">
+                      <button onclick="openEditArtistModal('{{ art.artist|escapejs }}')" class="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 rounded-lg text-xs font-semibold transition cursor-pointer" title="Edit artist name or merge with existing artist">
+                        <i class="fa-solid fa-pen-to-square text-[10px]"></i> Edit
+                      </button>
+                      <a href="{{ art.mb_search_url }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 rounded-lg text-xs font-semibold transition" title="Search MusicBrainz">
+                        <i class="fa-solid fa-magnifying-glass text-[10px]"></i> MB <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                      </a>
+                    </div>
                   </td>
                 </tr>
                 {% endfor %}
@@ -8713,6 +8783,91 @@
       });
     }
 
+    function openEditArtistModal(artistName) {
+      const modal = document.getElementById('edit-artist-modal');
+      if (!modal) return;
+      
+      const oldNameInput = document.getElementById('edit-artist-old-name');
+      const newNameInput = document.getElementById('edit-artist-new-name');
+      if (oldNameInput) oldNameInput.value = artistName || '';
+      if (newNameInput) {
+        newNameInput.value = artistName || '';
+        setTimeout(() => {
+          newNameInput.focus();
+          newNameInput.select();
+        }, 100);
+      }
+      
+      modal.classList.remove('hidden');
+      document.body.classList.add('overflow-hidden');
+      if (typeof pushModalToNavStack === 'function') {
+        pushModalToNavStack('edit-artist-modal');
+      }
+    }
+
+    function closeEditArtistModal() {
+      const modal = document.getElementById('edit-artist-modal');
+      if (modal) modal.classList.add('hidden');
+      document.body.classList.remove('overflow-hidden');
+      if (typeof popModalFromNavStack === 'function') {
+        popModalFromNavStack('edit-artist-modal');
+      }
+    }
+
+    async function submitEditArtist() {
+      const oldName = (document.getElementById('edit-artist-old-name')?.value || '').trim();
+      const newName = (document.getElementById('edit-artist-new-name')?.value || '').trim();
+      const btn = document.getElementById('edit-artist-submit-btn');
+
+      if (!newName) {
+        showToast('Please enter an artist name.', 'error');
+        return;
+      }
+
+      if (oldName && oldName === newName) {
+        showToast('Artist name is unchanged.', 'info');
+        closeEditArtistModal();
+        return;
+      }
+
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i><span>Updating...</span>';
+      }
+
+      try {
+        const res = await fetch('/api/artists/edit/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken') || (document.querySelector('[name=csrfmiddlewaretoken]') ? document.querySelector('[name=csrfmiddlewaretoken]').value : '')
+          },
+          body: JSON.stringify({
+            artist_name: oldName,
+            new_name: newName
+          })
+        });
+
+        const data = await res.json();
+        if (res.ok && data.success) {
+          showToast(data.message || `Updated artist to '${newName}'!`, 'success');
+          closeEditArtistModal();
+          setTimeout(() => {
+            window.location.reload();
+          }, 600);
+        } else {
+          showToast(data.error || 'Failed to update artist.', 'error');
+        }
+      } catch (err) {
+        showToast(err.message || 'Network error updating artist.', 'error');
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fa-solid fa-check"></i><span>Save & Update Artist</span>';
+        }
+      }
+    }
+
     window.addEventListener('DOMContentLoaded', () => {
       // Initialize artist cards filter state
       if (typeof filterArtistCards === 'function') {
@@ -10364,6 +10519,7 @@
       'edit-concert-modal': () => (typeof closeEditConcertModal === 'function' ? closeEditConcertModal() : closeAllModals()),
       'synced-edit-advisory-modal': () => (typeof closeSyncedEditAdvisoryModal === 'function' ? closeSyncedEditAdvisoryModal() : closeAllModals()),
       'delete-concert-modal': () => (typeof closeDeleteConcertModal === 'function' ? closeDeleteConcertModal() : closeAllModals()),
+      'edit-artist-modal': () => (typeof closeEditArtistModal === 'function' ? closeEditArtistModal() : closeAllModals()),
       'profile-modal': () => (typeof closeProfileModal === 'function' ? closeProfileModal() : closeAllModals()),
       'setlist-prompt-modal': () => (typeof closeSetlistPromptModal === 'function' ? closeSetlistPromptModal() : closeAllModals()),
       'ticketmaster-modal': () => (typeof closeTicketmasterModal === 'function' ? closeTicketmasterModal() : closeAllModals()),

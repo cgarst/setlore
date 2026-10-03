@@ -3016,6 +3016,38 @@ def api_album_tracklist(request):
         return JsonResponse({'status': 'error', 'message': str(e), 'tracks': []}, status=500)
 
 
+@login_required
+@require_POST
+def api_edit_artist(request):
+    """
+    API endpoint to edit/rename an artist or merge it into an existing artist in the database.
+    """
+    try:
+        try:
+            data = json.loads(request.body.decode('utf-8'))
+        except Exception:
+            data = request.POST
+
+        artist_id = str(data.get('artist_id') or '').strip()
+        artist_name = str(data.get('artist_name') or data.get('old_name') or '').strip()
+        new_name = str(data.get('new_name') or data.get('name') or '').strip()
+
+        identifier = artist_id or artist_name
+        if not identifier:
+            return JsonResponse({'error': 'Current artist name or ID is required.'}, status=400)
+        if not new_name:
+            return JsonResponse({'error': 'New artist name is required.'}, status=400)
+
+        from apps.catalog.services import rename_or_merge_artist
+        result = rename_or_merge_artist(source_identifier=identifier, new_name=new_name, user=request.user)
+        return JsonResponse(result)
+    except ValueError as e:
+        return JsonResponse({'error': str(e)}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+
 
 
 
