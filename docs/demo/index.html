@@ -606,7 +606,7 @@
       </div>
       <div>
         <p class="text-xs font-bold text-white">Live Sync in Progress</p>
-        <p id="sync-banner-text" class="text-xs text-indigo-300">Sync idle</p>
+        <p id="sync-banner-text" class="text-xs text-indigo-300">Sync cancelled</p>
       </div>
     </div>
     <div class="flex items-center gap-3">
@@ -874,7 +874,7 @@
       </div>
 
       <form id="profile-form" onsubmit="saveProfileSettings(event)" class="space-y-4">
-        <input type="hidden" name="csrfmiddlewaretoken" value="QtvqFEEFwKdRHgal6nJTEybHZgrZ7Rhmqi16iJYnYY3O9QUPwBXGhqt5C0mXwHmF">
+        <input type="hidden" name="csrfmiddlewaretoken" value="hq8Jhm0Ex8r8I5CG09wwUqeW1s9bAfphKX2hSIKXXydxmlgrCT2ZLs0AWSKsnC9Y">
         <div>
           <label class="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center gap-1.5">
             <i class="fa-solid fa-envelope text-indigo-400"></i> Email Address
@@ -1148,7 +1148,7 @@
       </div>
 
       <form id="csv-upload-form" onsubmit="submitCsvUpload(event)" class="space-y-4">
-        <input type="hidden" name="csrfmiddlewaretoken" value="QtvqFEEFwKdRHgal6nJTEybHZgrZ7Rhmqi16iJYnYY3O9QUPwBXGhqt5C0mXwHmF">
+        <input type="hidden" name="csrfmiddlewaretoken" value="hq8Jhm0Ex8r8I5CG09wwUqeW1s9bAfphKX2hSIKXXydxmlgrCT2ZLs0AWSKsnC9Y">
         <div class="border-2 border-dashed border-slate-700 hover:border-indigo-500 rounded-xl p-5 text-center cursor-pointer transition">
           <input type="file" id="csv-file-input" name="csv_file" accept=".csv" required class="hidden" onchange="updateFileName(this)">
           <label for="csv-file-input" class="cursor-pointer block space-y-1.5">
@@ -1301,7 +1301,7 @@
       </div>
 
       <form id="add-concert-form" onsubmit="submitAddConcert(event)" class="flex flex-col flex-1 min-h-0 overflow-hidden mt-3">
-        <input type="hidden" name="csrfmiddlewaretoken" value="QtvqFEEFwKdRHgal6nJTEybHZgrZ7Rhmqi16iJYnYY3O9QUPwBXGhqt5C0mXwHmF">
+        <input type="hidden" name="csrfmiddlewaretoken" value="hq8Jhm0Ex8r8I5CG09wwUqeW1s9bAfphKX2hSIKXXydxmlgrCT2ZLs0AWSKsnC9Y">
 
         <div class="overflow-y-auto overflow-x-hidden pr-1 space-y-3.5 flex-1 min-h-0 custom-scrollbar">
           <!-- Add Options Tip / Information Banner -->
@@ -1436,7 +1436,7 @@
       </div>
 
       <form id="edit-concert-form" onsubmit="submitEditConcert(event)" class="flex flex-col flex-1 min-h-0 overflow-hidden mt-3">
-        <input type="hidden" name="csrfmiddlewaretoken" value="QtvqFEEFwKdRHgal6nJTEybHZgrZ7Rhmqi16iJYnYY3O9QUPwBXGhqt5C0mXwHmF">
+        <input type="hidden" name="csrfmiddlewaretoken" value="hq8Jhm0Ex8r8I5CG09wwUqeW1s9bAfphKX2hSIKXXydxmlgrCT2ZLs0AWSKsnC9Y">
         <input type="hidden" id="edit-concert-id" value="">
         <input type="hidden" id="edit-concert-convert-local" value="false">
 
@@ -2302,72 +2302,87 @@
       
       <!-- On This Day Banner (When past concerts occurred on this calendar day) -->
       
-      <div id="on-this-day-strip" class="glass-card py-2 px-2.5 sm:py-3 sm:px-3.5 rounded-xl border border-indigo-500/35 bg-gradient-to-r from-indigo-950/60 via-purple-950/40 to-slate-900/80 shadow-md flex items-center justify-between gap-2.5 relative overflow-hidden group">
+      <div id="on-this-day-strip" class="glass-card py-2.5 px-3 sm:py-3 sm:px-3.5 rounded-xl border border-indigo-500/35 bg-gradient-to-r from-indigo-950/60 via-purple-950/40 to-slate-900/80 shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 relative overflow-hidden group">
         <div class="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-indigo-400 to-pink-500"></div>
 
-        <div class="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 pl-1">
+        <div class="flex items-start sm:items-center gap-2 sm:gap-3 min-w-0 flex-1 pl-1">
           <!-- Desktop/Tablet Icon Square -->
-          <div class="hidden sm:flex w-8 h-8 rounded-lg bg-pink-500/20 border border-pink-500/40 items-center justify-center text-pink-300 shrink-0 shadow-sm">
+          <div class="hidden sm:flex w-8 h-8 rounded-lg bg-pink-500/20 border border-pink-500/40 items-center justify-center text-pink-300 shrink-0 shadow-sm mt-0.5 sm:mt-0">
             <i class="fa-solid fa-cake-candles text-sm"></i>
           </div>
 
-          <!-- Mobile Minimal Icon -->
-          <i class="fa-solid fa-cake-candles text-pink-400 text-xs sm:hidden shrink-0"></i>
+          <div class="min-w-0 flex-1 space-y-1 sm:space-y-0.5">
+            <div class="flex items-center justify-between sm:justify-start gap-1.5 sm:gap-2">
+              <div class="flex items-center gap-1.5 sm:gap-2">
+                <!-- Mobile Minimal Icon -->
+                <i class="fa-solid fa-cake-candles text-pink-400 text-xs sm:hidden shrink-0"></i>
+                <span class="text-[9px] sm:text-[10px] uppercase tracking-wider font-extrabold px-1.5 py-0.5 rounded bg-indigo-500/25 text-indigo-200 border border-indigo-500/40 shadow-xs">
+                  On This Day
+                </span>
+                <span class="text-[11px] sm:text-xs text-slate-400 font-medium">
+                  August 10
+                </span>
+              </div>
 
-          <div class="min-w-0 flex-1 space-y-0.5">
-            <div class="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-              <span class="text-[9px] sm:text-[10px] uppercase tracking-wider font-extrabold px-1.5 py-0.5 rounded bg-indigo-500/25 text-indigo-200 border border-indigo-500/40 shadow-xs">
-                On This Day
-              </span>
-              <span class="text-[11px] sm:text-xs text-slate-400 font-medium">
-                August 10
-              </span>
+              <!-- Mobile View Action Button (aligned with header on mobile) -->
+              <div class="sm:hidden">
+                <button type="button"
+                        onclick="openConcertModal('concert_96')"
+                        class="px-2 py-0.5 rounded-lg bg-indigo-600/30 hover:bg-indigo-600 text-indigo-200 hover:text-white border border-indigo-500/40 text-[10px] font-semibold transition flex items-center gap-1 cursor-pointer shadow-sm"
+                        title="View concert details">
+                  <i class="fa-solid fa-ticket text-[9px]"></i>
+                  <span>View</span>
+                  <i class="fa-solid fa-arrow-right text-[8px]"></i>
+                </button>
+              </div>
             </div>
-            <div class="flex items-center gap-x-2.5 gap-y-1 overflow-x-auto no-scrollbar text-xs pt-0.5 whitespace-nowrap sm:whitespace-normal sm:flex-wrap">
+
+            <!-- List of Shows (Full list visible on both mobile and desktop) -->
+            <div class="space-y-1 sm:space-y-0 sm:flex sm:items-center sm:gap-x-2.5 sm:gap-y-1 sm:flex-wrap text-xs pt-0.5">
               
               <button type="button"
                       onclick="openConcertModal('concert_96')"
-                      class="hover:text-white transition flex items-center gap-1.5 cursor-pointer text-left group/otd py-0.5 shrink-0">
-                <span class="badge bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[10px] font-bold font-mono px-1.5 py-0.5">
+                      class="hover:text-white transition flex flex-wrap items-center gap-1 sm:gap-1.5 cursor-pointer text-left group/otd py-0.5 w-full sm:w-auto">
+                <span class="badge bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[10px] font-bold font-mono px-1.5 py-0.5 shrink-0">
                   2025 (1y)
                 </span>
                 <strong class="text-white group-hover/otd:text-indigo-300 transition text-[11px] sm:text-xs font-semibold">Meanstreak, John Petrucci</strong>
                 
-                <span class="text-slate-400 hidden md:inline truncate text-[11px]">
+                <span class="text-slate-400 text-[10px] sm:text-[11px]">
                   @ Hilton Lake Las Vegas, Henderson
                 </span>
                 
               </button>
               
-              <span class="text-slate-700 select-none">•</span>
+              <span class="text-slate-700 select-none hidden sm:inline">•</span>
               
               
               <button type="button"
                       onclick="openConcertModal('concert_53')"
-                      class="hover:text-white transition flex items-center gap-1.5 cursor-pointer text-left group/otd py-0.5 shrink-0">
-                <span class="badge bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[10px] font-bold font-mono px-1.5 py-0.5">
+                      class="hover:text-white transition flex flex-wrap items-center gap-1 sm:gap-1.5 cursor-pointer text-left group/otd py-0.5 w-full sm:w-auto">
+                <span class="badge bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[10px] font-bold font-mono px-1.5 py-0.5 shrink-0">
                   2016 (10y)
                 </span>
                 <strong class="text-white group-hover/otd:text-indigo-300 transition text-[11px] sm:text-xs font-semibold">Paul McCartney</strong>
                 
-                <span class="text-slate-400 hidden md:inline truncate text-[11px]">
+                <span class="text-slate-400 text-[10px] sm:text-[11px]">
                   @ Verizon Center, Washington
                 </span>
                 
               </button>
               
-              <span class="text-slate-700 select-none">•</span>
+              <span class="text-slate-700 select-none hidden sm:inline">•</span>
               
               
               <button type="button"
                       onclick="openConcertModal('concert_41')"
-                      class="hover:text-white transition flex items-center gap-1.5 cursor-pointer text-left group/otd py-0.5 shrink-0">
-                <span class="badge bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[10px] font-bold font-mono px-1.5 py-0.5">
+                      class="hover:text-white transition flex flex-wrap items-center gap-1 sm:gap-1.5 cursor-pointer text-left group/otd py-0.5 w-full sm:w-auto">
+                <span class="badge bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[10px] font-bold font-mono px-1.5 py-0.5 shrink-0">
                   2015 (11y)
                 </span>
                 <strong class="text-white group-hover/otd:text-indigo-300 transition text-[11px] sm:text-xs font-semibold">The Aristocrats, Travis Larson Band</strong>
                 
-                <span class="text-slate-400 hidden md:inline truncate text-[11px]">
+                <span class="text-slate-400 text-[10px] sm:text-[11px]">
                   @ Jammin&#x27; Java, Vienna
                 </span>
                 
@@ -2378,15 +2393,15 @@
           </div>
         </div>
 
-        <div class="flex items-center gap-2 shrink-0">
+        <!-- Desktop View Action Button -->
+        <div class="hidden sm:flex items-center gap-2 shrink-0">
           <button type="button"
                   onclick="openConcertModal('concert_96')"
-                  class="px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg bg-indigo-600/30 hover:bg-indigo-600 text-indigo-200 hover:text-white border border-indigo-500/40 text-[11px] sm:text-xs font-semibold transition flex items-center gap-1 sm:gap-1.5 cursor-pointer shadow-sm"
+                  class="px-2.5 py-1.5 rounded-lg bg-indigo-600/30 hover:bg-indigo-600 text-indigo-200 hover:text-white border border-indigo-500/40 text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer shadow-sm"
                   title="View concert details">
-            <i class="fa-solid fa-ticket text-[10px] sm:text-[11px]"></i>
-            <span class="hidden sm:inline">View Shows</span>
-            <span class="inline sm:hidden">View</span>
-            <i class="fa-solid fa-arrow-right text-[9px] sm:text-[10px]"></i>
+            <i class="fa-solid fa-ticket text-[11px]"></i>
+            <span>View Shows</span>
+            <i class="fa-solid fa-arrow-right text-[10px]"></i>
           </button>
         </div>
       </div>
@@ -266114,8 +266129,23 @@ Run to the Hills">
     let activeModalArtistIndex = null;
 
     function openConcertModal(concertId, initialArtistIndex = null, isBackNav = false) {
-      activeModalConcertId = concertId;
-      const card = document.getElementById('concert-card-' + concertId);
+      if (!concertId) return;
+      let targetId = String(concertId);
+      let card = document.getElementById('concert-card-' + targetId);
+      if (!card && !targetId.startsWith('concert_')) {
+        const altCard = document.getElementById('concert-card-concert_' + targetId);
+        if (altCard) {
+          card = altCard;
+          targetId = 'concert_' + targetId;
+        }
+      } else if (!card && targetId.startsWith('concert_')) {
+        const altCard = document.getElementById('concert-card-' + targetId.replace('concert_', ''));
+        if (altCard) {
+          card = altCard;
+          targetId = targetId.replace('concert_', '');
+        }
+      }
+      activeModalConcertId = targetId;
       const modal = document.getElementById('concert-detail-modal');
       const modalBody = document.getElementById('concert-modal-body');
       if (!card || !modal || !modalBody) return;
@@ -266123,7 +266153,9 @@ Run to the Hills">
         return;
       }
 
-      const payload = document.getElementById('concert-modal-payload-' + concertId);
+      const payload = document.getElementById('concert-modal-payload-' + targetId) ||
+                      document.getElementById('concert-modal-payload-' + concertId) ||
+                      document.getElementById('concert-modal-payload-concert_' + concertId);
       if (payload) {
         modalBody.innerHTML = payload.innerHTML;
         modalBody.querySelectorAll('[data-action="view-band-setlist"], .artist-set-card').forEach(row => {
@@ -266255,7 +266287,11 @@ Run to the Hills">
         setlistVenueSub.innerHTML = `<i class="fa-solid fa-location-dot text-indigo-400 text-[10px]"></i> <span class="font-semibold text-slate-300">${venue}</span>${locPart ? `<span class="text-slate-500">• ${locPart}</span>` : ''}`;
       }
 
-      const targetSetView = modalBody.querySelector(`[id="concert-modal-setlist-view-${cid}-${artistIndex}"]`);
+      const targetSetView = modalBody.querySelector(`[id="concert-modal-setlist-view-${cid}-${artistIndex}"]`) ||
+                            modalBody.querySelector(`[id="concert-modal-setlist-view-concert_${cid}-${artistIndex}"]`) ||
+                            modalBody.querySelector(`[id="concert-modal-setlist-view-${String(cid).replace('concert_', '')}-${artistIndex}"]`) ||
+                            modalBody.querySelector(`[id^="concert-modal-setlist-view-"][id$="-${artistIndex}"]`) ||
+                            modalBody.querySelector(`[id^="concert-modal-setlist-view-"]`);
       if (targetSetView) {
         targetSetView.classList.remove('hidden');
         const artName = targetSetView.getAttribute('data-artist-name') || '';

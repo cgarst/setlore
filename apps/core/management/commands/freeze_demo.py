@@ -369,11 +369,25 @@ class Command(BaseCommand):
         try:
             # ── 3. Authenticate via test client session cookie ────────────────
             from django.test import Client
-            test_client = Client()
+            from apps.concerts.services.sync_worker import sync_worker
+            from apps.core.models import UserProfile
+
             target_user = User.objects.get(username=username)
+
+            # Suppress any background sync workers and ensure idle sync status
+            try:
+                sync_worker.cancel_sync(target_user.id)
+                UserProfile.objects.filter(sync_status__in=['syncing', 'queued']).update(
+                    sync_status='idle',
+                    sync_progress=''
+                )
+            except Exception:
+                pass
+
+            test_client = Client()
             test_client.force_login(target_user)
             session_key = test_client.cookies['sessionid'].value
-            self.stdout.write(f"  [auth] Created authenticated session for @{username}")
+            self.stdout.write(f"  [auth] Created authenticated session for @{username} (sync suppressed)")
 
             # Find Haken at Cafe 611 concert ID dynamically if available
             haken_concert = target_user.concerts.filter(venue__name__icontains="Cafe 611", artists__artist__name__icontains="Haken").first()
@@ -381,7 +395,7 @@ class Command(BaseCommand):
                 haken_concert = target_user.concerts.filter(artists__artist__name__icontains="Haken").first()
             if not haken_concert:
                 haken_concert = target_user.concerts.first()
-            haken_concert_id = str(haken_concert.id) if haken_concert else ""
+            haken_concert_id = f"concert_{haken_concert.id}" if haken_concert else ""
 
             FORCE_DEFAULT_THEME_JS = """
                 () => {
@@ -495,6 +509,12 @@ class Command(BaseCommand):
                     _show_tab("concerts", scroll_below_nav=True)
                     page.evaluate(f"""
                         () => {{
+                            if (typeof openConcertModalByVenueDate === 'function' && openConcertModalByVenueDate('Cafe 611', '', 'Haken')) {{
+                                return;
+                            }}
+                            if (typeof openConcertModalForArtist === 'function' && openConcertModalForArtist('Haken')) {{
+                                return;
+                            }}
                             if (typeof openConcertModal === 'function') {{
                                 openConcertModal('{haken_concert_id}', 1);
                             }}
@@ -503,7 +523,7 @@ class Command(BaseCommand):
                     page.wait_for_timeout(700)
                     _wait_for_album_art(
                         page,
-                        selector="#concert-modal-body img.lazy-album-art, #concert-modal img",
+                        selector="#concert-modal-body img.lazy-album-art, #concert-modal-body img, #concert-detail-modal img",
                         min_loaded=1,
                         timeout_ms=8000,
                     )

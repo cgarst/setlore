@@ -49,7 +49,7 @@ class SyncWorker:
         or restarted, and enqueues them to continue processing automatically.
         """
         import sys
-        if 'test' in sys.argv:
+        if any(cmd in sys.argv for cmd in ['test', 'freeze_demo']):
             return
         try:
             interrupted = list(UserProfile.objects.filter(sync_status='syncing').values_list('user_id', flat=True))
@@ -77,7 +77,7 @@ class SyncWorker:
 
     def enqueue_sync(self, user_id: int):
         import sys
-        if 'test' in sys.argv:
+        if any(cmd in sys.argv for cmd in ['test', 'freeze_demo']):
             return
         self._ensure_thread_running()
         with self._lock:

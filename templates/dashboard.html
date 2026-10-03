@@ -3012,59 +3012,74 @@
       
       <!-- On This Day Banner (When past concerts occurred on this calendar day) -->
       {% if on_this_day and on_this_day|length > 0 %}
-      <div id="on-this-day-strip" class="glass-card py-2 px-2.5 sm:py-3 sm:px-3.5 rounded-xl border border-indigo-500/35 bg-gradient-to-r from-indigo-950/60 via-purple-950/40 to-slate-900/80 shadow-md flex items-center justify-between gap-2.5 relative overflow-hidden group">
+      <div id="on-this-day-strip" class="glass-card py-2.5 px-3 sm:py-3 sm:px-3.5 rounded-xl border border-indigo-500/35 bg-gradient-to-r from-indigo-950/60 via-purple-950/40 to-slate-900/80 shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 relative overflow-hidden group">
         <div class="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-indigo-400 to-pink-500"></div>
 
-        <div class="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 pl-1">
+        <div class="flex items-start sm:items-center gap-2 sm:gap-3 min-w-0 flex-1 pl-1">
           <!-- Desktop/Tablet Icon Square -->
-          <div class="hidden sm:flex w-8 h-8 rounded-lg bg-pink-500/20 border border-pink-500/40 items-center justify-center text-pink-300 shrink-0 shadow-sm">
+          <div class="hidden sm:flex w-8 h-8 rounded-lg bg-pink-500/20 border border-pink-500/40 items-center justify-center text-pink-300 shrink-0 shadow-sm mt-0.5 sm:mt-0">
             <i class="fa-solid fa-cake-candles text-sm"></i>
           </div>
 
-          <!-- Mobile Minimal Icon -->
-          <i class="fa-solid fa-cake-candles text-pink-400 text-xs sm:hidden shrink-0"></i>
+          <div class="min-w-0 flex-1 space-y-1 sm:space-y-0.5">
+            <div class="flex items-center justify-between sm:justify-start gap-1.5 sm:gap-2">
+              <div class="flex items-center gap-1.5 sm:gap-2">
+                <!-- Mobile Minimal Icon -->
+                <i class="fa-solid fa-cake-candles text-pink-400 text-xs sm:hidden shrink-0"></i>
+                <span class="text-[9px] sm:text-[10px] uppercase tracking-wider font-extrabold px-1.5 py-0.5 rounded bg-indigo-500/25 text-indigo-200 border border-indigo-500/40 shadow-xs">
+                  On This Day
+                </span>
+                <span class="text-[11px] sm:text-xs text-slate-400 font-medium">
+                  {{ today_display }}
+                </span>
+              </div>
 
-          <div class="min-w-0 flex-1 space-y-0.5">
-            <div class="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-              <span class="text-[9px] sm:text-[10px] uppercase tracking-wider font-extrabold px-1.5 py-0.5 rounded bg-indigo-500/25 text-indigo-200 border border-indigo-500/40 shadow-xs">
-                On This Day
-              </span>
-              <span class="text-[11px] sm:text-xs text-slate-400 font-medium">
-                {{ today_display }}
-              </span>
+              <!-- Mobile View Action Button (aligned with header on mobile) -->
+              <div class="sm:hidden">
+                <button type="button"
+                        onclick="openConcertModal('{{ on_this_day.0.id }}')"
+                        class="px-2 py-0.5 rounded-lg bg-indigo-600/30 hover:bg-indigo-600 text-indigo-200 hover:text-white border border-indigo-500/40 text-[10px] font-semibold transition flex items-center gap-1 cursor-pointer shadow-sm"
+                        title="View concert details">
+                  <i class="fa-solid fa-ticket text-[9px]"></i>
+                  <span>View</span>
+                  <i class="fa-solid fa-arrow-right text-[8px]"></i>
+                </button>
+              </div>
             </div>
-            <div class="flex items-center gap-x-2.5 gap-y-1 overflow-x-auto no-scrollbar text-xs pt-0.5 whitespace-nowrap sm:whitespace-normal sm:flex-wrap">
+
+            <!-- List of Shows (Full list visible on both mobile and desktop) -->
+            <div class="space-y-1 sm:space-y-0 sm:flex sm:items-center sm:gap-x-2.5 sm:gap-y-1 sm:flex-wrap text-xs pt-0.5">
               {% for otd in on_this_day %}
               <button type="button"
                       onclick="openConcertModal('{{ otd.id }}')"
-                      class="hover:text-white transition flex items-center gap-1.5 cursor-pointer text-left group/otd py-0.5 shrink-0">
-                <span class="badge bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[10px] font-bold font-mono px-1.5 py-0.5">
+                      class="hover:text-white transition flex flex-wrap items-center gap-1 sm:gap-1.5 cursor-pointer text-left group/otd py-0.5 w-full sm:w-auto">
+                <span class="badge bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[10px] font-bold font-mono px-1.5 py-0.5 shrink-0">
                   {{ otd.concert_year }} ({{ otd.years_ago }}y)
                 </span>
                 <strong class="text-white group-hover/otd:text-indigo-300 transition text-[11px] sm:text-xs font-semibold">{{ otd.full_bill|default:otd.primary_artist }}</strong>
                 {% if otd.venue %}
-                <span class="text-slate-400 hidden md:inline truncate text-[11px]">
+                <span class="text-slate-400 text-[10px] sm:text-[11px]">
                   @ {{ otd.venue }}{% if otd.city %}, {{ otd.city }}{% endif %}
                 </span>
                 {% endif %}
               </button>
               {% if not forloop.last %}
-              <span class="text-slate-700 select-none">•</span>
+              <span class="text-slate-700 select-none hidden sm:inline">•</span>
               {% endif %}
               {% endfor %}
             </div>
           </div>
         </div>
 
-        <div class="flex items-center gap-2 shrink-0">
+        <!-- Desktop View Action Button -->
+        <div class="hidden sm:flex items-center gap-2 shrink-0">
           <button type="button"
                   onclick="openConcertModal('{{ on_this_day.0.id }}')"
-                  class="px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg bg-indigo-600/30 hover:bg-indigo-600 text-indigo-200 hover:text-white border border-indigo-500/40 text-[11px] sm:text-xs font-semibold transition flex items-center gap-1 sm:gap-1.5 cursor-pointer shadow-sm"
+                  class="px-2.5 py-1.5 rounded-lg bg-indigo-600/30 hover:bg-indigo-600 text-indigo-200 hover:text-white border border-indigo-500/40 text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer shadow-sm"
                   title="View concert details">
-            <i class="fa-solid fa-ticket text-[10px] sm:text-[11px]"></i>
-            <span class="hidden sm:inline">{% if on_this_day|length > 1 %}View Shows{% else %}View Show{% endif %}</span>
-            <span class="inline sm:hidden">View</span>
-            <i class="fa-solid fa-arrow-right text-[9px] sm:text-[10px]"></i>
+            <i class="fa-solid fa-ticket text-[11px]"></i>
+            <span>{% if on_this_day|length > 1 %}View Shows{% else %}View Show{% endif %}</span>
+            <i class="fa-solid fa-arrow-right text-[10px]"></i>
           </button>
         </div>
       </div>
@@ -7388,8 +7403,23 @@
     let activeModalArtistIndex = null;
 
     function openConcertModal(concertId, initialArtistIndex = null, isBackNav = false) {
-      activeModalConcertId = concertId;
-      const card = document.getElementById('concert-card-' + concertId);
+      if (!concertId) return;
+      let targetId = String(concertId);
+      let card = document.getElementById('concert-card-' + targetId);
+      if (!card && !targetId.startsWith('concert_')) {
+        const altCard = document.getElementById('concert-card-concert_' + targetId);
+        if (altCard) {
+          card = altCard;
+          targetId = 'concert_' + targetId;
+        }
+      } else if (!card && targetId.startsWith('concert_')) {
+        const altCard = document.getElementById('concert-card-' + targetId.replace('concert_', ''));
+        if (altCard) {
+          card = altCard;
+          targetId = targetId.replace('concert_', '');
+        }
+      }
+      activeModalConcertId = targetId;
       const modal = document.getElementById('concert-detail-modal');
       const modalBody = document.getElementById('concert-modal-body');
       if (!card || !modal || !modalBody) return;
@@ -7397,7 +7427,9 @@
         return;
       }
 
-      const payload = document.getElementById('concert-modal-payload-' + concertId);
+      const payload = document.getElementById('concert-modal-payload-' + targetId) ||
+                      document.getElementById('concert-modal-payload-' + concertId) ||
+                      document.getElementById('concert-modal-payload-concert_' + concertId);
       if (payload) {
         modalBody.innerHTML = payload.innerHTML;
         modalBody.querySelectorAll('[data-action="view-band-setlist"], .artist-set-card').forEach(row => {
@@ -7529,7 +7561,11 @@
         setlistVenueSub.innerHTML = `<i class="fa-solid fa-location-dot text-indigo-400 text-[10px]"></i> <span class="font-semibold text-slate-300">${venue}</span>${locPart ? `<span class="text-slate-500">• ${locPart}</span>` : ''}`;
       }
 
-      const targetSetView = modalBody.querySelector(`[id="concert-modal-setlist-view-${cid}-${artistIndex}"]`);
+      const targetSetView = modalBody.querySelector(`[id="concert-modal-setlist-view-${cid}-${artistIndex}"]`) ||
+                            modalBody.querySelector(`[id="concert-modal-setlist-view-concert_${cid}-${artistIndex}"]`) ||
+                            modalBody.querySelector(`[id="concert-modal-setlist-view-${String(cid).replace('concert_', '')}-${artistIndex}"]`) ||
+                            modalBody.querySelector(`[id^="concert-modal-setlist-view-"][id$="-${artistIndex}"]`) ||
+                            modalBody.querySelector(`[id^="concert-modal-setlist-view-"]`);
       if (targetSetView) {
         targetSetView.classList.remove('hidden');
         const artName = targetSetView.getAttribute('data-artist-name') || '';
