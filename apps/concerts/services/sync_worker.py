@@ -265,6 +265,7 @@ class SyncWorker:
             # 2. Immediately cache the initial bundle with whatever album data is locally available
             enricher = AlbumEnricher()
             cached_enrichments, uncached_pairs, total_unique = enricher.load_cached_catalog(stats["all_songs_list"], refresh_unresolved=True)
+            self._persist_album_enrichments_to_db(cached_enrichments)
 
             stats["concerts_drilldown"] = analytics.compute_concert_drilldown(cached_enrichments)
             stats["venue_map"] = generate_venue_map_data(csv_records, gap_results["matched"])
@@ -319,6 +320,7 @@ class SyncWorker:
                     profile.save(update_fields=['sync_status', 'sync_progress'])
                     return
 
+                self._persist_album_enrichments_to_db(album_enrichments)
                 stats["concerts_drilldown"] = analytics.compute_concert_drilldown(album_enrichments)
                 ApiCache.objects.update_or_create(
                     cache_key=cache_key,
@@ -382,5 +384,85 @@ class SyncWorker:
             profile.sync_status = 'error'
             profile.sync_progress = f"Error: {str(e)[:200]}"
             profile.save(update_fields=['sync_status', 'sync_progress'])
+
+    def _persist_album_enrichments_to_db(self, album_enrichments):
+        """Persists enriched album information into Album and Song catalog models."""
+        if not album_enrichments:
+            return
+        from src.csv_parser import normalize_artist_name
+
+        # Cache existing artists by lowercase name and normalized name
+        artists_by_name = {}
+        for a in Artist.objects.all():
+            artists_by_name[a.name.lower().strip()] = a
+            if a.normalized_name:
+                artists_by_name[a.normalized_name.lower().strip()] = a
+
+        # Cache existing albums by (artist_id, clean_title)
+        albums_cache = {(alb.artist_id, alb.clean_title.lower()): alb for alb in Album.objects.all()}
+
+        for pair_key, info in album_enrichments.items():
+            if not info:
+                continue
+            art_name = info.get("artist") or (pair_key.split("_")[0] if "_" in pair_key else "")
+            s_name = info.get("song") or (pair_key.split("_", 1)[1] if "_" in pair_key else "")
+            if not art_name or not s_name:
+                continue
+
+            clean_s_key = s_name.lower().strip()
+            art_obj = artists_by_name.get(art_name.lower().strip())
+            if not art_obj:
+                norm_art = normalize_artist_name(art_name) or art_name.lower()
+                art_obj = artists_by_name.get(norm_art.lower().strip())
+
+            if not art_obj:
+                continue
+
+            song_obj = Song.objects.filter(artist=art_obj, clean_title=clean_s_key).first()
+            if not song_obj:
+                continue
+
+            alb_title = info.get("album")
+            rel_year = info.get("release_year")
+            rec_mbid = info.get("recording_id") or info.get("recording_mbid")
+            alb_mbid = info.get("mbid") or info.get("release_group_mbid")
+
+            if alb_title and alb_title != "Non-Album / Singles" and alb_title.lower() != "covers":
+                clean_alb_key = alb_title.lower().strip()
+                album_obj = albums_cache.get((art_obj.id, clean_alb_key))
+                if not album_obj:
+                    alb_defaults = {
+                        'title': alb_title,
+                        'release_year': rel_year,
+                    }
+                    if alb_mbid:
+                        alb_defaults['id'] = alb_mbid
+                        alb_defaults['mbid'] = alb_mbid
+
+                    album_obj, _ = Album.objects.get_or_create(
+                        artist=art_obj,
+                        clean_title=clean_alb_key,
+                        defaults=alb_defaults
+                    )
+                    albums_cache[(art_obj.id, clean_alb_key)] = album_obj
+                else:
+                    updated_fields = []
+                    if rel_year and not album_obj.release_year:
+                        album_obj.release_year = rel_year
+                        updated_fields.append('release_year')
+                    if alb_mbid and not album_obj.mbid:
+                        album_obj.mbid = alb_mbid
+                        updated_fields.append('mbid')
+                    if updated_fields:
+                        album_obj.save(update_fields=updated_fields)
+
+                song_obj.album = album_obj
+
+            if rel_year and not song_obj.release_year:
+                song_obj.release_year = rel_year
+            if rec_mbid and not song_obj.mbid:
+                song_obj.mbid = rec_mbid
+
+            song_obj.save()
 
 sync_worker = SyncWorker()
