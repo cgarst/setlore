@@ -637,9 +637,11 @@
                     <i class="fa-solid fa-clipboard-check text-amber-400 w-4 text-center"></i>
                     <span>Setlist Audit</span>
                   </div>
-                  {% if gap.csv_missing_or_partial|length > 0 %}
-                    <span class="bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold border border-amber-500/30 shrink-0">{{ gap.csv_missing_or_partial|length }}</span>
-                  {% endif %}
+                  {% with total_act=gap.total_actionable_audit|default:gap.csv_missing_or_partial|length %}
+                    {% if total_act > 0 %}
+                      <span class="bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold border border-amber-500/30 shrink-0">{{ total_act }}</span>
+                    {% endif %}
+                  {% endwith %}
                 </button>
               {% endif %}
 
@@ -5602,8 +5604,8 @@
         <div class="glass-card p-5 flex items-center justify-between">
           <div>
             <p class="text-xs uppercase font-semibold text-slate-400">Actionable Audit</p>
-            <p class="text-2xl font-bold text-amber-400 mt-1">{{ gap.csv_missing_or_partial|length|intcomma }}</p>
-            <p class="text-xs text-slate-500 mt-1">Shows needing review</p>
+            <p class="text-2xl font-bold text-amber-400 mt-1">{{ gap.total_actionable_audit|default:gap.csv_missing_or_partial|length|intcomma }}</p>
+            <p class="text-xs text-slate-500 mt-1">{% if gap.csv_missing_or_partial %}{{ gap.csv_missing_or_partial|length }} show{% if gap.csv_missing_or_partial|length != 1 %}s{% endif %}{% endif %}{% if gap.unresolved_mb_artists %}{% if gap.csv_missing_or_partial %} &bull; {% endif %}{{ gap.unresolved_mb_artists|length }} artist{% if gap.unresolved_mb_artists|length != 1 %}s{% endif %}{% endif %}{% if gap.unresolved_mb_songs %}{% if gap.csv_missing_or_partial or gap.unresolved_mb_artists %} &bull; {% endif %}{{ gap.unresolved_mb_songs|length }} song{% if gap.unresolved_mb_songs|length != 1 %}s{% endif %}{% endif %}{% if not gap.csv_missing_or_partial and not gap.unresolved_mb_artists and not gap.unresolved_mb_songs %}All items audited &amp; resolved{% endif %}</p>
           </div>
           <div class="w-10 h-10 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center"><i class="fa-solid fa-triangle-exclamation"></i></div>
         </div>
@@ -6027,9 +6029,11 @@
                 <div class="min-w-0 flex-1">
                   <div class="flex items-center gap-2">
                     <p class="text-sm font-semibold text-white group-hover:text-amber-300 transition truncate">Setlist Audit</p>
-                    {% if gap.csv_missing_or_partial|length > 0 %}
-                      <span class="bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold border border-amber-500/30 shrink-0">{{ gap.csv_missing_or_partial|length }}</span>
-                    {% endif %}
+                    {% with total_act=gap.total_actionable_audit|default:gap.csv_missing_or_partial|length %}
+                      {% if total_act > 0 %}
+                        <span class="bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold border border-amber-500/30 shrink-0">{{ total_act }}</span>
+                      {% endif %}
+                    {% endwith %}
                   </div>
                   <p class="text-xs text-slate-400 truncate">Missing tracks &amp; setlist discrepancy audit</p>
                 </div>

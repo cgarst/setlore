@@ -852,6 +852,47 @@ class DjangoAppTests(TestCase):
         self.assertNotIn('Drum Solo', unresolved_titles)
         self.assertIn('Obscure Rare B-Side', unresolved_titles)
 
+    def test_actionable_audit_totals_three_tables(self):
+        from apps.concerts.views import get_dashboard_context
+        from django.test import RequestFactory
+
+        # Create 1 missing show on Setlist.fm (Table 1)
+        venue = Venue.objects.create(name='Audit Venue', city='Philadelphia', state='PA')
+        artist_offline, _ = Artist.get_or_create_artist('Offline Unresolved Band')
+        concert = Concert.objects.create(
+            user=self.user,
+            raw_date='2021-04-15',
+            year=2021,
+            venue=venue,
+            raw_artists='Offline Unresolved Band'
+        )
+        ca = ConcertArtist.objects.create(concert=concert, artist=artist_offline)
+        unresolved_song = Song.objects.create(artist=artist_offline, title='Unresolved Track', clean_title='unresolved track')
+        ConcertSong.objects.create(concert_artist=ca, song=unresolved_song, raw_song_name='Unresolved Track')
+
+        req = RequestFactory().get('/overview/')
+        req.user = self.user
+        ctx = get_dashboard_context(req, self.user)
+        gap = ctx.get('gap', {})
+
+        missing_shows_cnt = len(gap.get('csv_missing_or_partial', []))
+        unresolved_artists_cnt = len(gap.get('unresolved_mb_artists', []))
+        unresolved_songs_cnt = len(gap.get('unresolved_mb_songs', []))
+
+        expected_total = missing_shows_cnt + unresolved_artists_cnt + unresolved_songs_cnt
+        self.assertEqual(gap.get('total_actionable_audit'), expected_total)
+        self.assertEqual(unresolved_artists_cnt, 1)
+        self.assertEqual(unresolved_songs_cnt, 1)
+        self.assertEqual(expected_total, missing_shows_cnt + 2)
+
+        # Also verify cached bundle maintains accurate 3-table total
+        from apps.catalog.models import ApiCache
+        cache_entry = ApiCache.objects.filter(cache_key=f"user_dashboard_bundle_{self.user.id}").first()
+        self.assertIsNotNone(cache_entry)
+        cached_gap = cache_entry.payload.get('gap_results', {})
+        self.assertEqual(cached_gap.get('total_actionable_audit'), expected_total)
+
+
 
 
 

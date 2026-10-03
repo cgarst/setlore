@@ -85,6 +85,11 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
         if "musicians" in stats:
             stats["musicians"] = consolidate_musician_bands(stats["musicians"])
         album_enrichments = bundle.get("album_enrichments", {})
+        gap_results["total_actionable_audit"] = (
+            len(gap_results.get("csv_missing_or_partial", [])) +
+            len(gap_results.get("unresolved_mb_artists", [])) +
+            len(gap_results.get("unresolved_mb_songs", []))
+        )
     else:
         # Build baseline statistics directly from database
         db_concerts = Concert.objects.filter(user=target_user).select_related('venue').prefetch_related('artists__artist', 'artists__songs')
@@ -363,6 +368,15 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
         "resolved_artists": resolved_artists_count,
         "unresolved_artists": unresolved_artists_count,
         "resolution_percentage": artist_resolution_pct,
+    }
+
+    missing_shows_cnt = len(gap_results.get("csv_missing_or_partial", []))
+    total_actionable_audit = missing_shows_cnt + unresolved_artists_count + unresolved_count
+    gap_results["total_actionable_audit"] = total_actionable_audit
+    gap_results["actionable_breakdown"] = {
+        "missing_shows": missing_shows_cnt,
+        "unresolved_artists": unresolved_artists_count,
+        "unresolved_songs": unresolved_count,
     }
 
     # Cache this bundle so subsequent loads are instant
