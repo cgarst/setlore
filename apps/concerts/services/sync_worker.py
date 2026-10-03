@@ -463,7 +463,6 @@ class SyncWorker:
                                 clean_title=clean_ref,
                                 release_year=year_ref,
                                 album_type=type_ref,
-                                mbid=alb_mbid,
                                 is_custom_offline=False
                             )
                             for s in saved_songs:
@@ -484,9 +483,6 @@ class SyncWorker:
                         if rel_year and not album_obj.release_year:
                             album_obj.release_year = rel_year
                             updated_fields.append('release_year')
-                        if alb_mbid and not album_obj.mbid:
-                            album_obj.mbid = alb_mbid
-                            updated_fields.append('mbid')
                         if updated_fields:
                             album_obj.save(update_fields=updated_fields)
 
@@ -494,8 +490,6 @@ class SyncWorker:
 
             if rel_year and not song_obj.release_year:
                 song_obj.release_year = rel_year
-            if rec_mbid and not song_obj.mbid:
-                song_obj.mbid = rec_mbid
 
             song_obj.save()
 

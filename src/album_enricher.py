@@ -182,11 +182,22 @@ class AlbumEnricher:
                 rec_title = rec.get("title", "")
                 rec_disam = (rec.get("disambiguation") or "").lower()
                 rec_mbid = rec.get("id") or None
-                if fuzz.ratio(rec_title.lower(), clean_q.lower()) < 65 and not any(q.lower() in rec_title.lower() for q in queries):
+                rec_lower = rec_title.lower()
+                clean_q_lower = clean_q.lower()
+
+                if fuzz.ratio(rec_lower, clean_q_lower) < 65 and not any(q.lower() in rec_lower for q in queries):
                     continue
-                if any(kw in rec_title.lower() for kw in ["demo", "live", "instrumental demo", "bootleg"]):
+
+                # Filter out demo/live/bootleg recordings unless those terms are part of the song query
+                skip_rec = False
+                for kw in ["demo", "live", "instrumental demo", "bootleg"]:
+                    if kw not in clean_q_lower and re.search(r'\b' + re.escape(kw) + r'\b', rec_lower):
+                        skip_rec = True
+                        break
+                if skip_rec:
                     continue
-                if any(kw in rec_disam for kw in ["live", "bootleg", "instrumental demo", "remix"]):
+
+                if any(re.search(r'\b' + re.escape(kw) + r'\b', rec_disam) for kw in ["live", "bootleg", "instrumental demo", "remix"]):
                     continue
 
                 for rel in rec.get("releases", []):

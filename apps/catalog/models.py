@@ -204,6 +204,10 @@ class MusicianTenure(models.Model):
     def musician_mbid(self):
         return self.musician_id
 
+    @musician_mbid.setter
+    def musician_mbid(self, value):
+        self.musician_id = value
+
 
 class ApiCache(models.Model):
     cache_key = models.CharField(max_length=255, primary_key=True)
