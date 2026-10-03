@@ -564,7 +564,8 @@ class Command(BaseCommand):
                             const grid = document.getElementById('album-gallery-grid');
                             if (grid) {
                                 const visibleCards = Array.from(grid.querySelectorAll('.album-gallery-card')).filter(c => c.style.display !== 'none');
-                                visibleCards.forEach(card => {
+                                // Reverse iterate top cards so that prioritizeAlbumCardArt (unshift) keeps the top cards at the front of the queue
+                                visibleCards.slice(0, 24).reverse().forEach(card => {
                                     const img = card.querySelector('.album-cover-img');
                                     const fallback = card.querySelector('[id^="album-cover-fallback-"]');
                                     if (img && typeof prioritizeAlbumCardArt === 'function') {
@@ -575,13 +576,37 @@ class Command(BaseCommand):
                         }
                     """)
                     page.wait_for_timeout(600)
-                    _wait_for_album_art(
-                        page,
-                        selector="#album-gallery-grid .album-gallery-card .album-cover-img",
-                        min_loaded=6 if not is_mob else 3,
-                        timeout_ms=12000,
-                    )
-                    page.wait_for_timeout(400)
+                    try:
+                        page.wait_for_function(
+                            f"""
+                            () => {{
+                                const grid = document.getElementById('album-gallery-grid');
+                                if (!grid) return true;
+                                const cards = Array.from(grid.querySelectorAll('.album-gallery-card')).filter(c => c.style.display !== 'none');
+                                const inViewportCards = cards.filter(c => {{
+                                    const rect = c.getBoundingClientRect();
+                                    return rect.top < (window.innerHeight || document.documentElement.clientHeight) && rect.bottom > 0;
+                                }});
+                                if (inViewportCards.length === 0) return true;
+
+                                const inViewportImgs = inViewportCards.map(c => c.querySelector('.album-cover-img')).filter(Boolean);
+                                const loadedImgs = inViewportImgs.filter(img =>
+                                    Boolean(img.src) &&
+                                    img.complete &&
+                                    img.naturalWidth > 0 &&
+                                    !img.classList.contains('opacity-0')
+                                );
+
+                                const targetCount = Math.min({12 if not is_mob else 4}, inViewportImgs.length);
+                                const queueIdle = (typeof albumArtQueue !== 'undefined' && albumArtQueue.length === 0 && (typeof activeArtFetches === 'undefined' || activeArtFetches === 0));
+                                return loadedImgs.length >= targetCount || (queueIdle && loadedImgs.length >= Math.min(6 if not is_mob else 2, inViewportImgs.length));
+                            }}
+                            """,
+                            timeout=20000,
+                        )
+                    except Exception:
+                        pass
+                    page.wait_for_timeout(600)
                     _save(page, f"albums{suffix}.png")
                     self.stdout.write(f"    + albums{suffix}.png (2000s era)")
 
