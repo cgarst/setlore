@@ -30,16 +30,11 @@ class SyncWorker:
     def __new__(cls):
         with cls._lock:
             if cls._instance is None:
-                import sys
                 cls._instance = super().__new__(cls)
                 cls._instance._queue = queue.Queue()
                 cls._instance._queued_user_ids = set()
                 cls._instance._cancelled_user_ids = set()
                 cls._instance._thread = None
-                # Auto-start worker thread and resume interrupted syncs only in server processes
-                is_server = any(srv in arg for arg in sys.argv for srv in ['runserver', 'gunicorn', 'uvicorn', 'daphne', 'asgi', 'wsgi'])
-                if is_server:
-                    cls._instance._ensure_thread_running()
         return cls._instance
 
     def _ensure_thread_running(self):
