@@ -48,6 +48,8 @@ def normalize_track_title(title: str) -> str:
     return re.sub(r'[^a-z0-9]', '', norm)
 
 
+import urllib.parse
+
 def get_dashboard_context(request, target_user, tab_name='overview', is_public_view=False):
     alias_map = {
         '': 'overview',
@@ -260,6 +262,52 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
             s["album_display"] = f"{album_title} ({rel_year})" if rel_year else album_title
             albums_set.add(album_title)
         art_data["albums_list"] = sorted(list(albums_set))
+
+    # Build Unresolved MusicBrainz Songs audit list from drilldown
+    unresolved_mb_songs = []
+    total_distinct_songs = 0
+    resolved_count = 0
+
+    for artist_name, art_data in drilldown.items():
+        for s in art_data.get("songs", []):
+            total_distinct_songs += 1
+            song_name = s.get("song", "")
+            album_title = s.get("album", "Non-Album / Singles")
+            is_resolved = bool(
+                album_title and
+                album_title not in ["Non-Album / Singles", "Covers"] and
+                album_title.lower() not in ["non-album / singles", "covers"]
+            )
+            if is_resolved:
+                resolved_count += 1
+            else:
+                occurrences = s.get("occurrences", [])
+                last_occ = occurrences[-1] if occurrences else {}
+                play_count = s.get("count", len(occurrences)) or 1
+                encoded_q = urllib.parse.quote(f'recording:"{song_name}" AND artist:"{artist_name}"')
+                unresolved_mb_songs.append({
+                    "artist": artist_name,
+                    "song": song_name,
+                    "play_count": play_count,
+                    "last_date": last_occ.get("date", "Unknown"),
+                    "last_venue": last_occ.get("venue", "Unknown Venue"),
+                    "is_cover": any(o.get("is_cover") for o in occurrences) or s.get("is_cover", False),
+                    "original_artist": s.get("original_artist") or last_occ.get("original_artist", ""),
+                    "album_display": album_title,
+                    "mb_search_url": f"https://musicbrainz.org/search?query={encoded_q}&type=recording",
+                })
+
+    unresolved_mb_songs.sort(key=lambda x: (-x["play_count"], x["artist"].lower(), x["song"].lower()))
+    unresolved_count = len(unresolved_mb_songs)
+    resolution_pct = round((resolved_count / total_distinct_songs * 100), 1) if total_distinct_songs > 0 else 0.0
+
+    gap_results["unresolved_mb_songs"] = unresolved_mb_songs
+    gap_results["mb_resolution_stats"] = {
+        "total_songs": total_distinct_songs,
+        "resolved_songs": resolved_count,
+        "unresolved_songs": unresolved_count,
+        "resolution_percentage": resolution_pct,
+    }
 
     # Build comprehensive albums gallery dataset for Vinyl Album Wall
     tracklist_dir = MB_CACHE_DIR / "tracklists"

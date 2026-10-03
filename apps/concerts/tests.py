@@ -735,7 +735,7 @@ class UpcomingShowsTests(TestCase):
         musicians_data = analyze_musicians_live(csv_records)
         # Only past concert included
         for m in musicians_data.get("top_musicians", []):
-            self.assertEqual(m["count"], 1)
+            self.assertEqual(m.get("total_shows", m.get("count")), 1)
 
         # 5. Verify generate_venue_map_data excludes future shows
         map_data = generate_venue_map_data(csv_records, matched_sl)

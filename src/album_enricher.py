@@ -32,66 +32,6 @@ def clean_album_title(title: str) -> str:
         flags=re.IGNORECASE
     ).strip()
     
-    # Fix known casing and name duplicates
-    c_low = cleaned.lower()
-    canonical_titles = {
-        "metropolis, pt. 2: scenes from a memory": "Metropolis, Pt. 2: Scenes from a Memory",
-        "metropolis pt. 2: scenes from a memory": "Metropolis, Pt. 2: Scenes from a Memory",
-        "kill 'em all": "Kill 'Em All",
-        "kill 'em all (remastered)": "Kill 'Em All",
-        "reload": "Reload",
-        "load": "Load",
-        "hardwired... to self-destruct": "Hardwired... to Self-Destruct",
-        "hardwired...to self-destruct": "Hardwired... to Self-Destruct",
-        "...and justice for all": "...And Justice for All",
-        "and justice for all": "...And Justice for All",
-        "ride the lightning": "Ride the Lightning",
-        "master of puppets": "Master of Puppets",
-        "72 seasons": "72 Seasons",
-        "garage inc.": "Garage Inc.",
-        "death magnetic": "Death Magnetic",
-        "st. anger": "St. Anger",
-        # Dream Theater
-        "when dream and day unite": "When Dream and Day Unite",
-        "images and words": "Images and Words",
-        "awake": "Awake",
-        "a change of seasons": "A Change of Seasons",
-        "falling into infinity": "Falling into Infinity",
-        "six degrees of inner turbulence": "Six Degrees of Inner Turbulence",
-        "train of thought": "Train of Thought",
-        "octavarium": "Octavarium",
-        "systematic chaos": "Systematic Chaos",
-        "black clouds & silver linings": "Black Clouds & Silver Linings",
-        "a dramatic turn of events": "A Dramatic Turn of Events",
-        "dream theater": "Dream Theater",
-        "the astonishing": "The Astonishing",
-        "distance over time": "Distance over Time",
-        "a view from the top of the world": "A View from the Top of the World",
-        "parasomnia": "Parasomnia",
-        # Iron Maiden
-        "the number of the beast": "The Number of the Beast",
-        "piece of mind": "Piece of Mind",
-        "seventh son of a seventh son": "Seventh Son of a Seventh Son",
-        "somewhere in time": "Somewhere in Time",
-        "fear of the dark": "Fear of the Dark",
-        "the book of souls": "The Book of Souls",
-        "the final frontier": "The Final Frontier",
-        "a matter of life and death": "A Matter of Life and Death",
-        "brave new world": "Brave New World",
-        "dance of death": "Dance of Death",
-        "the x factor": "The X Factor",
-        "virtual xi": "Virtual XI",
-        # Megadeth
-        "rust in peace": "Rust in Peace",
-        "peace sells... but who's buying?": "Peace Sells... But Who's Buying?",
-        "countdown to extinction": "Countdown to Extinction",
-        "youthanasia": "Youthanasia",
-        "cryptic writings": "Cryptic Writings",
-        "killing is my business... and business is good!": "Killing Is My Business... and Business Is Good!",
-        "so far, so good... so what!": "So Far, So Good... So What!",
-    }
-    if c_low in canonical_titles:
-        return canonical_titles[c_low]
     return cleaned
 
 def is_blacklisted_album(title: str) -> bool:

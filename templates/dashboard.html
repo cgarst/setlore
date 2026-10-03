@@ -5501,7 +5501,7 @@
     <div id="tab-gap" class="{% if initial_tab != 'gap' %}hidden {% endif %}space-y-6">
       
       <!-- Coverage Scorecards -->
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <div class="glass-card p-5 flex items-center justify-between">
           <div>
             <p class="text-xs uppercase font-semibold text-slate-400">Total Concerts</p>
@@ -5531,11 +5531,20 @@
 
         <div class="glass-card p-5 flex items-center justify-between">
           <div>
-            <p class="text-xs uppercase font-semibold text-slate-400">Actionable Audit Items</p>
+            <p class="text-xs uppercase font-semibold text-slate-400">Actionable Audit</p>
             <p class="text-2xl font-bold text-amber-400 mt-1">{{ gap.csv_missing_or_partial|length|intcomma }}</p>
             <p class="text-xs text-slate-500 mt-1">Shows needing review</p>
           </div>
           <div class="w-10 h-10 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center"><i class="fa-solid fa-triangle-exclamation"></i></div>
+        </div>
+
+        <div class="glass-card p-5 flex items-center justify-between">
+          <div>
+            <p class="text-xs uppercase font-semibold text-slate-400">MusicBrainz Catalog</p>
+            <p class="text-2xl font-bold {% if gap.mb_resolution_stats.unresolved_songs > 0 %}text-amber-400{% else %}text-emerald-400{% endif %} mt-1">{{ gap.mb_resolution_stats.resolution_percentage|default:"0" }}%</p>
+            <p class="text-xs text-slate-500 mt-1">{{ gap.mb_resolution_stats.unresolved_songs|default:gap.unresolved_mb_songs|length|intcomma }} unresolved songs</p>
+          </div>
+          <div class="w-10 h-10 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center"><i class="fa-solid fa-compact-disc"></i></div>
         </div>
       </div>
 
@@ -5647,6 +5656,84 @@
                     {% endfor %}
                   </td>
 
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- MusicBrainz Catalog Unresolved Songs Audit Section -->
+      <div class="glass-card p-6">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+          <div>
+            <h2 class="text-lg font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-compact-disc text-amber-400"></i> Songs Pending MusicBrainz Catalog Resolution
+            </h2>
+            <p class="text-xs text-slate-400 mt-1">Setlist tracks heard live that could not be matched to an official studio album in the MusicBrainz catalog.</p>
+          </div>
+
+          <!-- Quick Filters & Search -->
+          <div class="flex items-center gap-3 flex-wrap">
+            <span class="px-3 py-1 text-xs font-semibold rounded-lg bg-amber-500/10 text-amber-300 border border-amber-500/20">
+              {{ gap.mb_resolution_stats.unresolved_songs|default:gap.unresolved_mb_songs|length|intcomma }} Unresolved ({{ gap.mb_resolution_stats.resolution_percentage|default:"0" }}% Resolved)
+            </span>
+            <div class="relative">
+              <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-500 text-xs"></i>
+              <input type="text" id="mb-unresolved-search" onkeyup="filterMbUnresolvedTable()" placeholder="Filter artist or song..." class="pl-8 pr-3 py-1.5 bg-slate-900/80 border border-slate-700/80 rounded-lg text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 w-48 md:w-60" />
+            </div>
+          </div>
+        </div>
+
+        {% if not gap.unresolved_mb_songs or gap.unresolved_mb_songs|length == 0 %}
+          <div class="p-8 text-center text-slate-400 bg-slate-800/40 rounded-xl">
+            <i class="fa-solid fa-circle-check text-emerald-400 text-3xl mb-2 block"></i>
+            <p class="text-base font-semibold text-white">100% MusicBrainz Catalog Coverage</p>
+            <p class="text-xs text-slate-400 mt-1">All live setlist songs have been successfully matched to official releases in the catalog.</p>
+          </div>
+        {% else %}
+          <div class="overflow-x-auto max-h-[520px]">
+            <table id="mb-unresolved-table" class="w-full text-left text-sm text-slate-300">
+              <thead class="text-xs uppercase bg-slate-900/80 text-slate-400 sticky top-0 border-b border-slate-800">
+                <tr>
+                  <th class="px-4 py-3">Artist</th>
+                  <th class="px-4 py-3">Song / Track</th>
+                  <th class="px-4 py-3 text-center">Plays</th>
+                  <th class="px-4 py-3">Last Heard</th>
+                  <th class="px-4 py-3 text-right">MusicBrainz Lookup</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800/60" id="mb-unresolved-tbody">
+                {% for song in gap.unresolved_mb_songs %}
+                <tr class="hover:bg-slate-800/30 transition mb-unresolved-row" data-artist="{{ song.artist|lower }}" data-song="{{ song.song|lower }}">
+                  <td class="px-4 py-3 font-medium text-white align-middle">
+                    <button onclick="jumpToArtistInDrilldown('{{ song.artist|escapejs }}')" class="hover:underline hover:text-indigo-300 text-left font-semibold text-white">
+                      {{ song.artist }}
+                    </button>
+                  </td>
+                  <td class="px-4 py-3 align-middle">
+                    <div class="flex items-center gap-2">
+                      <span class="text-slate-200 font-medium">{{ song.song }}</span>
+                      {% if song.is_cover %}
+                        <span class="px-1.5 py-0.5 text-[10px] rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">Cover{% if song.original_artist %} ({{ song.original_artist }}){% endif %}</span>
+                      {% endif %}
+                    </div>
+                  </td>
+                  <td class="px-4 py-3 text-center align-middle">
+                    <span class="px-2 py-0.5 text-xs font-semibold rounded-md bg-slate-800 text-slate-300 border border-slate-700">
+                      {{ song.play_count }}x
+                    </span>
+                  </td>
+                  <td class="px-4 py-3 text-xs text-slate-400 align-middle">
+                    <span class="text-slate-300">{{ song.last_date }}</span>
+                    <span class="text-slate-500 text-[11px] block truncate max-w-xs">{{ song.last_venue }}</span>
+                  </td>
+                  <td class="px-4 py-3 text-right align-middle">
+                    <a href="{{ song.mb_search_url }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 rounded-lg text-xs font-semibold transition">
+                      <i class="fa-solid fa-magnifying-glass text-[10px]"></i> Search MB <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                    </a>
+                  </td>
                 </tr>
                 {% endfor %}
               </tbody>
@@ -8515,6 +8602,20 @@
           r.style.display = r.getAttribute('data-has-exists') === 'true' ? '' : 'none';
         } else if (filterType === 'missing') {
           r.style.display = r.getAttribute('data-has-missing') === 'true' ? '' : 'none';
+        }
+      });
+    }
+
+    function filterMbUnresolvedTable() {
+      const q = (document.getElementById('mb-unresolved-search')?.value || '').toLowerCase().trim();
+      const rows = document.querySelectorAll('.mb-unresolved-row');
+      rows.forEach(r => {
+        const art = r.getAttribute('data-artist') || '';
+        const song = r.getAttribute('data-song') || '';
+        if (!q || art.includes(q) || song.includes(q)) {
+          r.style.display = '';
+        } else {
+          r.style.display = 'none';
         }
       });
     }
