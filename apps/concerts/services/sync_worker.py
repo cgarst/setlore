@@ -446,15 +446,39 @@ class SyncWorker:
                     )
                     albums_cache[(art_obj.id, clean_alb_key)] = album_obj
                 else:
-                    updated_fields = []
-                    if rel_year and not album_obj.release_year:
-                        album_obj.release_year = rel_year
-                        updated_fields.append('release_year')
-                    if alb_mbid and not album_obj.mbid:
-                        album_obj.mbid = alb_mbid
-                        updated_fields.append('mbid')
-                    if updated_fields:
-                        album_obj.save(update_fields=updated_fields)
+                    if alb_mbid and album_obj.id != alb_mbid:
+                        existing_mbid_alb = Album.objects.filter(id=alb_mbid).first()
+                        if not existing_mbid_alb:
+                            new_alb = Album.objects.create(
+                                id=alb_mbid,
+                                artist=album_obj.artist,
+                                title=album_obj.title,
+                                clean_title=album_obj.clean_title,
+                                release_year=rel_year or album_obj.release_year,
+                                album_type=album_obj.album_type,
+                                mbid=alb_mbid,
+                                is_custom_offline=False
+                            )
+                        else:
+                            new_alb = existing_mbid_alb
+                            if rel_year and not new_alb.release_year:
+                                new_alb.release_year = rel_year
+                                new_alb.save(update_fields=['release_year'])
+                        Song.objects.filter(album=album_obj).update(album=new_alb)
+                        if album_obj.id != new_alb.id:
+                            album_obj.delete()
+                        album_obj = new_alb
+                        albums_cache[(art_obj.id, clean_alb_key)] = album_obj
+                    else:
+                        updated_fields = []
+                        if rel_year and not album_obj.release_year:
+                            album_obj.release_year = rel_year
+                            updated_fields.append('release_year')
+                        if alb_mbid and not album_obj.mbid:
+                            album_obj.mbid = alb_mbid
+                            updated_fields.append('mbid')
+                        if updated_fields:
+                            album_obj.save(update_fields=updated_fields)
 
                 song_obj.album = album_obj
 

@@ -133,25 +133,29 @@ class AlbumEnricher:
 
         return queries
 
-    def _query_musicbrainz_studio_album(self, artist_name: str, song_name: str) -> Tuple[Optional[str], Optional[int]]:
-        """Queries local disk dump if available, otherwise queries MusicBrainz API dynamically."""
+    def _query_musicbrainz_studio_album(self, artist_name: str, song_name: str) -> Tuple[Optional[str], Optional[int], Optional[str], Optional[str]]:
+        """Queries local disk dump if available, otherwise queries MusicBrainz API dynamically.
+        Returns: (album_title, release_year, release_group_mbid, recording_mbid)
+        """
         try:
             from src.musicbrainz_dump import MusicBrainzDumpManager
             mb_dump = MusicBrainzDumpManager.get_instance()
             if mb_dump.is_dump_available():
                 local_album, local_yr = mb_dump.lookup_studio_album(artist_name, song_name)
                 if local_album or local_yr:
-                    return local_album, local_yr
+                    rg_mbid = mb_dump.lookup_release_group_mbid(artist_name, local_album)
+                    return local_album, local_yr, rg_mbid, None
                 # Check variations locally in SQLite (instant)
                 queries = self._generate_query_variations(song_name)
                 for q_song in queries:
                     if q_song != song_name:
                         local_album, local_yr = mb_dump.lookup_studio_album(artist_name, q_song)
                         if local_album or local_yr:
-                            return local_album, local_yr
+                            rg_mbid = mb_dump.lookup_release_group_mbid(artist_name, local_album)
+                            return local_album, local_yr, rg_mbid, None
                 # Song was not found in local disk dump
                 if not mb_dump.get_online_fallback():
-                    return None, None
+                    return None, None, None, None
                 # If online fallback is enabled, proceed to query live MusicBrainz API below
         except Exception:
             pass
@@ -177,6 +181,7 @@ class AlbumEnricher:
             for rec in data.get("recordings", []):
                 rec_title = rec.get("title", "")
                 rec_disam = (rec.get("disambiguation") or "").lower()
+                rec_mbid = rec.get("id") or None
                 if fuzz.ratio(rec_title.lower(), clean_q.lower()) < 65 and not any(q.lower() in rec_title.lower() for q in queries):
                     continue
                 if any(kw in rec_title.lower() for kw in ["demo", "live", "instrumental demo", "bootleg"]):
@@ -188,6 +193,7 @@ class AlbumEnricher:
                     rg = rel.get("release-group", {})
                     primary = rg.get("primary-type")
                     sec_types = rg.get("secondary-types") or []
+                    rg_mbid = rg.get("id") or None
 
                     if any(t.lower() in ["live", "demo", "compilation", "remix", "soundtrack", "dj-mix"] for t in sec_types):
                         continue
@@ -224,21 +230,21 @@ class AlbumEnricher:
                     else:
                         score -= 50
 
-                    candidates.append((score, title))
+                    candidates.append((score, title, rg_mbid, rec_mbid))
 
             if candidates:
                 scored = []
-                for sc, title in candidates:
+                for sc, title, rg_mbid, rec_mbid in candidates:
                     yr = album_years.get(title)
                     final_sc = sc
                     if yr and yr < 9999:
                         final_sc += max(0, 2030 - yr)
-                    scored.append((final_sc, yr if yr and yr < 9999 else None, title))
+                    scored.append((final_sc, yr if yr and yr < 9999 else None, title, rg_mbid, rec_mbid))
                 scored.sort(key=lambda x: x[0], reverse=True)
                 best = scored[0]
-                return best[2], best[1]
+                return best[2], best[1], best[3], best[4]
 
-        return None, None
+        return None, None, None, None
 
     def _query_song_from_db(self, artist_name: str, song_name: str) -> Optional[Dict[str, Any]]:
         """Queries the database Song and Album tables if Django is available."""
@@ -339,11 +345,18 @@ class AlbumEnricher:
                 pass
 
         # 3. Query MusicBrainz canonical studio database dynamically
-        album_name, release_yr = self._query_musicbrainz_studio_album(artist_name, song_name)
+        album_name, release_yr, alb_mbid, rec_mbid = self._query_musicbrainz_studio_album(artist_name, song_name)
 
         if album_name:
             result["album"] = clean_album_title(album_name)
             result["release_year"] = release_yr
+            if alb_mbid:
+                result["mbid"] = alb_mbid
+                result["album_mbid"] = alb_mbid
+                result["release_group_mbid"] = alb_mbid
+            if rec_mbid:
+                result["recording_mbid"] = rec_mbid
+                result["recording_id"] = rec_mbid
             result["resolved"] = True
             try:
                 with open(cache_file, "w", encoding="utf-8") as f:
@@ -366,6 +379,46 @@ class AlbumEnricher:
                 result["resolved"] = False
 
         return result
+
+    def get_release_group_mbid(self, artist_name: str, album_title: str) -> Optional[str]:
+        """Resolves the canonical MusicBrainz Release Group MBID for an artist's album."""
+        if not artist_name or not album_title:
+            return None
+        clean_alb = clean_album_title(album_title)
+        if clean_alb in ["Covers", "Non-Album / Singles"] or clean_alb.lower() in ["covers", "non-album / singles"]:
+            return None
+
+        # 1. Check local dump if available
+        try:
+            from src.musicbrainz_dump import MusicBrainzDumpManager
+            mb_dump = MusicBrainzDumpManager.get_instance()
+            if mb_dump.is_dump_available():
+                rg_mbid = mb_dump.lookup_release_group_mbid(artist_name, clean_alb)
+                if rg_mbid:
+                    return rg_mbid
+        except Exception:
+            pass
+
+        # 2. Query MusicBrainz live release-group endpoint
+        clean_q = clean_alb.replace('"', '').strip()
+        q_str = f'releasegroup:"{clean_q}" AND artist:"{artist_name}"'
+        url = f'https://musicbrainz.org/ws/2/release-group?query={urllib.parse.quote(q_str)}&limit=5&fmt=json'
+        resp = self._rate_limited_get(url)
+        if resp and resp.status_code == 200:
+            try:
+                data = resp.json()
+                rgs = data.get("release-groups", [])
+                if rgs:
+                    # Prefer standard Album primary type
+                    for rg in rgs:
+                        if rg.get("primary-type") == "Album" and rg.get("id"):
+                            return rg["id"]
+                    if rgs[0].get("id"):
+                        return rgs[0]["id"]
+            except Exception:
+                pass
+
+        return None
 
     def enrich_catalog(self, songs_list: list, max_workers: int = 1,
                        refresh_unresolved: bool = False, refresh_all: bool = False,

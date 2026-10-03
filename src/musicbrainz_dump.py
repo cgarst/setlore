@@ -1079,6 +1079,48 @@ class MusicBrainzDumpManager:
 
         return None
 
+    def lookup_release_group_mbid(self, artist_name: str, album_title: str) -> Optional[str]:
+        """Queries local disk SQLite database for release group (album) MBID."""
+        if not self.is_dump_available():
+            return None
+
+        clean_art = _normalize_key(clean_artist_name(artist_name))
+        clean_alb = _normalize_key(album_title)
+        if not clean_art or not clean_alb:
+            return None
+
+        try:
+            conn = self._get_read_conn()
+            if not conn:
+                return None
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT mbid
+                FROM release_groups
+                WHERE clean_artist = ? AND clean_title = ?
+                ORDER BY score DESC, release_year ASC
+                LIMIT 1
+            """, (clean_art, clean_alb))
+            row = cur.fetchone()
+            if row and row[0]:
+                return row[0]
+
+            if len(clean_alb) >= 4:
+                cur.execute("""
+                    SELECT mbid
+                    FROM release_groups
+                    WHERE clean_artist = ? AND clean_title LIKE ?
+                    ORDER BY score DESC, release_year ASC
+                    LIMIT 1
+                """, (clean_art, f"{clean_alb}%"))
+                row = cur.fetchone()
+                if row and row[0]:
+                    return row[0]
+        except Exception as e:
+            print(f"[MusicBrainzDump] Release group MBID lookup error: {e}")
+
+        return None
+
     def lookup_artist_relations(self, mbid: str) -> Optional[Dict[str, Any]]:
         """Queries local disk SQLite database for artist relationships and member tenures."""
         if not self.is_dump_available() or not mbid:
