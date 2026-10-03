@@ -892,6 +892,14 @@ class DjangoAppTests(TestCase):
         cached_gap = cache_entry.payload.get('gap_results', {})
         self.assertEqual(cached_gap.get('total_actionable_audit'), expected_total)
 
+        # Verify template renders the non-zero integer on the scorecard and badges
+        self.client.force_login(self.user)
+        res = self.client.get('/overview/')
+        self.assertEqual(res.status_code, 200)
+        html = res.content.decode('utf-8')
+        self.assertIn(f'<p class="text-2xl font-bold text-amber-400 mt-1">{expected_total}</p>', html)
+
+
 
 
 
