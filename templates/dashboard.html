@@ -5542,7 +5542,7 @@
           <div>
             <p class="text-xs uppercase font-semibold text-slate-400">MusicBrainz Catalog</p>
             <p class="text-2xl font-bold {% if gap.mb_resolution_stats.unresolved_songs > 0 %}text-amber-400{% else %}text-emerald-400{% endif %} mt-1">{{ gap.mb_resolution_stats.resolution_percentage|default:"0" }}%</p>
-            <p class="text-xs text-slate-500 mt-1">{{ gap.mb_resolution_stats.unresolved_songs|default:gap.unresolved_mb_songs|length|intcomma }} unresolved songs</p>
+            <p class="text-xs text-slate-500 mt-1">{{ gap.mb_resolution_stats.unresolved_songs|intcomma }} unresolved songs</p>
           </div>
           <div class="w-10 h-10 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center"><i class="fa-solid fa-compact-disc"></i></div>
         </div>
@@ -5677,7 +5677,7 @@
           <!-- Quick Filters & Search -->
           <div class="flex items-center gap-3 flex-wrap">
             <span class="px-3 py-1 text-xs font-semibold rounded-lg bg-amber-500/10 text-amber-300 border border-amber-500/20">
-              {{ gap.mb_resolution_stats.unresolved_songs|default:gap.unresolved_mb_songs|length|intcomma }} Unresolved ({{ gap.mb_resolution_stats.resolution_percentage|default:"0" }}% Resolved)
+              {{ gap.mb_resolution_stats.unresolved_songs|intcomma }} Unresolved ({{ gap.mb_resolution_stats.resolution_percentage|default:"0" }}% Resolved)
             </span>
             <div class="relative">
               <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-500 text-xs"></i>

@@ -224,20 +224,6 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
         stats["venue_map"] = generate_venue_map_data(csv_records, matched)
         stats["musicians"] = analyze_musicians_live(csv_records)
 
-        # Cache this bundle so subsequent loads are instant
-        if matched or csv_records:
-            ApiCache.objects.update_or_create(
-                cache_key=f"user_dashboard_bundle_{target_user.id}",
-                defaults={
-                    'endpoint': 'dashboard_bundle',
-                    'payload': {
-                        'gap_results': gap_results,
-                        'stats': stats,
-                        'album_enrichments': album_enrichments
-                    }
-                }
-            )
-
     if "top_year" not in stats and "yearly_concerts" in stats and stats["yearly_concerts"]:
         best_yr, best_cnt = max(stats["yearly_concerts"].items(), key=lambda x: (x[1], x[0]))
         stats["top_year"] = {"year": best_yr, "count": best_cnt}
@@ -308,6 +294,20 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
         "unresolved_songs": unresolved_count,
         "resolution_percentage": resolution_pct,
     }
+
+    # Cache this bundle so subsequent loads are instant
+    if target_user and (stats.get("all_songs_list") or gap_results.get("matched")):
+        ApiCache.objects.update_or_create(
+            cache_key=f"user_dashboard_bundle_{target_user.id}",
+            defaults={
+                'endpoint': 'dashboard_bundle',
+                'payload': {
+                    'gap_results': gap_results,
+                    'stats': stats,
+                    'album_enrichments': album_enrichments
+                }
+            }
+        )
 
     # Build comprehensive albums gallery dataset for Vinyl Album Wall
     tracklist_dir = MB_CACHE_DIR / "tracklists"

@@ -302,3 +302,36 @@ def api_purge_dashboard_cache(request):
         'deleted_count': deleted,
         'message': f"Purged {deleted} cached dashboard bundles."
     })
+
+@require_http_methods(["POST"])
+def api_clear_music_catalog(request):
+    """Admin API endpoint to clear MusicBrainz catalog tables with customizable options."""
+    if not _is_staff_or_admin(request):
+        return HttpResponseForbidden(json.dumps({'error': 'Admin access required'}), content_type='application/json')
+
+    import io
+    from django.core.management import call_command
+
+    try:
+        data = json.loads(request.body or '{}')
+    except Exception:
+        data = {}
+
+    clear_cache = bool(data.get('clear_cache', False))
+    resync = bool(data.get('resync', False))
+
+    out = io.StringIO()
+    try:
+        call_command('clear_music_catalog', clear_cache=clear_cache, resync=resync, stdout=out)
+        output_text = out.getvalue()
+        return JsonResponse({
+            'status': 'success',
+            'output': output_text,
+            'message': 'Music catalog tables successfully cleared.'
+        })
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'output': out.getvalue(),
+            'message': f'Failed to clear catalog: {str(e)}'
+        }, status=500)

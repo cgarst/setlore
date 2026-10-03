@@ -105,6 +105,7 @@ urlpatterns = [
     path('api/admin/musicbrainz-dump/test-lookup/', catalog_views.api_musicbrainz_dump_test_lookup, name='api_mb_dump_test_lookup'),
     path('api/admin/catalog/refresh-lineup/', catalog_views.api_refresh_musician_lineup, name='api_refresh_musician_lineup'),
     path('api/admin/catalog/purge-cache/', catalog_views.api_purge_dashboard_cache, name='api_purge_dashboard_cache'),
+    path('api/admin/catalog/clear/', catalog_views.api_clear_music_catalog, name='api_admin_clear_music_catalog'),
 ]
 
 

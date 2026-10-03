@@ -6,7 +6,7 @@ from apps.catalog.models import Album, Song, MusicianTenure, ApiCache, Artist
 from src.config import MB_CACHE_DIR
 
 class Command(BaseCommand):
-    help = "Clears MusicBrainz catalog data (albums, song album links, musician tenures, and cache) to allow a fresh pull on next sync."
+    help = "Clears MusicBrainz catalog data (albums, musician tenures, song metadata, orphan records, and cache) to allow a fresh pull on next sync."
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -24,10 +24,10 @@ class Command(BaseCommand):
         self.stdout.write("Clearing MusicBrainz catalog tables...")
 
         with transaction.atomic():
-            # 1. Unlink album and release year from all songs
-            song_count = Song.objects.filter(album__isnull=False).count()
-            Song.objects.update(album=None, release_year=None)
-            self.stdout.write(f"  - Unlinked album & release years from {song_count} songs.")
+            # 1. Unlink album, release year, and recording MBID from all songs
+            song_count = Song.objects.count()
+            Song.objects.update(album=None, release_year=None, mbid=None)
+            self.stdout.write(f"  - Reset album, release year, and recording MBID on {song_count} songs.")
 
             # 2. Delete all albums
             album_count = Album.objects.count()
@@ -39,7 +39,24 @@ class Command(BaseCommand):
             MusicianTenure.objects.all().delete()
             self.stdout.write(f"  - Deleted {tenure_count} musician tenure records.")
 
-            # 4. Clear API caches
+            # 4. Reset artist MBIDs on artists
+            artist_count = Artist.objects.count()
+            Artist.objects.update(mbid=None)
+            self.stdout.write(f"  - Reset MusicBrainz MBIDs on {artist_count} artists.")
+
+            # 5. Purge orphan songs not linked to any user concert performances
+            orphan_songs = Song.objects.filter(performances__isnull=True)
+            orphan_song_count = orphan_songs.count()
+            orphan_songs.delete()
+            self.stdout.write(f"  - Deleted {orphan_song_count} orphan songs not linked to any concert.")
+
+            # 6. Purge orphan artists not linked to any user concert appearances
+            orphan_artists = Artist.objects.filter(concert_appearances__isnull=True)
+            orphan_artist_count = orphan_artists.count()
+            orphan_artists.delete()
+            self.stdout.write(f"  - Deleted {orphan_artist_count} orphan artists not linked to any concert.")
+
+            # 7. Clear API caches
             api_cache_count = ApiCache.objects.count()
             ApiCache.objects.all().delete()
             self.stdout.write(f"  - Cleared {api_cache_count} database API cache entries.")
@@ -58,7 +75,15 @@ class Command(BaseCommand):
             from src.album_enricher import AlbumEnricher
             from src.musician_enricher import MusicianEnricher
 
-            # Enrich albums for songs
+            # 1. Re-resolve artist MBIDs and enrich musician tenures
+            m_enricher = MusicianEnricher()
+            for art_obj in Artist.objects.all():
+                try:
+                    m_enricher.enrich_artist(art_obj.name, artist_obj=art_obj, refresh=True)
+                except Exception:
+                    pass
+
+            # 2. Enrich albums for songs
             enricher = AlbumEnricher()
             distinct_tracks = list(Song.objects.values_list('artist__name', 'title').distinct())
             self.stdout.write(f"Enriching {len(distinct_tracks)} songs with MusicBrainz...")
@@ -77,6 +102,7 @@ class Command(BaseCommand):
                 alb_title = info.get("album")
                 rel_year = info.get("release_year")
                 alb_mbid = info.get("mbid")
+                rec_mbid = info.get("recording_id")
                 if alb_title and alb_title != "Non-Album / Singles":
                     clean_alb_key = alb_title.lower().strip()
                     art_obj = Artist.objects.filter(name__iexact=art_name).first()
@@ -96,15 +122,8 @@ class Command(BaseCommand):
                             alb_obj.save(update_fields=['release_year'])
                         Song.objects.filter(artist=art_obj, clean_title=s_name.lower().strip()).update(
                             album=alb_obj,
-                            release_year=rel_year
+                            release_year=rel_year,
+                            mbid=rec_mbid or None
                         )
-
-            # Enrich musician tenures for artists
-            m_enricher = MusicianEnricher()
-            for art_obj in Artist.objects.all():
-                try:
-                    m_enricher.enrich_artist(art_obj.name, artist_obj=art_obj, refresh=True)
-                except Exception:
-                    pass
 
             self.stdout.write(self.style.SUCCESS("Fresh MusicBrainz re-sync complete!"))
