@@ -201,6 +201,11 @@ class Command(BaseCommand):
                     screenshots_dst_dir,
                     emulate_date=emulate_date,
                 )
+                if hasattr(settings, 'STATIC_ROOT') and settings.STATIC_ROOT:
+                    staticfiles_screenshots_dir = Path(settings.STATIC_ROOT) / "img" / "screenshots"
+                    staticfiles_screenshots_dir.mkdir(parents=True, exist_ok=True)
+                    for shot in screenshots_src_dir.glob("*.png"):
+                        shutil.copy2(shot, staticfiles_screenshots_dir / shot.name)
             except Exception as exc:
                 import traceback
                 self.stdout.write(self.style.WARNING(f"Screenshot generation notice: {exc}"))
