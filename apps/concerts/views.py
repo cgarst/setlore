@@ -21,7 +21,7 @@ from src.analytics import ConcertAnalytics
 from src.csv_parser import parse_csv_rows, normalize_artist_name
 from src.setlist_api import SetlistFMClient
 from src.gap_analysis import reconcile_history
-from src.album_enricher import AlbumEnricher
+from src.album_enricher import AlbumEnricher, is_solo_or_intro_track
 from src.musician_enricher import MusicianEnricher
 from src.venue_mapper import generate_venue_map_data
 from src.musician_tracker import analyze_musicians_live, consolidate_musician_bands
@@ -263,8 +263,10 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
 
     for artist_name, art_data in drilldown.items():
         for s in art_data.get("songs", []):
-            total_distinct_songs += 1
             song_name = s.get("song", "")
+            if is_solo_or_intro_track(song_name):
+                continue
+            total_distinct_songs += 1
             album_title = s.get("album", "Non-Album / Singles")
             is_cov = s.get("is_cover", False)
             orig_art = s.get("original_artist") or ""

@@ -797,6 +797,62 @@ class DjangoAppTests(TestCase):
         self.assertFalse(Artist.objects.filter(name='Api Edit Typo').exists())
         self.assertTrue(Artist.objects.filter(name='Api Edit Corrected').exists())
 
+    def test_solo_tracks_not_linked_to_musicbrainz_nor_pending(self):
+        from src.album_enricher import is_solo_or_intro_track, AlbumEnricher
+        from apps.concerts.views import get_dashboard_context
+        from unittest.mock import patch
+
+        # 1. Verify regex helper on diverse solos, intros, and real tracks
+        self.assertTrue(is_solo_or_intro_track("Bass Solo"))
+        self.assertTrue(is_solo_or_intro_track("Guitar Solo"))
+        self.assertTrue(is_solo_or_intro_track("Drum Solo"))
+        self.assertTrue(is_solo_or_intro_track("Keyboard Solo"))
+        self.assertTrue(is_solo_or_intro_track("Piano Solo"))
+        self.assertTrue(is_solo_or_intro_track("Vocal Solo"))
+        self.assertTrue(is_solo_or_intro_track("Saxophone Solo"))
+        self.assertTrue(is_solo_or_intro_track("Drum Duet"))
+        self.assertTrue(is_solo_or_intro_track("Intro Tape"))
+        self.assertTrue(is_solo_or_intro_track("Intermission"))
+        self.assertTrue(is_solo_or_intro_track("Tuning"))
+
+        # Genuine songs should NOT be classified as solos
+        self.assertFalse(is_solo_or_intro_track("Demon of the Fall"))
+        self.assertFalse(is_solo_or_intro_track("Pull Me Under"))
+        self.assertFalse(is_solo_or_intro_track("Tom Sawyer"))
+        self.assertFalse(is_solo_or_intro_track("Freebird"))
+
+        # 2. Verify AlbumEnricher does NOT query MusicBrainz for solos
+        enricher = AlbumEnricher()
+        with patch.object(enricher, '_query_musicbrainz_studio_album') as mock_query:
+            info = enricher.get_track_info("Test Artist", "Bass Solo")
+            mock_query.assert_not_called()
+            self.assertEqual(info["album"], "Non-Album / Singles")
+            self.assertTrue(info["resolved"])
+
+        # 3. Verify solos are excluded from unresolved MusicBrainz songs list in dashboard
+        venue = Venue.objects.create(name='Solo Hall', city='Chicago', state='IL')
+        artist = Artist.objects.create(name='Rush', normalized_name='rush')
+        concert = Concert.objects.create(user=self.user, raw_date='2020-01-01', year=2020, venue=venue, raw_artists='Rush')
+        ca = ConcertArtist.objects.create(concert=concert, artist=artist)
+
+        drum_solo_song = Song.objects.create(artist=artist, title='Drum Solo', clean_title='drum solo')
+        real_unresolved_song = Song.objects.create(artist=artist, title='Obscure Rare B-Side', clean_title='obscure rare b-side')
+
+        ConcertSong.objects.create(concert_artist=ca, song=drum_solo_song, raw_song_name='Drum Solo', track_num=1)
+        ConcertSong.objects.create(concert_artist=ca, song=real_unresolved_song, raw_song_name='Obscure Rare B-Side', track_num=2)
+
+        from django.test import RequestFactory
+        req = RequestFactory().get('/overview/')
+        req.user = self.user
+        ctx = get_dashboard_context(req, self.user)
+        gap = ctx.get('gap', {})
+        unresolved_songs = gap.get('unresolved_mb_songs', [])
+        unresolved_titles = [s['song'] for s in unresolved_songs]
+
+        self.assertNotIn('Drum Solo', unresolved_titles)
+        self.assertIn('Obscure Rare B-Side', unresolved_titles)
+
+
 
 
 

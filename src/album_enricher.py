@@ -48,6 +48,24 @@ def is_blacklisted_album(title: str) -> bool:
     ]
     return any(b in t for b in blacklisted)
 
+SOLO_INTRO_PATTERNS = [
+    # Solos of any instrument
+    r'\b(?:bass|guitar|drum|drums|keyboard|keyboards|piano|vocal|vocals|percussion|violin|fiddle|synth|synthesizer|organ|acoustic\s+guitar|harmonica|clarinet|flute|trumpet|trombone|saxophone|sax|cello|harp|accordion|banjo|mandolin|horns?|lead\s+guitar|rhythm\s+guitar)\s+solo\b',
+    r'\b(?:drum\s+duet|drums?\s+and\s+percussion|percussion\s+duet|guitar\s+duet|bass\s+duet)\b',
+    r'\b(?:solo\s+(?:duet|duel|battle|medley|spotlight|break|interlude))\b',
+    r'^\s*(?:solo|solos|drum\s+solo|bass\s+solo|guitar\s+solo|keyboard\s+solo|piano\s+solo|vocal\s+solo|sax\s+solo)\s*$',
+    # Intros, outros, walk-ons, tapes, intermissions, tuning, soundchecks
+    r'\b(?:intro|outro|tape|walk-on|walkon|walk\s+on|intermission|schmedley|tuning|soundcheck|intro\s+tape|outro\s+tape|intro\s+jam|outro\s+jam|jam\s+session|improv\s+jam|band\s+introductions?|crowd\s+noise|stage\s+banter)\b',
+    r'\b(?:also\s+sprach\s+zarathustra)\b',
+]
+SOLO_INTRO_RE = re.compile('|'.join(SOLO_INTRO_PATTERNS), re.IGNORECASE)
+
+def is_solo_or_intro_track(title: str) -> bool:
+    """Checks if a track is a solo, intro, outro tape, intermission, or live jam that should not be queried against MusicBrainz."""
+    if not title:
+        return False
+    return bool(SOLO_INTRO_RE.search(str(title).strip()))
+
 # Empty dicts preserved for backwards-compatibility imports
 CANONICAL_ALBUM_YEARS: Dict[Tuple[str, str], int] = {}
 CANONICAL_TRACK_ALBUMS: Dict[Tuple[str, str], Tuple[str, int]] = {}
@@ -340,14 +358,26 @@ class AlbumEnricher:
             if song_obj.get("info"):
                 result["info"] = song_obj.get("info")
 
-        # 1. Check database first unless refresh_unresolved is forced
+        # 1. Skip MusicBrainz query entirely for solos, audio clips, walk-ons, and non-song performances
+        if is_solo_or_intro_track(song_name):
+            result["album"] = "Non-Album / Singles"
+            result["release_year"] = None
+            result["resolved"] = True
+            try:
+                with open(cache_file, "w", encoding="utf-8") as f:
+                    json.dump(result, f, indent=2)
+            except Exception:
+                pass
+            return result
+
+        # 2. Check database first unless refresh_unresolved is forced
         if not refresh_unresolved:
             db_res = self._query_song_from_db(artist_name, song_name)
             if db_res and self._is_valid_cache_entry(db_res, refresh_unresolved=refresh_unresolved):
                 result.update(db_res)
                 return result
 
-        # 2. Check disk cache
+        # 3. Check disk cache
         cache_key = "".join(c if c.isalnum() else "_" for c in f"{artist_name}_{song_name}".lower())
         cache_file = MB_CACHE_DIR / f"{cache_key}.json"
 
@@ -369,7 +399,7 @@ class AlbumEnricher:
             except Exception:
                 pass
 
-        # 3. Query MusicBrainz canonical studio database dynamically
+        # 4. Query MusicBrainz canonical studio database dynamically
         # If the track is a cover with a known original artist, prioritize querying MusicBrainz under the original artist
         lookup_artist = result["original_artist"] if (result.get("is_cover") and result.get("original_artist")) else artist_name
         album_name, release_yr, alb_mbid, rec_mbid = self._query_musicbrainz_studio_album(lookup_artist, song_name)
@@ -395,19 +425,8 @@ class AlbumEnricher:
             except Exception:
                 pass
         else:
-            # Solos, audio clips, walk-ons, or genuinely unresolved
-            is_solo_or_intro = any(w in song_name.lower() for w in [
-                "solo", "intro", "outro", "tape", "intermission", "schmedley", "lobby", "zarathustra"
-            ])
-            if is_solo_or_intro:
-                result["resolved"] = True
-                try:
-                    with open(cache_file, "w", encoding="utf-8") as f:
-                        json.dump(result, f, indent=2)
-                except Exception:
-                    pass
-            else:
-                result["resolved"] = False
+            # Genuinely unresolved studio album
+            result["resolved"] = False
 
         return result
 
@@ -582,6 +601,18 @@ class AlbumEnricher:
                 pass
 
         for key, (art, song, song_obj) in unique_pairs.items():
+            if is_solo_or_intro_track(song):
+                results[key] = {
+                    "song": song,
+                    "artist": art,
+                    "album": "Non-Album / Singles",
+                    "release_year": None,
+                    "is_cover": False,
+                    "original_artist": None,
+                    "resolved": True
+                }
+                continue
+
             if refresh_all:
                 uncached.append((key, art, song, song_obj))
                 continue
