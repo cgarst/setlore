@@ -613,7 +613,7 @@ def sync_single_concert(concert, user=None, client=None, force_refresh=True) -> 
     from src.gap_analysis import find_global_setlist_match, is_ignored_artist, match_score
     from src.album_enricher import AlbumEnricher
     from src.musician_enricher import MusicianEnricher
-    from src.config import SETLISTFM_API_KEY, SETLIST_CACHE_DIR
+    from src.config import SETLISTFM_API_KEY
 
     user = user or concert.user
     profile = getattr(user, 'profile', None)
@@ -657,12 +657,10 @@ def sync_single_concert(concert, user=None, client=None, force_refresh=True) -> 
             if is_ignored_artist(art_name, ignored_artists):
                 continue
 
-            # Invalidate specific setlist file cache if ca already had a setlistfm_id and force_refresh is True
+            # Invalidate ApiCache if force_refresh is True
             if force_refresh and ca.setlistfm_id:
                 try:
-                    c_file = SETLIST_CACHE_DIR / f"{ca.setlistfm_id}.json"
-                    if c_file.exists():
-                        c_file.unlink(missing_ok=True)
+                    ApiCache.objects.filter(cache_key=f"setlistfm_sl_{ca.setlistfm_id}").delete()
                 except Exception:
                     pass
 
@@ -770,6 +768,25 @@ def sync_single_concert(concert, user=None, client=None, force_refresh=True) -> 
                         total_songs_added += len(cs_objs)
 
                 ca.save(update_fields=['setlistfm_id', 'setlist_url', 'has_setlist'])
+
+                # Update user attended ApiCache if it exists so gap reconciliation reflects updated tracks
+                if sl_id and profile and (profile.setlistfm_username or "").strip():
+                    try:
+                        u_cache_key = f"setlistfm_user_{profile.setlistfm_username.strip().lower()}"
+                        u_entry = ApiCache.objects.filter(cache_key=u_cache_key).first()
+                        if u_entry and isinstance(u_entry.payload, list):
+                            u_list = u_entry.payload
+                            updated_u = False
+                            for u_idx, u_sl in enumerate(u_list):
+                                if u_sl.get("id") == sl_id:
+                                    u_list[u_idx] = matched_sl
+                                    updated_u = True
+                                    break
+                            if updated_u:
+                                u_entry.payload = u_list
+                                u_entry.save(update_fields=['payload', 'updated_at'])
+                    except Exception as e:
+                        logger.warning("Could not update user attended ApiCache: %s", e)
 
                 # Venue geolocation update from Setlist.fm venue coords if missing
                 if concert.venue and (concert.venue.latitude is None or concert.venue.longitude is None):

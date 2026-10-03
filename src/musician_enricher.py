@@ -378,13 +378,6 @@ class MusicianEnricher:
         if not mbid:
             return []
 
-        if artist_obj and not getattr(artist_obj, 'mbid', None):
-            try:
-                artist_obj.mbid = mbid
-                artist_obj.save(update_fields=['mbid'])
-            except Exception:
-                pass
-
         mb_data = self.get_artist_relations(mbid, refresh=refresh)
         if not mb_data:
             return []

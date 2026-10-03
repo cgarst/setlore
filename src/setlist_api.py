@@ -2,12 +2,45 @@ import json
 import time
 import urllib.parse
 from datetime import datetime
-from pathlib import Path
 from typing import Dict, Any, List, Optional
 import requests
 from rapidfuzz import fuzz
 
-from src.config import SETLISTFM_API_KEY, SETLIST_CACHE_DIR, USER_CACHE_DIR
+from src.config import SETLISTFM_API_KEY
+
+
+def _get_api_cache(cache_key: str) -> Optional[Any]:
+    """Retrieves a cached JSON payload from the ApiCache database model."""
+    try:
+        from apps.catalog.models import ApiCache
+        entry = ApiCache.objects.filter(cache_key=cache_key).first()
+        if entry:
+            return entry.payload
+    except Exception:
+        pass
+    return None
+
+
+def _set_api_cache(cache_key: str, endpoint: str, payload: Any):
+    """Stores a JSON payload into the ApiCache database model."""
+    try:
+        from apps.catalog.models import ApiCache
+        ApiCache.objects.update_or_create(
+            cache_key=cache_key,
+            defaults={'endpoint': endpoint, 'payload': payload}
+        )
+    except Exception:
+        pass
+
+
+def _delete_api_cache(cache_key: str):
+    """Deletes a cached payload from ApiCache."""
+    try:
+        from apps.catalog.models import ApiCache
+        ApiCache.objects.filter(cache_key=cache_key).delete()
+    except Exception:
+        pass
+
 
 class SetlistFMClient:
     BASE_URL = "https://api.setlist.fm/rest/1.0"
@@ -53,30 +86,24 @@ class SetlistFMClient:
         return None
 
     def get_user_attended(self, username: str, use_cache: bool = True) -> List[Dict[str, Any]]:
-        cache_file = USER_CACHE_DIR / f"{username}_attended.json"
-        cached_data = None
-        if use_cache and cache_file.exists():
-            try:
-                with open(cache_file, "r", encoding="utf-8") as f:
-                    cached_data = json.load(f)
-            except Exception as e:
-                print(f"Error reading user cache: {e}")
+        clean_user = username.strip().lower()
+        cache_key = f"setlistfm_user_{clean_user}"
+        cached_data = _get_api_cache(cache_key) if use_cache else None
 
-        # Always check live page 1 to verify total count and check for newly tagged shows
+        # Check live page 1 to verify total count
         page1_data = self._get(f"user/{username}/attended", params={"p": 1})
         if page1_data:
             live_total = page1_data.get("total", 0)
             page1_setlists = page1_data.get("setlist", [])
-            
-            # If cached count matches live total, cache is 100% up to date!
-            if cached_data and len(cached_data) == live_total:
+
+            # If cached count matches live total and caching requested, return cached data
+            if use_cache and cached_data and len(cached_data) == live_total:
                 return cached_data
 
-            # If total changed (e.g. user tagged a new show), fetch remaining pages
             print(f"Syncing attended setlists for '{username}' (Live Total: {live_total}, Cached: {len(cached_data) if cached_data else 0})...")
             all_setlists = list(page1_setlists)
             items_per_page = page1_data.get("itemsPerPage", 20)
-            
+
             page = 2
             while len(all_setlists) < live_total:
                 data = self._get(f"user/{username}/attended", params={"p": page})
@@ -89,18 +116,11 @@ class SetlistFMClient:
                 print(f"  Fetched page {page} ({len(all_setlists)}/{live_total} setlists)...")
                 page += 1
 
-            # Cache full attended list
-            with open(cache_file, "w", encoding="utf-8") as f:
-                json.dump(all_setlists, f, indent=2)
-
-            # Also cache individual setlists
+            _set_api_cache(cache_key, "user_attended", all_setlists)
             for s in all_setlists:
                 s_id = s.get("id")
                 if s_id:
-                    s_cache_file = SETLIST_CACHE_DIR / f"{s_id}.json"
-                    if not s_cache_file.exists():
-                        with open(s_cache_file, "w", encoding="utf-8") as f:
-                            json.dump(s, f, indent=2)
+                    _set_api_cache(f"setlistfm_sl_{s_id}", "setlist", s)
 
             return all_setlists
 
@@ -110,18 +130,15 @@ class SetlistFMClient:
         return []
 
     def get_setlist_by_id(self, setlist_id: str, use_cache: bool = True) -> Optional[Dict[str, Any]]:
-        cache_file = SETLIST_CACHE_DIR / f"{setlist_id}.json"
-        if use_cache and cache_file.exists():
-            try:
-                with open(cache_file, "r", encoding="utf-8") as f:
-                    return json.load(f)
-            except Exception:
-                pass
+        cache_key = f"setlistfm_sl_{setlist_id.strip()}"
+        if use_cache:
+            cached = _get_api_cache(cache_key)
+            if cached is not None:
+                return cached
 
-        data = self._get(f"setlist/{setlist_id}")
+        data = self._get(f"setlist/{setlist_id.strip()}")
         if data:
-            with open(cache_file, "w", encoding="utf-8") as f:
-                json.dump(data, f, indent=2)
+            _set_api_cache(cache_key, "setlist", data)
         return data
 
     def search_setlists(self, artist_name: Optional[str] = None, date_str: Optional[str] = None,
@@ -129,14 +146,12 @@ class SetlistFMClient:
                          use_cache: bool = True) -> List[Dict[str, Any]]:
         query_key = f"{artist_name or ''}_{date_str or ''}_{year or ''}_{venue_name or ''}"
         safe_key = "".join(c if c.isalnum() else "_" for c in query_key)
-        cache_file = SETLIST_CACHE_DIR / f"search_{safe_key}.json"
+        cache_key = f"setlistfm_search_{safe_key}"
 
-        if use_cache and cache_file.exists():
-            try:
-                with open(cache_file, "r", encoding="utf-8") as f:
-                    return json.load(f)
-            except Exception:
-                pass
+        if use_cache:
+            cached = _get_api_cache(cache_key)
+            if cached is not None:
+                return cached
 
         params = {}
         if artist_name:
@@ -150,6 +165,5 @@ class SetlistFMClient:
 
         data = self._get("search/setlists", params=params)
         setlists = data.get("setlist", []) if data else []
-        with open(cache_file, "w", encoding="utf-8") as f:
-            json.dump(setlists, f, indent=2)
+        _set_api_cache(cache_key, "search_setlists", setlists)
         return setlists

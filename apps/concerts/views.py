@@ -25,7 +25,7 @@ from src.album_enricher import AlbumEnricher, is_solo_or_intro_track
 from src.musician_enricher import MusicianEnricher
 from src.venue_mapper import generate_venue_map_data
 from src.musician_tracker import analyze_musicians_live, consolidate_musician_bands
-from src.config import SETLISTFM_API_KEY, CARTO_API_KEY, USER_CACHE_DIR, MB_CACHE_DIR
+from src.config import SETLISTFM_API_KEY, CARTO_API_KEY, MB_CACHE_DIR
 from src.upcoming_events import get_upcoming_shows_for_user, get_user_seen_artists_summary
 from src.id_utils import is_offline_id
 from .services.sync_worker import sync_worker
@@ -150,17 +150,13 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
                             "is_manual": True
                         })
 
-        # Check if user has attended setlists in disk cache to auto-reconcile without network calls
+        # Check if user has attended setlists in ApiCache to auto-reconcile without network calls
         setlist_username = (profile.setlistfm_username or "").strip()
         user_attended = []
         if setlist_username:
-            user_cache_file = USER_CACHE_DIR / f"{setlist_username}_attended.json"
-            if user_cache_file.exists():
-                try:
-                    with open(user_cache_file, "r", encoding="utf-8") as f:
-                        user_attended = json.load(f)
-                except Exception as e:
-                    print(f"Error loading user attended cache: {e}")
+            user_cache_entry = ApiCache.objects.filter(cache_key=f"setlistfm_user_{setlist_username.lower()}").first()
+            if user_cache_entry and isinstance(user_cache_entry.payload, list):
+                user_attended = user_cache_entry.payload
 
         if user_attended:
             gap_results = reconcile_history(csv_records, user_attended, client=None, ignored_artists=profile.ignored_artist_names)
@@ -1231,16 +1227,13 @@ def parse_ticketmaster_preview(request):
             except Exception:
                 client = None
 
-        # Load attended setlists cache if available
-        setlist_username = profile.setlistfm_username or user.username
-        user_cache_file = USER_CACHE_DIR / f"{setlist_username}_attended.json"
+        # Load attended setlists from ApiCache if available
+        setlist_username = (profile.setlistfm_username or user.username or "").strip()
         user_attended = []
-        if user_cache_file.exists():
-            try:
-                with open(user_cache_file, "r", encoding="utf-8") as f:
-                    user_attended = json.load(f)
-            except Exception:
-                pass
+        if setlist_username:
+            user_cache_entry = ApiCache.objects.filter(cache_key=f"setlistfm_user_{setlist_username.lower()}").first()
+            if user_cache_entry and isinstance(user_cache_entry.payload, list):
+                user_attended = user_cache_entry.payload
 
         processed_events = []
         duplicates_count = 0

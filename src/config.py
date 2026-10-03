@@ -8,12 +8,13 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = Path(os.getenv("DATA_DIR", BASE_DIR / "data"))
 CACHE_DIR = Path(os.getenv("CACHE_DIR", DATA_DIR / "cache" if DATA_DIR.exists() else BASE_DIR / "cache"))
+# Legacy cache directory paths retained for historical migrations
 SETLIST_CACHE_DIR = CACHE_DIR / "setlists"
 USER_CACHE_DIR = CACHE_DIR / "user"
 MB_CACHE_DIR = CACHE_DIR / "musicbrainz"
 MB_DUMP_DIR = Path(os.getenv("MB_DUMP_DIR", DATA_DIR / "musicbrainz_dump"))
 
-for d in [SETLIST_CACHE_DIR, USER_CACHE_DIR, MB_CACHE_DIR, MB_DUMP_DIR]:
+for d in [MB_CACHE_DIR, MB_DUMP_DIR]:
     d.mkdir(parents=True, exist_ok=True)
 
 SETLISTFM_API_KEY = os.getenv("SETLISTFM_KEY") or os.getenv("setlistfm_key", "").strip()
