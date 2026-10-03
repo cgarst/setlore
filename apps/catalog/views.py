@@ -2,6 +2,7 @@ import json
 from django.shortcuts import render
 from django.http import JsonResponse, HttpResponseForbidden
 from django.views.decorators.http import require_http_methods
+from django.views.decorators.csrf import ensure_csrf_cookie
 from django.contrib.admin.views.decorators import staff_member_required
 from src.musicbrainz_dump import MusicBrainzDumpManager
 
@@ -9,6 +10,7 @@ def _is_staff_or_admin(request):
     return request.user.is_authenticated and (request.user.is_staff or request.user.is_superuser or bool(request.session.get('impersonator_id')))
 
 @staff_member_required
+@ensure_csrf_cookie
 def musicbrainz_dump_admin_view(request):
     """Renders the MusicBrainz JSON dump management panel in the admin portal."""
     manager = MusicBrainzDumpManager.get_instance()
@@ -310,6 +312,7 @@ def api_clear_music_catalog(request):
         return HttpResponseForbidden(json.dumps({'error': 'Admin access required'}), content_type='application/json')
 
     import io
+    import threading
     from django.core.management import call_command
 
     try:
@@ -322,12 +325,42 @@ def api_clear_music_catalog(request):
 
     out = io.StringIO()
     try:
-        call_command('clear_music_catalog', clear_cache=clear_cache, resync=resync, stdout=out)
+        # Run clearing synchronously (very fast, ~100ms)
+        call_command('clear_music_catalog', clear_cache=clear_cache, resync=False, stdout=out)
         output_text = out.getvalue()
+
+        # If resync was requested, run re-enrichment in background thread to avoid gateway timeouts (504)
+        if resync:
+            def _background_resync():
+                try:
+                    from apps.catalog.models import Artist, Song
+                    from src.musician_enricher import MusicianEnricher
+                    from src.album_enricher import AlbumEnricher
+
+                    m_enricher = MusicianEnricher()
+                    for art_obj in Artist.objects.all():
+                        try:
+                            m_enricher.enrich_artist(art_obj.name, artist_obj=art_obj, refresh=True)
+                        except Exception:
+                            pass
+
+                    enricher = AlbumEnricher()
+                    distinct_tracks = list(Song.objects.values_list('artist__name', 'title').distinct())
+                    enricher.enrich_catalog(
+                        [{"artist": a, "song": s} for a, s in distinct_tracks if a and s],
+                        refresh_unresolved=True
+                    )
+                except Exception as e:
+                    import logging
+                    logging.getLogger(__name__).error(f"Background catalog resync failed: {e}")
+
+            threading.Thread(target=_background_resync, daemon=True).start()
+            output_text += "\n[Background Task] Live MusicBrainz catalog re-sync launched in background."
+
         return JsonResponse({
             'status': 'success',
             'output': output_text,
-            'message': 'Music catalog tables successfully cleared.'
+            'message': 'Music catalog tables successfully cleared.' + (' Background re-sync started.' if resync else '')
         })
     except Exception as e:
         return JsonResponse({

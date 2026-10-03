@@ -168,6 +168,10 @@
 {% endblock %}
 
 {% block content %}
+{% csrf_token %}
+<script>
+  window.CSRF_TOKEN = "{{ csrf_token }}";
+</script>
 <div style="max-width: 1100px; margin: 0 auto; padding: 1rem 0;">
   
   <!-- Header Card -->
@@ -497,7 +501,7 @@
         </label>
         <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; color: #f1f5f9; cursor: pointer;">
           <input type="checkbox" id="clear-catalog-resync-check" style="accent-color: #6366f1; width: 1rem; height: 1rem;">
-          <span><strong>Immediately Re-Sync Active Catalog</strong> (<code>--resync</code>) &mdash; Re-enriches active catalog artists immediately after clearing</span>
+          <span><strong>Immediately Re-Sync Active Catalog</strong> (<code>--resync</code>) &mdash; Automatically runs live MusicBrainz catalog enrichment in the background</span>
         </label>
       </div>
 
@@ -568,6 +572,13 @@
     return cookieValue;
   }
 
+  function getCsrfToken() {
+    const input = document.querySelector('input[name="csrfmiddlewaretoken"]');
+    if (input && input.value) return input.value;
+    if (window.CSRF_TOKEN) return window.CSRF_TOKEN;
+    return getCookie('csrftoken') || '';
+  }
+
   async function refreshStatus() {
     try {
       const res = await fetch('/api/admin/musicbrainz-dump/status/');
@@ -585,7 +596,7 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRFToken': getCookie('csrftoken'),
+          'X-CSRFToken': getCsrfToken(),
         },
         body: JSON.stringify({ mode: mode })
       });
@@ -606,7 +617,7 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRFToken': getCookie('csrftoken'),
+          'X-CSRFToken': getCsrfToken(),
         },
         body: JSON.stringify({ enabled: enabled })
       });
@@ -632,7 +643,7 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRFToken': getCookie('csrftoken'),
+          'X-CSRFToken': getCsrfToken(),
         },
         body: JSON.stringify({
           interval: interval,
@@ -845,7 +856,7 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRFToken': getCookie('csrftoken'),
+          'X-CSRFToken': getCsrfToken(),
         },
         body: JSON.stringify({ components: ['release.tar.xz', 'artist.tar.xz'] })
       });
@@ -871,7 +882,7 @@
     try {
       const res = await fetch('/api/admin/musicbrainz-dump/cancel/', {
         method: 'POST',
-        headers: { 'X-CSRFToken': getCookie('csrftoken') }
+        headers: { 'X-CSRFToken': getCsrfToken() }
       });
       const data = await res.json();
       if (data.dump_status) {
@@ -896,7 +907,7 @@
     try {
       const res = await fetch('/api/admin/musicbrainz-dump/delete-raw/', {
         method: 'POST',
-        headers: { 'X-CSRFToken': getCookie('csrftoken') }
+        headers: { 'X-CSRFToken': getCsrfToken() }
       });
       const data = await res.json();
       if (data.status === 'success') {
@@ -917,7 +928,7 @@
     try {
       const res = await fetch('/api/admin/musicbrainz-dump/delete/', {
         method: 'POST',
-        headers: { 'X-CSRFToken': getCookie('csrftoken') }
+        headers: { 'X-CSRFToken': getCsrfToken() }
       });
       const data = await res.json();
       if (data.status === 'success') {
@@ -945,7 +956,7 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRFToken': getCookie('csrftoken')
+          'X-CSRFToken': getCsrfToken()
         },
         body: JSON.stringify({ artist: artist, song: song })
       });
@@ -1020,7 +1031,7 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRFToken': getCookie('csrftoken'),
+          'X-CSRFToken': getCsrfToken(),
         },
         body: JSON.stringify({ artist: artist })
       });
@@ -1079,7 +1090,7 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRFToken': getCookie('csrftoken'),
+          'X-CSRFToken': getCsrfToken(),
         },
         body: JSON.stringify({ all: true })
       });
@@ -1118,7 +1129,7 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRFToken': getCookie('csrftoken'),
+          'X-CSRFToken': getCsrfToken(),
         }
       });
       const data = await res.json();
@@ -1169,20 +1180,32 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRFToken': getCookie('csrftoken'),
+          'X-CSRFToken': getCsrfToken(),
         },
         body: JSON.stringify({
           clear_cache: clearCache,
           resync: resync
         })
       });
-      const data = await res.json();
-      if (data.status === 'success') {
+
+      const contentType = res.headers.get('content-type') || '';
+      let data = null;
+      let rawText = '';
+      if (contentType.includes('application/json')) {
+        data = await res.json();
+      } else {
+        rawText = await res.text();
+      }
+
+      if (res.ok && data && data.status === 'success') {
         statusDiv.innerHTML = `<span style="color: #34d399;"><i class="fa-solid fa-circle-check"></i> ${data.message}</span>`;
         outputPre.textContent = data.output || 'Catalog cleared successfully.';
-      } else {
+      } else if (data) {
         statusDiv.innerHTML = `<span style="color: #f87171;"><i class="fa-solid fa-triangle-exclamation"></i> ${data.message || 'Error occurred'}</span>`;
         outputPre.textContent = data.output || JSON.stringify(data, null, 2);
+      } else {
+        statusDiv.innerHTML = `<span style="color: #f87171;"><i class="fa-solid fa-triangle-exclamation"></i> HTTP ${res.status} ${res.statusText || 'Error'}</span>`;
+        outputPre.textContent = rawText || `Server returned status ${res.status} with no JSON body.`;
       }
     } catch (e) {
       statusDiv.innerHTML = `<span style="color: #f87171;"><i class="fa-solid fa-triangle-exclamation"></i> Network error</span>`;
