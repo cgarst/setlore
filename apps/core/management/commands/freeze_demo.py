@@ -376,8 +376,12 @@ class Command(BaseCommand):
             self.stdout.write(f"  [auth] Created authenticated session for @{username}")
 
             # Find Haken at Cafe 611 concert ID dynamically if available
-            haken_concert = target_user.concerts.filter(venue__name__icontains="Cafe 611", raw_artists__icontains="Haken").first()
-            haken_concert_id = str(haken_concert.id) if haken_concert else "55"
+            haken_concert = target_user.concerts.filter(venue__name__icontains="Cafe 611", artists__artist__name__icontains="Haken").first()
+            if not haken_concert:
+                haken_concert = target_user.concerts.filter(artists__artist__name__icontains="Haken").first()
+            if not haken_concert:
+                haken_concert = target_user.concerts.first()
+            haken_concert_id = str(haken_concert.id) if haken_concert else ""
 
             FORCE_DEFAULT_THEME_JS = """
                 () => {
