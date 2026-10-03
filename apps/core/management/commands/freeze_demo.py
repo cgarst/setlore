@@ -381,16 +381,33 @@ class Command(BaseCommand):
                 }
             """
 
-            def _wait_for_album_art(page, selector="img.lazy-album-art", min_loaded=1, timeout_ms=8000):
+            def _wait_for_album_art(page, selector="img.lazy-album-art", min_loaded=1, timeout_ms=10000):
                 try:
                     page.wait_for_function(
                         f"""
                         () => {{
-                            const imgs = Array.from(document.querySelectorAll('{selector}'));
-                            if (imgs.length === 0) return true;
-                            return imgs.filter(img =>
-                                img.dataset.loaded === 'true' || !img.classList.contains('opacity-0')
-                            ).length >= {min_loaded};
+                            const isVisible = (el) => {{
+                                return !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length) &&
+                                       window.getComputedStyle(el).display !== 'none' &&
+                                       window.getComputedStyle(el).visibility !== 'hidden';
+                            }};
+
+                            const allImgs = Array.from(document.querySelectorAll('{selector}'));
+                            const visibleImgs = allImgs.filter(isVisible);
+                            if (visibleImgs.length === 0) {{
+                                if (allImgs.length === 0) return true;
+                                return false;
+                            }}
+
+                            const loadedImgs = visibleImgs.filter(img =>
+                                Boolean(img.src) &&
+                                img.complete &&
+                                img.naturalWidth > 0 &&
+                                !img.classList.contains('opacity-0')
+                            );
+
+                            const targetCount = Math.min({min_loaded}, visibleImgs.length);
+                            return loadedImgs.length >= targetCount;
                         }}
                         """,
                         timeout=timeout_ms,
@@ -479,8 +496,9 @@ class Command(BaseCommand):
                         page,
                         selector="#concert-modal-body img.lazy-album-art, #concert-modal img",
                         min_loaded=1,
-                        timeout_ms=5000,
+                        timeout_ms=8000,
                     )
+                    page.wait_for_timeout(300)
                     _save(page, f"concerts{suffix}.png")
                     self.stdout.write(f"    + concerts{suffix}.png (Haken Cafe 611 modal)")
                     page.evaluate("if (typeof closeAllModals === 'function') closeAllModals();")
@@ -495,7 +513,13 @@ class Command(BaseCommand):
                         }
                     """)
                     page.wait_for_timeout(700)
-                    _wait_for_album_art(page, selector="#artist-modal-body img, #artist-song-modal img", min_loaded=1, timeout_ms=5000)
+                    _wait_for_album_art(
+                        page,
+                        selector="#artist-modal-body img.lazy-album-art, #artist-modal-body img, #artist-song-modal img",
+                        min_loaded=1,
+                        timeout_ms=8000,
+                    )
+                    page.wait_for_timeout(300)
                     _save(page, f"artists{suffix}.png")
                     self.stdout.write(f"    + artists{suffix}.png (Megadeth artist modal)")
                     page.evaluate("if (typeof closeAllModals === 'function') closeAllModals();")
@@ -510,7 +534,13 @@ class Command(BaseCommand):
                         }
                     """)
                     page.wait_for_timeout(700)
-                    _wait_for_album_art(page, selector="#artist-modal-body img, #artist-song-modal img", min_loaded=1, timeout_ms=5000)
+                    _wait_for_album_art(
+                        page,
+                        selector="#artist-modal-body img.lazy-album-art, #artist-modal-body img, #artist-song-modal img",
+                        min_loaded=1,
+                        timeout_ms=8000,
+                    )
+                    page.wait_for_timeout(300)
                     _save(page, f"songs{suffix}.png")
                     self.stdout.write(f"    + songs{suffix}.png (Demon of the Fall song modal)")
                     page.evaluate("if (typeof closeAllModals === 'function') closeAllModals();")
@@ -522,10 +552,27 @@ class Command(BaseCommand):
                             if (typeof setAlbumGalleryDecade === 'function') {
                                 setAlbumGalleryDecade('2000s');
                             }
+                            const grid = document.getElementById('album-gallery-grid');
+                            if (grid) {
+                                const visibleCards = Array.from(grid.querySelectorAll('.album-gallery-card')).filter(c => c.style.display !== 'none');
+                                visibleCards.forEach(card => {
+                                    const img = card.querySelector('.album-cover-img');
+                                    const fallback = card.querySelector('[id^="album-cover-fallback-"]');
+                                    if (img && typeof prioritizeAlbumCardArt === 'function') {
+                                        prioritizeAlbumCardArt(img, fallback);
+                                    }
+                                });
+                            }
                         }
                     """)
                     page.wait_for_timeout(600)
-                    _wait_for_album_art(page, selector=".album-cover-img", min_loaded=3, timeout_ms=8000)
+                    _wait_for_album_art(
+                        page,
+                        selector="#album-gallery-grid .album-gallery-card .album-cover-img",
+                        min_loaded=6 if not is_mob else 3,
+                        timeout_ms=12000,
+                    )
+                    page.wait_for_timeout(400)
                     _save(page, f"albums{suffix}.png")
                     self.stdout.write(f"    + albums{suffix}.png (2000s era)")
 
@@ -538,7 +585,13 @@ class Command(BaseCommand):
                         }
                     """)
                     page.wait_for_timeout(700)
-                    _wait_for_album_art(page, selector="#album-modal-body img, #album-modal img", min_loaded=1, timeout_ms=5000)
+                    _wait_for_album_art(
+                        page,
+                        selector="#modal-album-cover-img, #album-inspector-modal img, #album-modal-body img",
+                        min_loaded=1,
+                        timeout_ms=8000,
+                    )
+                    page.wait_for_timeout(300)
                     _save(page, f"album_modal{suffix}.png")
                     self.stdout.write(f"    + album_modal{suffix}.png (Train of Thought album modal)")
                     page.evaluate("if (typeof closeAllModals === 'function') closeAllModals();")
