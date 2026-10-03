@@ -180,86 +180,90 @@ class AlbumEnricher:
 
         queries = self._generate_query_variations(song_name)
 
-        for q_song in queries:
-            clean_q = q_song.replace('"', '').strip()
-            q_str = f'recording:"{clean_q}" AND artist:"{artist_name}"'
-            url = f'https://musicbrainz.org/ws/2/recording?query={urllib.parse.quote(q_str)}&limit=40&fmt=json'
-
-            resp = self._rate_limited_get(url)
-            if not resp or resp.status_code != 200:
-                continue
-            try:
-                data = resp.json()
-            except Exception:
-                continue
-
-            album_years: Dict[str, int] = {}
+        for status_filter in [" AND status:official", ""]:
             candidates = []
+            album_years: Dict[str, int] = {}
 
-            for rec in data.get("recordings", []):
-                rec_title = rec.get("title", "")
-                rec_disam = (rec.get("disambiguation") or "").lower()
-                rec_mbid = rec.get("id") or None
-                rec_lower = rec_title.lower()
-                clean_q_lower = clean_q.lower()
+            for q_song in queries:
+                clean_q = q_song.replace('"', '').strip()
+                q_str = f'recording:"{clean_q}" AND artist:"{artist_name}"{status_filter}'
+                url = f'https://musicbrainz.org/ws/2/recording?query={urllib.parse.quote(q_str)}&limit=100&fmt=json'
 
-                if fuzz.ratio(rec_lower, clean_q_lower) < 65 and not any(q.lower() in rec_lower for q in queries):
+                resp = self._rate_limited_get(url)
+                if not resp or resp.status_code != 200:
+                    continue
+                try:
+                    data = resp.json()
+                except Exception:
                     continue
 
-                # Filter out demo/live/bootleg recordings unless those terms are part of the song query
-                skip_rec = False
-                for kw in ["demo", "live", "instrumental demo", "bootleg"]:
-                    if kw not in clean_q_lower and re.search(r'\b' + re.escape(kw) + r'\b', rec_lower):
-                        skip_rec = True
-                        break
-                if skip_rec:
-                    continue
+                for rec in data.get("recordings", []):
+                    rec_title = rec.get("title", "")
+                    rec_disam = (rec.get("disambiguation") or "").lower()
+                    rec_mbid = rec.get("id") or None
+                    rec_lower = rec_title.lower()
+                    clean_q_lower = clean_q.lower()
 
-                if any(re.search(r'\b' + re.escape(kw) + r'\b', rec_disam) for kw in ["live", "bootleg", "instrumental demo", "remix"]):
-                    continue
-
-                for rel in rec.get("releases", []):
-                    rg = rel.get("release-group", {})
-                    primary = rg.get("primary-type")
-                    sec_types = rg.get("secondary-types") or []
-                    rg_mbid = rg.get("id") or None
-
-                    if any(t.lower() in ["live", "demo", "compilation", "remix", "soundtrack", "dj-mix"] for t in sec_types):
+                    if fuzz.ratio(rec_lower, clean_q_lower) < 65 and not any(q.lower() in rec_lower for q in queries):
                         continue
 
-                    raw_title = rg.get("title") or rel.get("title") or ""
-                    if not raw_title or is_blacklisted_album(raw_title):
+                    # Filter out demo/live/bootleg recordings unless those terms are part of the song query
+                    skip_rec = False
+                    for kw in ["demo", "live", "instrumental demo", "bootleg"]:
+                        if kw not in clean_q_lower and re.search(r'\b' + re.escape(kw) + r'\b', rec_lower):
+                            skip_rec = True
+                            break
+                    if skip_rec:
                         continue
 
-                    title = clean_album_title(raw_title)
+                    if any(re.search(r'\b' + re.escape(kw) + r'\b', rec_disam) for kw in ["live", "bootleg", "instrumental demo", "remix"]):
+                        continue
 
-                    # Extract earliest valid year across release-group, recording, and release dates
-                    rg_date = rg.get("first-release-date", "")
-                    rec_date = rec.get("first-release-date", "")
-                    rel_date = rel.get("date", "")
+                    for rel in rec.get("releases", []):
+                        rg = rel.get("release-group", {})
+                        primary = rg.get("primary-type")
+                        sec_types = rg.get("secondary-types") or []
+                        rg_mbid = rg.get("id") or None
 
-                    years = []
-                    for d_str in [rg_date, rec_date, rel_date]:
-                        if d_str and len(d_str) >= 4 and d_str[:4].isdigit():
-                            y = int(d_str[:4])
-                            if 1950 <= y <= 2030:
-                                years.append(y)
+                        if any(t.lower() in ["live", "demo", "compilation", "remix", "soundtrack", "dj-mix"] for t in sec_types):
+                            continue
 
-                    yr = min(years) if years else None
-                    if yr:
-                        album_years[title] = min(album_years.get(title, 9999), yr)
+                        raw_title = rg.get("title") or rel.get("title") or ""
+                        if not raw_title or is_blacklisted_album(raw_title):
+                            continue
 
-                    score = 100
-                    if primary == "Album":
-                        score += 80
-                    elif primary == "EP":
-                        score += 40
-                    if not sec_types:
-                        score += 40
-                    else:
-                        score -= 50
+                        title = clean_album_title(raw_title)
 
-                    candidates.append((score, title, rg_mbid, rec_mbid))
+                        # Extract earliest valid year across release-group, recording, and release dates
+                        rg_date = rg.get("first-release-date", "")
+                        rec_date = rec.get("first-release-date", "")
+                        rel_date = rel.get("date", "")
+
+                        years = []
+                        for d_str in [rg_date, rec_date, rel_date]:
+                            if d_str and len(d_str) >= 4 and d_str[:4].isdigit():
+                                y = int(d_str[:4])
+                                if 1950 <= y <= 2030:
+                                    years.append(y)
+
+                        yr = min(years) if years else None
+                        if yr:
+                            album_years[title] = min(album_years.get(title, 9999), yr)
+
+                        score = 100
+                        if primary == "Album":
+                            score += 80
+                        elif primary == "EP":
+                            score += 40
+                        if not sec_types:
+                            score += 40
+                        else:
+                            score -= 50
+
+                        candidates.append((score, title, rg_mbid, rec_mbid))
+
+                if candidates:
+                    break
 
             if candidates:
                 scored = []
