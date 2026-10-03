@@ -474,12 +474,6 @@ def import_setlistfm_shows_into_database(user, user_attended: List[Dict[str, Any
                 v_low = v_name.lower()
                 if v_low in venues_cache:
                     venue_obj = venues_cache[v_low]
-                    if v_id and not venue_obj.setlistfm_id:
-                        venue_obj.setlistfm_id = v_id
-                        try:
-                            venue_obj.save(update_fields=['setlistfm_id'])
-                        except Exception:
-                            pass
                     if (venue_obj.latitude is None or venue_obj.longitude is None) and (lat is not None and lng is not None):
                         venue_obj.latitude = lat
                         venue_obj.longitude = lng
@@ -494,7 +488,6 @@ def import_setlistfm_shows_into_database(user, user_attended: List[Dict[str, Any
                         country=country_name,
                         latitude=lat,
                         longitude=lng,
-                        setlistfm_id=v_id,
                         geocode_source='setlistfm' if (lat is not None and lng is not None) else 'unresolved'
                     )
                     venues_cache[v_low] = venue_obj

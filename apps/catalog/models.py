@@ -25,6 +25,12 @@ class Artist(models.Model):
     def mbid(self):
         return self.id if not self.is_custom_offline else None
 
+    @mbid.setter
+    def mbid(self, value):
+        if value:
+            self.id = value
+            self.is_custom_offline = is_offline_id(value)
+
     def save(self, *args, **kwargs):
         if not self.id:
             self.id = generate_offline_artist_id(self.name)
@@ -105,6 +111,12 @@ class Album(models.Model):
     def mbid(self):
         return self.id if not self.is_custom_offline else None
 
+    @mbid.setter
+    def mbid(self, value):
+        if value:
+            self.id = value
+            self.is_custom_offline = is_offline_id(value)
+
     def save(self, *args, **kwargs):
         if not self.id:
             self.id = generate_offline_album_id(self.artist_id, self.clean_title)
@@ -136,6 +148,12 @@ class Song(models.Model):
     @property
     def mbid(self):
         return self.id if not self.is_custom_offline else None
+
+    @mbid.setter
+    def mbid(self, value):
+        if value:
+            self.id = value
+            self.is_custom_offline = is_offline_id(value)
 
     def save(self, *args, **kwargs):
         if not self.id:
@@ -169,6 +187,12 @@ class Venue(models.Model):
     @property
     def setlistfm_id(self):
         return self.id if not self.is_custom_offline else ''
+
+    @setlistfm_id.setter
+    def setlistfm_id(self, value):
+        if value:
+            self.id = value
+            self.is_custom_offline = is_offline_id(value)
 
     def save(self, *args, **kwargs):
         if not self.id:

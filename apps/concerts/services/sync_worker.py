@@ -94,6 +94,8 @@ class SyncWorker:
             except Exception as e:
                 logger.exception("Error in sync worker loop: %s", e)
             finally:
+                from django.db import connections
+                connections.close_all()
                 self._queue.task_done()
                 time.sleep(1)
 
