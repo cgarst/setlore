@@ -24,8 +24,13 @@ class Command(BaseCommand):
         resolve_mbids = options.get('resolve_mbids', False)
         self.stdout.write("Gathering distinct songs from catalog...")
 
-        distinct_tracks = list(Song.objects.values_list('artist__name', 'title').distinct())
-        song_pairs = [{"artist": a, "song": s} for a, s in distinct_tracks if a and s]
+        distinct_tracks = list(Song.objects.values('artist__name', 'title', 'is_cover', 'original_artist').distinct())
+        song_pairs = [{
+            "artist": d['artist__name'],
+            "song": d['title'],
+            "is_cover": d.get('is_cover', False),
+            "original_artist": d.get('original_artist')
+        } for d in distinct_tracks if d.get('artist__name') and d.get('title')]
 
         enricher = AlbumEnricher()
         if refresh:

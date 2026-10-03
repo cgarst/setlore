@@ -327,9 +327,16 @@ class AlbumEnricher:
         if song_obj:
             if song_obj.get("cover"):
                 result["is_cover"] = True
-                result["original_artist"] = song_obj.get("cover", {}).get("name")
+                result["original_artist"] = song_obj.get("cover", {}).get("name") if isinstance(song_obj.get("cover"), dict) else (song_obj.get("cover") or None)
+            elif song_obj.get("cover_original"):
+                result["is_cover"] = True
+                result["original_artist"] = song_obj.get("cover_original")
+            elif song_obj.get("is_cover"):
+                result["is_cover"] = True
+                result["original_artist"] = song_obj.get("original_artist")
+
             if song_obj.get("with"):
-                result["with_guest"] = song_obj.get("with", {}).get("name")
+                result["with_guest"] = song_obj.get("with", {}).get("name") if isinstance(song_obj.get("with"), dict) else (song_obj.get("with") or None)
             if song_obj.get("info"):
                 result["info"] = song_obj.get("info")
 
@@ -351,12 +358,25 @@ class AlbumEnricher:
                     if self._is_valid_cache_entry(cached, refresh_unresolved=refresh_unresolved):
                         result.update(cached)
                         result["album"] = clean_album_title(result.get("album", "Non-Album / Singles"))
+                        if song_obj and (song_obj.get("is_cover") or song_obj.get("cover_original") or song_obj.get("cover")):
+                            result["is_cover"] = True
+                            if not result.get("original_artist"):
+                                result["original_artist"] = (
+                                    song_obj.get("cover", {}).get("name") if isinstance(song_obj.get("cover"), dict)
+                                    else (song_obj.get("cover_original") or song_obj.get("original_artist"))
+                                )
                         return result
             except Exception:
                 pass
 
         # 3. Query MusicBrainz canonical studio database dynamically
-        album_name, release_yr, alb_mbid, rec_mbid = self._query_musicbrainz_studio_album(artist_name, song_name)
+        # If the track is a cover with a known original artist, prioritize querying MusicBrainz under the original artist
+        lookup_artist = result["original_artist"] if (result.get("is_cover") and result.get("original_artist")) else artist_name
+        album_name, release_yr, alb_mbid, rec_mbid = self._query_musicbrainz_studio_album(lookup_artist, song_name)
+
+        if not album_name and lookup_artist != artist_name:
+            # Fallback to performing artist if original artist query yielded no studio album
+            album_name, release_yr, alb_mbid, rec_mbid = self._query_musicbrainz_studio_album(artist_name, song_name)
 
         if album_name:
             result["album"] = clean_album_title(album_name)
@@ -456,12 +476,17 @@ class AlbumEnricher:
         print(f"      [FETCH] Fetching/refreshing studio albums for {len(uncached)} uncached/new songs...")
 
         completed = cached_count
-        for key, art, song in uncached:
+        for item in uncached:
+            if len(item) == 4:
+                key, art, song, s_obj = item
+            else:
+                key, art, song = item[:3]
+                s_obj = None
             if cancel_check and cancel_check():
                 print("\n      [CANCEL] Album enrichment cancelled.")
                 break
             try:
-                info = self.get_track_info(art, song, refresh_unresolved=refresh_unresolved)
+                info = self.get_track_info(art, song, song_obj=s_obj, refresh_unresolved=refresh_unresolved)
                 results[key] = info
             except Exception:
                 results[key] = {
@@ -469,8 +494,8 @@ class AlbumEnricher:
                     "artist": art,
                     "album": "Non-Album / Singles",
                     "release_year": None,
-                    "is_cover": False,
-                    "original_artist": None,
+                    "is_cover": bool(s_obj and (s_obj.get("is_cover") or s_obj.get("cover_original") or s_obj.get("cover"))),
+                    "original_artist": s_obj.get("cover", {}).get("name") if (s_obj and isinstance(s_obj.get("cover"), dict)) else (s_obj.get("cover_original") or s_obj.get("original_artist") if s_obj else None),
                     "resolved": False
                 }
             completed += 1
@@ -499,17 +524,27 @@ class AlbumEnricher:
 
     def load_cached_catalog(self, songs_list: List[Dict[str, Any]],
                             refresh_all: bool = False,
-                            refresh_unresolved: bool = False) -> Tuple[Dict[str, Any], List[Tuple[str, str, str]], int]:
+                            refresh_unresolved: bool = False) -> Tuple[Dict[str, Any], List[Tuple[str, str, str, Optional[Dict[str, Any]]]], int]:
         """Loads all existing cached album entries from database and disk without making any external API calls."""
-        unique_pairs = {}
+        unique_pairs: Dict[str, Tuple[str, str, Optional[Dict[str, Any]]]] = {}
         for item in songs_list:
-            art = item.get("artist")
-            song = item.get("song")
+            if isinstance(item, dict):
+                art = item.get("artist")
+                song = item.get("song")
+                song_obj = item
+            elif isinstance(item, (list, tuple)) and len(item) >= 2:
+                art = str(item[0])
+                song = str(item[1])
+                song_obj = None
+            else:
+                continue
             if not art or not song:
                 continue
             key = f"{art}_{song}".lower()
             if key not in unique_pairs:
-                unique_pairs[key] = (art, song)
+                unique_pairs[key] = (art, song, song_obj)
+            elif song_obj and (song_obj.get("is_cover") or song_obj.get("cover_original") or song_obj.get("cover")):
+                unique_pairs[key] = (art, song, song_obj)
 
         total_unique = len(unique_pairs)
         results: Dict[str, Any] = {}
@@ -546,9 +581,9 @@ class AlbumEnricher:
             except Exception:
                 pass
 
-        for key, (art, song) in unique_pairs.items():
+        for key, (art, song, song_obj) in unique_pairs.items():
             if refresh_all:
-                uncached.append((key, art, song))
+                uncached.append((key, art, song, song_obj))
                 continue
 
             # 1. Check database entry
@@ -567,11 +602,18 @@ class AlbumEnricher:
                         cached = json.load(f)
                         if self._is_valid_cache_entry(cached, refresh_unresolved=refresh_unresolved):
                             cached["album"] = clean_album_title(cached.get("album", "Non-Album / Singles"))
+                            if song_obj and (song_obj.get("is_cover") or song_obj.get("cover_original") or song_obj.get("cover")):
+                                cached["is_cover"] = True
+                                if not cached.get("original_artist"):
+                                    cached["original_artist"] = (
+                                        song_obj.get("cover", {}).get("name") if isinstance(song_obj.get("cover"), dict)
+                                        else (song_obj.get("cover_original") or song_obj.get("original_artist"))
+                                    )
                             results[key] = cached
                             continue
                 except Exception:
                     pass
-            uncached.append((key, art, song))
+            uncached.append((key, art, song, song_obj))
 
         return results, uncached, total_unique
 

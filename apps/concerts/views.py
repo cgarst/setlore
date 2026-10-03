@@ -239,14 +239,20 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
             song_name = s.get("song")
             key = f"{artist_name}_{song_name}".lower()
             info = album_enrichments.get(key, {})
-            album_title = info.get("album", "Non-Album / Singles")
-            is_cov = any(o.get("is_cover") for o in s.get("occurrences", [])) or info.get("is_cover")
-            if is_cov and album_title == "Non-Album / Singles":
-                album_title = "Covers"
+            album_title = info.get("album")
+            is_cov = any(o.get("is_cover") for o in s.get("occurrences", [])) or info.get("is_cover") or s.get("is_cover")
+            orig_art = info.get("original_artist") or s.get("original_artist") or next((o.get("cover_original") for o in s.get("occurrences", []) if o.get("cover_original")), None)
+
+            if not album_title or album_title in ["Non-Album / Singles", "Covers"] or album_title.lower() in ["non-album / singles", "covers"]:
+                album_title = "Covers" if is_cov else "Non-Album / Singles"
+
             rel_year = info.get("release_year") if album_title != "Covers" else None
             s["album"] = album_title
             s["release_year"] = rel_year
             s["album_display"] = f"{album_title} ({rel_year})" if rel_year else album_title
+            s["is_cover"] = bool(is_cov)
+            if orig_art:
+                s["original_artist"] = orig_art
             albums_set.add(album_title)
         art_data["albums_list"] = sorted(list(albums_set))
 
@@ -260,6 +266,8 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
             total_distinct_songs += 1
             song_name = s.get("song", "")
             album_title = s.get("album", "Non-Album / Singles")
+            is_cov = s.get("is_cover", False)
+            orig_art = s.get("original_artist") or ""
             is_resolved = bool(
                 album_title and
                 album_title not in ["Non-Album / Singles", "Covers"] and
@@ -271,15 +279,16 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
                 occurrences = s.get("occurrences", [])
                 last_occ = occurrences[-1] if occurrences else {}
                 play_count = s.get("count", len(occurrences)) or 1
-                encoded_q = urllib.parse.quote(f'recording:"{song_name}" AND artist:"{artist_name}"')
+                search_artist = orig_art if (is_cov and orig_art) else artist_name
+                encoded_q = urllib.parse.quote(f'recording:"{song_name}" AND artist:"{search_artist}"')
                 unresolved_mb_songs.append({
                     "artist": artist_name,
                     "song": song_name,
                     "play_count": play_count,
                     "last_date": last_occ.get("date", "Unknown"),
                     "last_venue": last_occ.get("venue", "Unknown Venue"),
-                    "is_cover": any(o.get("is_cover") for o in occurrences) or s.get("is_cover", False),
-                    "original_artist": s.get("original_artist") or last_occ.get("original_artist", ""),
+                    "is_cover": is_cov,
+                    "original_artist": orig_art or last_occ.get("original_artist", ""),
                     "album_display": album_title,
                     "mb_search_url": f"https://musicbrainz.org/search?query={encoded_q}&type=recording",
                 })
