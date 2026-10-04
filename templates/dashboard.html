@@ -6416,6 +6416,28 @@
       return aliasMap[String(tabId || '').toLowerCase().trim()] || 'overview';
     }
 
+    function resolveTabFromPath(pathname = window.location.pathname, baseUrl = window.tabUrlBase || '') {
+      const segments = (pathname || '/').split('/').filter(Boolean);
+      let candidate = '';
+
+      if (baseUrl) {
+        const baseSegments = baseUrl.split('/').filter(Boolean);
+        if (segments.length > baseSegments.length) {
+          candidate = segments[baseSegments.length];
+        }
+      } else if (segments.length > 0) {
+        if (segments[0] === 'u' && segments.length > 2) {
+          candidate = segments[2];
+        } else if (segments[0].startsWith('@') && segments.length > 1) {
+          candidate = segments[1];
+        } else {
+          candidate = segments[0];
+        }
+      }
+
+      return normalizeTab(candidate || '{{ initial_tab|default:"overview"|escapejs }}');
+    }
+
     function switchTab(tabId, updateUrl = true) {
       if (typeof closeOverviewChartModal === 'function') {
         closeOverviewChartModal();
@@ -6584,9 +6606,7 @@
           history.replaceState({ tabId: resolvedTab }, '', targetPath);
           switchTab(resolvedTab, false);
         } else {
-          const pathSegment = window.location.pathname.split('/').filter(Boolean)[0] || '';
-          const serverTab = "{{ initial_tab|default:'overview'|escapejs }}";
-          const targetTab = normalizeTab(pathSegment || serverTab);
+          const targetTab = resolveTabFromPath();
           switchTab(targetTab, false);
         }
       }
@@ -6599,8 +6619,7 @@
         const hash = window.location.hash.replace('#', '').trim();
         switchTab(normalizeTab(hash || 'overview'), false);
       } else {
-        const pathSegment = window.location.pathname.split('/').filter(Boolean)[0] || '';
-        switchTab(normalizeTab(pathSegment), false);
+        switchTab(resolveTabFromPath(), false);
       }
     });
 
