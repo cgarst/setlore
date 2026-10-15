@@ -240,6 +240,9 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
         if a.normalized_name.lower() not in db_artists:
             db_artists[a.normalized_name.lower()] = a
 
+    from collections import defaultdict
+    cover_occurrences_by_orig = defaultdict(lambda: defaultdict(list))
+
     for artist_name, art_data in drilldown.items():
         art_obj = db_artists.get(artist_name.lower())
         if art_obj and art_obj.mbid:
@@ -253,10 +256,35 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
             is_cov = any(o.get("is_cover") for o in s.get("occurrences", [])) or info.get("is_cover") or s.get("is_cover")
             orig_art = info.get("original_artist") or s.get("original_artist") or next((o.get("cover_original") for o in s.get("occurrences", []) if o.get("cover_original")), None)
 
+            # If cover with known original artist, resolve against original artist if not already resolved to an official studio album
+            rel_year = info.get("release_year")
+            if is_cov and orig_art and (not album_title or album_title in ["Non-Album / Singles", "Covers"] or album_title.lower() in ["non-album / singles", "covers"]):
+                orig_key = f"{orig_art}_{song_name}".lower()
+                orig_info = album_enrichments.get(orig_key)
+                if orig_info and orig_info.get("album") and orig_info.get("album") not in ["Non-Album / Singles", "Covers"]:
+                    album_title = orig_info.get("album")
+                    rel_year = orig_info.get("release_year")
+                else:
+                    from apps.catalog.models import Song
+                    db_s = Song.objects.filter(artist__name__iexact=orig_art, title__iexact=song_name).select_related('album').first()
+                    if db_s and db_s.album and db_s.album.title not in ["Non-Album / Singles", "Covers"]:
+                        album_title = db_s.album.title
+                        rel_year = db_s.album.release_year or db_s.release_year
+                    else:
+                        try:
+                            live_orig = enricher.get_track_info(orig_art, song_name)
+                            if live_orig and live_orig.get("resolved") and live_orig.get("album") not in ["Non-Album / Singles", "Covers"]:
+                                album_title = live_orig.get("album")
+                                rel_year = live_orig.get("release_year")
+                                album_enrichments[orig_key] = live_orig
+                                album_enrichments[key] = live_orig
+                        except Exception:
+                            pass
+
             if not album_title or album_title in ["Non-Album / Singles", "Covers"] or album_title.lower() in ["non-album / singles", "covers"]:
                 album_title = "Covers" if is_cov else "Non-Album / Singles"
+                rel_year = None
 
-            rel_year = info.get("release_year") if album_title != "Covers" else None
             s["album"] = album_title
             s["release_year"] = rel_year
             s["album_display"] = f"{album_title} ({rel_year})" if rel_year else album_title
@@ -264,7 +292,51 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
             if orig_art:
                 s["original_artist"] = orig_art
             albums_set.add(album_title)
+
+            # Tag occurrences and collect for original artist
+            for o in s.get("occurrences", []):
+                if not o.get("performing_artist"):
+                    o["performing_artist"] = artist_name
+                if is_cov and orig_art:
+                    can_orig = normalize_artist_name(orig_art) or orig_art
+                    o_copy = dict(o)
+                    o_copy["performing_artist"] = artist_name
+                    o_copy["covering_artist"] = artist_name
+                    o_copy["is_cover"] = True
+                    o_copy["cover_original"] = can_orig
+                    cover_occurrences_by_orig[can_orig.lower().strip()][song_name.lower().strip()].append(o_copy)
+
         art_data["albums_list"] = sorted(list(albums_set))
+
+    def _occ_date_key(occ):
+        d_val = str(occ.get("date", "")).strip()
+        for fmt in ("%m-%d-%Y", "%d-%m-%Y", "%Y-%m-%d"):
+            try:
+                return datetime.strptime(d_val, fmt).date()
+            except ValueError:
+                pass
+        return date.min
+
+    # Cross-link cover occurrences into original artist's song occurrences in drilldown
+    for orig_key, songs_map in cover_occurrences_by_orig.items():
+        target_art_data = None
+        for art_name, art_data in drilldown.items():
+            if art_name.lower().strip() == orig_key or (normalize_artist_name(art_name) or art_name).lower().strip() == orig_key:
+                target_art_data = art_data
+                break
+
+        if target_art_data:
+            existing_songs = {s.get("song", "").lower().strip(): s for s in target_art_data.get("songs", [])}
+            for s_key, cov_occs in songs_map.items():
+                if s_key in existing_songs:
+                    target_song = existing_songs[s_key]
+                    seen_occs = {(o.get("date"), o.get("venue"), o.get("performing_artist")) for o in target_song.get("occurrences", [])}
+                    for co in cov_occs:
+                        occ_key = (co.get("date"), co.get("venue"), co.get("performing_artist"))
+                        if occ_key not in seen_occs:
+                            seen_occs.add(occ_key)
+                            target_song["occurrences"].append(co)
+                    target_song["occurrences"].sort(key=_occ_date_key)
 
     # Build Unresolved MusicBrainz Songs audit list from drilldown
     unresolved_mb_songs = []

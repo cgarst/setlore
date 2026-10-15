@@ -8597,25 +8597,40 @@
       }
 
       if (playsBadgeEl) {
-        playsBadgeEl.innerHTML = `<i class="fa-solid fa-headphones text-[9px] mr-1"></i> ${occsToRender.length.toLocaleString()} ${occsToRender.length === 1 ? 'Play' : 'Plays'}`;
+        const coverOccsCount = occsToRender.filter(o => o.covering_artist && o.covering_artist.toLowerCase() !== (data.artist || '').toLowerCase()).length;
+        if (coverOccsCount > 0) {
+          const mainPlays = occsToRender.length - coverOccsCount;
+          playsBadgeEl.innerHTML = `<i class="fa-solid fa-headphones text-[9px] mr-1"></i> ${occsToRender.length.toLocaleString()} Total Plays (${mainPlays} by ${escapeHtml(data.artist)}, ${coverOccsCount} cover${coverOccsCount === 1 ? '' : 's'})`;
+        } else {
+          playsBadgeEl.innerHTML = `<i class="fa-solid fa-headphones text-[9px] mr-1"></i> ${occsToRender.length.toLocaleString()} ${occsToRender.length === 1 ? 'Play' : 'Plays'}`;
+        }
       }
 
       const sAlbum = s.album || 'Non-Album / Singles';
-      const isCover = sAlbum === 'Covers';
-      const isNonAlbum = sAlbum.toLowerCase().includes('non-album') || sAlbum.toLowerCase().includes('singles');
+      const isUnresolvedCover = s.is_cover && (sAlbum === 'Covers' || !s.release_year);
+      const isNonAlbum = !s.is_cover && (sAlbum.toLowerCase().includes('non-album') || sAlbum.toLowerCase().includes('singles'));
 
       let albHtml = '';
-      if (!isCover && !isNonAlbum) {
+      if (!isUnresolvedCover && !isNonAlbum) {
+        const targetAlbArtist = (s.is_cover && s.original_artist) ? s.original_artist : data.artist;
         albHtml = `
           <button type="button"
-                  onclick="openAlbumModalByName('${(data.artist || '').replace(/'/g, "\\'")}', '${(sAlbum || '').replace(/'/g, "\\'")}');"
+                  onclick="openAlbumModalByName('${(targetAlbArtist || '').replace(/'/g, "\\'")}', '${(sAlbum || '').replace(/'/g, "\\'")}');"
                   class="badge bg-slate-800 hover:bg-slate-700 text-indigo-300 hover:text-indigo-200 border border-indigo-500/30 text-[11px] cursor-pointer transition flex items-center gap-1 shrink-0"
                   title="Inspect album: ${escapeHtml(s.album_display || sAlbum)}">
             <i class="fa-solid fa-compact-disc text-indigo-400 text-[10px]"></i>
             <span>${escapeHtml(s.album_display || sAlbum)}</span>
           </button>
         `;
-      } else if (isCover) {
+        if (s.is_cover && s.original_artist) {
+          albHtml += `
+            <span class="badge bg-pink-500/20 text-pink-300 border border-pink-500/30 text-[11px] flex items-center gap-1">
+              <i class="fa-solid fa-microphone-lines text-[10px]"></i>
+              <span>Cover of ${escapeHtml(s.original_artist)}</span>
+            </span>
+          `;
+        }
+      } else if (isUnresolvedCover) {
         albHtml = `<span class="badge bg-pink-500/20 text-pink-300 border border-pink-500/30 text-[11px]"><i class="fa-solid fa-microphone-lines mr-1"></i>Cover Song</span>`;
       } else {
         albHtml = `<span class="badge bg-slate-800 text-slate-400 border border-slate-700 text-[11px]"><i class="fa-solid fa-compact-disc mr-1"></i>Non-Album / Singles</span>`;
@@ -8680,15 +8695,25 @@
 
             const occCard = document.createElement('div');
             occCard.className = 'p-3.5 sm:p-4 rounded-xl bg-slate-900/80 border border-slate-800/80 hover:border-indigo-500/50 hover:bg-slate-900 transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 group cursor-pointer select-none';
-            occCard.setAttribute('onclick', `openConcertModalByVenueDate('${(o.venue || '').replace(/'/g, "\\'")}', '${o.date || ''}', '${(data.artist || '').replace(/'/g, "\\'")}')`);
+            const perfArtist = o.performing_artist || o.covering_artist || data.artist;
+            occCard.setAttribute('onclick', `openConcertModalByVenueDate('${(o.venue || '').replace(/'/g, "\\'")}', '${o.date || ''}', '${perfArtist.replace(/'/g, "\\'")}')`);
+            
+            let coverBadge = '';
+            if (o.covering_artist && o.covering_artist.toLowerCase() !== (data.artist || '').toLowerCase()) {
+              coverBadge = `<span class="badge bg-pink-500/20 text-pink-300 text-[10px] border border-pink-500/30 font-semibold flex items-center gap-1"><i class="fa-solid fa-microphone-lines text-[9px]"></i>Covered by ${escapeHtml(o.covering_artist)}</span>`;
+            } else if (o.is_cover) {
+              coverBadge = `<span class="badge bg-pink-500/20 text-pink-300 text-[10px] border border-pink-500/30 font-semibold flex items-center gap-1"><i class="fa-solid fa-microphone-lines text-[9px]"></i>Cover${(o.cover_original && o.cover_original !== 'Cover') ? ` (${escapeHtml(o.cover_original)})` : ''}</span>`;
+            }
+
             occCard.innerHTML = `
               <div class="space-y-1.5 min-w-0 flex-1">
                 <div class="flex flex-wrap items-center gap-2">
                   <span class="px-2 py-0.5 rounded-md bg-indigo-500/20 border border-indigo-500/30 font-mono text-indigo-300 font-bold text-xs">#${oIdx + 1}</span>
                   <span class="font-mono text-slate-100 font-bold text-sm group-hover:text-indigo-200 transition">${o.date}</span>
                   <span class="text-xs text-slate-400 inline-flex items-center"><i class="fa-solid fa-location-dot text-[11px] text-indigo-400 mr-1.5"></i>${escapeHtml(o.venue)}</span>
+                  ${(o.covering_artist && o.covering_artist.toLowerCase() !== (data.artist || '').toLowerCase()) ? `<span class="text-xs text-slate-400">by <strong class="text-white">${escapeHtml(o.covering_artist)}</strong></span>` : ''}
                   ${posBadge}
-                  ${o.is_cover ? `<span class="badge bg-pink-500/20 text-pink-300 text-[10px] border border-pink-500/30 font-semibold">Cover${(o.cover_original && o.cover_original !== 'Cover') ? ` (${escapeHtml(o.cover_original)})` : ''}</span>` : ''}
+                  ${coverBadge}
                 </div>
                 ${(o.with_guest || o.info) ? `
                   <div class="text-xs text-slate-400 pl-1 flex flex-wrap items-center gap-1.5 italic">
