@@ -9424,12 +9424,53 @@
     // Dynamic Album Art Background Provider for Vinyl Album Wall & Inspector
     const albumArtCache = {};
 
+    function cleanForArtMatch(str) {
+      if (!str) return '';
+      return str.toLowerCase()
+        .replace(/\s*\([^)]*\)/g, '')
+        .replace(/\s*\[[^\]]*\]/g, '')
+        .replace(/[^a-z0-9]/g, '')
+        .trim();
+    }
+
+    function isArtistMatch(candidate, target) {
+      const c = cleanForArtMatch(candidate);
+      const t = cleanForArtMatch(target);
+      if (!c || !t) return false;
+      if (c === t) return true;
+      return c.replace(/^the/, '') === t.replace(/^the/, '');
+    }
+
+    function isAlbumMatch(candidate, target) {
+      const c = cleanForArtMatch(candidate);
+      const t = cleanForArtMatch(target);
+      if (!c || !t) return false;
+      if (c === t) return true;
+      return c.startsWith(t) || t.startsWith(c);
+    }
+
+    function getAlbumArtCacheKey(artist, album) {
+      const cleanArtist = (artist || '').toLowerCase().trim();
+      const cleanAlbum = (album || '').replace(/\s*\([^)]*\)/g, '').toLowerCase().trim();
+      return `setlore_art_v2_${cleanArtist}_${cleanAlbum}`;
+    }
+
+    // One-time eviction of legacy album art cache keys
+    try {
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('setlore_art_') && !key.startsWith('setlore_art_v2_')) {
+          localStorage.removeItem(key);
+        }
+      }
+    } catch (e) {}
+
     function fetchDeezerAlbumArt(artist, album) {
       return new Promise((resolve) => {
         const cbName = 'dz_cb_' + Math.random().toString(36).substring(2, 10);
         const q = encodeURIComponent(`${artist} ${album}`);
         const script = document.createElement('script');
-        script.src = `https://api.deezer.com/search/album?q=${q}&limit=5&output=jsonp&callback=${cbName}`;
+        script.src = `https://api.deezer.com/search/album?q=${q}&limit=25&output=jsonp&callback=${cbName}`;
 
         const timer = setTimeout(() => {
           try { delete window[cbName]; } catch (e) {}
@@ -9442,23 +9483,12 @@
           try { delete window[cbName]; } catch (e) {}
           if (script.parentNode) script.parentNode.removeChild(script);
           if (data && data.data && data.data.length > 0) {
-            const artLow = artist.toLowerCase().trim();
-            const albLow = album.toLowerCase().trim();
-            // 1. Exact artist + exact title
-            let match = data.data.find(r => (r.artist && r.artist.name ? r.artist.name.toLowerCase().trim() : '') === artLow && (r.title || '').toLowerCase().trim() === albLow);
-            // 2. Exact artist + clean standard title (preferring non-special/non-deluxe)
+            // 1. Strict artist match + exact cleaned album match
+            let match = data.data.find(r => isArtistMatch(r.artist && r.artist.name, artist) && cleanForArtMatch(r.title) === cleanForArtMatch(album));
+            // 2. Strict artist match + album title prefix match
             if (!match) {
-              match = data.data.find(r => {
-                const rArt = (r.artist && r.artist.name ? r.artist.name.toLowerCase().trim() : '');
-                const rTitle = (r.title || '').toLowerCase().trim();
-                return rArt === artLow && !rTitle.includes('special') && !rTitle.includes('deluxe') && !rTitle.includes('remaster');
-              });
+              match = data.data.find(r => isArtistMatch(r.artist && r.artist.name, artist) && isAlbumMatch(r.title, album));
             }
-            // 3. Exact artist match
-            if (!match) {
-              match = data.data.find(r => (r.artist && r.artist.name ? r.artist.name.toLowerCase().trim() : '') === artLow);
-            }
-            if (!match) match = data.data[0];
             if (match) {
               resolve(match.cover_big || match.cover_medium || match.cover_xl || null);
               return;
@@ -9481,19 +9511,16 @@
     async function fetchItunesAlbumArt(artist, album) {
       try {
         const q = encodeURIComponent(`${artist} ${album}`);
-        const res = await fetch(`https://itunes.apple.com/search?term=${q}&media=music&entity=album&limit=5`);
+        const res = await fetch(`https://itunes.apple.com/search?term=${q}&media=music&entity=album&limit=25`);
         if (res.ok) {
           const json = await res.json();
           if (json.results && json.results.length > 0) {
-            const artLow = artist.toLowerCase().trim();
-            const albLow = album.toLowerCase().trim();
-            // 1. Exact artist + exact album
-            let match = json.results.find(r => (r.artistName || '').toLowerCase().trim() === artLow && (r.collectionName || '').toLowerCase().trim() === albLow);
-            // 2. Exact artist match
+            // 1. Strict artist match + exact cleaned album match
+            let match = json.results.find(r => isArtistMatch(r.artistName, artist) && cleanForArtMatch(r.collectionName) === cleanForArtMatch(album));
+            // 2. Strict artist match + album title prefix match
             if (!match) {
-              match = json.results.find(r => (r.artistName || '').toLowerCase().trim() === artLow);
+              match = json.results.find(r => isArtistMatch(r.artistName, artist) && isAlbumMatch(r.collectionName, album));
             }
-            if (!match) match = json.results[0];
             if (match && match.artworkUrl100) {
               return match.artworkUrl100.replace('100x100bb', '500x500bb');
             }
@@ -9532,7 +9559,7 @@
       if (!cleanAlbum || cleanAlbum.toLowerCase() === 'covers' || cleanAlbum.toLowerCase().includes('non-album') || cleanAlbum.toLowerCase().includes('singles')) {
         return null;
       }
-      const cacheKey = `setlore_art_${artist.toLowerCase()}_${cleanAlbum.toLowerCase()}`;
+      const cacheKey = getAlbumArtCacheKey(artist, cleanAlbum);
       let baseArtUrl = albumArtCache[cacheKey];
 
       if (!baseArtUrl) {
@@ -9546,12 +9573,11 @@
       }
 
       if (!baseArtUrl) {
-        // 1. Primary: Deezer CDN (covers all major rock/metal catalogs with high-res artwork)
-        baseArtUrl = await fetchDeezerAlbumArt(artist, cleanAlbum);
+        // Try iTunes first (rich official catalog of remasters/standard editions), then Deezer
+        baseArtUrl = await fetchItunesAlbumArt(artist, cleanAlbum);
 
-        // 2. Fallback: Apple iTunes Search API
         if (!baseArtUrl) {
-          baseArtUrl = await fetchItunesAlbumArt(artist, cleanAlbum);
+          baseArtUrl = await fetchDeezerAlbumArt(artist, cleanAlbum);
         }
 
         if (baseArtUrl) {
@@ -9581,7 +9607,7 @@
         return;
       }
 
-      const cacheKey = `setlore_art_${artist.toLowerCase()}_${cleanAlbum.toLowerCase()}`;
+      const cacheKey = getAlbumArtCacheKey(artist, cleanAlbum);
       
       // Fast path: if cached in memory or localStorage, apply sized URL immediately
       if (albumArtCache[cacheKey]) {
@@ -10334,7 +10360,7 @@
         if (!artist || !album) return;
 
         const cleanAlbum = album.replace(/\s*\([^)]*\)/g, '').trim();
-        const cacheKey = `setlore_art_${artist.toLowerCase()}_${cleanAlbum.toLowerCase()}`;
+        const cacheKey = getAlbumArtCacheKey(artist, cleanAlbum);
 
         // If already cached in memory or localStorage, apply immediately without waiting for scroll
         if (albumArtCache[cacheKey] || localStorage.getItem(cacheKey)) {
