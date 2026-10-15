@@ -4093,7 +4093,7 @@
                       </a>
                       {% endif %}
 
-                      <a href="https://www.youtube.com/results?search_query={{ a.artist|urlencode }}+{{ c.venue|urlencode }}+{% if c.year %}{{ c.year }}{% elif c.date %}{{ c.date|slice:':4' }}{% else %}{{ c.raw_date|slice:':4' }}{% endif %}" target="_blank" rel="noopener noreferrer" class="px-2 py-0.5 rounded-md bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-rose-300 border border-slate-700/60 text-[11px] font-medium transition inline-flex items-center gap-1" title="Search live concert videos on YouTube">
+                      <a href="{% if a.youtube_url %}{{ a.youtube_url }}{% else %}https://www.youtube.com/results?search_query={{ a.artist|urlencode }}+{{ c.venue|urlencode }}+{% if c.year %}{{ c.year }}{% elif c.date %}{{ c.date|slice:':4' }}{% else %}{{ c.raw_date|slice:':4' }}{% endif %}{% endif %}" target="_blank" rel="noopener noreferrer" class="px-2 py-0.5 rounded-md bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-rose-300 border border-slate-700/60 text-[11px] font-medium transition inline-flex items-center gap-1" title="Search live concert videos on YouTube ({% if a.youtube_query %}{{ a.youtube_query }}{% else %}{{ a.artist }} {{ c.venue }}{% endif %})">
                         <i class="fa-brands fa-youtube text-[10px] text-rose-500"></i>
                         <span>YouTube</span>
                       </a>
@@ -4160,7 +4160,7 @@
                   </a>
                   {% endif %}
 
-                  <a href="https://www.youtube.com/results?search_query={{ a.artist|urlencode }}+{{ c.venue|urlencode }}+{% if c.year %}{{ c.year }}{% elif c.date %}{{ c.date|slice:':4' }}{% else %}{{ c.raw_date|slice:':4' }}{% endif %}" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-300 hover:text-white text-xs font-semibold transition inline-flex items-center gap-1.5 shadow-sm" title="Search YouTube for live concert recordings">
+                  <a href="{% if a.youtube_url %}{{ a.youtube_url }}{% else %}https://www.youtube.com/results?search_query={{ a.artist|urlencode }}+{{ c.venue|urlencode }}+{% if c.year %}{{ c.year }}{% elif c.date %}{{ c.date|slice:':4' }}{% else %}{{ c.raw_date|slice:':4' }}{% endif %}{% endif %}" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-300 hover:text-white text-xs font-semibold transition inline-flex items-center gap-1.5 shadow-sm" title="Search YouTube for live concert recordings ({% if a.youtube_query %}{{ a.youtube_query }}{% else %}{{ a.artist }} {{ c.venue }}{% endif %})">
                     <i class="fa-brands fa-youtube text-rose-500 text-xs"></i>
                     <span>YouTube</span>
                     <i class="fa-solid fa-arrow-up-right-from-square text-[8px] opacity-70"></i>
@@ -4299,7 +4299,7 @@
                       <span>No setlist recorded for this performance.</span>
                     </p>
                     <div class="flex flex-wrap items-center gap-2">
-                      <a href="https://www.youtube.com/results?search_query={{ a.artist|urlencode }}+{{ c.venue|urlencode }}+{% if c.year %}{{ c.year }}{% elif c.date %}{{ c.date|slice:':4' }}{% else %}{{ c.raw_date|slice:':4' }}{% endif %}" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-300 hover:text-white text-xs font-semibold transition inline-flex items-center gap-1.5 shadow-sm" title="Search YouTube for live concert recordings">
+                      <a href="{% if a.youtube_url %}{{ a.youtube_url }}{% else %}https://www.youtube.com/results?search_query={{ a.artist|urlencode }}+{{ c.venue|urlencode }}+{% if c.year %}{{ c.year }}{% elif c.date %}{{ c.date|slice:':4' }}{% else %}{{ c.raw_date|slice:':4' }}{% endif %}{% endif %}" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-300 hover:text-white text-xs font-semibold transition inline-flex items-center gap-1.5 shadow-sm" title="Search YouTube for live concert recordings ({% if a.youtube_query %}{{ a.youtube_query }}{% else %}{{ a.artist }} {{ c.venue }}{% endif %})">
                         <i class="fa-brands fa-youtube text-rose-500 text-xs"></i>
                         <span>YouTube</span>
                         <i class="fa-solid fa-arrow-up-right-from-square text-[8px] opacity-70"></i>

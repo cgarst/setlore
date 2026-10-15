@@ -1,9 +1,26 @@
 import re
+import urllib.parse
 from datetime import datetime, date
 from collections import defaultdict, Counter
 from typing import List, Dict, Any
 from src.config import IGNORED_ARTISTS
 from src.musician_tracker import get_effective_band_tenures
+
+def extract_event_name_from_notes(notes: str) -> str:
+    """
+    Extracts a clean festival, event, or tour name from concert notes,
+    filtering out URLs, Ticketmaster order numbers, and automated boilerplate.
+    """
+    if not notes:
+        return ""
+    text = str(notes).strip()
+    text = re.sub(r'https?://\S+', '', text).strip()
+    text = re.sub(r'^(?:Ticketmaster\s+)?Order(?:\s*#|\s*:).*$', '', text, flags=re.IGNORECASE).strip()
+    text = re.sub(r'^Pre-added from upcoming shows.*$', '', text, flags=re.IGNORECASE).strip()
+    if len(text) > 70:
+        return ""
+    return text.strip(" -:;,|")
+
 
 def record_has_occurred(rec: Dict[str, Any]) -> bool:
     """Returns True if the concert record has already occurred (date <= today)."""
@@ -464,6 +481,7 @@ class ConcertAnalytics:
                 display_formatted_date = date_str
 
             raw_artists_list = [a for a in rec.get("artists", []) if not self._is_ignored(a)]
+            clean_event = extract_event_name_from_notes(rec.get("notes", ""))
             artists = []
             seen_concert_arts = set()
             for a in raw_artists_list:
@@ -624,6 +642,18 @@ class ConcertAnalytics:
                 is_art_fav = bool(art_favs.get(art_k, False))
                 ca_id = art_ca_ids.get(art_k)
 
+                # Smart YouTube query combining artist, event name (e.g. ProgPower 2017), venue, and year
+                yt_terms = [can_art]
+                if clean_event:
+                    yt_terms.append(clean_event)
+                if venue and (not clean_event or venue.lower() not in clean_event.lower()):
+                    yt_terms.append(venue)
+                yr_str = str(year_val or year or "")
+                if yr_str and (not clean_event or yr_str not in clean_event):
+                    yt_terms.append(yr_str)
+                yt_query = " ".join(t.strip() for t in yt_terms if t.strip())
+                yt_search_url = f"https://www.youtube.com/results?search_query={urllib.parse.quote_plus(yt_query)}"
+
                 artists_data.append({
                     "artist": can_art,
                     "ca_id": ca_id,
@@ -636,7 +666,9 @@ class ConcertAnalytics:
                     "total_songs": artist_songs_played,
                     "grouped_sets": grouped_sets,
                     "setlist_text": artist_setlist_text,
-                    "musicians": active_musicians
+                    "musicians": active_musicians,
+                    "youtube_url": yt_search_url,
+                    "youtube_query": yt_query
                 })
 
             primary_art = rec.get("primary_artist") or (artists[0] if artists else "")
@@ -670,6 +702,9 @@ class ConcertAnalytics:
                 "raw_artists": rec.get("raw_artists", ", ".join(artists)),
                 "artists": artists_data,
                 "notes": rec.get("notes", ""),
+                "event_name": clean_event,
+                "youtube_url": artists_data[0].get("youtube_url", "") if artists_data else "",
+                "youtube_query": artists_data[0].get("youtube_query", "") if artists_data else "",
                 "source": rec.get("source", "manual"),
                 "is_custom_offline": is_offline,
                 "is_setlistfm_synced": is_synced,

@@ -892,12 +892,73 @@ class DjangoAppTests(TestCase):
         cached_gap = cache_entry.payload.get('gap_results', {})
         self.assertEqual(cached_gap.get('total_actionable_audit'), expected_total)
 
-        # Verify template renders the non-zero integer on the scorecard and badges
         self.client.force_login(self.user)
         res = self.client.get('/overview/')
         self.assertEqual(res.status_code, 200)
         html = res.content.decode('utf-8')
         self.assertIn(f'<p class="text-2xl font-bold text-amber-400 mt-1">{expected_total}</p>', html)
+
+    def test_youtube_search_query_event_name_and_venue(self):
+        from src.analytics import ConcertAnalytics, extract_event_name_from_notes
+
+        # 1. extract_event_name_from_notes checks
+        self.assertEqual(extract_event_name_from_notes("ProgPower 2017"), "ProgPower 2017")
+        self.assertEqual(extract_event_name_from_notes("ProgPower USA XVIII"), "ProgPower USA XVIII")
+        self.assertEqual(extract_event_name_from_notes("Ticketmaster Order: 22-31457/WDC"), "")
+        self.assertEqual(extract_event_name_from_notes("Pre-added from upcoming shows (https://bandsintown.com/...)"), "")
+        self.assertEqual(extract_event_name_from_notes("https://www.setlist.fm/setlist/..."), "")
+
+        # 2. Drilldown query generation
+        csv_records = [
+            {
+                "id": "c_progpower",
+                "primary_artist": "Mike Portnoy's Shattered Fortress",
+                "artists": ["Mike Portnoy's Shattered Fortress"],
+                "year": 2017,
+                "venue": "Center Stage",
+                "notes": "ProgPower 2017"
+            },
+            {
+                "id": "c_tm_order",
+                "primary_artist": "Opeth",
+                "artists": ["Opeth"],
+                "year": 2018,
+                "venue": "The Fillmore",
+                "notes": "Ticketmaster Order: 22-31457/WDC"
+            },
+            {
+                "id": "c_plain",
+                "primary_artist": "Dream Theater",
+                "artists": ["Dream Theater"],
+                "year": 2019,
+                "venue": "Warner Theatre",
+                "notes": ""
+            }
+        ]
+
+        analytics = ConcertAnalytics([], csv_records)
+        drilldown = analytics.compute_concert_drilldown()
+
+        # Check ProgPower: should have artist, ProgPower 2017, Center Stage without duplicating 2017
+        pp_show = next(c for c in drilldown if c["id"] == "c_progpower")
+        self.assertEqual(pp_show["event_name"], "ProgPower 2017")
+        self.assertIn("Mike Portnoy's Shattered Fortress", pp_show["youtube_query"])
+        self.assertIn("ProgPower 2017", pp_show["youtube_query"])
+        self.assertIn("Center Stage", pp_show["youtube_query"])
+        # 2017 should appear only once
+        self.assertEqual(pp_show["youtube_query"].count("2017"), 1)
+
+        # Check Ticketmaster show: should NOT include order ID
+        tm_show = next(c for c in drilldown if c["id"] == "c_tm_order")
+        self.assertEqual(tm_show["event_name"], "")
+        self.assertNotIn("Ticketmaster", tm_show["youtube_query"])
+        self.assertNotIn("22-31457", tm_show["youtube_query"])
+        self.assertEqual(tm_show["youtube_query"], "Opeth The Fillmore 2018")
+
+        # Check plain show: should be artist + venue + year
+        plain_show = next(c for c in drilldown if c["id"] == "c_plain")
+        self.assertEqual(plain_show["youtube_query"], "Dream Theater Warner Theatre 2019")
+
 
 
 
