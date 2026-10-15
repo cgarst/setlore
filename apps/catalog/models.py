@@ -51,12 +51,20 @@ class Artist(models.Model):
             art = cls.objects.filter(normalized_name=norm).first()
         if not art:
             art = cls.objects.filter(name__iexact=can_name).first()
-            if art and not art.normalized_name:
-                art.normalized_name = norm
-                try:
-                    art.save(update_fields=['normalized_name'])
-                except Exception:
-                    pass
+        if not art:
+            art = cls.objects.filter(
+                models.Q(normalized_name__endswith=f"’s {norm}") |
+                models.Q(normalized_name__endswith=f"'s {norm}")
+            ).first()
+        if not art and ("'s " in norm or "’s " in norm):
+            suffix = norm.split("'s ", 1)[-1] if "'s " in norm else norm.split("’s ", 1)[-1]
+            art = cls.objects.filter(normalized_name=suffix).first()
+        if art and not art.normalized_name:
+            art.normalized_name = norm
+            try:
+                art.save(update_fields=['normalized_name'])
+            except Exception:
+                pass
 
         if art:
             # Upgrade casing if incoming name is properly capitalized and stored name is lowercase/uppercase
