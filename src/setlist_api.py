@@ -143,8 +143,9 @@ class SetlistFMClient:
 
     def search_setlists(self, artist_name: Optional[str] = None, date_str: Optional[str] = None,
                          year: Optional[int] = None, venue_name: Optional[str] = None,
+                         city_name: Optional[str] = None, state_code: Optional[str] = None,
                          use_cache: bool = True) -> List[Dict[str, Any]]:
-        query_key = f"{artist_name or ''}_{date_str or ''}_{year or ''}_{venue_name or ''}"
+        query_key = f"{artist_name or ''}_{date_str or ''}_{year or ''}_{venue_name or ''}_{city_name or ''}_{state_code or ''}"
         safe_key = "".join(c if c.isalnum() else "_" for c in query_key)
         cache_key = f"setlistfm_search_{safe_key}"
 
@@ -154,16 +155,37 @@ class SetlistFMClient:
                 return cached
 
         params = {}
-        if artist_name:
-            params["artistName"] = artist_name
-        if date_str:
-            params["date"] = date_str
+        if artist_name and str(artist_name).strip():
+            params["artistName"] = str(artist_name).strip()
+        if date_str and str(date_str).strip():
+            params["date"] = str(date_str).strip()
         if year:
-            params["year"] = year
-        if venue_name:
-            params["venueName"] = venue_name
+            try:
+                params["year"] = int(year)
+            except (ValueError, TypeError):
+                pass
+        if venue_name and str(venue_name).strip():
+            params["venueName"] = str(venue_name).strip()
+
+        if city_name and str(city_name).strip():
+            clean_city = str(city_name).strip()
+            if "," in clean_city and not state_code:
+                parts = [p.strip() for p in clean_city.split(",", 1)]
+                params["cityName"] = parts[0]
+                if parts[1]:
+                    params["stateCode"] = parts[1][:2].upper()
+            else:
+                params["cityName"] = clean_city
+
+        if state_code and str(state_code).strip():
+            params["stateCode"] = str(state_code).strip()[:2].upper()
 
         data = self._get("search/setlists", params=params)
         setlists = data.get("setlist", []) if data else []
         _set_api_cache(cache_key, "search_setlists", setlists)
+        for s in setlists:
+            s_id = s.get("id")
+            if s_id:
+                _set_api_cache(f"setlistfm_sl_{s_id}", "setlist", s)
         return setlists
+

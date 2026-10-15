@@ -1102,9 +1102,18 @@ def add_concert(request):
         country = str(data.get('country', '')).strip() or 'United States'
         notes = str(data.get('notes', '')).strip()
         setlist_text = str(data.get('setlist_text', '')).strip()
-        is_custom_offline = data.get('is_custom_offline', True)
+        setlist_id = str(data.get('setlist_id', '') or data.get('setlistfm_id', '')).strip()
+        setlist_url = str(data.get('setlist_url', '')).strip()
+        if setlist_url and not setlist_id:
+            m = re.search(r'([a-f0-9]{8})(?:\.html)?$', setlist_url)
+            if m:
+                setlist_id = m.group(1)
+
+        is_custom_offline = data.get('is_custom_offline', True if not setlist_id else False)
         if isinstance(is_custom_offline, str):
             is_custom_offline = is_custom_offline.lower() in ['true', '1', 'on', 'yes']
+        if setlist_id:
+            is_custom_offline = False
 
         if not date_str:
             return JsonResponse({"error": "Date is required."}, status=400)
@@ -1185,7 +1194,7 @@ def add_concert(request):
                 venue=venue_obj,
                 seen_before="",
                 notes=notes,
-                source='manual',
+                source='setlistfm' if setlist_id else 'manual',
                 is_custom_offline=bool(is_custom_offline)
             )
 
@@ -1194,7 +1203,9 @@ def add_concert(request):
                 concert=concert,
                 artist=primary_art_obj,
                 billing_order=0,
-                has_setlist=bool(setlist_text)
+                has_setlist=bool(setlist_text or setlist_id),
+                setlistfm_id=setlist_id if setlist_id else "",
+                setlist_url=(setlist_url or f"https://www.setlist.fm/setlist/{setlist_id}.html") if setlist_id else ""
             )
 
             # Create supporting ConcertArtists
@@ -1231,12 +1242,13 @@ def add_concert(request):
         except Exception:
             pass
 
-        # If user has a Setlist.fm username configured, always save and sync this concert
+        # If user has a Setlist.fm username configured OR setlist_id was provided, sync this concert
         sync_info = None
-        if hasattr(request.user, 'profile') and (request.user.profile.setlistfm_username or "").strip():
+        has_setlist_user = hasattr(request.user, 'profile') and bool((request.user.profile.setlistfm_username or "").strip())
+        if setlist_id or has_setlist_user:
             try:
                 from apps.concerts.utils import sync_single_concert
-                sync_info = sync_single_concert(concert, user=request.user)
+                sync_info = sync_single_concert(concert, user=request.user, setlist_id=setlist_id or None)
             except Exception as se:
                 logger.warning("Single concert sync error on add_concert: %s", se)
 
@@ -1257,6 +1269,131 @@ def add_concert(request):
         })
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+
+
+@login_required
+def api_search_setlists(request):
+    """
+    Searches Setlist.fm for concert setlists matching artist, city, year, and venue.
+    Enables non-setlist.fm import users to easily search and auto-fill concert intake.
+    """
+    try:
+        artist = request.GET.get('artist', '').strip()
+        city = request.GET.get('city', '').strip()
+        year_str = request.GET.get('year', '').strip()
+        venue = request.GET.get('venue', '').strip()
+        date_str = request.GET.get('date', '').strip()
+
+        if not artist and not venue:
+            return JsonResponse({"error": "Please provide an artist name or venue to search."}, status=400)
+
+        year = None
+        if year_str:
+            try:
+                year = int(year_str)
+            except (ValueError, TypeError):
+                pass
+
+        profile = getattr(request.user, 'profile', None)
+        api_key = (profile.setlistfm_api_key if profile else None) or SETLISTFM_API_KEY
+        client = SetlistFMClient(api_key=api_key)
+
+        from apps.concerts.utils import parse_setlistfm_sets_to_tracks
+
+        raw_results = client.search_setlists(
+            artist_name=artist or None,
+            city_name=city or None,
+            year=year,
+            venue_name=venue or None,
+            date_str=date_str or None
+        )
+
+        formatted_results = []
+        for sl in (raw_results or []):
+            sl_id = sl.get('id', '')
+            if not sl_id:
+                continue
+
+            event_date_raw = sl.get('eventDate', '')  # DD-MM-YYYY
+            iso_date = ''
+            display_date = event_date_raw
+            ev_year = None
+            if event_date_raw:
+                try:
+                    dt = datetime.strptime(event_date_raw, '%d-%m-%Y')
+                    iso_date = dt.strftime('%Y-%m-%d')
+                    display_date = dt.strftime('%b %d, %Y')
+                    ev_year = dt.year
+                except ValueError:
+                    pass
+
+            art_data = sl.get('artist', {}) or {}
+            art_name = art_data.get('name', '') or artist
+
+            ven_data = sl.get('venue', {}) or {}
+            ven_name = ven_data.get('name', '')
+            city_data = ven_data.get('city', {}) or {}
+            ven_city = city_data.get('name', '')
+            ven_state = city_data.get('stateCode') or city_data.get('state') or ''
+            ven_country = (city_data.get('country') or {}).get('name', '')
+
+            tour_name = (sl.get('tour') or {}).get('name', '')
+            info = sl.get('info', '')
+            url = sl.get('url', '')
+
+            # Parse tracks
+            tracks = parse_setlistfm_sets_to_tracks(sl)
+            lines = []
+            current_set = None
+            for t in tracks:
+                set_name = t.get("set_name") or "Main Set"
+                if set_name != current_set:
+                    if current_set is not None:
+                        if t.get("is_encore"):
+                            enc_num = t.get("encore_number")
+                            lines.append(f"Encore {enc_num}:" if enc_num and enc_num > 1 else "Encore:")
+                        elif set_name.lower() != "main set":
+                            lines.append(f"{set_name}:")
+                    elif t.get("is_encore"):
+                        lines.append("Encore:")
+                    current_set = set_name
+
+                song_line = t.get("title", "")
+                if t.get("is_cover") and t.get("original_artist"):
+                    song_line += f" ({t['original_artist']} cover)"
+                elif t.get("is_cover"):
+                    song_line += " (Cover)"
+                if t.get("info"):
+                    song_line += f" ({t.get('info')})"
+                if song_line:
+                    lines.append(song_line)
+
+            setlist_text = "\n".join(lines)
+            sample_songs = [t.get("title") for t in tracks[:5] if t.get("title")]
+
+            formatted_results.append({
+                "id": sl_id,
+                "date": iso_date,
+                "display_date": display_date,
+                "year": ev_year,
+                "artist": art_name,
+                "venue": ven_name,
+                "city": ven_city,
+                "state": ven_state,
+                "country": ven_country,
+                "tour_name": tour_name,
+                "info": info,
+                "url": url,
+                "song_count": len(tracks),
+                "sample_songs": sample_songs,
+                "setlist_text": setlist_text
+            })
+
+        return JsonResponse({"results": formatted_results})
+    except Exception as e:
+        logger.exception("api_search_setlists error: %s", e)
+        return JsonResponse({"error": str(e)}, status=500)
+
 
 @login_required
 @require_POST

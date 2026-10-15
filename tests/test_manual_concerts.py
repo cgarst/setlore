@@ -1,11 +1,13 @@
 import json
 from io import BytesIO
+from unittest.mock import patch
 from django.test import TestCase, Client
 from django.contrib.auth.models import User
 from django.core.files.uploadedfile import SimpleUploadedFile
 from apps.catalog.models import Artist, Venue, Song
 from apps.concerts.models import Concert, ConcertArtist, ConcertSong
 from apps.concerts.utils import parse_setlist_text
+from src.setlist_api import SetlistFMClient
 
 class ManualConcertTests(TestCase):
     def setUp(self):
@@ -486,3 +488,85 @@ class ManualConcertTests(TestCase):
             ca.refresh_from_db()
             self.assertEqual(ca.setlistfm_id, "haken_sl_999")
             self.assertEqual(ca.songs.count(), 2)
+
+    def test_api_search_setlists(self):
+        mock_raw_results = [
+            {
+                "id": "abc12345",
+                "eventDate": "14-09-2024",
+                "artist": {"name": "Eyes of the Nile"},
+                "venue": {
+                    "name": "Tally Ho Theater",
+                    "city": {
+                        "name": "Leesburg",
+                        "stateCode": "VA",
+                        "country": {"name": "United States"}
+                    }
+                },
+                "tour": {"name": "Somewhere on Tour 2024"},
+                "url": "https://www.setlist.fm/setlist/eyes-of-the-nile/2024/tally-ho-theater-abc12345.html",
+                "sets": {
+                    "set": [
+                        {"song": [{"name": "Aces High"}, {"name": "2 Minutes to Midnight"}]},
+                        {"encore": 1, "song": [{"name": "The Trooper", "cover": {"name": "Iron Maiden"}}]}
+                    ]
+                }
+            }
+        ]
+
+        with patch.object(SetlistFMClient, 'search_setlists', return_value=mock_raw_results):
+            res = self.client.get('/api/setlists/search/?artist=Eyes+of+the+Nile&city=Leesburg&year=2024')
+            self.assertEqual(res.status_code, 200)
+            data = res.json()
+            self.assertIn("results", data)
+            self.assertEqual(len(data["results"]), 1)
+            item = data["results"][0]
+            self.assertEqual(item["id"], "abc12345")
+            self.assertEqual(item["date"], "2024-09-14")
+            self.assertEqual(item["display_date"], "Sep 14, 2024")
+            self.assertEqual(item["artist"], "Eyes of the Nile")
+            self.assertEqual(item["venue"], "Tally Ho Theater")
+            self.assertEqual(item["city"], "Leesburg")
+            self.assertEqual(item["state"], "VA")
+            self.assertEqual(item["tour_name"], "Somewhere on Tour 2024")
+            self.assertEqual(item["song_count"], 3)
+            self.assertIn("The Trooper (Iron Maiden cover)", item["setlist_text"])
+            self.assertIn("Encore:", item["setlist_text"])
+
+    def test_add_concert_with_setlist_id(self):
+        mock_sl = {
+            "id": "eotn_sl_888",
+            "eventDate": "14-09-2024",
+            "url": "https://www.setlist.fm/setlist/eyes-of-the-nile/2024/tally-ho-eotn_sl_888.html",
+            "artist": {"name": "Eyes of the Nile"},
+            "venue": {"name": "Tally Ho Theater", "city": {"name": "Leesburg", "state": "VA", "coords": {"lat": 39.11, "long": -77.56}}},
+            "sets": {"set": [{"song": [{"name": "Flight of Icarus"}]}]}
+        }
+
+        payload = {
+            "date": "2024-09-14",
+            "primary_artist": "Eyes of the Nile",
+            "venue_name": "Tally Ho Theater",
+            "city": "Leesburg",
+            "state": "VA",
+            "setlist_id": "eotn_sl_888",
+            "setlist_text": "Flight of Icarus"
+        }
+
+        with patch('apps.concerts.utils.sync_single_concert') as mock_sync:
+            mock_sync.return_value = {"status": "success", "matched": 1, "songs_added": 1}
+            res = self.client.post(
+                '/api/concerts/add/',
+                data=json.dumps(payload),
+                content_type='application/json'
+            )
+            self.assertEqual(res.status_code, 200)
+            data = res.json()
+            self.assertEqual(data["status"], "success")
+            c = Concert.objects.get(id=data["concert_id"])
+            self.assertEqual(c.source, "setlistfm")
+            self.assertFalse(c.is_custom_offline)
+            ca = c.artists.first()
+            self.assertEqual(ca.setlistfm_id, "eotn_sl_888")
+            self.assertTrue(mock_sync.called)
+

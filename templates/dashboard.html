@@ -1613,36 +1613,38 @@
       <form id="add-concert-form" onsubmit="submitAddConcert(event)" class="flex flex-col flex-1 min-h-0 overflow-hidden mt-3">
         {% csrf_token %}
 
-        <div class="overflow-y-auto overflow-x-hidden pr-1 space-y-3.5 flex-1 min-h-0 custom-scrollbar">
-          <!-- Add Options Tip / Information Banner -->
-          <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-700/70 text-xs space-y-2">
-            <div class="flex items-center gap-2 text-indigo-300 font-semibold text-xs">
-              <i class="fa-solid fa-circle-info text-indigo-400"></i>
-              <span>Adding Concerts &amp; Setlists</span>
+          <input type="hidden" id="add-concert-setlist-id" value="">
+          <input type="hidden" id="add-concert-setlist-url" value="">
+
+          <!-- Fast Setlist.fm Search Intake Card -->
+          <div class="rounded-xl border border-amber-500/35 bg-amber-950/20 p-3 space-y-2.5 shadow-sm">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                <i class="fa-brands fa-lastfm text-amber-400"></i> Search Setlist.fm (Quick Intake)
+              </span>
+              <span class="text-[10px] text-amber-400 font-semibold bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">Auto-fill Show</span>
             </div>
-            <p class="text-slate-300 text-[11.5px] leading-relaxed">
-              You have two options to log shows in Setlore:
+            <p class="text-[11px] text-slate-300 leading-snug">
+              Search by band name, location, or year to automatically pull in the date, venue, city, and full setlist tracks!
             </p>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] pt-0.5">
-              <div class="p-2.5 rounded-lg bg-slate-950/60 border border-slate-800 space-y-1">
-                <div class="font-bold text-slate-200 flex items-center gap-1.5">
-                  <i class="fa-solid fa-pen-to-square text-indigo-400"></i> Option 1: Manual Entry
-                </div>
-                <p class="text-slate-400 leading-snug">Fill in the concert details and optional setlist below, then click Save Concert.</p>
+            <div class="grid grid-cols-1 sm:grid-cols-12 gap-2 pt-0.5">
+              <div class="sm:col-span-5">
+                <input type="text" id="add-sl-search-artist" placeholder="Band / Artist (e.g. Dream Theater)" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500" onkeydown="if(event.key==='Enter'){event.preventDefault();searchSetlistFmForAddModal();}">
               </div>
-              <div class="p-2.5 rounded-lg bg-slate-950/60 border border-slate-800 space-y-1">
-                <div class="font-bold text-slate-200 flex items-center gap-1.5">
-                  <i class="fa-brands fa-lastfm text-amber-400"></i> Option 2: Setlist.fm Sync
-                </div>
-                <p class="text-slate-400 leading-snug">
-                  {% if profile.setlistfm_username %}
-                    Select <strong class="text-amber-300 font-medium">"I was there"</strong> on <a href="https://www.setlist.fm" target="_blank" rel="noopener noreferrer" class="text-indigo-400 hover:text-indigo-300 underline">setlist.fm</a>, then click <button type="button" onclick="closeAddConcertModal(); triggerSync();" class="inline text-indigo-400 hover:text-indigo-300 font-bold underline cursor-pointer">Sync</button> in Setlore.
-                  {% else %}
-                    <button type="button" onclick="closeAddConcertModal(); openProfileModal();" class="inline text-amber-400 hover:text-amber-300 font-bold underline cursor-pointer">Bind your Setlist.fm account</button>, select <strong class="text-amber-300 font-medium">"I was there"</strong> on <a href="https://www.setlist.fm" target="_blank" rel="noopener noreferrer" class="text-indigo-400 hover:text-indigo-300 underline">setlist.fm</a>, and click <strong class="text-indigo-400 font-bold">Sync</strong> in Setlore.
-                  {% endif %}
-                </p>
+              <div class="sm:col-span-4">
+                <input type="text" id="add-sl-search-city" placeholder="City or State (optional)" value="{{ upcoming_location|default:'' }}" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500" onkeydown="if(event.key==='Enter'){event.preventDefault();searchSetlistFmForAddModal();}">
+              </div>
+              <div class="sm:col-span-3 flex gap-1.5">
+                <input type="text" id="add-sl-search-year" placeholder="Year" class="w-16 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 text-center" onkeydown="if(event.key==='Enter'){event.preventDefault();searchSetlistFmForAddModal();}">
+                <button type="button" onclick="searchSetlistFmForAddModal()" id="add-sl-search-btn" class="flex-1 py-1.5 px-2.5 bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold text-xs rounded-lg transition flex items-center justify-center gap-1 cursor-pointer shrink-0 shadow-sm">
+                  <i class="fa-solid fa-magnifying-glass"></i>
+                  <span>Find</span>
+                </button>
               </div>
             </div>
+
+            <!-- Dynamic Search Results -->
+            <div id="add-sl-search-results" class="hidden space-y-1.5 max-h-56 overflow-y-auto custom-scrollbar pt-1 border-t border-amber-500/20"></div>
           </div>
 
           <!-- Date & Venue Name Row -->
@@ -1808,10 +1810,16 @@
             <input type="text" id="edit-concert-notes" placeholder="e.g. Progressive Nation 2009 or Front row with friends" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
           </div>
 
-          <!-- Setlist.fm Link or ID -->
+          <!-- Setlist.fm Link or ID with Search Helper -->
           <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-1">Setlist.fm Link or ID <span class="text-slate-500 font-normal">(optional, e.g. 63554e3b or URL)</span></label>
+            <div class="flex items-center justify-between mb-1">
+              <label class="block text-xs font-semibold text-slate-300">Setlist.fm Link or ID <span class="text-slate-500 font-normal">(optional, e.g. 63554e3b or URL)</span></label>
+              <button type="button" onclick="searchSetlistFmForEditModal()" class="text-[11px] text-amber-400 hover:text-amber-300 font-medium flex items-center gap-1 cursor-pointer">
+                <i class="fa-brands fa-lastfm"></i> Search Setlist.fm
+              </button>
+            </div>
             <input type="text" id="edit-concert-setlistfm" placeholder="e.g. 63554e3b or https://www.setlist.fm/setlist/..." class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+            <div id="edit-sl-search-results" class="hidden mt-2 p-2 rounded-xl bg-slate-900/95 border border-amber-500/30 space-y-1.5 max-h-48 overflow-y-auto custom-scrollbar"></div>
           </div>
 
           <!-- Setlist Section Accordion -->
@@ -2130,7 +2138,7 @@
           </button>
           <button type="button" onclick="goToOnboardingStep(4)" id="step-pill-4" class="py-1.5 px-1 rounded-lg text-[11px] font-semibold transition flex items-center justify-center gap-1 bg-slate-800 text-slate-400 hover:text-slate-200 cursor-pointer">
             <span class="w-4 h-4 rounded-full bg-slate-700 text-[10px] flex items-center justify-center">4</span>
-            <span class="hidden sm:inline">Area</span>
+            <span class="hidden sm:inline">Location</span>
           </button>
           <button type="button" onclick="goToOnboardingStep(5)" id="step-pill-5" class="py-1.5 px-1 rounded-lg text-[11px] font-semibold transition flex items-center justify-center gap-1 bg-slate-800 text-slate-400 hover:text-slate-200 cursor-pointer">
             <span class="w-4 h-4 rounded-full bg-slate-700 text-[10px] flex items-center justify-center">5</span>
@@ -2311,7 +2319,7 @@
               <i class="fa-solid fa-location-dot text-base"></i>
             </div>
             <div>
-              <h4 class="text-xs font-bold text-white">Upcoming Shows Discovery Area (Optional)</h4>
+              <h4 class="text-xs font-bold text-white">Your Location &amp; Upcoming Shows (Optional)</h4>
               <p class="text-[11px] text-slate-300 mt-0.5 leading-relaxed">
                 Set your home city or zip code and search radius to discover when artists in your concert log are playing near you.
               </p>
@@ -11215,6 +11223,16 @@
         statusBox.classList.add('hidden');
         statusBox.innerHTML = '';
       }
+      const slRes = document.getElementById('add-sl-search-results');
+      if (slRes) {
+        slRes.classList.add('hidden');
+        slRes.innerHTML = '';
+      }
+      const slId = document.getElementById('add-concert-setlist-id');
+      if (slId) slId.value = '';
+      const slUrl = document.getElementById('add-concert-setlist-url');
+      if (slUrl) slUrl.value = '';
+
       if (modal) {
         modal.classList.remove('hidden');
         document.body.classList.add('overflow-hidden');
@@ -11232,6 +11250,17 @@
       });
     }
 
+    function openAddSetlistSection() {
+      const container = document.getElementById('add-setlist-container');
+      const chevron = document.getElementById('add-setlist-chevron');
+      if (container) {
+        container.classList.remove('hidden');
+        if (chevron) {
+          chevron.classList.add('rotate-180');
+        }
+      }
+    }
+
     function toggleAddSetlistSection() {
       const container = document.getElementById('add-setlist-container');
       const chevron = document.getElementById('add-setlist-chevron');
@@ -11241,6 +11270,211 @@
           chevron.classList.toggle('rotate-180');
         }
       }
+    }
+
+    let addModalSetlistResults = [];
+    async function searchSetlistFmForAddModal() {
+      const artistInput = document.getElementById('add-sl-search-artist');
+      const cityInput = document.getElementById('add-sl-search-city');
+      const yearInput = document.getElementById('add-sl-search-year');
+      const resultsContainer = document.getElementById('add-sl-search-results');
+      const btn = document.getElementById('add-sl-search-btn');
+
+      let artist = (artistInput ? artistInput.value.trim() : '') || (document.getElementById('add-concert-artist') ? document.getElementById('add-concert-artist').value.trim() : '');
+      let city = (cityInput ? cityInput.value.trim() : '');
+      let year = (yearInput ? yearInput.value.trim() : '');
+
+      if (!artist && !city) {
+        alert('Please enter a band name or city to search Setlist.fm.');
+        if (artistInput) artistInput.focus();
+        return;
+      }
+
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i>';
+      }
+      resultsContainer.classList.remove('hidden');
+      resultsContainer.innerHTML = `
+        <div class="p-3 text-center text-xs text-amber-300">
+          <i class="fa-solid fa-spinner animate-spin mr-1.5"></i> Searching Setlist.fm for "${escapeHtml(artist || city)}"...
+        </div>
+      `;
+
+      try {
+        const queryParams = new URLSearchParams();
+        if (artist) queryParams.set('artist', artist);
+        if (city) queryParams.set('city', city);
+        if (year) queryParams.set('year', year);
+
+        const res = await fetch(`/api/setlists/search/?${queryParams.toString()}`);
+        const data = await res.json();
+
+        if (!res.ok) {
+          resultsContainer.innerHTML = `
+            <div class="p-2.5 rounded-lg bg-rose-950/60 border border-rose-500/40 text-xs text-rose-200">
+              <i class="fa-solid fa-circle-exclamation mr-1 text-rose-400"></i> ${escapeHtml(data.error || 'Failed to search Setlist.fm')}
+            </div>
+          `;
+          return;
+        }
+
+        const results = data.results || [];
+        addModalSetlistResults = results;
+
+        if (results.length === 0) {
+          resultsContainer.innerHTML = `
+            <div class="p-3 rounded-lg bg-slate-900 border border-slate-800 text-center text-xs text-slate-400">
+              <i class="fa-solid fa-circle-info mr-1 text-amber-400"></i> No setlists found on Setlist.fm matching your search. Try broadening your terms or entering manually below.
+            </div>
+          `;
+          return;
+        }
+
+        resultsContainer.innerHTML = results.map((r, idx) => `
+          <div class="p-2.5 rounded-lg bg-slate-900/90 border border-slate-800 hover:border-amber-500/40 transition flex items-center justify-between gap-3 text-xs">
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="font-bold text-white">${escapeHtml(r.artist)}</span>
+                <span class="text-[10px] text-amber-400 font-semibold bg-amber-500/15 border border-amber-500/25 px-1.5 py-0.5 rounded">${escapeHtml(r.display_date || r.date)}</span>
+                ${r.song_count > 0 ? `<span class="text-[10px] text-purple-300 bg-purple-500/15 border border-purple-500/25 px-1.5 py-0.5 rounded font-medium">${r.song_count} songs</span>` : `<span class="text-[10px] text-slate-500">No tracks</span>`}
+              </div>
+              <div class="text-[11px] text-slate-400 truncate mt-0.5">
+                <i class="fa-solid fa-location-dot text-[9px] text-amber-400 mr-1"></i>${escapeHtml(r.venue)}${r.city ? ', ' + escapeHtml(r.city) : ''}${r.state ? ', ' + escapeHtml(r.state) : ''}
+                ${r.tour_name ? ` • <span class="text-slate-300 italic">${escapeHtml(r.tour_name)}</span>` : ''}
+              </div>
+            </div>
+            <button type="button" onclick="selectAddSetlistResult(${idx})" class="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-[11px] shadow-sm transition shrink-0 cursor-pointer flex items-center gap-1">
+              <i class="fa-solid fa-wand-magic-sparkles text-[10px]"></i>
+              <span>Auto-fill</span>
+            </button>
+          </div>
+        `).join('');
+      } catch (err) {
+        resultsContainer.innerHTML = `
+          <div class="p-2.5 rounded-lg bg-rose-950/60 border border-rose-500/40 text-xs text-rose-200">
+            <i class="fa-solid fa-circle-exclamation mr-1 text-rose-400"></i> Network error while searching Setlist.fm.
+          </div>
+        `;
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i><span>Find</span>';
+        }
+      }
+    }
+
+    function selectAddSetlistResult(idx) {
+      const r = addModalSetlistResults[idx];
+      if (!r) return;
+
+      if (r.date) document.getElementById('add-concert-date').value = r.date;
+      if (r.venue) document.getElementById('add-concert-venue').value = r.venue;
+      if (r.city) document.getElementById('add-concert-city').value = r.city;
+      if (r.state) document.getElementById('add-concert-state').value = r.state;
+      if (r.artist) document.getElementById('add-concert-artist').value = r.artist;
+      if (r.tour_name) document.getElementById('add-concert-notes').value = r.tour_name;
+      if (r.id) document.getElementById('add-concert-setlist-id').value = r.id;
+      if (r.url) document.getElementById('add-concert-setlist-url').value = r.url;
+
+      if (r.setlist_text) {
+        document.getElementById('add-concert-setlist').value = r.setlist_text;
+        openAddSetlistSection();
+      }
+
+      const offlineCb = document.getElementById('add-concert-offline');
+      if (offlineCb) offlineCb.checked = false;
+
+      const resultsContainer = document.getElementById('add-sl-search-results');
+      if (resultsContainer) resultsContainer.classList.add('hidden');
+
+      const statusBox = document.getElementById('add-concert-status');
+      if (statusBox) {
+        statusBox.classList.remove('hidden', 'bg-rose-950/60', 'text-rose-200', 'border-rose-500/40');
+        statusBox.classList.add('bg-emerald-950/60', 'text-emerald-200', 'border', 'border-emerald-500/40');
+        statusBox.innerHTML = `<i class="fa-solid fa-circle-check mr-1 text-emerald-400"></i> Auto-filled <strong>${escapeHtml(r.artist)}</strong> at ${escapeHtml(r.venue)} (${escapeHtml(r.display_date || r.date)}) with ${r.song_count} songs! Review details below and click <strong>Save Concert</strong>.`;
+      }
+    }
+
+    let editModalSetlistResults = [];
+    async function searchSetlistFmForEditModal() {
+      const artist = (document.getElementById('edit-concert-artist') ? document.getElementById('edit-concert-artist').value.trim() : '');
+      const city = (document.getElementById('edit-concert-city') ? document.getElementById('edit-concert-city').value.trim() : '');
+      const dateVal = (document.getElementById('edit-concert-date') ? document.getElementById('edit-concert-date').value.trim() : '');
+      const year = dateVal ? dateVal.slice(0, 4) : '';
+      const resultsContainer = document.getElementById('edit-sl-search-results');
+
+      if (!artist) {
+        alert('Please provide an artist name to search Setlist.fm.');
+        return;
+      }
+
+      resultsContainer.classList.remove('hidden');
+      resultsContainer.innerHTML = `
+        <div class="p-2 text-center text-xs text-amber-300">
+          <i class="fa-solid fa-spinner animate-spin mr-1.5"></i> Searching Setlist.fm for "${escapeHtml(artist)}"...
+        </div>
+      `;
+
+      try {
+        const queryParams = new URLSearchParams();
+        if (artist) queryParams.set('artist', artist);
+        if (city) queryParams.set('city', city);
+        if (year) queryParams.set('year', year);
+
+        const res = await fetch(`/api/setlists/search/?${queryParams.toString()}`);
+        const data = await res.json();
+        const results = data.results || [];
+        editModalSetlistResults = results;
+
+        if (results.length === 0) {
+          resultsContainer.innerHTML = `
+            <div class="p-2 text-xs text-slate-400 text-center">
+              No matching shows found on Setlist.fm.
+            </div>
+          `;
+          return;
+        }
+
+        resultsContainer.innerHTML = results.map((r, idx) => `
+          <div class="p-2 rounded-lg bg-slate-900 border border-slate-800 hover:border-amber-500/40 transition flex items-center justify-between gap-2 text-xs">
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-1.5">
+                <span class="font-bold text-white">${escapeHtml(r.artist)}</span>
+                <span class="text-[10px] text-amber-400 bg-amber-500/10 px-1 rounded">${escapeHtml(r.display_date || r.date)}</span>
+              </div>
+              <div class="text-[11px] text-slate-400 truncate">
+                ${escapeHtml(r.venue)}${r.city ? ', ' + escapeHtml(r.city) : ''} (${r.song_count} songs)
+              </div>
+            </div>
+            <button type="button" onclick="selectEditSetlistResult(${idx})" class="px-2 py-0.5 rounded bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-[10px] transition shrink-0 cursor-pointer">
+              Use This
+            </button>
+          </div>
+        `).join('');
+      } catch (err) {
+        resultsContainer.innerHTML = `<div class="p-2 text-xs text-rose-300">Search error.</div>`;
+      }
+    }
+
+    function selectEditSetlistResult(idx) {
+      const r = editModalSetlistResults[idx];
+      if (!r) return;
+      const input = document.getElementById('edit-concert-setlistfm');
+      if (input) input.value = r.id;
+      if (r.date) document.getElementById('edit-concert-date').value = r.date;
+      if (r.venue) document.getElementById('edit-concert-venue').value = r.venue;
+      if (r.city) document.getElementById('edit-concert-city').value = r.city;
+      if (r.state) document.getElementById('edit-concert-state').value = r.state;
+      if (r.setlist_text && !document.getElementById('edit-concert-setlist').value.trim()) {
+        document.getElementById('edit-concert-setlist').value = r.setlist_text;
+        const container = document.getElementById('edit-setlist-container');
+        const chevron = document.getElementById('edit-setlist-chevron');
+        if (container) container.classList.remove('hidden');
+        if (chevron) chevron.classList.add('rotate-180');
+      }
+      const resultsContainer = document.getElementById('edit-sl-search-results');
+      if (resultsContainer) resultsContainer.classList.add('hidden');
     }
 
     async function submitAddConcert(e) {
@@ -11257,6 +11491,8 @@
         supporting_artists: document.getElementById('add-concert-supporting').value,
         notes: document.getElementById('add-concert-notes').value,
         setlist_text: document.getElementById('add-concert-setlist').value,
+        setlist_id: document.getElementById('add-concert-setlist-id') ? document.getElementById('add-concert-setlist-id').value : '',
+        setlist_url: document.getElementById('add-concert-setlist-url') ? document.getElementById('add-concert-setlist-url').value : '',
         is_custom_offline: document.getElementById('add-concert-offline') ? document.getElementById('add-concert-offline').checked : false
       };
 
