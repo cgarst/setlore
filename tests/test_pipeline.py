@@ -84,5 +84,13 @@ class TestConcertPipeline(unittest.TestCase):
         # Song age should NOT duplicate Cover (Dream Theater)
         self.assertIsNone(song_entry["song_age_str"])
 
+    def test_generate_query_variations(self):
+        from src.album_enricher import AlbumEnricher
+        enricher = AlbumEnricher()
+        variations = enricher._generate_query_variations("Tragedy's a' Comin'")
+        self.assertIn("Tragedy's a'Comin'", variations)
+        self.assertIn("Tragedy’s a’Comin’", variations)
+
 if __name__ == "__main__":
     unittest.main()
+

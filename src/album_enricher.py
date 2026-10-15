@@ -109,8 +109,35 @@ class AlbumEnricher:
         return None
 
     def _generate_query_variations(self, song_name: str) -> List[str]:
-        """Generates clean query strings for suites, subtitles, medleys, and roman numerals."""
+        """Generates clean query strings for suites, subtitles, medleys, apostrophes, and roman numerals."""
         queries = [song_name.strip()]
+
+        # Unicode accent normalization (e.g. Déjà Vu -> Deja Vu)
+        normalized = unicodedata.normalize('NFKD', song_name).encode('ASCII', 'ignore').decode('utf-8')
+        if normalized != song_name and normalized not in queries:
+            queries.append(normalized)
+
+        # Apostrophe variations (straight vs typographic/curly) and spacing
+        if "'" in song_name or "’" in song_name or "`" in song_name:
+            straight = song_name.replace("’", "'").replace("`", "'")
+            curly = song_name.replace("'", "’").replace("`", "’")
+            for var in [straight, curly]:
+                if var not in queries:
+                    queries.append(var)
+                # Collapse space after apostrophe: "a' Comin'" -> "a'Comin'"
+                collapsed = re.sub(r"['’`]\s+", "'", var)
+                if collapsed not in queries:
+                    queries.append(collapsed)
+                collapsed_curly = re.sub(r"['’`]\s+", "’", var)
+                if collapsed_curly not in queries:
+                    queries.append(collapsed_curly)
+                # Title case after apostrophe: "a'comin'" -> "A'Comin'"
+                titled = re.sub(r"(['’`]\s*)([a-zA-Z])", lambda m: m.group(1).strip() + m.group(2).upper(), var)
+                if titled not in queries:
+                    queries.append(titled)
+                titled_curly = titled.replace("'", "’")
+                if titled_curly not in queries:
+                    queries.append(titled_curly)
 
         # Medleys / Slashes: take individual parts
         if "/" in song_name:
@@ -134,10 +161,6 @@ class AlbumEnricher:
             if cleaned_last and len(cleaned_last) > 2 and cleaned_last not in queries:
                 queries.append(cleaned_last)
 
-            # Unicode accent normalization (e.g. Déjà Vu -> Deja Vu)
-            normalized = unicodedata.normalize('NFKD', song_name).encode('ASCII', 'ignore').decode('utf-8')
-            if normalized != song_name and normalized not in queries:
-                queries.append(normalized)
             if cleaned_last:
                 norm_last = unicodedata.normalize('NFKD', cleaned_last).encode('ASCII', 'ignore').decode('utf-8')
                 if norm_last != cleaned_last and norm_last not in queries:
