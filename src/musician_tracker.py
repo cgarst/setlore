@@ -83,6 +83,10 @@ def analyze_musicians_live(all_csv_records: List[Dict[str, Any]]) -> Dict[str, A
     seen_show_keys = set()
 
     effective_tenures = get_effective_band_tenures() or {}
+    all_known_musicians = {}
+    for mems in effective_tenures.values():
+        for m in mems:
+            all_known_musicians[m["musician"].lower().strip()] = m
 
     for rec in all_csv_records:
         if not _record_has_occurred(rec):
@@ -99,6 +103,20 @@ def analyze_musicians_live(all_csv_records: List[Dict[str, Any]]) -> Dict[str, A
                 band_canonical_names[art_key] = canonical_art
 
             tenures = effective_tenures.get(art_key, [])
+            # If the artist name itself is a known musician (solo act) not yet in tenures, credit self
+            has_self = any(m["musician"].lower().strip() == art_key for m in tenures)
+            if not has_self and (art_key in all_known_musicians or not tenures):
+                known_m = all_known_musicians.get(art_key)
+                m_name = known_m["musician"] if known_m else canonical_art
+                m_role = "Solo Artist"
+                m_instr = known_m.get("instrument", "Other") if known_m else "Other"
+                tenures = list(tenures) + [{
+                    "musician": m_name,
+                    "role": m_role,
+                    "instrument": m_instr,
+                    "start": 1900,
+                    "end": None
+                }]
 
             for member in tenures:
                 m_name = member["musician"]

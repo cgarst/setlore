@@ -282,8 +282,36 @@ class MusicianEnricher:
 
         raw_members: Dict[Tuple[str, int, Optional[int]], Dict[str, Any]] = {}
 
+        is_person = mb_data.get("type") == "Person"
+        if is_person:
+            p_name = (mb_data.get("name") or "").strip()
+            p_mbid = (mb_data.get("id") or "").strip() or None
+            if p_name:
+                life_span = mb_data.get("life-span") or {}
+                p_begin = self._parse_year(life_span.get("begin")) or 1900
+                p_end = self._parse_year(life_span.get("end")) if life_span.get("ended") else None
+                key = (p_name.lower(), p_begin, p_end)
+                raw_members[key] = {
+                    "musician": p_name,
+                    "musician_mbid": p_mbid,
+                    "start": p_begin,
+                    "end": p_end,
+                    "ended": bool(p_end),
+                    "attributes": set(["lead vocals", "electric guitar"]) if "guitar" in (mb_data.get("disambiguation") or "").lower() else set()
+                }
+
         for r in mb_data.get("relations", []):
-            if r.get("type") != "member of band":
+            rel_type = r.get("type")
+            rel_dir = r.get("direction")
+            # For a band, member relations have type 'member of band' (direction is backward).
+            # For a Person, 'member of band' with direction 'forward' describes bands this person belongs to.
+            if rel_type == "member of band":
+                if is_person or rel_dir == "forward":
+                    continue
+            elif rel_type in ["instrumental supporting musician", "vocal supporting musician", "supporting musician"]:
+                if rel_dir != "backward":
+                    continue
+            else:
                 continue
 
             musician = r.get("artist", {})
