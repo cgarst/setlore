@@ -539,7 +539,7 @@
   <!-- Header -->
   <header class="hidden md:flex max-w-7xl mx-auto mb-6 flex-col md:flex-row md:items-center justify-between gap-4">
     <div class="hidden md:flex items-center justify-between w-full md:w-auto">
-      <a href="{% if is_demo %}{{ home_url|default:'../index.html' }}{% else %}{% url 'home' %}{% endif %}" class="flex items-center text-left group focus:outline-none transition cursor-pointer" title="Setlore - Home">
+      <a href="{% if is_demo %}#overview{% elif is_public_view %}{% url 'public_profile_tab' username=viewed_user.username tab_name='overview' %}{% else %}{% url 'dashboard_overview' %}{% endif %}" onclick="switchTab('overview'); return false;" class="flex items-center text-left group focus:outline-none transition cursor-pointer" title="Setlore - Overview">
         <div class="logo-wrapper">
           <img src="{% static 'img/setlore_banner.png' %}" alt="Setlore" class="h-10 md:h-12 w-auto object-contain rounded-xl group-hover:scale-105 transition-all logo-img">
           <div class="logo-tint-overlay"></div>
@@ -6281,7 +6281,7 @@
   <footer class="max-w-7xl mx-auto border-t border-slate-800/80 pt-8 pb-6 mt-12 text-center text-xs text-slate-500">
     <div class="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6">
       <div class="flex items-center gap-2">
-        <a href="{% if is_demo %}{{ home_url|default:'../index.html' }}{% else %}{% url 'home' %}{% endif %}" class="inline-flex items-center">
+        <a href="{% if is_demo %}#overview{% elif is_public_view %}{% url 'public_profile_tab' username=viewed_user.username tab_name='overview' %}{% else %}{% url 'dashboard_overview' %}{% endif %}" onclick="switchTab('overview'); return false;" class="inline-flex items-center" title="Setlore - Overview">
           <img src="{% static 'img/setlore_icon_transparent.png' %}" alt="Setlore" class="w-5 h-5 rounded opacity-80 hover:opacity-100 transition">
         </a>
         <span>&copy; Setlore &bull; Open-source live concert intelligence.</span>
