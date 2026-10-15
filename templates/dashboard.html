@@ -8639,13 +8639,6 @@
             <span class="text-xs font-mono text-slate-500 w-6 shrink-0">#${renderedCount}</span>
             ${thumbHtml}
             <span class="font-bold text-white text-sm truncate group-hover:text-indigo-200 transition ${isHighlighted ? 'text-indigo-300' : ''}">${escapeHtml(s.song)}</span>
-            <button type="button"
-                    onclick="event.stopPropagation(); closeArtistSongModal(); openAlbumModalByName('${(artistName || '').replace(/'/g, "\\'")}', '${(sAlbum || '').replace(/'/g, "\\'")}');"
-                    class="badge bg-slate-800/80 hover:bg-slate-800 hover:text-indigo-200 hover:border-indigo-500/50 text-indigo-300 border border-indigo-500/30 text-[11px] cursor-pointer transition flex items-center gap-1 shrink-0"
-                    title="Inspect album: ${escapeHtml(s.album_display || sAlbum)}">
-              <i class="fa-solid fa-compact-disc text-[10px] text-indigo-400"></i>
-              <span>${escapeHtml(s.album_display || sAlbum)}</span>
-            </button>
             <span class="text-xs text-slate-400">(${activeMusicianFilter ? 'First with ' + escapeHtml(activeMusicianFilter) + ': ' : 'First heard: '}<span class="text-indigo-300 font-mono">${firstDate}</span>)</span>
           </div>
           <div class="flex items-center gap-2 shrink-0">
