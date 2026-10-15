@@ -2698,9 +2698,19 @@
             <p id="modal-album-stats" class="text-[11px] text-slate-400 mt-1"></p>
           </div>
         </div>
-        <button type="button" onclick="closeAlbumModal()" class="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition cursor-pointer shrink-0">
-          <i class="fa-solid fa-xmark text-lg"></i>
-        </button>
+        <div class="flex items-center gap-2 shrink-0">
+          <button type="button"
+                  id="modal-album-share-btn"
+                  onclick="copyModalShareLink()"
+                  class="hidden px-2.5 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/80 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shrink-0 shadow-sm group"
+                  title="Share public link">
+            <i class="fa-solid fa-share-nodes text-[11px] text-indigo-400 group-hover:scale-110 transition-transform"></i>
+            <span class="hidden sm:inline">Share</span>
+          </button>
+          <button type="button" onclick="closeAlbumModal()" class="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition cursor-pointer shrink-0">
+            <i class="fa-solid fa-xmark text-lg"></i>
+          </button>
+        </div>
       </div>
 
       <!-- Songs Heard Live List -->
@@ -2766,6 +2776,14 @@
         </div>
         <div class="flex items-center gap-2 shrink-0">
           <div id="modal-concert-actions" class="flex items-center gap-1.5"></div>
+          <button type="button"
+                  id="modal-concert-share-btn"
+                  onclick="copyModalShareLink()"
+                  class="hidden px-2.5 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/80 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shrink-0 shadow-sm group"
+                  title="Share public link">
+            <i class="fa-solid fa-share-nodes text-[11px] text-indigo-400 group-hover:scale-110 transition-transform"></i>
+            <span class="hidden sm:inline">Share</span>
+          </button>
           <button type="button" onclick="closeConcertModal()" class="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition cursor-pointer" aria-label="Close modal">
             <i class="fa-solid fa-xmark text-lg"></i>
           </button>
@@ -2816,6 +2834,14 @@
               </div>
             </div>
             <div class="flex items-center gap-2 shrink-0">
+              <button type="button"
+                      id="modal-artist-share-btn"
+                      onclick="copyModalShareLink()"
+                      class="hidden px-2.5 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/80 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shrink-0 shadow-sm group"
+                      title="Share public link">
+                <i class="fa-solid fa-share-nodes text-[11px] text-indigo-400 group-hover:scale-110 transition-transform"></i>
+                <span class="hidden sm:inline">Share</span>
+              </button>
               <a id="modal-artist-musicbrainz-link"
                  href="#"
                  target="_blank"
@@ -6619,6 +6645,36 @@
           switchTab(targetTab, false);
         }
       }
+
+      // Check for deep link query parameters to open modal automatically
+      try {
+        const initParams = new URLSearchParams(window.location.search);
+        if (initParams.has('concert')) {
+          const cId = initParams.get('concert');
+          const bIdx = initParams.get('band');
+          setTimeout(() => {
+            if (typeof openConcertModal === 'function') {
+              openConcertModal(cId, bIdx !== null ? parseInt(bIdx, 10) : null, true);
+            }
+          }, 150);
+        } else if (initParams.has('album')) {
+          const alb = initParams.get('album');
+          const art = initParams.get('artist') || '';
+          setTimeout(() => {
+            if (typeof openAlbumModalByName === 'function') {
+              openAlbumModalByName(art, alb, true);
+            }
+          }, 150);
+        } else if (initParams.has('artist')) {
+          const art = initParams.get('artist');
+          const sng = initParams.get('song') || '';
+          setTimeout(() => {
+            if (typeof openArtistSongModal === 'function') {
+              openArtistSongModal(art, sng, true);
+            }
+          }, 150);
+        }
+      } catch (e) {}
     });
 
     window.addEventListener('popstate', (event) => {
@@ -6630,6 +6686,30 @@
       } else {
         switchTab(resolveTabFromPath(), false);
       }
+
+      // Synchronize modal state from URL search params
+      try {
+        const params = new URLSearchParams(window.location.search);
+        if (params.has('concert')) {
+          const cId = params.get('concert');
+          const bIdx = params.get('band');
+          if (typeof openConcertModal === 'function') {
+            openConcertModal(cId, bIdx !== null ? parseInt(bIdx, 10) : null, true);
+          }
+        } else if (params.has('album')) {
+          if (typeof openAlbumModalByName === 'function') {
+            openAlbumModalByName(params.get('artist') || '', params.get('album'), true);
+          }
+        } else if (params.has('artist')) {
+          if (typeof openArtistSongModal === 'function') {
+            openArtistSongModal(params.get('artist'), params.get('song') || '', true);
+          }
+        } else {
+          if (window.currentModalState && typeof closeAllModals === 'function') {
+            closeAllModals(true);
+          }
+        }
+      } catch (e) {}
     });
 
     window.addEventListener('hashchange', () => {
@@ -7216,12 +7296,126 @@
       return true;
     }
 
+    function isPublicProfileAvailable() {
+      return !!(window.isPublicView || (window.userProfile && window.userProfile.isPublic));
+    }
+
+    function getModalShareUrl() {
+      let base = window.shareUrl;
+      if (!base) {
+        if (window.tabUrlBase) {
+          base = window.location.origin + (window.tabUrlBase.endsWith('/') ? window.tabUrlBase : window.tabUrlBase + '/');
+        } else {
+          base = window.location.origin + window.location.pathname;
+        }
+      }
+      try {
+        const u = new URL(base, window.location.origin);
+        const curParams = new URLSearchParams(window.location.search);
+        ['concert', 'band', 'artist', 'song', 'album'].forEach(k => {
+          if (curParams.has(k)) {
+            u.searchParams.set(k, curParams.get(k));
+          }
+        });
+        return u.toString();
+      } catch (e) {
+        return window.location.href;
+      }
+    }
+
+    async function copyModalShareLink() {
+      const link = getModalShareUrl();
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(link);
+        } else {
+          const ta = document.createElement('textarea');
+          ta.value = link;
+          ta.style.position = 'fixed';
+          ta.style.opacity = '0';
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          document.body.removeChild(ta);
+        }
+        if (typeof showToast === 'function') {
+          showToast('Public share link copied to clipboard!');
+        }
+      } catch (e) {
+        prompt('Copy public link:', link);
+      }
+    }
+
+    function syncModalUrl(modalInfo, replace = false) {
+      if (!modalInfo) return;
+      try {
+        const url = new URL(window.location.href);
+        if (modalInfo.type === 'concert') {
+          url.searchParams.set('concert', modalInfo.id);
+          if (modalInfo.artistIndex !== null && modalInfo.artistIndex !== undefined) {
+            url.searchParams.set('band', modalInfo.artistIndex);
+          } else {
+            url.searchParams.delete('band');
+          }
+          url.searchParams.delete('artist');
+          url.searchParams.delete('song');
+          url.searchParams.delete('album');
+        } else if (modalInfo.type === 'artist_song') {
+          url.searchParams.set('artist', modalInfo.artist);
+          if (modalInfo.song) {
+            url.searchParams.set('song', modalInfo.song);
+          } else {
+            url.searchParams.delete('song');
+          }
+          url.searchParams.delete('concert');
+          url.searchParams.delete('band');
+          url.searchParams.delete('album');
+        } else if (modalInfo.type === 'album') {
+          url.searchParams.set('album', modalInfo.album);
+          if (modalInfo.artist) {
+            url.searchParams.set('artist', modalInfo.artist);
+          }
+          url.searchParams.delete('concert');
+          url.searchParams.delete('band');
+          url.searchParams.delete('song');
+        } else {
+          return;
+        }
+
+        if (url.toString() !== window.location.href) {
+          if (replace) {
+            history.replaceState(Object.assign({}, history.state || {}, { modalState: modalInfo }), '', url.toString());
+          } else {
+            history.pushState(Object.assign({}, history.state || {}, { modalState: modalInfo }), '', url.toString());
+          }
+        }
+      } catch (e) {}
+    }
+
+    function clearModalUrl(isPopState = false) {
+      try {
+        const url = new URL(window.location.href);
+        const modalKeys = ['concert', 'band', 'artist', 'song', 'album'];
+        let hasAny = false;
+        modalKeys.forEach(k => {
+          if (url.searchParams.has(k)) {
+            hasAny = true;
+            url.searchParams.delete(k);
+          }
+        });
+        if (hasAny && !isPopState) {
+          history.pushState(Object.assign({}, history.state || {}, { modalState: null }), '', url.toString());
+        }
+      } catch (e) {}
+    }
+
     function pushModalState(newState) {
       if (window.currentModalState && !statesAreEqual(window.currentModalState, newState)) {
         window.modalNavStack.push(Object.assign({}, window.currentModalState));
         closeActiveModalDirectly(window.currentModalState);
       }
       window.currentModalState = Object.assign({}, newState);
+      syncModalUrl(newState);
     }
 
     function closeActiveModalDirectly(state) {
@@ -7285,6 +7479,7 @@
         closeAllModals();
         return;
       }
+      syncModalUrl(state, true);
       const t = state.type;
       if (t === 'concert') {
         openConcertModal(state.id, state.artistIndex, true);
@@ -7385,9 +7580,10 @@
       }
     }
 
-    function closeAllModals() {
+    function closeAllModals(isPopState = false) {
       window.modalNavStack = [];
       window.currentModalState = null;
+      clearModalUrl(isPopState);
 
       const modalIds = [
         'concert-detail-modal',
@@ -7513,6 +7709,11 @@
       modal.classList.remove('hidden');
       document.body.style.overflow = 'hidden';
 
+      const shareBtn = document.getElementById('modal-concert-share-btn');
+      if (shareBtn) {
+        shareBtn.classList.toggle('hidden', !isPublicProfileAvailable());
+      }
+
       if (effectiveArtistIndex) {
         showBandSetlistInModal(concertId, effectiveArtistIndex);
       } else {
@@ -7526,6 +7727,7 @@
       if (window.currentModalState && window.currentModalState.type === 'concert') {
         window.currentModalState.artistIndex = null;
         window.currentModalState.openedWithArtistIndex = false;
+        syncModalUrl(window.currentModalState);
       }
       const headerOverview = document.getElementById('concert-modal-header-overview');
       const headerSetlist = document.getElementById('concert-modal-header-setlist');
@@ -7546,6 +7748,7 @@
       activeModalArtistIndex = artistIndex;
       if (window.currentModalState && window.currentModalState.type === 'concert') {
         window.currentModalState.artistIndex = artistIndex;
+        syncModalUrl(window.currentModalState);
       }
 
       const headerOverview = document.getElementById('concert-modal-header-overview');
@@ -8294,6 +8497,11 @@
       modal.classList.remove('hidden');
       document.body.style.overflow = 'hidden';
 
+      const shareBtn = document.getElementById('modal-artist-share-btn');
+      if (shareBtn) {
+        shareBtn.classList.toggle('hidden', !isPublicProfileAvailable());
+      }
+
       if (songName) {
         const sLow = songName.toLowerCase().trim();
         const matchedSong = (data.songs || []).find(s => s.song.toLowerCase() === sLow) ||
@@ -8314,6 +8522,7 @@
       if (window.currentModalState && window.currentModalState.type === 'artist_song') {
         window.currentModalState.song = '';
         window.currentModalState.openedWithSong = false;
+        syncModalUrl(window.currentModalState);
       }
       const headerCatalog = document.getElementById('modal-artist-header-catalog');
       const headerOccurrences = document.getElementById('modal-artist-header-occurrences');
@@ -8349,6 +8558,7 @@
 
       if (window.currentModalState && window.currentModalState.type === 'artist_song') {
         window.currentModalState.song = s.song;
+        syncModalUrl(window.currentModalState);
       }
 
       const headerCatalog = document.getElementById('modal-artist-header-catalog');
@@ -10289,6 +10499,11 @@
 
       modal.classList.remove('hidden');
       document.body.style.overflow = 'hidden';
+
+      const shareBtn = document.getElementById('modal-album-share-btn');
+      if (shareBtn) {
+        shareBtn.classList.toggle('hidden', !isPublicProfileAvailable());
+      }
     }
 
     function openAlbumModalByName(artist, album, isBackNav = false) {
