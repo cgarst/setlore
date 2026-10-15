@@ -232,9 +232,18 @@ def get_dashboard_context(request, target_user, tab_name='overview', is_public_v
 
     charts = generate_plotly_charts(stats, album_enrichments)
 
-    # Attach album information to each song in artist_drilldown
+    # Attach album information and artist MBID to each artist in artist_drilldown
     drilldown = stats.get("artist_drilldown", {})
+    artist_names = list(drilldown.keys())
+    db_artists = {a.name.lower(): a for a in Artist.objects.filter(name__in=artist_names)}
+    for a in Artist.objects.filter(normalized_name__in=[k.lower() for k in artist_names]):
+        if a.normalized_name.lower() not in db_artists:
+            db_artists[a.normalized_name.lower()] = a
+
     for artist_name, art_data in drilldown.items():
+        art_obj = db_artists.get(artist_name.lower())
+        if art_obj and art_obj.mbid:
+            art_data["mbid"] = art_obj.mbid
         albums_set = set()
         for s in art_data.get("songs", []):
             song_name = s.get("song")

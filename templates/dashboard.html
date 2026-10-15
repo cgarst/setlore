@@ -539,7 +539,7 @@
   <!-- Header -->
   <header class="hidden md:flex max-w-7xl mx-auto mb-6 flex-col md:flex-row md:items-center justify-between gap-4">
     <div class="hidden md:flex items-center justify-between w-full md:w-auto">
-      <a href="{% if is_demo %}#overview{% elif is_public_view %}{% url 'public_profile_tab' username=viewed_user.username tab_name='overview' %}{% else %}{% url 'dashboard_overview' %}{% endif %}" onclick="switchTab('overview'); return false;" class="flex items-center text-left group focus:outline-none transition cursor-pointer" title="Setlore - Overview">
+      <a href="{% if is_demo %}#overview{% elif is_public_view and profile_user %}{% url 'public_profile_tab' username=profile_user.username tab_name='overview' %}{% else %}{% url 'dashboard_overview' %}{% endif %}" onclick="switchTab('overview'); return false;" class="flex items-center text-left group focus:outline-none transition cursor-pointer" title="Setlore - Overview">
         <div class="logo-wrapper">
           <img src="{% static 'img/setlore_banner.png' %}" alt="Setlore" class="h-10 md:h-12 w-auto object-contain rounded-xl group-hover:scale-105 transition-all logo-img">
           <div class="logo-tint-overlay"></div>
@@ -2816,6 +2816,15 @@
               </div>
             </div>
             <div class="flex items-center gap-2 shrink-0">
+              <a id="modal-artist-musicbrainz-link"
+                 href="#"
+                 target="_blank"
+                 rel="noopener noreferrer"
+                 class="px-2.5 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/80 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shrink-0 shadow-sm group"
+                 title="View on MusicBrainz">
+                <i class="fa-solid fa-arrow-up-right-from-square text-[11px] text-amber-400 group-hover:scale-110 transition-transform"></i>
+                <span class="hidden sm:inline">MusicBrainz</span>
+              </a>
               <button type="button" onclick="closeArtistSongModal()" class="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition cursor-pointer" aria-label="Close modal">
                 <i class="fa-solid fa-xmark text-lg"></i>
               </button>
@@ -6281,7 +6290,7 @@
   <footer class="max-w-7xl mx-auto border-t border-slate-800/80 pt-8 pb-6 mt-12 text-center text-xs text-slate-500">
     <div class="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6">
       <div class="flex items-center gap-2">
-        <a href="{% if is_demo %}#overview{% elif is_public_view %}{% url 'public_profile_tab' username=viewed_user.username tab_name='overview' %}{% else %}{% url 'dashboard_overview' %}{% endif %}" onclick="switchTab('overview'); return false;" class="inline-flex items-center" title="Setlore - Overview">
+        <a href="{% if is_demo %}#overview{% elif is_public_view and profile_user %}{% url 'public_profile_tab' username=profile_user.username tab_name='overview' %}{% else %}{% url 'dashboard_overview' %}{% endif %}" onclick="switchTab('overview'); return false;" class="inline-flex items-center" title="Setlore - Overview">
           <img src="{% static 'img/setlore_icon_transparent.png' %}" alt="Setlore" class="w-5 h-5 rounded opacity-80 hover:opacity-100 transition">
         </a>
         <span>&copy; Setlore &bull; Open-source live concert intelligence.</span>
@@ -8195,6 +8204,19 @@
       if (!modal) return;
 
       if (titleText) titleText.textContent = data.artist;
+
+      const mbLink = document.getElementById('modal-artist-musicbrainz-link');
+      if (mbLink) {
+        if (data.mbid) {
+          mbLink.href = `https://musicbrainz.org/artist/${encodeURIComponent(data.mbid)}`;
+          mbLink.title = `View ${data.artist} on MusicBrainz`;
+          mbLink.classList.remove('hidden');
+        } else {
+          mbLink.href = `https://musicbrainz.org/search?query=${encodeURIComponent(data.artist || '')}&type=artist`;
+          mbLink.title = `Search ${data.artist} on MusicBrainz`;
+          mbLink.classList.remove('hidden');
+        }
+      }
 
       const mLow = (activeMusicianFilter || '').toLowerCase().trim();
       if (mLow) {
