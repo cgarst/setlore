@@ -1808,6 +1808,12 @@
             <input type="text" id="edit-concert-notes" placeholder="e.g. Progressive Nation 2009 or Front row with friends" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
           </div>
 
+          <!-- Setlist.fm Link or ID -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Setlist.fm Link or ID <span class="text-slate-500 font-normal">(optional, e.g. 63554e3b or URL)</span></label>
+            <input type="text" id="edit-concert-setlistfm" placeholder="e.g. 63554e3b or https://www.setlist.fm/setlist/..." class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+          </div>
+
           <!-- Setlist Section Accordion -->
           <div class="rounded-xl border border-slate-800 bg-slate-900/50 overflow-hidden">
             <button type="button" onclick="toggleEditSetlistSection()" class="w-full flex items-center justify-between p-3 text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800/60 transition cursor-pointer select-none">
@@ -3826,6 +3832,7 @@
              data-is-offline="{{ c.is_custom_offline|yesno:'true,false' }}"
              data-is-synced="{{ c.is_setlistfm_synced|yesno:'true,false' }}"
              data-total-artists="{{ c.artists|length }}"
+             data-setlistfm-id="{{ c.artists.0.setlistfm_id|default:'' }}"
              data-setlist-url="{{ c.artists.0.setlist_url|default:'' }}"
              data-setlist-text="{{ c.setlist_text }}">
           
@@ -11310,6 +11317,7 @@
         notes: card.dataset.notes,
         is_offline: card.dataset.isOffline === 'true',
         is_synced: card.dataset.isSynced === 'true',
+        setlistfm_id: card.dataset.setlistfmId || '',
         setlist_url: card.dataset.setlistUrl,
         setlist_text: card.dataset.setlistText
       };
@@ -11372,6 +11380,9 @@
       document.getElementById('edit-concert-artist').value = data.primary_artist || '';
       document.getElementById('edit-concert-supporting').value = data.supporting_artists || '';
       document.getElementById('edit-concert-notes').value = data.notes || '';
+      if (document.getElementById('edit-concert-setlistfm')) {
+        document.getElementById('edit-concert-setlistfm').value = data.setlistfm_id || data.setlist_url || '';
+      }
       document.getElementById('edit-concert-setlist').value = data.setlist_text || '';
 
       const notice = document.getElementById('edit-concert-notice');
@@ -11445,6 +11456,7 @@
         primary_artist: document.getElementById('edit-concert-artist').value,
         supporting_artists: document.getElementById('edit-concert-supporting').value,
         notes: document.getElementById('edit-concert-notes').value,
+        setlistfm_link: document.getElementById('edit-concert-setlistfm') ? document.getElementById('edit-concert-setlistfm').value.trim() : '',
         setlist_text: document.getElementById('edit-concert-setlist').value,
         is_custom_offline: convertLocal || (document.getElementById('edit-concert-offline') ? document.getElementById('edit-concert-offline').checked : false)
       };

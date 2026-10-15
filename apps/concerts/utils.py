@@ -597,7 +597,7 @@ def import_setlistfm_shows_into_database(user, user_attended: List[Dict[str, Any
     return imported_count
 
 
-def sync_single_concert(concert, user=None, client=None, force_refresh=True) -> Dict[str, Any]:
+def sync_single_concert(concert, user=None, client=None, force_refresh=True, setlist_id=None) -> Dict[str, Any]:
     """
     Syncs a single concert with Setlist.fm without triggering a full database sync.
     Searches for matching setlists for the concert's artist(s) on the concert's date,
@@ -617,10 +617,8 @@ def sync_single_concert(concert, user=None, client=None, force_refresh=True) -> 
 
     user = user or concert.user
     profile = getattr(user, 'profile', None)
-    if not profile or not (profile.setlistfm_username or "").strip():
-        return {"status": "skipped", "message": "No Setlist.fm username configured.", "matched": 0, "songs_added": 0}
 
-    api_key = profile.setlistfm_api_key or SETLISTFM_API_KEY or "api_key_placeholder"
+    api_key = (profile.setlistfm_api_key if profile else None) or SETLISTFM_API_KEY or "api_key_placeholder"
     if client is None:
         try:
             client = SetlistFMClient(api_key=api_key)
@@ -630,7 +628,7 @@ def sync_single_concert(concert, user=None, client=None, force_refresh=True) -> 
     if not client:
         return {"status": "skipped", "message": "Setlist.fm client unavailable.", "matched": 0, "songs_added": 0}
 
-    ignored_artists = profile.ignored_artist_names
+    ignored_artists = profile.ignored_artist_names if profile else []
     date_str = None
     if concert.date:
         date_str = concert.date.strftime("%d-%m-%Y")
@@ -657,6 +655,9 @@ def sync_single_concert(concert, user=None, client=None, force_refresh=True) -> 
             if is_ignored_artist(art_name, ignored_artists):
                 continue
 
+            if setlist_id and ca.billing_order == 0:
+                ca.setlistfm_id = setlist_id
+
             # Invalidate ApiCache if force_refresh is True
             if force_refresh and ca.setlistfm_id:
                 try:
@@ -672,8 +673,8 @@ def sync_single_concert(concert, user=None, client=None, force_refresh=True) -> 
                 except Exception as e:
                     logger.debug("get_setlist_by_id error for %s (%s): %s", art_name, ca.setlistfm_id, e)
 
-            # First try user attended setlists if available / cached
-            if not matched_sl:
+            # First try user attended setlists if available / cached and username configured
+            if not matched_sl and profile and (profile.setlistfm_username or "").strip():
                 try:
                     user_attended = client.get_user_attended(profile.setlistfm_username.strip(), use_cache=not force_refresh)
                     for sl in user_attended:
@@ -688,7 +689,7 @@ def sync_single_concert(concert, user=None, client=None, force_refresh=True) -> 
                     pass
 
             # If not found in user_attended, try global search
-            if not matched_sl and date_str:
+            if not matched_sl:
                 try:
                     matched_sl = find_global_setlist_match(client, art_name, date_str, concert.year, venue_name)
                 except Exception as e:
@@ -702,6 +703,19 @@ def sync_single_concert(concert, user=None, client=None, force_refresh=True) -> 
                     ca.setlistfm_id = sl_id
                 if sl_url:
                     ca.setlist_url = sl_url
+
+                # If headliner and setlist has an eventDate, ensure concert date is synced if it differed
+                sl_date_raw = matched_sl.get("eventDate", "")
+                if sl_date_raw and ca.billing_order == 0:
+                    try:
+                        sl_dt = datetime.strptime(sl_date_raw, "%d-%m-%Y")
+                        if concert.date != sl_dt.date():
+                            concert.date = sl_dt.date()
+                            concert.raw_date = sl_dt.strftime("%m-%d-%Y")
+                            concert.year = sl_dt.year
+                            concert.save(update_fields=['date', 'raw_date', 'year'])
+                    except Exception:
+                        pass
 
                 tracks = parse_setlistfm_sets_to_tracks(matched_sl)
                 if tracks:

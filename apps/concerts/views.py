@@ -1195,13 +1195,19 @@ def sync_single_concert_view(request):
         except Exception:
             data = request.POST
         concert_id = data.get('concert_id')
+        setlist_id = data.get('setlist_id') or data.get('setlistfm_id')
+        setlist_url = data.get('setlist_url')
         if not concert_id:
             return JsonResponse({"error": "Missing concert_id parameter."}, status=400)
         concert = Concert.objects.filter(id=concert_id, user=request.user).first()
         if not concert:
             return JsonResponse({"error": "Concert not found."}, status=404)
+        if setlist_url and not setlist_id:
+            m = re.search(r'([a-f0-9]{8})(?:\.html)?$', setlist_url.strip())
+            if m:
+                setlist_id = m.group(1)
         from apps.concerts.utils import sync_single_concert
-        res = sync_single_concert(concert, user=request.user)
+        res = sync_single_concert(concert, user=request.user, setlist_id=setlist_id)
         return JsonResponse(res)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
@@ -2399,9 +2405,23 @@ def edit_concert(request):
                 )
             else:
                 ca_primary.artist = primary_art_obj
-                if convert_to_local:
-                    ca_primary.setlistfm_id = ''
-                    ca_primary.setlist_url = ''
+            if convert_to_local:
+                ca_primary.setlistfm_id = ''
+                ca_primary.setlist_url = ''
+            ca_primary.save()
+
+            setlistfm_link = (data.get('setlistfm_link') or data.get('setlistfm_id') or '').strip()
+            new_sl_id = None
+            if setlistfm_link:
+                m = re.search(r'([a-f0-9]{8})(?:\.html)?$', setlistfm_link)
+                if m:
+                    new_sl_id = m.group(1)
+                    ca_primary.setlistfm_id = new_sl_id
+                    if setlistfm_link.startswith('http'):
+                        ca_primary.setlist_url = setlistfm_link
+                else:
+                    if setlistfm_link.startswith('http'):
+                        ca_primary.setlist_url = setlistfm_link
                 ca_primary.save()
 
             # Remove existing supporting ConcertArtists and recreate with new ones
@@ -2423,10 +2443,17 @@ def edit_concert(request):
                         new_songs_to_enrich = save_setlist_for_concert_artist(ca_primary, primary_art_obj, parsed_tracks)
                         ca_primary.has_setlist = True
                         ca_primary.save()
+                elif new_sl_id:
+                    # Sync tracks from setlist.fm
+                    from apps.concerts.utils import sync_single_concert
+                    sync_single_concert(concert, user=request.user, setlist_id=new_sl_id)
                 else:
                     ca_primary.songs.all().delete()
                     ca_primary.has_setlist = False
                     ca_primary.save()
+            elif new_sl_id:
+                from apps.concerts.utils import sync_single_concert
+                sync_single_concert(concert, user=request.user, setlist_id=new_sl_id)
 
         # Invalidate cached analytics bundle for this user
         ApiCache.objects.filter(cache_key=f"user_dashboard_bundle_{request.user.id}").delete()

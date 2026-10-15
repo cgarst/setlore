@@ -77,7 +77,7 @@ def match_score(artist_candidate: str, venue_csv: str, setlist_obj: Dict[str, An
 
 def find_global_setlist_match(client: SetlistFMClient, artist: str, date_str: Optional[str],
                                year: Optional[int], venue: str) -> Optional[Dict[str, Any]]:
-    # Global search strictly by matching event date
+    # Global search strictly by matching event date or year + venue
     search_terms = [artist]
     if artist.strip().lower() == "three":
         search_terms.append("3")
@@ -85,6 +85,8 @@ def find_global_setlist_match(client: SetlistFMClient, artist: str, date_str: Op
         search_terms.append("Three")
 
     best_match = None
+    best_score = 0.0
+
     # Convert date string to Setlist.fm's required DD-MM-YYYY format
     sl_date_str = None
     if date_str:
@@ -93,9 +95,14 @@ def find_global_setlist_match(client: SetlistFMClient, artist: str, date_str: Op
             if len(parts[0]) == 4:  # YYYY-MM-DD
                 y, m, d = parts
                 sl_date_str = f"{d}-{m}-{y}"
-            elif len(parts[2]) == 4:  # MM-DD-YYYY
-                m, d, y = parts
-                sl_date_str = f"{d}-{m}-{y}"
+            elif len(parts[2]) == 4:
+                p0, p1, y = parts
+                if p0.isdigit() and int(p0) > 12:  # DD-MM-YYYY
+                    sl_date_str = f"{p0}-{p1}-{y}"
+                elif p1.isdigit() and int(p1) > 12:  # MM-DD-YYYY
+                    sl_date_str = f"{p1}-{p0}-{y}"
+                else:
+                    sl_date_str = date_str
             else:
                 sl_date_str = date_str
         else:
@@ -110,6 +117,16 @@ def find_global_setlist_match(client: SetlistFMClient, artist: str, date_str: Op
                     continue
                 score = match_score(artist, venue, s, require_venue=True)
                 if score >= 60 and score > best_score:
+                    best_score = score
+                    best_match = s
+
+    # Fallback: if no match found by exact date and year is present, search by artist and year
+    if not best_match and year:
+        for term in search_terms:
+            res = client.search_setlists(artist_name=term, year=year)
+            for s in res:
+                score = match_score(artist, venue, s, require_venue=True)
+                if score >= 75 and score > best_score:
                     best_score = score
                     best_match = s
 
