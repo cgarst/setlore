@@ -15,11 +15,20 @@ if 'testserver' not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append('testserver')
 
 CSRF_TRUSTED_ORIGINS = [
-    o.strip() for o in os.getenv('CSRF_TRUSTED_ORIGINS', 'http://localhost:8000,http://127.0.0.1:8000,http://localhost:3010,http://127.0.0.1:3010').split(',') if o.strip()
+    o.strip() for o in os.getenv('CSRF_TRUSTED_ORIGINS', 'http://localhost:8000,http://127.0.0.1:8000,http://localhost:3010,http://127.0.0.1:3010,https://setlore.zathu.net').split(',') if o.strip()
 ]
+
+# Auto-populate CSRF_TRUSTED_ORIGINS from ALLOWED_HOSTS
+for host in ALLOWED_HOSTS:
+    if host and host not in ('*', 'localhost', '127.0.0.1', 'testserver'):
+        for scheme in ('https://', 'http://'):
+            origin = f"{scheme}{host}"
+            if origin not in CSRF_TRUSTED_ORIGINS:
+                CSRF_TRUSTED_ORIGINS.append(origin)
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 USE_X_FORWARDED_HOST = True
+USE_X_FORWARDED_PORT = True
 
 INSTALLED_APPS = [
     'whitenoise.runserver_nostatic',

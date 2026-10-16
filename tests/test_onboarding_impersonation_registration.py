@@ -127,6 +127,34 @@ class OnboardingAndImpersonationTests(TestCase):
         self.assertEqual(res_exit.context['user'].id, self.admin_user.id)
         self.assertFalse(res_exit.context['is_impersonating'])
 
+    def test_exit_impersonation_via_get(self):
+        # Admin logs in and impersonates
+        self.client.login(username='admin_boss', password='AdminPassword123!')
+        self.client.post(reverse('impersonate_user'), {'user_id': self.regular_user.id}, follow=True)
+        self.assertEqual(self.client.session.get('impersonator_id'), self.admin_user.id)
+
+        # Exit via GET request
+        res_get = self.client.get(reverse('stop_impersonating'), follow=True)
+        self.assertEqual(res_get.status_code, 200)
+        self.assertIsNone(self.client.session.get('impersonator_id'))
+        self.assertEqual(res_get.context['user'].id, self.admin_user.id)
+        self.assertFalse(res_get.context['is_impersonating'])
+
+    def test_exit_impersonation_with_enforced_csrf(self):
+        from django.test import Client
+        csrf_client = Client(enforce_csrf_checks=True)
+        csrf_client.login(username='admin_boss', password='AdminPassword123!')
+
+        # Impersonate
+        csrf_client.post(reverse('impersonate_user'), {'user_id': self.regular_user.id}, follow=True)
+
+        # Stop impersonating without passing any CSRF token on POST (verifying @csrf_exempt)
+        res_exit = csrf_client.post(reverse('stop_impersonating'), follow=True)
+        self.assertEqual(res_exit.status_code, 200)
+        self.assertIsNone(csrf_client.session.get('impersonator_id'))
+        self.assertEqual(res_exit.context['user'].id, self.admin_user.id)
+        self.assertFalse(res_exit.context['is_impersonating'])
+
     def test_non_admin_cannot_impersonate(self):
         self.client.login(username='concert_fan', password='FanPassword123!')
         res = self.client.post(reverse('impersonate_user'), {
