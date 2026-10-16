@@ -959,6 +959,46 @@ class DjangoAppTests(TestCase):
         plain_show = next(c for c in drilldown if c["id"] == "c_plain")
         self.assertEqual(plain_show["youtube_query"], "Dream Theater Warner Theatre 2019")
 
+    def test_split_tenures_sync_as_separate_stints(self):
+        from apps.catalog.models import Artist, MusicianTenure
+        from src.musician_enricher import MusicianEnricher
+
+        artist = Artist.objects.create(name="Split Band Test")
+        enricher = MusicianEnricher()
+
+        incoming = [
+            {
+                "musician": "Returning Player",
+                "musician_mbid": "mbid-returning-1",
+                "role": "Keyboards",
+                "instrument": "Keyboards",
+                "start": 2007,
+                "end": 2008,
+                "attributes": []
+            },
+            {
+                "musician": "Returning Player",
+                "musician_mbid": "mbid-returning-1",
+                "role": "Keyboards",
+                "instrument": "Keyboards",
+                "start": 2022,
+                "end": None,
+                "attributes": []
+            }
+        ]
+
+        created, updated = enricher._sync_tenures_to_db(artist, incoming)
+        self.assertEqual(created, 2)
+        self.assertEqual(updated, 0)
+
+        tenures = list(MusicianTenure.objects.filter(artist=artist, musician_name="Returning Player").order_by('start_year'))
+        self.assertEqual(len(tenures), 2)
+        self.assertEqual(tenures[0].start_year, 2007)
+        self.assertEqual(tenures[0].end_year, 2008)
+        self.assertEqual(tenures[1].start_year, 2022)
+        self.assertIsNone(tenures[1].end_year)
+
+
 
 
 

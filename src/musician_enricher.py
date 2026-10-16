@@ -454,6 +454,17 @@ class MusicianEnricher:
                 if not (mbid_match or name_match):
                     continue
 
+                # Disjoint check: if one tenure ends before the other starts, they are distinct stints
+                if ex.end_year is not None and start_yr > ex.end_year + 1:
+                    continue
+                if end_yr is not None and ex.start_year > end_yr + 1:
+                    continue
+
+                # If both have explicit start years and they are separated by multiple years, they are distinct stints
+                if ex.start_year != 1900 and start_yr != 1900 and start_diff > 2:
+                    if (ex.end_year is not None and ex.end_year < start_yr) or (end_yr is not None and end_yr < ex.start_year) or (ex.end_year is None and end_yr is None):
+                        continue
+
                 # Check if tenure windows match or overlap
                 start_diff = abs(ex.start_year - start_yr)
                 ex_end = ex.end_year or 9999
