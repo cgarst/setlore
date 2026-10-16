@@ -2386,8 +2386,31 @@
             </div>
           </div>
 
-          <!-- Share Your Profile Link Card -->
-          <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2">
+          <!-- Profile Privacy Toggle Card -->
+          <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3">
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-2">
+                <i id="onboarding-privacy-icon" class="fa-solid {% if not profile.is_public %}fa-lock text-amber-400{% else %}fa-globe text-indigo-400{% endif %} text-xs"></i>
+                <span class="text-xs font-semibold text-slate-200">Profile Privacy</span>
+                <span id="onboarding-privacy-badge" class="text-[10px] font-semibold px-2 py-0.5 rounded-full {% if not profile.is_public %}bg-amber-500/20 text-amber-300 border border-amber-500/30{% else %}bg-indigo-500/20 text-indigo-300 border border-indigo-500/30{% endif %}">
+                  {% if not profile.is_public %}Private{% else %}Public{% endif %}
+                </span>
+              </div>
+              <p id="onboarding-privacy-desc" class="text-[11px] text-slate-400 mt-0.5 leading-relaxed">
+                {% if not profile.is_public %}Your profile is private. Public share link is hidden.{% else %}Switch to a private profile to hide your public profile link and concert history.{% endif %}
+              </p>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+              <label class="relative inline-flex items-center cursor-pointer select-none" for="onboarding-privacy-toggle" title="Switch to private profile">
+                <input type="checkbox" id="onboarding-privacy-toggle" name="onboarding_is_private" class="sr-only peer" {% if not profile.is_public %}checked{% endif %} onchange="handleOnboardingPrivacyToggle(this.checked)">
+                <input type="checkbox" id="onboarding-private-toggle" class="hidden" {% if not profile.is_public %}checked{% endif %} onchange="handleOnboardingPrivacyToggle(this.checked)">
+                <div class="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500 border border-slate-700"></div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Share Your Profile Link Card (Hidden when profile is private) -->
+          <div id="onboarding-public-profile-section" class="p-3 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2 {% if not profile.is_public %}hidden{% endif %}">
             <div class="flex items-center justify-between">
               <span class="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
                 <i class="fa-solid fa-share-nodes text-indigo-400"></i> Your Public Profile Link
@@ -13142,6 +13165,7 @@
       }
 
       if (step === 5) {
+        syncOnboardingPrivacyUI();
         loadOnboardingFriends();
       } else if (step === 6) {
         renderOnboardingThemes();
@@ -13172,7 +13196,7 @@
       } else if (currentOnboardingStep === 4) {
         await saveOnboardingStep4();
       } else if (currentOnboardingStep === 5) {
-        goToOnboardingStep(6);
+        await saveOnboardingStep5();
       } else if (currentOnboardingStep === 6) {
         closeOnboardingModal();
       }
@@ -13592,6 +13616,147 @@
       }).catch(err => {
         console.error('Failed to copy', err);
       });
+    }
+
+    async function handleOnboardingPrivacyToggle(isPrivate) {
+      const isPublic = !isPrivate;
+
+      const t1 = document.getElementById('onboarding-privacy-toggle');
+      const t2 = document.getElementById('onboarding-private-toggle');
+      if (t1) t1.checked = isPrivate;
+      if (t2) t2.checked = isPrivate;
+
+      const publicLinkSection = document.getElementById('onboarding-public-profile-section');
+      if (publicLinkSection) {
+        if (isPrivate) {
+          publicLinkSection.classList.add('hidden');
+        } else {
+          publicLinkSection.classList.remove('hidden');
+        }
+      }
+
+      const badge = document.getElementById('onboarding-privacy-badge');
+      const icon = document.getElementById('onboarding-privacy-icon');
+      const desc = document.getElementById('onboarding-privacy-desc');
+      if (badge) {
+        if (isPrivate) {
+          badge.className = 'text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30';
+          badge.innerText = 'Private';
+        } else {
+          badge.className = 'text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30';
+          badge.innerText = 'Public';
+        }
+      }
+      if (icon) {
+        if (isPrivate) {
+          icon.className = 'fa-solid fa-lock text-amber-400 text-xs';
+        } else {
+          icon.className = 'fa-solid fa-globe text-indigo-400 text-xs';
+        }
+      }
+      if (desc) {
+        if (isPrivate) {
+          desc.innerText = 'Your profile is private. Public share link is hidden.';
+        } else {
+          desc.innerText = 'Switch to a private profile to hide your public profile link and concert history.';
+        }
+      }
+
+      if (window.userProfile) {
+        window.userProfile.isPublic = isPublic;
+      }
+      if (typeof toggleShareLinkDisplay === 'function') {
+        toggleShareLinkDisplay(isPublic);
+      }
+      const pubRadio = document.getElementById('privacy-opt-public');
+      const privRadio = document.getElementById('privacy-opt-private');
+      if (pubRadio && privRadio) {
+        pubRadio.checked = isPublic;
+        privRadio.checked = isPrivate;
+      }
+
+      try {
+        await fetch('/api/profile/update/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+          },
+          body: JSON.stringify({ is_public: isPublic })
+        });
+      } catch (err) {
+        console.error('Failed to update privacy setting:', err);
+      }
+    }
+
+    function syncOnboardingPrivacyUI() {
+      const isPublic = window.userProfile && window.userProfile.isPublic !== undefined ? window.userProfile.isPublic : true;
+      const isPrivate = !isPublic;
+
+      const t1 = document.getElementById('onboarding-privacy-toggle');
+      const t2 = document.getElementById('onboarding-private-toggle');
+      if (t1) t1.checked = isPrivate;
+      if (t2) t2.checked = isPrivate;
+
+      const publicLinkSection = document.getElementById('onboarding-public-profile-section');
+      if (publicLinkSection) {
+        if (isPrivate) {
+          publicLinkSection.classList.add('hidden');
+        } else {
+          publicLinkSection.classList.remove('hidden');
+        }
+      }
+
+      const badge = document.getElementById('onboarding-privacy-badge');
+      const icon = document.getElementById('onboarding-privacy-icon');
+      const desc = document.getElementById('onboarding-privacy-desc');
+      if (badge) {
+        if (isPrivate) {
+          badge.className = 'text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30';
+          badge.innerText = 'Private';
+        } else {
+          badge.className = 'text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30';
+          badge.innerText = 'Public';
+        }
+      }
+      if (icon) {
+        if (isPrivate) {
+          icon.className = 'fa-solid fa-lock text-amber-400 text-xs';
+        } else {
+          icon.className = 'fa-solid fa-globe text-indigo-400 text-xs';
+        }
+      }
+      if (desc) {
+        if (isPrivate) {
+          desc.innerText = 'Your profile is private. Public share link is hidden.';
+        } else {
+          desc.innerText = 'Switch to a private profile to hide your public profile link and concert history.';
+        }
+      }
+    }
+
+    async function saveOnboardingStep5() {
+      const toggle = document.getElementById('onboarding-privacy-toggle') || document.getElementById('onboarding-private-toggle');
+      if (toggle) {
+        const isPrivate = toggle.checked;
+        const isPublic = !isPrivate;
+        try {
+          await fetch('/api/profile/update/', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({ is_public: isPublic })
+          });
+          if (window.userProfile) {
+            window.userProfile.isPublic = isPublic;
+          }
+        } catch (e) {
+          console.error('Error saving onboarding step 5 privacy setting:', e);
+        }
+      }
+      goToOnboardingStep(6);
     }
     {% endif %}
 

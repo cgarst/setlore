@@ -40,7 +40,35 @@ class FriendsAndOnboardingTests(TestCase):
         self.assertIn('Col 1: Date', content)
         self.assertIn('Col 2: Artist(s)', content)
         self.assertIn('Col 3: Venue', content)
-        self.assertIn('Multiple artists', content)
+        # Friends step in onboarding has privacy toggle and public link section
+        self.assertIn('id="onboarding-privacy-toggle"', content)
+        self.assertIn('id="onboarding-public-profile-section"', content)
+        self.assertIn('handleOnboardingPrivacyToggle', content)
+
+    def test_onboarding_friends_tab_privacy_toggle_hides_public_profile_link(self):
+        self.client.force_login(self.user1)
+
+        # When profile is public (default)
+        self.assertTrue(self.user1.profile.is_public)
+        res = self.client.get('/overview/')
+        self.assertEqual(res.status_code, 200)
+        content = res.content.decode('utf-8')
+
+        # Toggle is rendered and not checked; public profile section is visible (not hidden)
+        self.assertIn('id="onboarding-privacy-toggle"', content)
+        self.assertIn('id="onboarding-public-profile-section" class="p-3 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2 "', content)
+
+        # Toggle to private via API (as the onboarding toggle does)
+        update_res = self.client.post('/api/profile/update/', {'is_public': False}, content_type='application/json')
+        self.assertEqual(update_res.status_code, 200)
+        self.user1.profile.refresh_from_db()
+        self.assertFalse(self.user1.profile.is_public)
+
+        # When profile is private, public profile link section is hidden
+        res_priv = self.client.get('/overview/')
+        content_priv = res_priv.content.decode('utf-8')
+        self.assertIn('id="onboarding-public-profile-section" class="p-3 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2 hidden"', content_priv)
+        self.assertIn('id="onboarding-privacy-toggle" name="onboarding_is_private" class="sr-only peer" checked', content_priv)
 
     def test_friends_page_rendered_on_dashboard(self):
         self.client.force_login(self.user1)
