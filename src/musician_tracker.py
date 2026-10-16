@@ -47,6 +47,18 @@ def get_effective_band_tenures() -> Dict[str, List[Dict[str, Any]]]:
         if k not in db_artists_seen and not tenure_map[k]:
             tenure_map[k] = list(members)
 
+    # Defensive filter: ensure no band/group is mistakenly treated as an individual musician
+    known_groups = set()
+    for band_key, members in tenure_map.items():
+        if members and not any(m["musician"].lower().strip() == band_key for m in members):
+            known_groups.add(band_key)
+
+    for band_key in list(tenure_map.keys()):
+        tenure_map[band_key] = [
+            m for m in tenure_map[band_key]
+            if m["musician"].lower().strip() not in known_groups
+        ]
+
     return tenure_map
 
 from datetime import datetime, date
@@ -105,7 +117,7 @@ def analyze_musicians_live(all_csv_records: List[Dict[str, Any]]) -> Dict[str, A
             tenures = effective_tenures.get(art_key, [])
             # If the artist name itself is a known musician (solo act) not yet in tenures, credit self
             has_self = any(m["musician"].lower().strip() == art_key for m in tenures)
-            if not has_self and (art_key in all_known_musicians or not tenures):
+            if not has_self and art_key in all_known_musicians and len(tenures) <= 1:
                 known_m = all_known_musicians.get(art_key)
                 m_name = known_m["musician"] if known_m else canonical_art
                 m_role = "Solo Artist"

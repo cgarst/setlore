@@ -1591,7 +1591,7 @@
 
   <!-- Add Concert Modal -->
   <div id="add-concert-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto overscroll-contain overflow-x-hidden hidden">
-    <div class="relative w-full max-w-lg glass-card p-4 sm:p-6 shadow-2xl border border-slate-700/80 rounded-2xl max-h-[92vh] my-auto flex flex-col overflow-hidden">
+    <div class="relative w-full max-w-lg sm:max-w-xl glass-card p-4 sm:p-6 shadow-2xl border border-slate-700/80 rounded-2xl max-h-[92vh] my-auto flex flex-col overflow-hidden">
       <div class="shrink-0 flex items-center justify-between border-b border-slate-800 pb-3">
         <div class="flex items-center gap-2.5">
           <button type="button"
@@ -1616,36 +1616,37 @@
           <input type="hidden" id="add-concert-setlist-id" value="">
           <input type="hidden" id="add-concert-setlist-url" value="">
 
-          <!-- Fast Setlist.fm Search Intake Card -->
-          <div class="rounded-xl border border-amber-500/35 bg-amber-950/20 p-3 space-y-2.5 shadow-sm">
-            <div class="flex items-center justify-between">
-              <span class="text-xs font-bold text-amber-300 flex items-center gap-1.5">
-                <i class="fa-brands fa-lastfm text-amber-400"></i> Search Setlist.fm (Quick Intake)
-              </span>
-              <span class="text-[10px] text-amber-400 font-semibold bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">Auto-fill Show</span>
-            </div>
-            <p class="text-[11px] text-slate-300 leading-snug">
-              Search by band name, location, or year to automatically pull in the date, venue, city, and full setlist tracks!
-            </p>
-            <div class="grid grid-cols-1 sm:grid-cols-12 gap-2 pt-0.5">
-              <div class="sm:col-span-5">
-                <input type="text" id="add-sl-search-artist" placeholder="Band / Artist (e.g. Dream Theater)" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500" onkeydown="if(event.key==='Enter'){event.preventDefault();searchSetlistFmForAddModal();}">
+          <div class="overflow-y-auto overflow-x-hidden pr-1 space-y-3.5 flex-1 min-h-0 custom-scrollbar">
+            <!-- Fast Setlist.fm Search Intake Card -->
+            <div class="rounded-xl border border-amber-500/35 bg-amber-950/20 p-3 space-y-2.5 shadow-sm">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                  <i class="fa-brands fa-lastfm text-amber-400"></i> Search Setlist.fm (Quick Intake)
+                </span>
+                <span class="text-[10px] text-amber-400 font-semibold bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">Auto-fill Show</span>
               </div>
-              <div class="sm:col-span-4">
-                <input type="text" id="add-sl-search-city" placeholder="City or State (optional)" value="{{ upcoming_location|default:'' }}" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500" onkeydown="if(event.key==='Enter'){event.preventDefault();searchSetlistFmForAddModal();}">
+              <p class="text-[11px] text-slate-300 leading-snug">
+                Search by band name, location, or year to automatically pull in the date, venue, city, and full setlist tracks!
+              </p>
+              <div class="grid grid-cols-1 sm:grid-cols-12 gap-2 pt-0.5">
+                <div class="sm:col-span-5">
+                  <input type="text" id="add-sl-search-artist" placeholder="Band / Artist (e.g. Dream Theater)" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500" onkeydown="if(event.key==='Enter'){event.preventDefault();searchSetlistFmForAddModal();}">
+                </div>
+                <div class="sm:col-span-3">
+                  <input type="text" id="add-sl-search-city" placeholder="City or State (optional)" value="{{ upcoming_location|default:'' }}" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500" onkeydown="if(event.key==='Enter'){event.preventDefault();searchSetlistFmForAddModal();}">
+                </div>
+                <div class="sm:col-span-4 flex items-center gap-1.5 min-w-0">
+                  <input type="text" id="add-sl-search-year" placeholder="Year" class="w-16 sm:w-14 shrink-0 bg-slate-900 border border-slate-700 rounded-lg px-1.5 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 text-center" onkeydown="if(event.key==='Enter'){event.preventDefault();searchSetlistFmForAddModal();}">
+                  <button type="button" onclick="searchSetlistFmForAddModal()" id="add-sl-search-btn" class="flex-1 py-1.5 px-2 bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold text-xs rounded-lg transition flex items-center justify-center gap-1 cursor-pointer shrink-0 shadow-sm whitespace-nowrap min-w-0">
+                    <i class="fa-solid fa-magnifying-glass text-[11px]"></i>
+                    <span>Find</span>
+                  </button>
+                </div>
               </div>
-              <div class="sm:col-span-3 flex gap-1.5">
-                <input type="text" id="add-sl-search-year" placeholder="Year" class="w-16 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 text-center" onkeydown="if(event.key==='Enter'){event.preventDefault();searchSetlistFmForAddModal();}">
-                <button type="button" onclick="searchSetlistFmForAddModal()" id="add-sl-search-btn" class="flex-1 py-1.5 px-2.5 bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold text-xs rounded-lg transition flex items-center justify-center gap-1 cursor-pointer shrink-0 shadow-sm">
-                  <i class="fa-solid fa-magnifying-glass"></i>
-                  <span>Find</span>
-                </button>
-              </div>
-            </div>
 
-            <!-- Dynamic Search Results -->
-            <div id="add-sl-search-results" class="hidden space-y-1.5 max-h-56 overflow-y-auto custom-scrollbar pt-1 border-t border-amber-500/20"></div>
-          </div>
+              <!-- Dynamic Search Results -->
+              <div id="add-sl-search-results" class="hidden space-y-1.5 max-h-56 overflow-y-auto custom-scrollbar pt-1 border-t border-amber-500/20"></div>
+            </div>
 
           <!-- Date & Venue Name Row -->
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">

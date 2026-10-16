@@ -460,13 +460,14 @@ class MusicianEnricher:
                 if end_yr is not None and ex.start_year > end_yr + 1:
                     continue
 
+                start_diff = abs(ex.start_year - start_yr)
+
                 # If both have explicit start years and they are separated by multiple years, they are distinct stints
                 if ex.start_year != 1900 and start_yr != 1900 and start_diff > 2:
                     if (ex.end_year is not None and ex.end_year < start_yr) or (end_yr is not None and end_yr < ex.start_year) or (ex.end_year is None and end_yr is None):
                         continue
 
                 # Check if tenure windows match or overlap
-                start_diff = abs(ex.start_year - start_yr)
                 ex_end = ex.end_year or 9999
                 inc_end = end_yr or 9999
 
