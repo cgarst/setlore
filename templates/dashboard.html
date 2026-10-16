@@ -6490,14 +6490,16 @@
     }
 
     function switchTab(tabId, updateUrl = true) {
-      if (typeof closeOverviewChartModal === 'function') {
-        closeOverviewChartModal();
-      }
-      if (typeof closeConcertModal === 'function') {
-        closeConcertModal();
-      }
-      if (typeof closeArtistSongModal === 'function') {
-        closeArtistSongModal();
+      if (updateUrl) {
+        if (typeof closeOverviewChartModal === 'function') {
+          closeOverviewChartModal();
+        }
+        if (typeof closeConcertModal === 'function') {
+          closeConcertModal();
+        }
+        if (typeof closeArtistSongModal === 'function') {
+          closeArtistSongModal();
+        }
       }
       tabId = normalizeTab(tabId);
       if (tabId === 'friends' && window.isPublicView) {

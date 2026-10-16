@@ -116,6 +116,9 @@ class OnboardingAndImpersonationTests(TestCase):
         self.assertEqual(res.context['user'].username, 'concert_fan')
         self.assertTrue(res.context['is_impersonating'])
         self.assertEqual(res.context['impersonator'].id, self.admin_user.id)
+        self.assertTrue(res.context['should_show_onboarding'])
+        self.assertIn('id="onboarding-modal"', res.content.decode('utf-8'))
+        self.assertIn('openOnboardingModal()', res.content.decode('utf-8'))
 
         # Now exit impersonation
         res_exit = self.client.post(reverse('stop_impersonating'), follow=True)
